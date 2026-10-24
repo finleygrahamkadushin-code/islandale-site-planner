@@ -10,7 +10,10 @@ import json, math, pathlib, subprocess
 HTML = pathlib.Path(__file__).resolve().parent.parent / "index.html"
 ORIGINAL = "0fdabcd"
 R_HOUSE, CX, CZ = 8.67, -5.33, 4.33          # west corner arc: tangent to the west wall and the front wall
-DECK_W = 8.0                                   # deck depth, same as the side porch
+DECK_W = 12.0                                  # deck depth all round the prow (the side porch roof covers the inner 8 ft)
+DECK_X = -14 - DECK_W                          # the deck's west edge
+DECK_EAST = 8.0                                # the east angled side stays 8 ft deep: deeper, its corner crosses the 35 ft shoreline setback
+EAST_FRONT_X = 2.0                             # where the 12 ft front edge turns down to the shallower east side
 EAST_PROW_X = 4.7                              # front corner of the sharp east prow; keeps scheme C under 1,600 sq ft
 STEP_FROM, STEP_TO = 90.0, 180.0               # curved steps all the way round the outer arc (deg); the straight edges keep their rails
 STEP_TREAD = 1.75                              # ft: 21 in treads, deep enough to sit on; the madrone stands in the lower steps
@@ -18,15 +21,18 @@ SINK = 4                                       # ft the cabin is set into the sl
 PORCH_Z0 = -8                                  # back end of the side porch / deck under it
 
 # the elders' walk, laid out in the planner: world metres + deck elevation in ft (elders' floor 27.49 -> side porch 23.69)
-ELDERS_WALK = [[-9.555, 2.715, 27.49], [-8.991, 0.836, 27.18], [-10.064, -2.148, 26.68], [-13.223, -4.546, 26.06],
-               [-15.357, -7.343, 25.5], [-13.796, -9.04, 25.12], [-11.202, -6.368, 24.52], [-8.911, -3.796, 23.98],
-               [-7.255, -2.972, 23.69]]
+ELDERS_WALK = [[-9.555, 2.715, 27.49], [-8.991, 0.836, 27.18], [-10.152, -2.023, 26.69], [-13.398, -4.296, 26.07],
+               [-15.782, -7.268, 25.47], [-14.221, -8.965, 25.09], [-11.877, -6.468, 24.55], [-9.944, -4.445, 24.11],
+               [-8.254, -3.671, 23.82]]
+WALK_TOP, WALK_BOTTOM = 27.49, 23.69          # ft: elders' floor and the gathering deck surface it lands on
+_z0, _z1 = ELDERS_WALK[0][2], ELDERS_WALK[-1][2]   # regrade the laid-out profile so both ends are flush
+ELDERS_WALK = [[x, n, round(WALK_TOP + (z - _z0) / (_z1 - _z0) * (WALK_BOTTOM - WALK_TOP), 2)] for x, n, z in ELDERS_WALK]
 # the beach path starts at the foot of the steps, past the madrone (world metres, measured in the planner)
 OLD_PATH = '{"t":"pad","name":"Path to beach","w":47.6,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-52.964,"x":7.85,"n":-12.5}'
-NEW_PATH = '{"t":"pad","name":"Path to beach","w":24.0,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-19.175,"x":8.759,"n":-17.088}'
+NEW_PATH = '{"t":"pad","name":"Path to beach","w":24.9,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-6.617,"x":8.452,"n":-17.853}'
 # the firepit moves to the foot of the curved steps, so the steps are its seating; the patio path to the porch goes
 OLD_FIREPIT = '{"t":"pad","name":"Firepit patio · flagstone","w":16,"d":16,"h":0.3,"color":"#b5a68c","lift":0,"rot":-15,"x":-7,"n":-7,"shape":"oct"},'
-NEW_FIREPIT = '{"t":"pad","name":"Firepit patio · flagstone","w":16,"d":16,"h":0.3,"color":"#b5a68c","lift":0,"rot":-15,"x":2.847,"n":-15.032,"shape":"oct"},'
+NEW_FIREPIT = '{"t":"pad","name":"Firepit patio · flagstone","w":16,"d":16,"h":0.3,"color":"#b5a68c","lift":0,"rot":-15,"x":2.107,"n":-17.117,"shape":"oct"},'
 PATIO_PATH = '{"t":"pad","name":"Patio path","w":15.6,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-97.125,"x":-6.75,"n":-4},'
 
 def arc(cx, cz, r, a0, a1, step):
@@ -62,17 +68,18 @@ def deck_wing(pts, step_edges):
 house_arc = arc(CX, CZ, R_HOUSE, 90, 180, 7.5)                       # (-5.33,13) -> (-14,4.33)
 house = [[-14, -13], [14, -13], [14, 4.33], [EAST_PROW_X, 13]] + house_arc   # edges 0 back, 1 east, 2 east prow, 3 front, 4..15 arc, 16 west
 assert area(house) > 0
-E, Bp, u = offset_face([14, 4.33], [EAST_PROW_X, 13], DECK_W)
-F = on_line_at(Bp, u, z=13 + DECK_W); E = [round(v, 2) for v in E]
-outer = arc(CX, CZ, R_HOUSE + DECK_W, 90, 180, 7.5)                 # (-5.33,21) -> (-22,4.33)
-curved_deck = [E, F] + outer + [[-22, PORCH_Z0], [-14, PORCH_Z0]] + list(reversed(house_arc)) + [[EAST_PROW_X, 13], [14, 4.33]]
-curved_steps = [2 + k for k in range(len(outer) - 1) if STEP_FROM <= 90 + 7.5 * k + 3.75 <= STEP_TO]
+E, Bp, u = offset_face([14, 4.33], [EAST_PROW_X, 13], DECK_EAST)
+F = on_line_at(Bp, u, z=13 + DECK_EAST); E = [round(v, 2) for v in E]
+outer = arc(CX, CZ, R_HOUSE + DECK_W, 90, 180, 7.5)                 # front tangent -> (DECK_X,4.33)
+curved_deck = [E, F, [EAST_FRONT_X, 13 + DECK_W]] + outer + [[DECK_X, PORCH_Z0], [-14, PORCH_Z0]] + list(reversed(house_arc)) + [[EAST_PROW_X, 13], [14, 4.33]]
+curved_steps = [3 + k for k in range(len(outer) - 1) if STEP_FROM <= 90 + 7.5 * k + 3.75 <= STEP_TO]
 
 # ---------- the traditional symmetric prow (C2): both prow faces angled, the deck mirrors them ----------
-Ee, Be, ue = offset_face([14, 4.33], [7, 13], DECK_W)
-Wa, Wb, uw = offset_face([-7, 13], [-14, 4.33], DECK_W)
-trad_deck = [[round(v, 2) for v in Ee], on_line_at(Be, ue, z=13 + DECK_W), on_line_at(Wa, uw, z=13 + DECK_W), on_line_at(Wa, uw, x=-22),
-             [-22, PORCH_Z0], [-14, PORCH_Z0], [-14, 4.33], [-7, 13], [7, 13], [14, 4.33]]
+TRAD_W = 8.0                                   # C2 keeps the 8 ft deck: at 12 ft its front corners cross the shoreline setback
+Ee, Be, ue = offset_face([14, 4.33], [7, 13], TRAD_W)
+Wa, Wb, uw = offset_face([-7, 13], [-14, 4.33], TRAD_W)
+trad_deck = [[round(v, 2) for v in Ee], on_line_at(Be, ue, z=13 + TRAD_W), on_line_at(Wa, uw, z=13 + TRAD_W), on_line_at(Wa, uw, x=DECK_X),
+             [DECK_X, PORCH_Z0], [-14, PORCH_Z0], [-14, 4.33], [-7, 13], [7, 13], [14, 4.33]]
 trad_steps = [2]                                                       # the angled west edge faces the madrone
 
 # ---------- shell roof outline (C4): the eaves grown by the overhang, pulled out over the deck to a tip ----------
@@ -170,8 +177,8 @@ else:
     marker = '{"t":"pad","name":"Driveway · west notch","w":24,"d":12,"h":0.2,"color":"#8c8c86","lift":0,"rot":40,"x":-23.5,"n":6,"shape":"para","skew":-6},'
     i = src.index(marker, src.index('"name":"Elders’ wedge"')); src = src[:i] + walk + src[i:]
 
-src = src.replace(OLD_FIREPIT, NEW_FIREPIT).replace('\n   ' + PATIO_PATH, '')
-for known in ('{"t":"pad","name":"Path to beach","w":66.2,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-13.276,"x":2.396,"n":-15.973}', OLD_PATH, '{"t":"pad","name":"Path to beach","w":43.3,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-35.232,"x":6.83,"n":-14.485}'):
+src = src.replace(OLD_FIREPIT, NEW_FIREPIT).replace(OLD_FIREPIT.replace('"x":-7,"n":-7','"x":2.847,"n":-15.032'), NEW_FIREPIT).replace('\n   ' + PATIO_PATH, '')
+for known in ('{"t":"pad","name":"Path to beach","w":24.0,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-19.175,"x":8.759,"n":-17.088}', '{"t":"pad","name":"Path to beach","w":66.2,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-13.276,"x":2.396,"n":-15.973}', OLD_PATH, '{"t":"pad","name":"Path to beach","w":43.3,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-35.232,"x":6.83,"n":-14.485}'):
     src = src.replace(known, NEW_PATH)
 
 a = src.index("lounge in the prow, hearth between."); b = src.index("1,5", a)
