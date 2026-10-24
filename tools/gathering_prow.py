@@ -12,8 +12,8 @@ ORIGINAL = "0fdabcd"
 R_HOUSE, CX, CZ = 8.67, -5.33, 4.33          # west corner arc: tangent to the west wall and the front wall
 DECK_W = 8.0                                   # deck depth, same as the side porch
 EAST_PROW_X = 4.7                              # front corner of the sharp east prow; keeps scheme C under 1,600 sq ft
-STEP_FROM, STEP_TO = 125.0, 165.0              # curved steps on this stretch of the outer arc (deg), facing the madrone
-STEP_TREAD = 2.25                              # ft: deep garden treads; the flight ends just past the madrone
+STEP_FROM, STEP_TO = 90.0, 180.0               # curved steps all the way round the outer arc (deg); the straight edges keep their rails
+STEP_TREAD = 1.75                              # ft: 21 in treads, deep enough to sit on; the madrone stands in the lower steps
 SINK = 4                                       # ft the cabin is set into the slope
 PORCH_Z0 = -8                                  # back end of the side porch / deck under it
 
@@ -23,7 +23,11 @@ ELDERS_WALK = [[-9.555, 2.715, 27.49], [-8.991, 0.836, 27.18], [-10.064, -2.148,
                [-7.255, -2.972, 23.69]]
 # the beach path starts at the foot of the steps, past the madrone (world metres, measured in the planner)
 OLD_PATH = '{"t":"pad","name":"Path to beach","w":47.6,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-52.964,"x":7.85,"n":-12.5}'
-NEW_PATH = '{"t":"pad","name":"Path to beach","w":66.2,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-13.276,"x":2.396,"n":-15.973}'
+NEW_PATH = '{"t":"pad","name":"Path to beach","w":24.0,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-19.175,"x":8.759,"n":-17.088}'
+# the firepit moves to the foot of the curved steps, so the steps are its seating; the patio path to the porch goes
+OLD_FIREPIT = '{"t":"pad","name":"Firepit patio · flagstone","w":16,"d":16,"h":0.3,"color":"#b5a68c","lift":0,"rot":-15,"x":-7,"n":-7,"shape":"oct"},'
+NEW_FIREPIT = '{"t":"pad","name":"Firepit patio · flagstone","w":16,"d":16,"h":0.3,"color":"#b5a68c","lift":0,"rot":-15,"x":2.847,"n":-15.032,"shape":"oct"},'
+PATIO_PATH = '{"t":"pad","name":"Patio path","w":15.6,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-97.125,"x":-6.75,"n":-4},'
 
 def arc(cx, cz, r, a0, a1, step):
     n = max(1, math.ceil(abs(a1 - a0) / step))
@@ -166,13 +170,14 @@ else:
     marker = '{"t":"pad","name":"Driveway · west notch","w":24,"d":12,"h":0.2,"color":"#8c8c86","lift":0,"rot":40,"x":-23.5,"n":6,"shape":"para","skew":-6},'
     i = src.index(marker, src.index('"name":"Elders’ wedge"')); src = src[:i] + walk + src[i:]
 
-for known in (OLD_PATH, '{"t":"pad","name":"Path to beach","w":43.3,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-35.232,"x":6.83,"n":-14.485}'):
+src = src.replace(OLD_FIREPIT, NEW_FIREPIT).replace('\n   ' + PATIO_PATH, '')
+for known in ('{"t":"pad","name":"Path to beach","w":66.2,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-13.276,"x":2.396,"n":-15.973}', OLD_PATH, '{"t":"pad","name":"Path to beach","w":43.3,"d":4,"h":0.2,"color":"#b8a888","lift":0,"rot":-35.232,"x":6.83,"n":-14.485}'):
     src = src.replace(known, NEW_PATH)
 
 a = src.index("lounge in the prow, hearth between."); b = src.index("1,5", a)
 src = src[:a] + ("lounge in the prow, hearth between. The cabin is set 4 ft into the slope. Its prow is curved on the west, where the lounge "
                  "wall and the roof sweep round toward the madrone, and sharp on the east. One deck runs under the side porch and wraps the prow; "
-                 "off the curve a fan of deep garden steps flows down to the madrone and round its trunk. The elders reach the side porch on their own "
+                 "steps run all the way round the curve, 21 in treads you can sit on, flowing round the madrone’s trunk down to the firepit at their foot; the straight east side keeps its railing. The elders reach the side porch on their own "
                  "sweeping boardwalk, a 1:21 slope with no steps. ") + src[b:]
 
 VARIANTS = [
