@@ -155,6 +155,7 @@ The first job is to pull the data out of the old file into JSON, so nothing that
 
 - **Current design:** Scheme C, with its prow variants C2 (traditional prow), C3 (twin prow) and C4 (shell prow) kept as options under it.
 - **Old designs archive:** Schemes A, B and D (Nautilus & Kelp, the rules-off dream scheme). Openable and restorable, but out of the main view.
+- **Also found in the old file (Phase 1 extraction, Oct 24 2026):** schemes E · Under the Meadow, F · Sky Datum, G · Tide Shell, H · Sod & Contour and I · Little Sky Datum. They are extracted with the rest and go into the archive alongside A, B and D.
 
 **Site data (keep exactly)**
 
