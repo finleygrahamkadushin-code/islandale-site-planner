@@ -7,7 +7,7 @@ Geometry in ft, main-mass local (+z = front, toward Mud Bay) unless noted. Rebui
     python3 tools/gathering_prow.py"""
 import json, math, pathlib, subprocess
 
-HTML = pathlib.Path(__file__).resolve().parent.parent / "index.html"
+HTML = pathlib.Path(__file__).resolve().parent.parent / "islandale-planner.html"
 ORIGINAL = "0fdabcd"
 R_HOUSE, CX, CZ = 8.67, -5.33, 4.33          # west corner arc: tangent to the west wall and the front wall
 DECK_W = 12.0                                  # deck depth all round the prow (the side porch roof covers the inner 8 ft)

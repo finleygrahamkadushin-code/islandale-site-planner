@@ -1,7 +1,7 @@
-"""Apply exact, unique string replacements to index.html. Usage: python3 tools/patch.py edits.json"""
+"""Apply exact, unique string replacements to legacy/islandale-planner.html. Usage: python3 legacy/tools/patch.py edits.json"""
 import json, sys, pathlib
 root = pathlib.Path(__file__).resolve().parent.parent
-f = root / "index.html"
+f = root / "islandale-planner.html"
 src = f.read_text()
 for i, (old, new) in enumerate(json.loads(pathlib.Path(sys.argv[1]).read_text())):
     n = src.count(old)
