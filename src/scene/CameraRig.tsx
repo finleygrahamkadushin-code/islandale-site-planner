@@ -23,7 +23,12 @@ export function CameraRig() {
 
   useEffect(() => {
     if (!request || !controls) return
-    const pose = viewPose(request.id, site)
+    const plan = usePlanStore.getState().plan
+    const houses = plan.order.map((i) => plan.objects[i]).filter((o) => o.type === 'house' && !o.hidden)
+    const focus = houses.length
+      ? ([houses.reduce((a, o) => a + o.position.x, 0) / houses.length, houses.reduce((a, o) => a + o.position.n, 0) / houses.length] as const)
+      : undefined
+    const pose = viewPose(request.id, site, focus)
     if (pose.environment) setEnvironment(pose.environment)
     flight.current = {
       from: camera.position.clone(),

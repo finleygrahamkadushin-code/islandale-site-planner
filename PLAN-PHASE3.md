@@ -18,7 +18,7 @@ Make the plan look like built work instead of coloured blocks, without slowing d
 - See doors, sliders and windows from the old file as framed glass in the walls, at their real positions, widths, heights and sills.
 - See posts or a slab under each cabin reaching down to the actual slope, instead of a block floating or sinking.
 - Switch the whole view between **Realistic**, **White model**, **Sketch** and **Diagram** from the top bar.
-- Jump to saved views: **Overview**, **From the water**, **Entry at the west notch**, **Deck at sunset**, **Plan (top)**.
+- Jump to saved views: **Overview**, **From the water**, **Entry at the west notch**, **Golden hour**, **Plan (top)**.
 
 ## Not in Phase 3 (comes later)
 
@@ -38,7 +38,7 @@ Make the plan look like built work instead of coloured blocks, without slowing d
 6. **Procedural materials.** Canvas-drawn textures, no downloads: board-and-batten, horizontal lap and cedar shingle siding; standing-seam metal, cedar shake and green sod roofs; deck boards with gaps; concrete. Walls get UVs measured in feet along the perimeter so boards are true size. Glass is a physical material that reflects the sky.
 7. **Cabin geometry.** Split each building into parts: walls (the footprint prism), roof, fascia and eaves, posts or slab foundation down to grade, and openings. Roofs follow the old `roofGeometry`: gable, hip, shed, pyramid, butterfly and prow; sod as a thick green flat roof; shell and dome as a smooth cap. Pitch is rise per foot of run (`pitch / 12`); `ridge` picks the ridge direction; `overhang` sets the eaves.
 8. **Display styles.** Realistic (all of the above). White model (every surface white, soft AO, grey ground, no textures, water pale). Sketch (white surfaces with black edge lines). Diagram (one flat colour per object, no textures).
-9. **Saved views.** Five camera presets with smooth transitions. "Deck at sunset" also sets the hour to 19 in September.
+9. **Saved views.** Five camera presets with smooth transitions. "Golden hour" also sets the light to 4:45 pm in September (see deviations).
 10. **Check and commit.** Walk both done-when styles through the saved views, send screenshots, run the tests, commit.
 
 ## Design decisions (say if you disagree)
@@ -61,7 +61,7 @@ Make the plan look like built work instead of coloured blocks, without slowing d
 ## Deviations noted while building
 
 - **Phase 1 units bug, fixed.** The legacy terrain grid is in metres, not feet; Phase 1 had scaled it by 0.3048, flattening the site. Found because the tide water flooded the lot. Heights now match the old planner.
-- **Deck at sunset** looks back at the gathering cabin from the seaward lawn at 5:45 pm, not from the deck at 7 pm. By the old planner's sun maths the September sun sets at about 6:20 pm, and the deck itself is a Phase 5 wing, so a camera "on the deck" floated among the posts.
+- **Deck at sunset became "Golden hour"**: the gathering cabin from the west-south-west at 4:45 pm in September. By the old planner's sun maths the September sun sets at about 6:20 pm; at 5:45 pm it is about 5° up and the madrones and slope to the west shade the cabin. The deck itself is a Phase 5 wing, so a camera "on the deck" floated among the posts.
 - **Pitched roofs follow the footprint's bounding box**, as the old `roofGeometry` did. On curved plans (the gathering prow) the eaves reach past the wall at the corners; Phase 5 can fit roofs to the outline.
 - **Prow roof** is drawn as a gable whose seaward end comes to a point. The old file's sculpted prow variants (C2–C4) differ in detail and come back with the Phase 5 roof editor.
 - **Openings** are framed glass on the wall face (no boolean cuts yet), as planned.

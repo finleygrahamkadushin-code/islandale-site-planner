@@ -57,8 +57,8 @@ export function SceneEnvironment() {
 
   const realistic = style === 'realistic'
   const bg = STYLE_BACKGROUND[style]
-  const sunColour = realistic ? `hsl(${32 + 18 * (1 - warm)}, ${70 * warm + 10}%, ${88 + 8 * (1 - warm)}%)` : '#ffffff'
-  const sunIntensity = realistic ? 0.3 + 2.4 * daylight : style === 'diagram' ? 1.3 : 2.1
+  const sunColour = realistic ? `hsl(${28 + 22 * (1 - warm)}, ${85 * warm + 10}%, ${78 + 17 * (1 - warm)}%)` : '#ffffff'
+  const sunIntensity = realistic ? (sun.elevationDeg > 0 ? 1.0 + 1.8 * daylight : 0.25) : style === 'diagram' ? 1.3 : 2.1
   const fill = realistic ? 0.12 + 0.18 * daylight : style === 'diagram' ? 1.7 : 1.75
 
   return (

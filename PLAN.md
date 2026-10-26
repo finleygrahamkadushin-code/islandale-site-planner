@@ -242,5 +242,5 @@ check it in the browser, and commit.
 Record here any behaviour that the rebuild intentionally does differently from `legacy/islandale-planner.html`.
 
 - Phase 2 draws every object as a plain prism of its footprint (no roofs, wings, cuts or interiors) in its legacy colour; the full geometry returns in Phase 5. Curved footprints draw as their bounding box until then.
-- Phase 3 draws openings as framed glass on the wall face rather than cutting the wall, and fits pitched roofs to the footprint's bounding box as the legacy roofGeometry did. Saved views and sun settings are new; the sunset view uses 5:45 pm because the legacy sun maths sets the September sun at about 6:20 pm.
+- Phase 3 draws openings as framed glass on the wall face rather than cutting the wall, and fits pitched roofs to the footprint's bounding box as the legacy roofGeometry did. Saved views and sun settings are new; the planned "Deck at sunset" view became "Golden hour" at 4:45 pm, because the legacy sun maths sets the September sun at about 6:20 pm and the west slope shades the cabin before then.
 - A legacy bridge's route points are stored relative to the bridge's position instead of as absolute site points, so the bridge can be moved as one object.

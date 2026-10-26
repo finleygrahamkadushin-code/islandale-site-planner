@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 /** Phase 3: every display style and saved view renders cleanly and changes no plan data. */
 
 const STYLES = ['Realistic', 'White model', 'Sketch', 'Diagram'] as const
-const VIEWS = ['Overview', 'From the water', 'Entry at the west notch', 'Deck at sunset', 'Plan (top)'] as const
+const VIEWS = ['Overview', 'From the water', 'Entry at the west notch', 'Golden hour', 'Plan (top)'] as const
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = []
@@ -51,10 +51,10 @@ test('each saved view moves the camera', async ({ page }) => {
   // five views, five different camera positions
   expect(poses.size).toBe(VIEWS.length)
   expect(errors).toEqual([])
-  // the sunset view sets the late afternoon light
+  // the golden-hour view sets the late afternoon light
   const env = await page.evaluate(() => (window as any).islandale.store.getState().environment)
   expect(env.season).toBe('sep')
-  expect(env.hour).toBeGreaterThan(17)
+  expect(env.hour).toBeGreaterThan(16)
 })
 
 test('style and sun settings survive a reload', async ({ page }) => {
