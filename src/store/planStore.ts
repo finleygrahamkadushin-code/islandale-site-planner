@@ -42,6 +42,10 @@ export interface PlanState {
   readonly replacePlan: (plan: Plan) => void
   readonly moveObject: (id: ObjectId, position: { x: number; n: number }) => void
   readonly rotateObject: (id: ObjectId, rotation: number) => void
+  /** Move and rotate together as one undo step (the end of a gizmo drag). */
+  readonly transformObject: (id: ObjectId, t: { position?: { x: number; n: number }; rotation?: number }) => void
+  /** Shift several objects by the same offset (metres) as one undo step; locked ones stay put. */
+  readonly nudgeObjects: (ids: readonly ObjectId[], dx: number, dn: number) => void
   readonly resizeObject: (id: ObjectId, size: { w: number; d: number }) => void
   readonly setObjectParams: (id: ObjectId, patch: Record<string, unknown>) => void
   readonly renameObject: (id: ObjectId, name: string) => void
@@ -100,6 +104,24 @@ export const usePlanStore = create<PlanState>()(
         replacePlan: (plan) => set({ plan, selection: [] }),
         moveObject: (id, position) => edit(id, (o) => ({ ...o, position: { ...position } })),
         rotateObject: (id, rotation) => edit(id, (o) => ({ ...o, rotation: normalizeDeg(rotation) })),
+        transformObject: (id, t) =>
+          edit(id, (o) => ({
+            ...o,
+            position: t.position ? { ...t.position } : o.position,
+            rotation: t.rotation === undefined ? o.rotation : normalizeDeg(t.rotation),
+          })),
+        nudgeObjects: (ids, dx, dn) => {
+          const s = get()
+          const movable = ids.filter((id) => s.plan.objects[id] && !isObjectLocked(s, id))
+          if (movable.length < ids.length) s.showToast(ids.length === 1 ? `${s.plan.objects[ids[0]]?.name ?? 'Object'} is locked` : 'Some objects are locked')
+          if (!movable.length) return
+          const objects = { ...s.plan.objects }
+          for (const id of movable) {
+            const o = objects[id]
+            objects[id] = { ...o, position: { x: o.position.x + dx, n: o.position.n + dn } }
+          }
+          set({ plan: { ...s.plan, objects } })
+        },
         resizeObject: (id, { w, d }) =>
           edit(id, (o) => ({ ...o, params: { ...o.params, w: Math.max(1, w), d: Math.max(1, d) } })),
         setObjectParams: (id, patch) => edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),

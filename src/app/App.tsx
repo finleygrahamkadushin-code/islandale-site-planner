@@ -2,8 +2,10 @@ import { Scene } from '../scene/Scene'
 import { usePlanStore } from '../store/planStore'
 import { ringArea } from '../site/parcel'
 import { sqFtToAcres, sqMToSqFt } from '../site/units'
+import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
 
 export function App() {
+  useKeyboardShortcuts()
   const plan = usePlanStore((s) => s.plan)
   const site = usePlanStore((s) => s.site)
   const lotSqFt = Math.round(sqMToSqFt(ringArea(site.parcel.ring)))

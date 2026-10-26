@@ -41,6 +41,25 @@ describe('plan store', () => {
       expect(store().plan).toBe(after)
     })
 
+    test('transform moves and rotates as one undo step', () => {
+      const id = firstId()
+      store().transformObject(id, { position: { x: 3, n: 4 }, rotation: 400 })
+      expect(store().plan.objects[id].position).toEqual({ x: 3, n: 4 })
+      expect(store().plan.objects[id].rotation).toBe(40)
+      expect(history().pastStates).toHaveLength(1)
+    })
+
+    test('nudge shifts several objects as one undo step and skips locked ones', () => {
+      const [a, b] = store().plan.order
+      const ax = store().plan.objects[a].position.x
+      const bx = store().plan.objects[b].position.x
+      store().setLocked(b, true)
+      store().nudgeObjects([a, b], 1, 0)
+      expect(store().plan.objects[a].position.x).toBeCloseTo(ax + 1, 9)
+      expect(store().plan.objects[b].position.x).toBe(bx)
+      expect(history().pastStates).toHaveLength(2) // lock + nudge
+    })
+
     test('delete removes the object and clears it from the selection', () => {
       const id = firstId()
       store().select([id])

@@ -7,13 +7,14 @@ import { ParcelLine } from './ParcelLine'
 import { PlanObjects } from './PlanObjects'
 import { LabelLayer } from './LabelLayer'
 import { LabelProjector } from './LabelProjector'
+import { EditGizmos } from './EditGizmos'
 import { onGround } from './frame'
 import type { DragState } from './editing'
 
 export function Scene() {
   const site = usePlanStore((s) => s.site)
   const select = usePlanStore((s) => s.select)
-  const [drag] = useState<DragState | null>(null)
+  const [drag, setDrag] = useState<DragState | null>(null)
   const target = onGround(site.terrain, 0, 0)
   return (
     <div className="viewport">
@@ -41,6 +42,7 @@ export function Scene() {
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
       <LabelProjector drag={drag} />
+      <EditGizmos drag={drag} setDrag={setDrag} />
       <OrbitControls makeDefault target={target} maxPolarAngle={Math.PI / 2 - 0.02} enableDamping />
     </Canvas>
     </div>
