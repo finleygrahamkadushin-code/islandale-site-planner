@@ -3,7 +3,7 @@ import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { usePlanStore } from '../store/planStore'
-import type { LabelMode } from '../store/types'
+import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -20,6 +20,8 @@ export function TopBar() {
   const setLabelMode = usePlanStore((s) => s.setLabelMode)
   const loadScheme = usePlanStore((s) => s.loadScheme)
   const saveStatus = usePlanStore((s) => s.saveStatus)
+  const displayStyle = usePlanStore((s) => s.displayStyle)
+  const setDisplayStyle = usePlanStore((s) => s.setDisplayStyle)
   const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
   const canRedo = useStore(usePlanStore.temporal, (s) => s.futureStates.length > 0)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -67,6 +69,15 @@ export function TopBar() {
         <button onClick={() => usePlanStore.temporal.getState().redo()} disabled={!canRedo} title="Redo (⇧⌘Z)">
           Redo
         </button>
+      </div>
+
+      <div className="seg" role="group" aria-label="Display style">
+        <span className="muted">Style</span>
+        {DISPLAY_STYLES.map((d) => (
+          <button key={d.id} className={displayStyle === d.id ? 'on' : ''} onClick={() => setDisplayStyle(d.id)}>
+            {d.label}
+          </button>
+        ))}
       </div>
 
       <div className="seg" role="group" aria-label="Labels">

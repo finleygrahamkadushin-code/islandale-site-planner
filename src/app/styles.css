@@ -65,7 +65,9 @@ input:disabled { opacity: 0.5; }
 .side {
   position: absolute; top: 12px; right: 12px; bottom: 12px; width: 268px; z-index: 2;
   overflow: auto; pointer-events: none;
+  display: flex; flex-direction: column; gap: 10px;
 }
+.side input[type='range'] { width: 100%; padding: 0; }
 .panel {
   pointer-events: auto;
   border: 1px solid var(--line); border-radius: 8px; padding: 12px;

@@ -1,5 +1,16 @@
 import { get as idbGet, set as idbSet } from 'idb-keyval'
-import { DEFAULT_LAYERS, LAYER_IDS, type LabelMode, type Layers, type Plan, type PlanObject } from './types'
+import {
+  DEFAULT_ENVIRONMENT,
+  DEFAULT_LAYERS,
+  DISPLAY_STYLES,
+  LAYER_IDS,
+  type DisplayStyle,
+  type Environment,
+  type LabelMode,
+  type Layers,
+  type Plan,
+  type PlanObject,
+} from './types'
 
 export const PLAN_FILE_VERSION = 1
 export const AUTOSAVE_KEY = 'islandale-plan'
@@ -9,7 +20,12 @@ export interface PlanFile {
   readonly app: 'islandale-site-planner'
   readonly savedAt: string
   readonly plan: Plan
-  readonly view: { readonly labelMode: LabelMode; readonly layers: Layers }
+  readonly view: {
+    readonly labelMode: LabelMode
+    readonly layers: Layers
+    readonly environment?: Environment
+    readonly displayStyle?: DisplayStyle
+  }
 }
 
 export function serializePlan(plan: Plan, view: PlanFile['view'], now = new Date()): string {
@@ -90,7 +106,15 @@ function validateView(raw: unknown): PlanFile['view'] {
       ]
     }),
   ) as Layers
-  return { labelMode, layers }
+  const envRaw = isRecord(raw) && isRecord(raw.environment) ? raw.environment : {}
+  const environment: Environment = {
+    season: envRaw.season === 'jun' || envRaw.season === 'sep' || envRaw.season === 'dec' ? envRaw.season : DEFAULT_ENVIRONMENT.season,
+    hour: isNum(envRaw.hour) ? envRaw.hour : DEFAULT_ENVIRONMENT.hour,
+    tideFt: isNum(envRaw.tideFt) ? envRaw.tideFt : DEFAULT_ENVIRONMENT.tideFt,
+  }
+  const style = isRecord(raw) ? raw.displayStyle : undefined
+  const displayStyle: DisplayStyle = DISPLAY_STYLES.some((d) => d.id === style) ? (style as DisplayStyle) : 'realistic'
+  return { labelMode, layers, environment, displayStyle }
 }
 
 export async function saveToBrowser(plan: Plan, view: PlanFile['view']): Promise<void> {

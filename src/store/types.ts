@@ -33,6 +33,30 @@ export interface Plan {
 
 export type LabelMode = 'all' | 'selected' | 'none'
 
+export type DisplayStyle = 'realistic' | 'white' | 'sketch' | 'diagram'
+
+export const DISPLAY_STYLES: readonly { readonly id: DisplayStyle; readonly label: string }[] = [
+  { id: 'realistic', label: 'Realistic' },
+  { id: 'white', label: 'White model' },
+  { id: 'sketch', label: 'Sketch' },
+  { id: 'diagram', label: 'Diagram' },
+]
+
+export type SeasonId = 'jun' | 'sep' | 'dec'
+
+/** Sun and water settings. View state: saved with the plan, never an undo step. */
+export interface Environment {
+  readonly season: SeasonId
+  /** Local hour, 7 to 19. */
+  readonly hour: number
+  /** Tide level, feet NAVD88, 0 to 12 as in the legacy planner. */
+  readonly tideFt: number
+}
+
+export const DEFAULT_ENVIRONMENT: Environment = { season: 'sep', hour: 14, tideFt: 6.2 }
+export const HOUR_RANGE = { min: 7, max: 19 } as const
+export const TIDE_RANGE_FT = { min: 0, max: 12 } as const
+
 export type LayerId = 'buildings' | 'paths' | 'trees' | 'labels'
 
 export interface LayerState {

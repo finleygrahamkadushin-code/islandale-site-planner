@@ -6,7 +6,12 @@ import type { Site } from '../site/types'
 import type { Scheme } from '../site/schemes'
 import { planFromScheme } from './fromLegacy'
 import {
+  DEFAULT_ENVIRONMENT,
   DEFAULT_LAYERS,
+  HOUR_RANGE,
+  TIDE_RANGE_FT,
+  type DisplayStyle,
+  type Environment,
   layerOf,
   type LabelMode,
   type LayerId,
@@ -34,6 +39,8 @@ export interface PlanState {
   readonly siteLocked: boolean
   readonly labelMode: LabelMode
   readonly layers: Layers
+  readonly environment: Environment
+  readonly displayStyle: DisplayStyle
   readonly saveStatus: SaveStatus
   readonly toast: Toast | null
 
@@ -63,9 +70,17 @@ export interface PlanState {
   readonly setLayer: (layer: LayerId, patch: Partial<LayerState>) => void
   readonly lockAll: (locked: boolean) => void
   readonly showAll: () => void
+  readonly setEnvironment: (patch: Partial<Environment>) => void
+  readonly setDisplayStyle: (style: DisplayStyle) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly showToast: (text: string) => void
-  readonly hydrate: (saved: { plan: Plan; labelMode?: LabelMode; layers?: Layers }) => void
+  readonly hydrate: (saved: {
+    plan: Plan
+    labelMode?: LabelMode
+    layers?: Layers
+    environment?: Environment
+    displayStyle?: DisplayStyle
+  }) => void
 }
 
 const site = loadIslandale()
@@ -96,6 +111,8 @@ export const usePlanStore = create<PlanState>()(
         siteLocked: true,
         labelMode: 'all',
         layers: DEFAULT_LAYERS,
+        environment: DEFAULT_ENVIRONMENT,
+        displayStyle: 'realistic',
         saveStatus: 'loading',
         toast: null,
 
@@ -159,13 +176,17 @@ export const usePlanStore = create<PlanState>()(
             layers: mapLayers(s.layers, (l) => ({ ...l, locked })),
           })),
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
+        setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
+        setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
-        hydrate: ({ plan, labelMode, layers }) =>
+        hydrate: ({ plan, labelMode, layers, environment, displayStyle }) =>
           set({
             plan,
             labelMode: labelMode ?? get().labelMode,
             layers: layers ?? get().layers,
+            environment: environment ? clampEnvironment(environment) : get().environment,
+            displayStyle: displayStyle ?? get().displayStyle,
             selection: [],
           }),
       }
@@ -211,6 +232,15 @@ function withObject(plan: Plan, id: ObjectId, patch: Partial<PlanObject>): Plan 
 
 function mapLayers(layers: Layers, f: (l: LayerState) => LayerState): Layers {
   return Object.fromEntries(Object.entries(layers).map(([k, v]) => [k, f(v)])) as Layers
+}
+
+export function clampEnvironment(e: Environment): Environment {
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+  return {
+    season: e.season,
+    hour: clamp(e.hour, HOUR_RANGE.min, HOUR_RANGE.max),
+    tideFt: clamp(e.tideFt, TIDE_RANGE_FT.min, TIDE_RANGE_FT.max),
+  }
 }
 
 export function normalizeDeg(deg: number): number {

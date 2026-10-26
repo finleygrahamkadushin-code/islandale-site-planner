@@ -1,4 +1,4 @@
-import { usePlanStore } from './planStore'
+import { usePlanStore, type PlanState } from './planStore'
 import { loadFromBrowser, saveToBrowser } from './persistence'
 
 const SAVE_DELAY_MS = 400
@@ -16,7 +16,7 @@ export function startAutosave(): () => void {
     const s = usePlanStore.getState()
     s.setSaveStatus('saving')
     try {
-      await saveToBrowser(s.plan, { labelMode: s.labelMode, layers: s.layers })
+      await saveToBrowser(s.plan, viewOf(s))
       if (!stopped) usePlanStore.getState().setSaveStatus('saved')
     } catch (err) {
       console.error('[autosave] save failed', err)
@@ -34,7 +34,14 @@ export function startAutosave(): () => void {
   }
 
   const unsubscribe = usePlanStore.subscribe((state, prev) => {
-    if (state.plan !== prev.plan || state.labelMode !== prev.labelMode || state.layers !== prev.layers) schedule()
+    if (
+      state.plan !== prev.plan ||
+      state.labelMode !== prev.labelMode ||
+      state.layers !== prev.layers ||
+      state.environment !== prev.environment ||
+      state.displayStyle !== prev.displayStyle
+    )
+      schedule()
   })
 
   void (async () => {
@@ -42,7 +49,7 @@ export function startAutosave(): () => void {
       const saved = await loadFromBrowser()
       if (stopped) return
       if (saved) {
-        usePlanStore.getState().hydrate({ plan: saved.plan, labelMode: saved.view.labelMode, layers: saved.view.layers })
+        usePlanStore.getState().hydrate({ plan: saved.plan, ...saved.view })
         usePlanStore.temporal.getState().clear()
       }
       usePlanStore.getState().setSaveStatus('saved')
@@ -61,3 +68,11 @@ export function startAutosave(): () => void {
     if (timer) clearTimeout(timer)
   }
 }
+
+export const viewOf = (s: PlanState) => ({
+  labelMode: s.labelMode,
+  layers: s.layers,
+  environment: s.environment,
+  displayStyle: s.displayStyle,
+})
+

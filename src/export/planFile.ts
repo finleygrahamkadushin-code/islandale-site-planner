@@ -1,10 +1,11 @@
 import { usePlanStore } from '../store/planStore'
 import { parsePlanFile, serializePlan, type PlanFile } from '../store/persistence'
+import { viewOf } from '../store/autosave'
 
 /** Offer the current plan as a JSON download. */
 export function downloadPlanFile(): void {
   const s = usePlanStore.getState()
-  const text = serializePlan(s.plan, { labelMode: s.labelMode, layers: s.layers })
+  const text = serializePlan(s.plan, viewOf(s))
   const blob = new Blob([text], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -28,6 +29,8 @@ export async function importPlanFile(file: File): Promise<void> {
     s.replacePlan(parsed.plan)
     s.setLabelMode(parsed.view.labelMode)
     for (const [id, layer] of Object.entries(parsed.view.layers)) s.setLayer(id as keyof typeof parsed.view.layers, layer)
+    if (parsed.view.environment) s.setEnvironment(parsed.view.environment)
+    if (parsed.view.displayStyle) s.setDisplayStyle(parsed.view.displayStyle)
     s.showToast(`Loaded ${parsed.plan.name}`)
   } catch (err) {
     s.showToast(`Could not import: ${err instanceof Error ? err.message : 'unknown error'}`)

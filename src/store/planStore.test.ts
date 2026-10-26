@@ -150,6 +150,16 @@ describe('plan store', () => {
     expect(store().plan.schemeId).toBe('C')
   })
 
+  test('environment and display style change no plan data and add no undo step', () => {
+    const before = store().plan
+    store().setDisplayStyle('white')
+    store().setEnvironment({ hour: 18, season: 'jun', tideFt: 40 })
+    expect(store().plan).toBe(before)
+    expect(history().pastStates).toHaveLength(0)
+    expect(store().environment).toEqual({ season: 'jun', hour: 18, tideFt: 12 })
+    store().setDisplayStyle('realistic')
+  })
+
   test('rotation is normalised to (-180, 180]', () => {
     expect(normalizeDeg(370)).toBe(10)
     expect(normalizeDeg(-190)).toBe(170)
