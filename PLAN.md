@@ -241,4 +241,5 @@ check it in the browser, and commit.
 
 Record here any behaviour that the rebuild intentionally does differently from `legacy/islandale-planner.html`.
 
-- (none yet)
+- Phase 2 draws every object as a plain prism of its footprint (no roofs, wings, cuts or interiors) in its legacy colour; the full geometry returns in Phase 5. Curved footprints draw as their bounding box until then.
+- A legacy bridge's route points are stored relative to the bridge's position instead of as absolute site points, so the bridge can be moved as one object.

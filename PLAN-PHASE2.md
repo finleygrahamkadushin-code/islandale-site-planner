@@ -1,6 +1,6 @@
 # Phase 2 plan: core editing (the first usable version)
 
-Status: **draft, waiting for Finley's edits and OK.** Edit anything here; Claude Code reads this file before starting Phase 2.
+Status: **done (Oct 26 2026).** The done-when check passes by hand in the browser and in `e2e/done-when.spec.ts`. Notes on what was built differently are at the end.
 
 Branch: `phase-2-core-editing` (branched from `phase-1-foundation`).
 
@@ -79,3 +79,15 @@ Follow the steps in order, tests first for the store. Show me the app in the
 browser after steps 1, 3, 6 and 8. Commit after each step that leaves the app
 runnable. Stop and ask before any change to the design decisions.
 ```
+
+## How it was built (notes after the fact)
+
+- Open questions went with the defaults: deck wings wait for Phase 5, objects keep their old colours.
+- Move and rotate use one drei `PivotControls` with the ground-plane handle and the y ring (the arrows and scale handles hidden); resize is four corner cubes. Each drag commits once to the store on release.
+- Name labels are one DOM layer positioned every frame, not drei's `Html` (one React root per label), which React 19 StrictMode rejects.
+- Buildings sit on the highest ground under their footprint plus their lift; pads and trees sit on the ground at their centre, as in the old planner. Curved footprints (blob, kidney, teardrop, ribbon) draw as their bounding box until Phase 5.
+- Bridges keep their route relative to the object so they can move with it.
+- The Playwright test moves the patio with the arrow keys rather than a pointer drag, because gizmo handle positions are not stable enough to find by coordinate; the drags were checked by hand in the browser.
+- Layer visibility and locks, and the labels switch, are saved with the plan but are not undo steps.
+- `window.islandale.store` exposes the store for tests and debugging.
+
