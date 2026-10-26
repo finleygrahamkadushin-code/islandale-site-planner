@@ -1,12 +1,11 @@
 import terrainJson from '../../data/islandale/terrain.json'
 import parcelJson from '../../data/islandale/parcel.json'
-import { ftToM } from './units'
 import type { Parcel, Site, SitePoint, Terrain } from './types'
 
 /**
  * The Islandale lot on Lopez Island, as extracted from the legacy planner.
- * Elevations in the JSON are feet NAVD88 and are converted to metres here;
- * everything else is already metres in the site frame.
+ * Everything is metres: positions in the site frame, elevations NAVD88.
+ * (The legacy grid stores metres; its fmtFt() converts them for display.)
  */
 export function loadIslandaleTerrain(): Terrain {
   const { nx, ny, spacing, z } = terrainJson
@@ -21,7 +20,7 @@ export function loadIslandaleTerrain(): Terrain {
     ny,
     x0: (-(nx - 1) / 2) * spacing,
     n0: (-(ny - 1) / 2) * spacing,
-    z: z.map(ftToM),
+    z: [...z],
   }
 }
 

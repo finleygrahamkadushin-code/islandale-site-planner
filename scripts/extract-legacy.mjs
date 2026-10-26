@@ -102,7 +102,7 @@ const terrain = {
     ...meta,
     source: 'USGS 3DEP 1/9 arc-second LiDAR DEM, sampled every 2 m',
     datum: 'NAVD88',
-    units: { spacing: 'm', z: 'ft' },
+    units: { spacing: 'm', z: 'm' },
   },
   lon0: grid.lon0,
   lat0: grid.lat0,

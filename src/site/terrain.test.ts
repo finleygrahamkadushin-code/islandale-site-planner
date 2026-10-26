@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import terrainJson from '../../data/islandale/terrain.json'
 import { loadIslandaleTerrain } from './islandale'
 import { elevationAt, samplePosition, terrainBounds } from './terrain'
-import { ftToM, mToFt } from './units'
+import { mToFt } from './units'
 
 const LEGACY = { nx: 121, ny: 101, spacing: 2, samples: 121 * 101 }
 
@@ -25,11 +25,14 @@ describe('Islandale terrain grid', () => {
     expect(b.maxN).toBe(100)
   })
 
-  test('stores elevations in metres converted from the legacy feet', () => {
-    expect(t.z[0]).toBeCloseTo(ftToM(terrainJson.z[0]), 9)
+  test('keeps the legacy elevations, which are metres NAVD88', () => {
+    expect(t.z[0]).toBe(terrainJson.z[0])
+    expect(terrainJson.meta.units.z).toBe('m')
     const b = terrainBounds(t)
-    expect(mToFt(b.minZ)).toBeGreaterThan(-5)
-    expect(mToFt(b.maxZ)).toBeLessThan(200)
+    // the lot runs from the beach (about 4 ft) up to about 46 ft
+    expect(mToFt(b.minZ)).toBeGreaterThan(3)
+    expect(mToFt(b.maxZ)).toBeGreaterThan(40)
+    expect(mToFt(b.maxZ)).toBeLessThan(50)
   })
 
   test('returns the sample value exactly at a grid node', () => {
