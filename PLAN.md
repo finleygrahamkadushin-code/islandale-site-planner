@@ -194,7 +194,7 @@ Six phases, each ending in something you can open and use. Lock and hide names l
 
 Don't start a phase until the one before passes its done-when check; that keeps the app runnable the whole way through.
 
-Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md).
+Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI).
 
 ## Later: making it bigger
 
