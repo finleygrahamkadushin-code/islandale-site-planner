@@ -1,0 +1,109 @@
+import { useRef } from 'react'
+import { useStore } from 'zustand'
+import { downloadPlanFile, importPlanFile } from '../export/planFile'
+import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
+import { usePlanStore } from '../store/planStore'
+import type { LabelMode } from '../store/types'
+
+const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'selected', label: 'Selected' },
+  { id: 'none', label: 'None' },
+]
+
+const SAVE_TEXT = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved', error: 'Not saved', loading: 'Loading…' } as const
+
+export function TopBar() {
+  const plan = usePlanStore((s) => s.plan)
+  const schemes = usePlanStore((s) => s.schemes)
+  const labelMode = usePlanStore((s) => s.labelMode)
+  const setLabelMode = usePlanStore((s) => s.setLabelMode)
+  const loadScheme = usePlanStore((s) => s.loadScheme)
+  const saveStatus = usePlanStore((s) => s.saveStatus)
+  const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
+  const canRedo = useStore(usePlanStore.temporal, (s) => s.futureStates.length > 0)
+  const fileInput = useRef<HTMLInputElement>(null)
+
+  const byId = (id: string) => schemes.find((s) => s.id === id)
+  const onReset = () => {
+    if (window.confirm('Replace the current plan with Scheme C as saved in the old planner? You can undo this.')) loadScheme(CURRENT_SCHEME_ID)
+  }
+
+  return (
+    <header className="topbar">
+      <h1>Islandale</h1>
+      <label className="field">
+        <span className="muted">Scheme</span>
+        <select
+          value={plan.schemeId ?? ''}
+          onChange={(e) => e.target.value && loadScheme(e.target.value)}
+          title="Load a scheme (replaces the plan; undo to go back)"
+        >
+          {!plan.schemeId && <option value="">Imported plan</option>}
+          <optgroup label="Current">
+            <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
+          </optgroup>
+          <optgroup label="Prow variants">
+            {CURRENT_VARIANT_IDS.map((id) => (
+              <option key={id} value={id}>
+                {byId(id)?.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Old designs">
+            {ARCHIVED_SCHEME_IDS.map((id) => (
+              <option key={id} value={id}>
+                {byId(id)?.name}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+      </label>
+
+      <div className="seg" role="group" aria-label="Undo and redo">
+        <button onClick={() => usePlanStore.temporal.getState().undo()} disabled={!canUndo} title="Undo (⌘Z)">
+          Undo
+        </button>
+        <button onClick={() => usePlanStore.temporal.getState().redo()} disabled={!canRedo} title="Redo (⇧⌘Z)">
+          Redo
+        </button>
+      </div>
+
+      <div className="seg" role="group" aria-label="Labels">
+        <span className="muted">Labels</span>
+        {LABEL_MODES.map((m) => (
+          <button key={m.id} className={labelMode === m.id ? 'on' : ''} onClick={() => setLabelMode(m.id)}>
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="seg" role="group" aria-label="Plan file">
+        <button onClick={downloadPlanFile} title="Download the plan as a JSON file">
+          Export
+        </button>
+        <button onClick={() => fileInput.current?.click()} title="Load a plan from a JSON file">
+          Import
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void importPlanFile(f)
+            e.target.value = ''
+          }}
+        />
+        <button onClick={onReset} title="Back to Scheme C as saved in the old planner">
+          Reset
+        </button>
+      </div>
+
+      <span className={`muted save ${saveStatus}`} data-testid="save-status">
+        {SAVE_TEXT[saveStatus]}
+      </span>
+    </header>
+  )
+}

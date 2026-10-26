@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import './app/styles.css'
 import { usePlanStore } from './store/planStore'
+import { startAutosave } from './store/autosave'
 
 // For end-to-end tests and debugging in the console.
 declare global {
@@ -11,6 +12,7 @@ declare global {
   }
 }
 window.islandale = { store: usePlanStore }
+startAutosave()
 
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('Missing #root element')
