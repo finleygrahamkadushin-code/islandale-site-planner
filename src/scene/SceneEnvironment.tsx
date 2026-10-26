@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { Environment, Sky } from '@react-three/drei'
+import { Environment, MeshReflectorMaterial, Sky } from '@react-three/drei'
 import type { DirectionalLight } from 'three'
 import { sunPosition } from '../site/sun'
 import { ringArea } from '../site/parcel'
@@ -58,8 +58,8 @@ export function SceneEnvironment() {
   const realistic = style === 'realistic'
   const bg = STYLE_BACKGROUND[style]
   const sunColour = realistic ? `hsl(${32 + 18 * (1 - warm)}, ${70 * warm + 10}%, ${88 + 8 * (1 - warm)}%)` : '#ffffff'
-  const sunIntensity = realistic ? 0.3 + 2.4 * daylight : style === 'diagram' ? 1.2 : 1.8
-  const fill = realistic ? 0.12 + 0.18 * daylight : style === 'diagram' ? 1.6 : 1.1
+  const sunIntensity = realistic ? 0.3 + 2.4 * daylight : style === 'diagram' ? 1.3 : 2.1
+  const fill = realistic ? 0.12 + 0.18 * daylight : style === 'diagram' ? 1.7 : 1.75
 
   return (
     <>
@@ -96,7 +96,17 @@ function Water({ tideFt, style }: { readonly tideFt: number; readonly style: str
     return (
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]} receiveShadow name="water">
         <planeGeometry args={[WATER_SIZE_M, WATER_SIZE_M]} />
-        <meshPhysicalMaterial color="#35525e" roughness={0.06} metalness={0} clearcoat={1} clearcoatRoughness={0.1} envMapIntensity={1.2} transparent opacity={0.92} />
+        <MeshReflectorMaterial
+          color="#2a4450"
+          resolution={1024}
+          mirror={0.55}
+          blur={[400, 120]}
+          mixBlur={0.9}
+          mixStrength={2.2}
+          depthScale={0}
+          roughness={0.35}
+          metalness={0.2}
+        />
       </mesh>
     )
   }

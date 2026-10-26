@@ -10,6 +10,7 @@ import { LabelProjector } from './LabelProjector'
 import { EditGizmos } from './EditGizmos'
 import { SceneEnvironment } from './SceneEnvironment'
 import { Effects } from './Effects'
+import { CameraRig } from './CameraRig'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -35,6 +36,7 @@ export function Scene() {
       <LabelProjector drag={drag} />
       <EditGizmos drag={drag} setDrag={setDrag} />
       <Effects />
+      <CameraRig />
       <OrbitControls makeDefault target={target} maxPolarAngle={Math.PI / 2 - 0.02} enableDamping />
     </Canvas>
     </div>

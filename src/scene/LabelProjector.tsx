@@ -45,6 +45,7 @@ function labelAnchor(o: PlanObject, terrain: Terrain): [number, number, number] 
     const mid = pts[Math.floor(pts.length / 2)]
     if (mid) return toScene(mid[0], mid[1], mid[2] + 0.6)
   }
-  const h = o.type === 'tree' ? ftToM(num(o.params.h, 25)) : heightM(o)
+  const roofRise = o.type === 'house' && o.params.roof !== 'none' ? ftToM((num(o.params.pitch, 6) / 12) * (Math.min(num(o.params.w, 10), num(o.params.d, 10)) / 2 + num(o.params.overhang, 1.5))) : 0
+  const h = o.type === 'tree' ? ftToM(num(o.params.h, 25)) : heightM(o) + roofRise
   return toScene(o.position.x, o.position.n, baseElevation(terrain, o) + h + 0.8)
 }

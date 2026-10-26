@@ -1,4 +1,3 @@
-import { Edges } from '@react-three/drei'
 import { num } from '../buildings/footprint'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
@@ -6,11 +5,14 @@ import type { PlanObject } from '../store/types'
 import { baseElevation } from './placement'
 import { toScene } from './frame'
 import { useObjectInteraction } from './useObjectInteraction'
+import { Surface } from './Surface'
+import { useDisplayStyle } from './useDisplayStyle'
 
 /** A tree as a trunk and a canopy ball sized from its legacy width and height. */
 export function TreeMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
   const { selected, hovered, handlers } = useObjectInteraction(o)
+  const style = useDisplayStyle()
   const canopyR = ftToM(num(o.params.w, 20)) / 2
   const height = ftToM(num(o.params.h, 25))
   const trunkH = Math.max(1, height - canopyR)
@@ -21,12 +23,11 @@ export function TreeMesh({ o }: { readonly o: PlanObject }) {
     <group position={position} userData={{ objectId: o.id }}>
       <mesh position={[0, trunkH / 2, 0]} castShadow {...handlers}>
         <cylinderGeometry args={[0.2, 0.3, trunkH, 8]} />
-        <meshStandardMaterial color="#6b4e37" roughness={1} />
+        <Surface kind="trunk" style={style} />
       </mesh>
       <mesh position={[0, trunkH, 0]} castShadow {...handlers}>
-        <sphereGeometry args={[canopyR, 16, 12]} />
-        <meshStandardMaterial color={color} roughness={0.9} emissive="#ffffff" emissiveIntensity={glow} />
-        {selected && <Edges color="#ffffff" threshold={40} />}
+        <icosahedronGeometry args={[canopyR, 2]} />
+        <Surface kind="canopy" style={style} color={color} glow={glow * 5} />
       </mesh>
     </group>
   )

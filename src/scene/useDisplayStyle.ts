@@ -5,7 +5,7 @@ export const useDisplayStyle = (): DisplayStyle => usePlanStore((s) => s.display
 
 /** Neutral palettes for the non-realistic styles. */
 export const STYLE_GROUND: Readonly<Record<Exclude<DisplayStyle, 'realistic'>, string>> = {
-  white: '#cfcfcb',
+  white: '#d6d5d0',
   sketch: '#f2f1ec',
   diagram: '#dfe3d3',
 }

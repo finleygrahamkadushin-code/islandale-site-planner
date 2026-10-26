@@ -8,7 +8,7 @@ import { startAutosave } from './store/autosave'
 // For end-to-end tests and debugging in the console.
 declare global {
   interface Window {
-    islandale: { store: typeof usePlanStore }
+    islandale: { store: typeof usePlanStore; camera?: () => number[]; renderInfo?: () => Record<string, unknown> }
   }
 }
 window.islandale = { store: usePlanStore }

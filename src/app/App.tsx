@@ -2,6 +2,7 @@ import { Scene } from '../scene/Scene'
 import { TopBar } from '../ui/TopBar'
 import { SidePanel } from '../ui/SidePanel'
 import { Toast } from '../ui/Toast'
+import { ViewStrip } from '../ui/ViewStrip'
 import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
 
 export function App() {
@@ -11,6 +12,7 @@ export function App() {
       <TopBar />
       <Scene />
       <SidePanel />
+      <ViewStrip />
       <Toast />
     </div>
   )

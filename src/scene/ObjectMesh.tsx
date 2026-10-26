@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Edges } from '@react-three/drei'
 import { footprintParams } from '../buildings/footprint'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
@@ -7,11 +6,14 @@ import { buildPrismGeometry } from './objectGeometry'
 import { baseElevation, heightM } from './placement'
 import { toScene } from './frame'
 import { useObjectInteraction } from './useObjectInteraction'
+import { Surface } from './Surface'
+import { useDisplayStyle } from './useDisplayStyle'
 
-/** A building or pad as a simple prism of its footprint, in its legacy colour. */
+/** A pad, path or other flat object as a prism of its footprint, gravel-textured in the Realistic style. */
 export function ObjectMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
   const { selected, hovered, handlers } = useObjectInteraction(o)
+  const style = useDisplayStyle()
   const fp = footprintParams(o)
   const h = heightM(o)
   const geometry = useMemo(
@@ -32,8 +34,7 @@ export function ObjectMesh({ o }: { readonly o: PlanObject }) {
       userData={{ objectId: o.id }}
       {...handlers}
     >
-      <meshStandardMaterial color={color} roughness={0.9} emissive={hovered || selected ? '#ffffff' : '#000000'} emissiveIntensity={selected ? 0.18 : hovered ? 0.08 : 0} />
-      {selected && <Edges color="#ffffff" lineWidth={1.5} threshold={15} />}
+      <Surface kind="pad" style={style} color={color} texture="gravel" textureUnit="m" glow={selected ? 1 : hovered ? 0.4 : 0} />
     </mesh>
   )
 }

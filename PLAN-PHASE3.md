@@ -1,6 +1,6 @@
 # Phase 3 plan: graphics
 
-Status: **in progress.** Approved by Finley on Oct 26 2026 ("start Phase 3 as proposed"). Edit anything here; deviations get noted at the end.
+Status: **built, waiting for Finley's look (Oct 26 2026).** Realistic and White model checked from all five saved views in the browser; screenshots sent. Deviations are noted at the end.
 
 Branch: `phase-3-graphics` (branched from `phase-2-core-editing`).
 
@@ -60,4 +60,11 @@ Make the plan look like built work instead of coloured blocks, without slowing d
 
 ## Deviations noted while building
 
-- (none yet)
+- **Phase 1 units bug, fixed.** The legacy terrain grid is in metres, not feet; Phase 1 had scaled it by 0.3048, flattening the site. Found because the tide water flooded the lot. Heights now match the old planner.
+- **Deck at sunset** looks back at the gathering cabin from the seaward lawn at 5:45 pm, not from the deck at 7 pm. By the old planner's sun maths the September sun sets at about 6:20 pm, and the deck itself is a Phase 5 wing, so a camera "on the deck" floated among the posts.
+- **Pitched roofs follow the footprint's bounding box**, as the old `roofGeometry` did. On curved plans (the gathering prow) the eaves reach past the wall at the corners; Phase 5 can fit roofs to the outline.
+- **Prow roof** is drawn as a gable whose seaward end comes to a point. The old file's sculpted prow variants (C2–C4) differ in detail and come back with the Phase 5 roof editor.
+- **Openings** are framed glass on the wall face (no boolean cuts yet), as planned.
+- **Water** uses drei's `MeshReflectorMaterial` (a blurred planar reflection) instead of a plain physical material, which read as a grey floor.
+- **Frame rate:** 115–120 fps in every style on the M4 Pro at 2× pixel density. A page that has been hot-reloaded many times in dev can drop far lower; a fresh load is the real figure.
+- `window.islandale.camera()` and `window.islandale.renderInfo()` were added as read-only probes for tests and debugging.

@@ -5,6 +5,7 @@ import { CURRENT_SCHEME_ID, loadSchemes, schemeById } from '../site/schemes'
 import type { Site } from '../site/types'
 import type { Scheme } from '../site/schemes'
 import { planFromScheme } from './fromLegacy'
+import type { ViewId } from '../scene/views'
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_LAYERS,
@@ -43,6 +44,8 @@ export interface PlanState {
   readonly displayStyle: DisplayStyle
   readonly saveStatus: SaveStatus
   readonly toast: Toast | null
+  /** The last saved view asked for; `n` makes a repeat request fly again. */
+  readonly viewRequest: { readonly id: ViewId; readonly n: number } | null
 
   // --- undoable: everything that changes `plan` -------------------------
   readonly loadScheme: (schemeId: string) => void
@@ -72,6 +75,7 @@ export interface PlanState {
   readonly showAll: () => void
   readonly setEnvironment: (patch: Partial<Environment>) => void
   readonly setDisplayStyle: (style: DisplayStyle) => void
+  readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly showToast: (text: string) => void
   readonly hydrate: (saved: {
@@ -115,6 +119,7 @@ export const usePlanStore = create<PlanState>()(
         displayStyle: 'realistic',
         saveStatus: 'loading',
         toast: null,
+        viewRequest: null,
 
         loadScheme: (schemeId) =>
           set({ plan: planFromScheme(schemeById(get().schemes, schemeId)), selection: [] }),
@@ -178,6 +183,7 @@ export const usePlanStore = create<PlanState>()(
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
         setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
+        requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
         hydrate: ({ plan, labelMode, layers, environment, displayStyle }) =>

@@ -19,7 +19,7 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
       {realistic ? (
         <meshStandardMaterial key="real" vertexColors map={grassMap} roughness={1} metalness={0} />
       ) : (
-        <meshStandardMaterial key={style} color={STYLE_GROUND[style]} roughness={1} metalness={0} flatShading={style === 'diagram'} />
+        <meshStandardMaterial key={style} color={STYLE_GROUND[style]} roughness={1} metalness={0} />
       )}
     </mesh>
   )

@@ -4,6 +4,8 @@ import { ftToM } from '../site/units'
 import type { PlanObject } from '../store/types'
 import { toScene } from './frame'
 import { useObjectInteraction } from './useObjectInteraction'
+import { Surface } from './Surface'
+import { useDisplayStyle } from './useDisplayStyle'
 
 const DECK_THICKNESS_M = 0.15
 
@@ -16,6 +18,7 @@ interface Segment {
 /** A boardwalk as flat deck segments between its route points. */
 export function BridgeMesh({ o }: { readonly o: PlanObject }) {
   const { selected, hovered, handlers } = useObjectInteraction(o)
+  const style = useDisplayStyle()
   const width = ftToM(num(o.params.w, 5))
   const color = typeof o.params.color === 'string' ? o.params.color : '#a98c62'
   const segments = useMemo(() => routeSegments(o), [o])
@@ -25,7 +28,7 @@ export function BridgeMesh({ o }: { readonly o: PlanObject }) {
       {segments.map((s, i) => (
         <mesh key={i} position={s.position} rotation={[0, s.yaw, 0]} castShadow receiveShadow {...handlers}>
           <boxGeometry args={[s.length, DECK_THICKNESS_M, width]} />
-          <meshStandardMaterial color={color} roughness={0.9} emissive="#ffffff" emissiveIntensity={glow} />
+          <Surface kind="deck" style={style} color={color} glow={glow * 5} />
         </mesh>
       ))}
     </group>
