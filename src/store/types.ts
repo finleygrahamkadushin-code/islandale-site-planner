@@ -12,8 +12,9 @@ export interface PlanObject {
   readonly name: string
   /** Site frame, metres: x east, n north. */
   readonly position: { readonly x: number; readonly n: number }
-  /** Degrees, counter-clockwise from north, as the legacy planner stored it. */
+  /** Degrees, counter-clockwise seen from above, as the legacy planner stored it. */
   readonly rotation: number
+  /** Legacy fields: w, d, h and lift in feet, color, shape, pts, wings, ... */
   readonly params: Readonly<Record<string, unknown>>
   readonly locked: boolean
   readonly hidden: boolean
@@ -31,3 +32,35 @@ export interface Plan {
 }
 
 export type LabelMode = 'all' | 'selected' | 'none'
+
+export type LayerId = 'buildings' | 'paths' | 'trees' | 'labels'
+
+export interface LayerState {
+  readonly visible: boolean
+  readonly locked: boolean
+}
+
+export type Layers = Readonly<Record<LayerId, LayerState>>
+
+export const LAYER_IDS: readonly LayerId[] = ['buildings', 'paths', 'trees', 'labels']
+
+export const LAYER_NAMES: Readonly<Record<LayerId, string>> = {
+  buildings: 'Buildings',
+  paths: 'Decks and paths',
+  trees: 'Trees',
+  labels: 'Labels',
+}
+
+/** Which layer a plan object belongs to, from its legacy type. */
+export function layerOf(o: Pick<PlanObject, 'type' | 'params'>): Exclude<LayerId, 'labels'> {
+  if (o.type === 'tree' || o.params.tree === true) return 'trees'
+  if (o.type === 'house') return 'buildings'
+  return 'paths'
+}
+
+export const DEFAULT_LAYERS: Layers = {
+  buildings: { visible: true, locked: false },
+  paths: { visible: true, locked: false },
+  trees: { visible: true, locked: false },
+  labels: { visible: true, locked: false },
+}
