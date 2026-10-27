@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from 'react'
 import { num } from '../buildings/footprint'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
@@ -7,27 +8,32 @@ import { toScene } from './frame'
 import { useObjectInteraction } from './useObjectInteraction'
 import { Surface } from './Surface'
 import { useDisplayStyle } from './useDisplayStyle'
+import { barkColour, buildTree, speciesOf, treeSeed } from './treeShapes'
 
-/** A tree as a trunk and a canopy ball sized from its legacy width and height. */
+/** A tree by species (madrone, fir, cedar, alder) inside its legacy canopy width and height. */
 export function TreeMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
   const { selected, hovered, handlers } = useObjectInteraction(o)
   const style = useDisplayStyle()
-  const canopyR = ftToM(num(o.params.w, 20)) / 2
-  const height = ftToM(num(o.params.h, 25))
-  const trunkH = Math.max(1, height - canopyR)
+  const species = speciesOf(o.params.species)
+  const w = ftToM(num(o.params.w, 20))
+  const d = ftToM(num(o.params.d, num(o.params.w, 20)))
+  const h = ftToM(num(o.params.h, 25))
+  const leaf = typeof o.params.color === 'string' ? o.params.color : '#4f7d4b'
+  const shape = useMemo(() => buildTree(species, { w, d, h }, leaf, treeSeed(o.id)), [species, w, d, h, leaf, o.id])
+  useEffect(() => () => {
+    shape.bark.dispose()
+    shape.crown.dispose()
+  }, [shape])
   const position = toScene(o.position.x, o.position.n, baseElevation(terrain, o))
-  const color = typeof o.params.color === 'string' ? o.params.color : '#4f7d4b'
-  const glow = selected ? 0.18 : hovered ? 0.08 : 0
+  const glow = selected ? 1 : hovered ? 0.4 : 0
   return (
     <group position={position} userData={{ objectId: o.id }}>
-      <mesh position={[0, trunkH / 2, 0]} castShadow {...handlers}>
-        <cylinderGeometry args={[0.2, 0.3, trunkH, 8]} />
-        <Surface kind="trunk" style={style} />
+      <mesh geometry={shape.bark} castShadow {...handlers}>
+        <Surface kind="trunk" style={style} color={barkColour(species)} />
       </mesh>
-      <mesh position={[0, trunkH, 0]} castShadow {...handlers}>
-        <icosahedronGeometry args={[canopyR, 2]} />
-        <Surface kind="canopy" style={style} color={color} glow={glow * 5} />
+      <mesh geometry={shape.crown} castShadow receiveShadow {...handlers}>
+        <Surface kind="canopy" style={style} color={leaf} glow={glow} vertexColors />
       </mesh>
     </group>
   )

@@ -59,10 +59,12 @@ interface SurfaceProps {
   readonly diagramColor?: string
   /** 0..1 selection or hover highlight. */
   readonly glow?: number
+  /** Realistic only: tint by the geometry's vertex colours (tree crowns). */
+  readonly vertexColors?: boolean
 }
 
 /** The material (and, in Sketch, the edge lines) for one mesh. Use as a mesh child. */
-export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagramColor, glow = 0 }: SurfaceProps) {
+export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagramColor, glow = 0, vertexColors = false }: SurfaceProps) {
   const map = useMemo(() => (style === 'realistic' && texture ? textureFor(texture, textureUnit) : null), [style, texture, textureUnit])
   const emissive = glow > 0 ? '#ffffff' : '#000000'
   const emissiveIntensity = glow * 0.22
@@ -80,10 +82,10 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
   }
 
   if (style === 'realistic') {
-    const base = realisticColour(kind, color)
+    const base = vertexColors ? '#ffffff' : realisticColour(kind, color)
     const rough = kind === 'roof' ? (texture === 'seam' ? 0.45 : 0.95) : kind === 'frame' ? 0.6 : 0.9
     const metal = kind === 'roof' && texture === 'seam' ? 0.35 : 0
-    return <meshStandardMaterial color={base} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={emissiveIntensity} />
+    return <meshStandardMaterial color={base} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={emissiveIntensity} vertexColors={vertexColors} />
   }
   if (style === 'diagram') {
     return <meshLambertMaterial color={diagramColour(kind, diagramColor)} emissive={emissive} emissiveIntensity={emissiveIntensity} />
@@ -108,7 +110,7 @@ function realisticColour(kind: SurfaceKind, color?: string): string {
     case 'wood':
       return '#6e5236'
     case 'trunk':
-      return '#5b4433'
+      return color ?? '#5b4433'
     case 'deck':
       // legacy deck boards, #c9ad84
       return color ?? '#c9ad84'
