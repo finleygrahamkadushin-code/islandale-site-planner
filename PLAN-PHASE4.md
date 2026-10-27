@@ -2,7 +2,7 @@
 
 Status: **draft, waiting for Finley's edits and OK.** Edit anything here; Claude Code reads this file before starting Phase 4.
 
-Branch: `phase-4-tools-ui` (to branch from `phase-3-graphics`).
+Branch: `phase-4-tools-ui` (to branch from `phase-3b-fidelity`, after Phase 3B passes; see [PLAN-PHASE3B.md](PLAN-PHASE3B.md)).
 
 ## Goal
 
@@ -10,7 +10,7 @@ PLAN.md's Phase 4 is "UI and beginner experience". This version widens it, at Fi
 
 1. **UI:** the four task tabs, one inspector, Beginner mode, tooltips, a first-run tour and Present mode.
 2. **Tools:** real editing tools (add, duplicate, measure, snap, box-select, command search), so the planner is for designing, not just rearranging Scheme C.
-3. **Graphics polish:** fix the visual shortcuts Phase 3 took and add the site realism it left out.
+3. **Graphics polish:** fix the visual shortcuts Phase 3 took and add the site realism it left out. Fitted roofs, species trees and contour lines moved to Phase 3B.
 
 Porting the rest of the old planner's features (decks and wings, walls editor, interiors, paths and stairs, site rules) stays in Phase 5. Exports and the path-traced Render button stay in Phase 6.
 
@@ -29,7 +29,7 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 - Switch to Beginner mode, where technical settings hide and every control has a plain-language name and tooltip.
 - Take a five-step tour on first launch, replayable from Help.
 - Present the plan full screen with the saved views as buttons and an optional sun animation through the day.
-- See roofs that fit curved plans, windows that read as real openings, believable trees and beach, contour lines, and a compass and scale bar.
+- See windows that read as real openings, a believable beach, and a compass and scale bar. (Fitted roofs, trees and contours arrive in Phase 3B.)
 
 ## Track 1: UI and beginner experience
 
@@ -58,11 +58,11 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 
 ## Track 3: Graphics polish
 
-1. **Roofs fitted to the footprint.** Build pitched roofs from the footprint outline (straight skeleton for hips, outline-following eaves) so curved and angled plans like the gathering prow get eaves that follow the wall, not its bounding box. Keep the Phase 3 box roofs as the fallback.
+1. ~~Roofs fitted to the footprint~~ moved to Phase 3B.
 2. **Real openings.** Cut windows and doors through the wall with `manifold-3d`, with reveals, sills and a dark interior behind the glass so they read as openings from outside. Rebuild cuts only when the cabin's walls change, never while it moves.
-3. **Better trees.** Replace the single ball with a madrone-like crown: three or four clustered lobes, a leaning red-barked trunk, and instanced leaf cards shared between all trees. White model keeps clean simple crowns.
+3. ~~Better trees~~ moved to Phase 3B.
 4. **Beach and shore.** A gravel and driftwood band along the shoreline edges, a soft foam line where the water meets the beach that moves with the tide, and darker wet sand just above the water.
-5. **Contour lines** at 2 ft intervals on the terrain (togglable in Layers, already listed there as "later"), labelled every 10 ft.
+5. ~~Contour lines~~ moved to Phase 3B.
 6. **Sky and light.** Warmer sunset sky colours, a subtle distance haze over Mud Bay, and a soft contact shadow under each cabin so they sit on the ground in every style.
 7. **Sketch style** with cleaner, slightly thicker silhouette lines and no lines on terrain triangles; optional paper texture behind.
 8. **Faster first frame.** Show a loading splash while shaders compile, precompile materials once (`gl.compile`), and load the reflection and post-processing after the first frame. Target: the scene visible in under 3 seconds on a fresh load (it can take 10 seconds or more in dev today).
@@ -73,7 +73,7 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 1. Tool state, tool strip and the add tools (they shape the rest of the UI).
 2. Task tabs, layout, inspector grouping, feet-and-inches fields.
 3. Duplicate, box select, snapping, measure, align, command search.
-4. Graphics: fitted roofs, contour lines, trees, beach and foam, contact shadows, sky.
+4. Graphics: beach and foam, contact shadows, sky.
 5. Real openings with manifold-3d.
 6. Beginner mode, tooltips, empty states, first-run tour.
 7. Present mode, compass and scale bar, sun animation.
@@ -96,16 +96,13 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 - Snapping: positions round to 1 ft and rotations to 15°.
 - Measure: horizontal, slope and vertical distances against known terrain points.
 - Feet-and-inches parsing and formatting ("12' 6\"", "12.5", "150 in").
-- Fitted roofs: eaves follow the offset outline, with no faces outside the outline plus overhang.
 - Openings: cutting a window removes wall area equal to the opening.
-- Contours: lines exist at every 2 ft step between the lowest and highest ground.
 - Playwright: the one-minute beginner task (add a cabin, move it, lock it, reload, find it), the tour, Present mode entering and leaving, and command search running an action.
 
 ## Open questions for Finley
 
 1. Should Present mode also offer a slow orbit animation, or only the sun animation?
-2. For trees, keep them abstract (clean crowns) in Realistic too, or go for the detailed madrone look?
-3. Is anything from the old planner's toolbar needed in Phase 4 rather than waiting for Phase 5?
+2. Is anything from the old planner's toolbar needed in Phase 4 rather than waiting for Phase 5?
 
 ## Changes I want (Finley fills in)
 
@@ -115,7 +112,7 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 
 ```
 Read PLAN.md and PLAN-PHASE4.md. Start Phase 4 on branch phase-4-tools-ui,
-from phase-3-graphics. Follow the order of work, tests first for each step.
+from phase-3b-fidelity. Follow the order of work, tests first for each step.
 Show me the app in the browser after steps 1, 3, 4, 6 and 7. Commit after
 each step that leaves the app runnable. Stop and ask before changing any of
 the design decisions.
