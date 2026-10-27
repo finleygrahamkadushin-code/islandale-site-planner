@@ -1,6 +1,6 @@
 # Phase 3B plan: design fidelity
 
-Status: **draft, waiting for Finley's OK.** Goes between Phase 3 and Phase 4.
+Status: **built, waiting for Finley's look (Oct 27 2026).** Goes between Phase 3 and Phase 4. Side-by-side screenshots against the old planner sent after steps 7 and 9; deviations at the end.
 
 Branch: `phase-3b-fidelity` (to branch from `phase-3-graphics`).
 
@@ -99,3 +99,15 @@ Show me Scheme C next to the old planner after steps 3, 7, 9 and 11.
 Commit after each step that leaves the app runnable. Stop and ask before
 changing any of the design decisions.
 ```
+
+## Deviations noted while building
+
+- **Floor height** now takes the highest ground under the box round all of a cabin's masses, wings included, as the legacy bbox() did. Phase 2 and 3 used the main walls only, so some cabins sit a little higher than before, matching the old planner.
+- **Sitting steps** use the legacy 7¾ in step riser (STEP_RISE_M); wing stairs use the 7 in / 11 in walk-model rule. Both as in the old file.
+- **Boardwalk length:** the scheme stores `d: 81` ft, but the old planner recomputes it from the curve to 77 ft; the port measures the same 77.42 ft.
+- **Sunk floors** cut the ground flat 3 ft round the walls and bank it at 2:1, as planned. The old planner instead holds the cut with stone retaining walls and adds a 10 ft court on the downhill side; those come with the Phase 5 site and earthworks tools.
+- **Contours** have darker index lines every 10 ft but no number labels yet (open question 1).
+- **Trees** are seeded from the object id, not the position, so a tree keeps its shape while it is dragged.
+- **Rails** are judged in 2 ft pieces: a piece is left out where another mass (walls, porch, stair head) is within 1.5 ft, which stands in for the old file's rail-clearance rules.
+- `window.islandale.look(position, target, fov)` and `scripts/compare-shots.mjs` were added for side-by-side checks against the old planner.
+- **End-to-end tests** now take longer: the full model's first frame in headless Chromium can take 10 s or more, so the suite is run one test at a time.

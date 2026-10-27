@@ -50,7 +50,7 @@ test('move, lock, hide names, reload: the plan comes back unchanged', async ({ p
 
   // Select the patio by clicking just under its name label.
   const label = page.locator('.label', { hasText: 'Firepit patio' })
-  await expect(label).toBeVisible()
+  await expect(label).toBeVisible({ timeout: 20_000 })
   const box = (await label.boundingBox())!
   await page.mouse.click(box.x + box.width / 2, box.y + box.height + 18)
   await expect

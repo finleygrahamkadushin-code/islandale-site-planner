@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Vector3 } from 'three'
+import { Vector3, type Mesh } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
 
@@ -18,6 +18,7 @@ export function CameraRig() {
   const setEnvironment = usePlanStore((s) => s.setEnvironment)
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
   const controls = useThree((s) => s.controls) as unknown as Controls | null
   const flight = useRef<{ from: Vector3; to: Vector3; fromT: Vector3; toT: Vector3; t: number } | null>(null)
 
@@ -45,6 +46,19 @@ export function CameraRig() {
     if (!w.islandale) return
     w.islandale.camera = () => camera.position.toArray().map((v) => +v.toFixed(2))
     w.islandale.renderInfo = () => ({ ...gl.info.render, ...gl.info.memory, programs: gl.info.programs?.length })
+    // meshes and triangles in the scene itself (renderInfo only sees the last post-processing pass)
+    w.islandale.sceneStats = () => {
+      let meshes = 0
+      let triangles = 0
+      scene.traverseVisible((o) => {
+        const m = o as Mesh
+        if (!m.isMesh || !m.geometry) return
+        meshes++
+        const g = m.geometry
+        triangles += (g.index ? g.index.count : (g.attributes.position?.count ?? 0)) / 3
+      })
+      return { meshes, triangles: Math.round(triangles) }
+    }
     w.islandale.look = (position: [number, number, number], target: [number, number, number], fov?: number) => {
       if (!controls) return
       flight.current = null
@@ -56,7 +70,7 @@ export function CameraRig() {
       controls.target.set(...target)
       controls.update()
     }
-  }, [camera, gl, controls])
+  }, [camera, gl, controls, scene])
 
   useFrame((_, dt) => {
     const f = flight.current
