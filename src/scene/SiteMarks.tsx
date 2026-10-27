@@ -1,13 +1,16 @@
 import { useEffect, useMemo } from 'react'
 import { BufferGeometry, Float32BufferAttribute } from 'three'
 import { SHORE_BUFFER_FT, shoreBufferLine } from '../site/buffer'
-import { terrainContours, type IsoSegment } from '../site/contours'
+import { contourLevels, isoSegments, terrainContours, type IsoSegment } from '../site/contours'
+import { cutCells, PATCH_SPACING_M, type CellRect } from '../site/earthworks'
+import { terrainBounds } from '../site/terrain'
 import { elevationAt } from '../site/terrain'
 import type { Parcel, Terrain } from '../site/types'
 import { ftToM } from '../site/units'
 import { contoursShown, usePlanStore } from '../store/planStore'
 import { toScene } from './frame'
 import { useDisplayStyle } from './useDisplayStyle'
+import { useEarthworks } from './useEarthworks'
 
 const CONTOUR_STEP_FT = 2
 const LIFT_M = 0.06
@@ -20,14 +23,27 @@ const BUFFER = '#c4b97b'
 export function SiteMarks({ terrain, parcel }: { readonly terrain: Terrain; readonly parcel: Parcel }) {
   const style = useDisplayStyle()
   const showContours = usePlanStore(contoursShown)
+  const { cuts, ground } = useEarthworks()
   const contours = useMemo(() => {
-    const lines = terrainContours(terrain, ftToM(CONTOUR_STEP_FT))
-    const atLevel = (segs: IsoSegment[], z: number) => segs.flatMap(([x1, n1, x2, n2]) => [...toScene(x1, n1, z + LIFT_M), ...toScene(x2, n2, z + LIFT_M)])
-    return {
-      minor: lineGeometry(lines.filter((l) => !l.index).flatMap((l) => atLevel([...l.segments], l.z))),
-      index: lineGeometry(lines.filter((l) => l.index).flatMap((l) => atLevel([...l.segments], l.z))),
+    const step = ftToM(CONTOUR_STEP_FT)
+    const rects = cuts.map((c) => cutCells(terrain, c))
+    // survey contours outside the cuts, and contours of the cut ground inside them
+    const inCut = ([x1, n1, x2, n2]: IsoSegment) => rects.some((r) => inside(terrain, r, (x1 + x2) / 2, (n1 + n2) / 2))
+    const lines = terrainContours(terrain, step).map((l) => ({ ...l, segments: l.segments.filter((g) => !inCut(g)) }))
+    const b = terrainBounds(terrain)
+    for (const r of rects) {
+      const x0 = terrain.x0 + r.c0 * terrain.spacing
+      const n0 = terrain.n0 + r.r0 * terrain.spacing
+      const k = Math.round(terrain.spacing / PATCH_SPACING_M)
+      const field = { nx: (r.c1 - r.c0) * k + 1, ny: (r.r1 - r.r0) * k + 1, x0, n0, spacing: PATCH_SPACING_M, at: (i: number, j: number) => ground(x0 + i * PATCH_SPACING_M, n0 + j * PATCH_SPACING_M) }
+      contourLevels(b.minZ - 3, b.maxZ, step).forEach((l) => lines.push({ ...l, segments: isoSegments(field, l.z) }))
     }
-  }, [terrain])
+    const atLevel = (segs: readonly IsoSegment[], z: number) => segs.flatMap(([x1, n1, x2, n2]) => [...toScene(x1, n1, z + LIFT_M), ...toScene(x2, n2, z + LIFT_M)])
+    return {
+      minor: lineGeometry(lines.filter((l) => !l.index).flatMap((l) => atLevel(l.segments, l.z))),
+      index: lineGeometry(lines.filter((l) => l.index).flatMap((l) => atLevel(l.segments, l.z))),
+    }
+  }, [terrain, cuts, ground])
   const buffer = useMemo(
     () => lineGeometry(shoreBufferLine(parcel, ftToM(SHORE_BUFFER_FT)).flatMap(([x1, n1, x2, n2]) => [...toScene(x1, n1, elevationAt(terrain, x1, n1) + 0.12), ...toScene(x2, n2, elevationAt(terrain, x2, n2) + 0.12)])),
     [parcel, terrain],
@@ -52,13 +68,19 @@ export function SiteMarks({ terrain, parcel }: { readonly terrain: Terrain; read
         <lineBasicMaterial color={BUFFER} transparent opacity={0.9} depthWrite={false} />
       </lineSegments>
       {stakes.map(([x, n], i) => (
-        <mesh key={i} position={toScene(x, n, elevationAt(terrain, x, n) + STAKE_M / 2 - 0.3)} castShadow>
+        <mesh key={i} position={toScene(x, n, ground(x, n) + STAKE_M / 2 - 0.3)} castShadow>
           <cylinderGeometry args={[0.1, 0.1, STAKE_M, 8]} />
           <meshStandardMaterial color={style === 'realistic' ? STAKE : '#bdbab2'} roughness={0.8} />
         </mesh>
       ))}
     </group>
   )
+}
+
+function inside(t: Terrain, r: CellRect, x: number, n: number): boolean {
+  const col = (x - t.x0) / t.spacing
+  const row = (n - t.n0) / t.spacing
+  return col >= r.c0 && col <= r.c1 && row >= r.r0 && row <= r.r1
 }
 
 function lineGeometry(positions: number[]): BufferGeometry {

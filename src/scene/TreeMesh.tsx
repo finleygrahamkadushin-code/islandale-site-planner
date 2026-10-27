@@ -3,6 +3,7 @@ import { num } from '../buildings/footprint'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
+import { useEarthworks } from './useEarthworks'
 import { baseElevation } from './placement'
 import { toScene } from './frame'
 import { useObjectInteraction } from './useObjectInteraction'
@@ -13,6 +14,7 @@ import { barkColour, buildTree, speciesOf, treeSeed } from './treeShapes'
 /** A tree by species (madrone, fir, cedar, alder) inside its legacy canopy width and height. */
 export function TreeMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
+  const { ground } = useEarthworks()
   const { selected, hovered, handlers } = useObjectInteraction(o)
   const style = useDisplayStyle()
   const species = speciesOf(o.params.species)
@@ -25,7 +27,7 @@ export function TreeMesh({ o }: { readonly o: PlanObject }) {
     shape.bark.dispose()
     shape.crown.dispose()
   }, [shape])
-  const position = toScene(o.position.x, o.position.n, baseElevation(terrain, o))
+  const position = toScene(o.position.x, o.position.n, baseElevation(terrain, o, ground))
   const glow = selected ? 1 : hovered ? 0.4 : 0
   return (
     <group position={position} userData={{ objectId: o.id }}>

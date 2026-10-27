@@ -3,7 +3,6 @@ import { localToSite, num, siteToLocal, type LocalPoint } from '../buildings/foo
 import { TREE_WELL_FT, type TreeWell } from '../buildings/deckSteps'
 import { pointInPolygon } from '../buildings/foundation'
 import { buildingMasses, buildingToMass, massBuildingPoly, massToBuilding, type Mass } from '../buildings/masses'
-import { elevationAt } from '../site/terrain'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
@@ -14,6 +13,7 @@ import { baseElevation } from './placement'
 import { StairMass } from './StairMass'
 import { useDisplayStyle } from './useDisplayStyle'
 import { useObjectInteraction } from './useObjectInteraction'
+import { useEarthworks } from './useEarthworks'
 import { WallMass } from './WallMass'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -22,6 +22,7 @@ const NO_WELLS: readonly TreeWell[] = []
 /** A cabin: its main walls plus every wing (porches, decks, stairs), each set at its offset, turn and level. */
 export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
+  const { ground } = useEarthworks()
   const style = useDisplayStyle()
   const { selected, hovered, handlers } = useObjectInteraction(o)
   const masses = useMemo(() => buildingMasses(o.params), [o.params])
@@ -36,7 +37,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
     floor: base + ftToM(m.lvl),
     groundAt: (x, z) => {
       const [sx, sn] = localToSite(o.position, o.rotation, massToBuilding(m, [x, z]))
-      return elevationAt(terrain, sx, sn)
+      return ground(sx, sn)
     },
     insideWalls: (p: LocalPoint) => {
       const [bx, bz] = massToBuilding(m, p)
