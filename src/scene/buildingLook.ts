@@ -29,6 +29,8 @@ export interface MassSite {
   readonly groundAt: (x: number, z: number) => number
   /** Whether a mass-local point lies inside one of the building's enclosed masses. */
   readonly insideWalls: (p: LocalPoint) => boolean
+  /** Whether a mass-local point lies inside any other mass of the building (walls, porches, decks, stairs). */
+  readonly insideOther: (p: LocalPoint) => boolean
 }
 
 export function buildingLook(o: PlanObject, style: DisplayStyle, glow: number): BuildingLook {

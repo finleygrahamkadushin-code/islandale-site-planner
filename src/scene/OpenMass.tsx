@@ -8,6 +8,7 @@ import { ftToM } from '../site/units'
 import type { TreeWell } from '../buildings/deckSteps'
 import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
 import { DeckStepsMesh } from './DeckStepsMesh'
+import { GuardRail } from './GuardRail'
 import { Posts } from './Foundation'
 import { toGeometry } from './meshData'
 import { RoofMesh } from './RoofMesh'
@@ -50,6 +51,7 @@ export function DeckMass({ m, look, site, handlers, wells }: OpenMassProps & { r
       </mesh>
       <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} />
       {m.steps && <DeckStepsMesh poly={poly} steps={m.steps} wells={wells} look={look} site={site} handlers={handlers} />}
+      <GuardRail m={m} poly={poly} site={site} look={look} />
     </>
   )
 }
@@ -81,6 +83,7 @@ export function PorchMass({ m, look, site, handlers }: OpenMassProps) {
         </mesh>
       ))}
       {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} />}
+      {m.slab && <GuardRail m={m} poly={poly} site={site} look={look} />}
       <RoofMesh m={m} poly={poly} look={look} handlers={handlers} />
     </>
   )
