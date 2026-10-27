@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
-import { buildingBounds, buildingMasses, massToBuilding, massBuildingPoly } from './masses'
+import { buildingBounds, buildingMasses, buildingToMass, massToBuilding, massBuildingPoly } from './masses'
 
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
@@ -36,6 +36,13 @@ describe('mass frames', () => {
     const [x, z] = massToBuilding(wing, [1, 0])
     expect(x).toBeCloseTo(5)
     expect(z).toBeCloseTo(-11)
+  })
+
+  test('buildingToMass undoes massToBuilding', () => {
+    const wing = buildingMasses({ w: 10, d: 10, h: 9, wings: [{ dx: 3, dz: -7, rot: 35, w: 4, d: 2 }] })[1]
+    const [x, z] = buildingToMass(wing, massToBuilding(wing, [1.5, -2]))
+    expect(x).toBeCloseTo(1.5)
+    expect(z).toBeCloseTo(-2)
   })
 
   test('building bounds take in every wing, as the legacy bbox() did', () => {

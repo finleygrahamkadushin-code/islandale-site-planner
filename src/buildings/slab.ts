@@ -6,19 +6,19 @@ import { addPolygon, emptyMesh, type MeshData } from './geom'
 const FT = 0.3048
 
 /**
- * A flat slab over an outline (local feet), from y = -thickness to 0, in
+ * A flat slab over an outline (local feet), from y = top - thickness to top, in
  * local metres. The top and bottom carry plan UVs in feet along the local
  * x axis, so deck boards run straight across the whole floor; the edges
  * carry perimeter UVs like the walls.
  */
-export function buildSlab(poly: readonly LocalPoint[], thicknessM: number): MeshData {
-  const mesh = emptyMesh()
+export function buildSlab(poly: readonly LocalPoint[], thicknessM: number, top = 0, into: MeshData = emptyMesh()): MeshData {
+  const mesh = into
   if (poly.length < 3) return mesh
   const t = Math.max(0.01, thicknessM)
   const tris = ShapeUtils.triangulateShape(poly.map(([x, z]) => new Vector2(x, z)), [])
   for (const [i, j, k] of tris) {
-    face(mesh, [poly[i], poly[j], poly[k]], 0, 1)
-    face(mesh, [poly[i], poly[j], poly[k]], -t, -1)
+    face(mesh, [poly[i], poly[j], poly[k]], top, 1)
+    face(mesh, [poly[i], poly[j], poly[k]], top - t, -1)
   }
   let along = 0
   poly.forEach((a, i) => {
@@ -34,12 +34,12 @@ export function buildSlab(poly: readonly LocalPoint[], thicknessM: number): Mesh
     const start = mesh.uvs.length
     addPolygon(
       mesh,
-      [[a[0] * FT, 0, a[1] * FT], [b[0] * FT, 0, b[1] * FT], [b[0] * FT, -t, b[1] * FT], [a[0] * FT, -t, a[1] * FT]],
+      [[a[0] * FT, top, a[1] * FT], [b[0] * FT, top, b[1] * FT], [b[0] * FT, top - t, b[1] * FT], [a[0] * FT, top - t, a[1] * FT]],
       [nx, 0, nz],
     )
     for (let k = start, vi = (start / 2) * 3; k < mesh.uvs.length; k += 2, vi += 3) {
       mesh.uvs[k] = along + Math.hypot(mesh.positions[vi] / FT - a[0], mesh.positions[vi + 2] / FT - a[1])
-      mesh.uvs[k + 1] = mesh.positions[vi + 1] / FT
+      mesh.uvs[k + 1] = (mesh.positions[vi + 1] - top) / FT
     }
     along += len
   })

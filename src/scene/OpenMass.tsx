@@ -5,7 +5,9 @@ import { curvePosts, edgePosts, offsetOutline } from '../buildings/outline'
 import { buildSlab } from '../buildings/slab'
 import { buildWalls } from '../buildings/walls'
 import { ftToM } from '../site/units'
+import type { TreeWell } from '../buildings/deckSteps'
 import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
+import { DeckStepsMesh } from './DeckStepsMesh'
 import { Posts } from './Foundation'
 import { toGeometry } from './meshData'
 import { RoofMesh } from './RoofMesh'
@@ -30,8 +32,8 @@ interface OpenMassProps {
   readonly handlers: MeshHandlers
 }
 
-/** A deck: board floor with a rim beam, on posts down to the ground. */
-export function DeckMass({ m, look, site, handlers }: OpenMassProps) {
+/** A deck: board floor with a rim beam, on posts down to the ground, and sitting steps where it has them. */
+export function DeckMass({ m, look, site, handlers, wells }: OpenMassProps & { readonly wells: readonly TreeWell[] }) {
   const poly = useMemo(() => massPoly(m), [m])
   const floor = useMemo(() => toGeometry(buildSlab(poly, DECK_M)), [poly])
   const rim = useMemo(() => toGeometry(buildWalls(offsetOutline(poly, -DECK_POST_INSET_FT * 0.6), BEAM_M / 0.3048)), [poly])
@@ -47,6 +49,7 @@ export function DeckMass({ m, look, site, handlers }: OpenMassProps) {
         <Surface kind="wood" style={look.style} />
       </mesh>
       <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} />
+      {m.steps && <DeckStepsMesh poly={poly} steps={m.steps} wells={wells} look={look} site={site} handlers={handlers} />}
     </>
   )
 }

@@ -102,6 +102,16 @@ export function massToBuilding(m: Mass, [x, z]: LocalPoint): LocalPoint {
   return [m.dx + x * c + z * s, m.dz - x * s + z * c]
 }
 
+/** A point in the building's local frame → the mass's frame, inverse of massToBuilding. */
+export function buildingToMass(m: Mass, [x, z]: LocalPoint): LocalPoint {
+  const a = (m.rot * Math.PI) / 180
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+  const dx = x - m.dx
+  const dz = z - m.dz
+  return [dx * c - dz * s, dx * s + dz * c]
+}
+
 export function massBuildingPoly(m: Mass): LocalPoint[] {
   return massPoly(m).map((p) => massToBuilding(m, p))
 }
