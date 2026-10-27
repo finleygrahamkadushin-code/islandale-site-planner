@@ -109,6 +109,9 @@ function realisticColour(kind: SurfaceKind, color?: string): string {
       return '#6e5236'
     case 'trunk':
       return '#5b4433'
+    case 'deck':
+      // legacy deck boards, #c9ad84
+      return color ?? '#c9ad84'
     default:
       return color ?? '#b8b0a0'
   }

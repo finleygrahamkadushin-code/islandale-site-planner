@@ -40,12 +40,23 @@ export function CameraRig() {
   }, [request, controls, camera, site, setEnvironment])
 
   useEffect(() => {
-    // read-only probe for end-to-end tests and the console
+    // probes for end-to-end tests, side-by-side screenshots and the console
     const w = window as unknown as { islandale?: Record<string, unknown> }
     if (!w.islandale) return
     w.islandale.camera = () => camera.position.toArray().map((v) => +v.toFixed(2))
     w.islandale.renderInfo = () => ({ ...gl.info.render, ...gl.info.memory, programs: gl.info.programs?.length })
-  }, [camera, gl])
+    w.islandale.look = (position: [number, number, number], target: [number, number, number], fov?: number) => {
+      if (!controls) return
+      flight.current = null
+      if (fov && 'fov' in camera) {
+        camera.fov = fov
+        camera.updateProjectionMatrix()
+      }
+      camera.position.set(...position)
+      controls.target.set(...target)
+      controls.update()
+    }
+  }, [camera, gl, controls])
 
   useFrame((_, dt) => {
     const f = flight.current
