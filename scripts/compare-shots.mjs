@@ -1,10 +1,11 @@
 // Side-by-side screenshots: the legacy planner and the new app from the same camera, for Phase 3B checks.
-// Usage: node scripts/compare-shots.mjs <out-dir> [scheme-name-regex]
+// Usage: node scripts/compare-shots.mjs <out-dir> [scheme-name-regex] [display style, e.g. "White model"]
 // Needs both previews running: the new app on :5173 and the legacy folder on :8777.
 import { chromium } from '@playwright/test'
 
 const out = process.argv[2] ?? '.'
 const scheme = new RegExp(process.argv[3] ?? '^C · Prow')
+const style = process.argv[4]
 // legacy orbit controls: theta, phi, r around the building centre (as its scheme loader sets them)
 const VIEWS = {
   close: { theta: 0.25, phi: 0.9, r: 62 },
@@ -32,6 +33,7 @@ const app = await browser.newPage({ viewport: { width: 1400, height: 900 } })
 await app.goto('http://localhost:5173/')
 await app.waitForFunction(() => (window).islandale?.look, null, { timeout: 60000 })
 await app.waitForTimeout(4000)
+if (style) await app.getByRole('group', { name: 'Display style' }).getByRole('button', { name: style, exact: true }).click()
 
 for (const [name, v] of Object.entries(VIEWS)) {
   await legacy.evaluate(({ theta, phi, r }) => {

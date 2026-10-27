@@ -9,6 +9,7 @@ describe('plan files', () => {
     layers: { ...DEFAULT_LAYERS, trees: { visible: false, locked: true } },
     environment: { season: 'dec' as const, hour: 9.5, tideFt: 3 },
     displayStyle: 'white' as const,
+    contours: true,
   }
 
   test('a plan round-trips through the JSON file format', () => {

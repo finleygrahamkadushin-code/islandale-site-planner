@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/react/shallow'
-import { usePlanStore } from '../store/planStore'
+import { contoursShown, usePlanStore } from '../store/planStore'
 import { LAYER_IDS, LAYER_NAMES, layerOf } from '../store/types'
 
-const LATER_LAYERS = ['Setbacks', 'Contours'] as const
+const LATER_LAYERS = ['Setbacks'] as const
 
 /** Eye and padlock per category, shown when nothing is selected. */
 export function LayersPanel() {
@@ -24,6 +24,8 @@ export function LayersPanel() {
     }),
   )
   const allLocked = LAYER_IDS.every((id) => layers[id].locked)
+  const contours = usePlanStore(contoursShown)
+  const setContours = usePlanStore((s) => s.setContours)
 
   return (
     <section className="panel layers" aria-label="Layers">
@@ -62,6 +64,14 @@ export function LayersPanel() {
             {id !== 'labels' && <span className="muted small count">{counts[id] ?? 0}</span>}
           </li>
         ))}
+        <li className="layer" title="2 ft contour lines, darker every 10 ft">
+          <button className={`icon${contours ? '' : ' off'}`} aria-label={`${contours ? 'Hide' : 'Show'} Contours`} aria-pressed={!contours} onClick={() => setContours(!contours)}>
+            👁
+          </button>
+          <span className="icon" />
+          <span>Contours</span>
+          <span className="muted small count">2 ft</span>
+        </li>
         {LATER_LAYERS.map((name) => (
           <li key={name} className="layer muted" title="Comes with the site rules in a later phase">
             <span className="icon">👁</span>

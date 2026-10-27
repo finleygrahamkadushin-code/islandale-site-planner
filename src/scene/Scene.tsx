@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import { usePlanStore } from '../store/planStore'
 import { Terrain } from './Terrain'
 import { ParcelLine } from './ParcelLine'
+import { SiteMarks } from './SiteMarks'
 import { PlanObjects } from './PlanObjects'
 import { LabelLayer } from './LabelLayer'
 import { LabelProjector } from './LabelProjector'
@@ -32,6 +33,7 @@ export function Scene() {
       <SceneEnvironment />
       <Terrain terrain={site.terrain} />
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
+      <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
       <LabelProjector drag={drag} />
       <EditGizmos drag={drag} setDrag={setDrag} />

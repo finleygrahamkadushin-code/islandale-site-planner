@@ -42,6 +42,8 @@ export interface PlanState {
   readonly layers: Layers
   readonly environment: Environment
   readonly displayStyle: DisplayStyle
+  /** Contour lines: on, off, or null to follow the display style (off in Realistic). */
+  readonly contours: boolean | null
   readonly saveStatus: SaveStatus
   readonly toast: Toast | null
   /** The last saved view asked for; `n` makes a repeat request fly again. */
@@ -75,6 +77,7 @@ export interface PlanState {
   readonly showAll: () => void
   readonly setEnvironment: (patch: Partial<Environment>) => void
   readonly setDisplayStyle: (style: DisplayStyle) => void
+  readonly setContours: (contours: boolean | null) => void
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly showToast: (text: string) => void
@@ -84,6 +87,7 @@ export interface PlanState {
     layers?: Layers
     environment?: Environment
     displayStyle?: DisplayStyle
+    contours?: boolean | null
   }) => void
 }
 
@@ -117,6 +121,7 @@ export const usePlanStore = create<PlanState>()(
         layers: DEFAULT_LAYERS,
         environment: DEFAULT_ENVIRONMENT,
         displayStyle: 'realistic',
+        contours: null,
         saveStatus: 'loading',
         toast: null,
         viewRequest: null,
@@ -183,16 +188,18 @@ export const usePlanStore = create<PlanState>()(
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
         setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
+        setContours: (contours) => set({ contours }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
-        hydrate: ({ plan, labelMode, layers, environment, displayStyle }) =>
+        hydrate: ({ plan, labelMode, layers, environment, displayStyle, contours }) =>
           set({
             plan,
             labelMode: labelMode ?? get().labelMode,
             layers: layers ?? get().layers,
             environment: environment ? clampEnvironment(environment) : get().environment,
             displayStyle: displayStyle ?? get().displayStyle,
+            contours: contours === undefined ? get().contours : contours,
             selection: [],
           }),
       }
@@ -222,6 +229,11 @@ export function isObjectVisible(s: Pick<PlanState, 'plan' | 'layers'>, id: Objec
 }
 
 /** Whether a label should show for this object under the current label mode. */
+/** Whether contour lines show: the explicit setting, else on in every style but Realistic. */
+export function contoursShown(s: Pick<PlanState, 'contours' | 'displayStyle'>): boolean {
+  return s.contours ?? s.displayStyle !== 'realistic'
+}
+
 export function isLabelShown(s: Pick<PlanState, 'plan' | 'layers' | 'labelMode' | 'selection'>, id: ObjectId): boolean {
   const o = s.plan.objects[id]
   if (!o || !o.labelVisible || !s.layers.labels.visible || !isObjectVisible(s, id)) return false

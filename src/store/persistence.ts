@@ -25,6 +25,7 @@ export interface PlanFile {
     readonly layers: Layers
     readonly environment?: Environment
     readonly displayStyle?: DisplayStyle
+    readonly contours?: boolean | null
   }
 }
 
@@ -114,7 +115,8 @@ function validateView(raw: unknown): PlanFile['view'] {
   }
   const style = isRecord(raw) ? raw.displayStyle : undefined
   const displayStyle: DisplayStyle = DISPLAY_STYLES.some((d) => d.id === style) ? (style as DisplayStyle) : 'realistic'
-  return { labelMode, layers, environment, displayStyle }
+  const contours = isRecord(raw) && typeof raw.contours === 'boolean' ? raw.contours : null
+  return { labelMode, layers, environment, displayStyle, contours }
 }
 
 export async function saveToBrowser(plan: Plan, view: PlanFile['view']): Promise<void> {
