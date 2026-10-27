@@ -2,6 +2,7 @@ import { ShapeUtils, Vector2 } from 'three'
 import type { LocalPoint } from './footprint'
 import { addCap } from './walls'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
+import { polyRoof, prowRoof, type ProwOptions } from './fittedRoof'
 
 const FT = 0.3048
 const FASCIA_M = 0.24
@@ -19,6 +20,8 @@ export interface RoofParams {
   /** Which local axis the ridge runs along. */
   readonly ridge: 'x' | 'z'
   readonly overhangFt: number
+  /** Prow roof options (legacy roofPts, gable, vault, roofDip). */
+  readonly prow?: ProwOptions
 }
 
 /** Roof surfaces, gable-end infill and trim, in local metres with y 0 at the eave. */
@@ -28,19 +31,27 @@ export interface RoofMesh {
   readonly gables: MeshData
   /** Fascia boards and soffits under the eaves. */
   readonly trim: MeshData
+  /** Clerestory glass under a vaulted roof. */
+  readonly glass: MeshData
   /** Height of the highest point above the eave, metres. */
   readonly rise: number
 }
 
+/** Pitched roofs that follow the outline itself on plans that are not rectangles. */
+const FITTED: ReadonlySet<RoofType> = new Set(['gable', 'hip', 'shed', 'butterfly'])
+
 /**
- * Roof over a footprint (local feet). Pitched roofs are built over the
- * footprint's bounding box, as the legacy roofGeometry() did; pyramid,
- * flat and sod follow the footprint polygon itself.
+ * Roof over a footprint (local feet), dispatched as the legacy massMesh()
+ * did: prow roofs are fitted to the outline; gable, hip, shed and
+ * butterfly roofs are built over the box on rectangles and fitted to the
+ * outline otherwise; pyramid, flat and sod follow the polygon itself.
  */
 export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh {
   const type = normaliseRoof(p.type)
-  const out: RoofMesh = { roof: emptyMesh(), gables: emptyMesh(), trim: emptyMesh(), rise: 0 }
+  const out: RoofMesh = { roof: emptyMesh(), gables: emptyMesh(), trim: emptyMesh(), glass: emptyMesh(), rise: 0 }
   if (type === 'none') return out
+  if (type === 'prow') return prowRoof(poly, p.pitch, p.ridge, p.overhangFt, p.prow)
+  if (FITTED.has(type) && !isRectangle(poly)) return polyRoof(poly, type, p.pitch, p.ridge, p.overhangFt)
   const slope = Math.max(0, p.pitch) / 12
   const o = Math.max(0, p.overhangFt) * FT
   const xs = poly.map((q) => q[0] * FT)
@@ -187,6 +198,15 @@ function addBand(mesh: MeshData, ring: readonly (readonly [number, number])[], y
   ring.forEach(([x1, z1], i) => {
     const [x2, z2] = ring[(i + 1) % ring.length]
     addPolygon(mesh, [[x1, y0, z1], [x2, y0, z2], [x2, y1, z2], [x1, y1, z1]], [sign * (z2 - z1), 0, -sign * (x2 - x1)])
+  })
+}
+
+/** Four corners with axis-aligned edges. */
+export function isRectangle(poly: readonly LocalPoint[]): boolean {
+  if (poly.length !== 4) return false
+  return poly.every((a, i) => {
+    const b = poly[(i + 1) % 4]
+    return Math.abs(a[0] - b[0]) < 1e-6 || Math.abs(a[1] - b[1]) < 1e-6
   })
 }
 

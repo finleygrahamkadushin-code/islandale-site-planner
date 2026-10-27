@@ -35,6 +35,11 @@ export interface Mass {
   readonly pitch: number
   readonly ridge: 'x' | 'z'
   readonly overhang: number
+  /** Prow roof extras: eave outline (feet), gable side, vaulted shell, tip dip (feet). */
+  readonly roofPts?: readonly (readonly number[])[]
+  readonly gable?: string
+  readonly vault?: boolean
+  readonly roofDip?: number
   readonly cuts: readonly LegacyCut[]
   readonly steps?: DeckSteps
   /** false: a roof over part of a deck, with no floor of its own. */
@@ -77,6 +82,10 @@ function toMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mass 
     pitch: num(p.pitch, 6),
     ridge: p.ridge === 'z' ? 'z' : 'x',
     overhang: Math.max(0, num(p.overhang, isMain ? 1.5 : 1)),
+    roofPts: Array.isArray(p.roofPts) ? (p.roofPts as number[][]) : undefined,
+    gable: typeof p.gable === 'string' ? p.gable : undefined,
+    vault: p.vault === true,
+    roofDip: typeof p.roofDip === 'number' ? p.roofDip : undefined,
     cuts: Array.isArray(p.cuts) ? (p.cuts as LegacyCut[]) : [],
     steps: deckSteps(p.steps),
     slab: p.slab !== false,
