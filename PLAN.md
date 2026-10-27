@@ -181,7 +181,7 @@ The AI "describe it" helpers in the old file are last in line; rebuild them only
 
 ## Build order
 
-Six phases (plus 3B, added after Phase 3), each ending in something you can open and use. Lock and hide names land in phase 2, so the app is useful before the visual overhaul starts.
+Six phases (plus 3B and 3C, added after Phase 3), each ending in something you can open and use. Lock and hide names land in phase 2, so the app is useful before the visual overhaul starts.
 
 | Phase | Builds | Done when |
 | --- | --- | --- |
@@ -189,13 +189,14 @@ Six phases (plus 3B, added after Phase 3), each ending in something you can open
 | 2 · Core editing (first usable version) | Select, move, rotate, resize; lock; labels switch; layers panel; Scheme C cabins; autosave | You can rearrange Scheme C, lock it, hide names, reload, and find it unchanged |
 | 3 · Graphics | PBR materials, sky lighting, soft shadows, ambient occlusion, cabin detail, display styles | Realistic and White model both look presentation-ready from the saved views |
 | 3B · Design fidelity | Cabin wings (porches, decks, stairs), curved sitting steps, railings, curved boardwalk, roofs fitted to the outline, species trees, contours, cabins set into the slope | Scheme C and C2–C4 show everything the old planner shows, side by side from matching views |
+| 3C · Keep the work, fit the openings, one home | Autosave that never loses work in both planners, save history, an openings editor and fit rules in both planners, one shared home for the plan that Claude Code (and Claude chat, if hosted) can edit | No edit is lost on close or reload; every opening fits its wall in both planners; the plan lives in one named place Claude can edit |
 | 4 · UI and beginner experience | Four task tabs, one inspector, Beginner mode, tooltips, first-run tour, Present mode | Someone new can place, move, lock and save a cabin in about a minute without help |
 | 5 · Port the rest | Decks, supports, walls, interiors, paths, stairs, railings, paint, site rules, archive | Every feature you still use from the old planner works, with undo and locks |
 | 6 · Exports and renders | Path-traced stills, images, PDF plan / elevation / section sheets, glTF for SketchUp | The class deliverables come straight out of the app |
 
 Don't start a phase until the one before passes its done-when check; that keeps the app runnable the whole way through.
 
-Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE3B.md](PLAN-PHASE3B.md) (added after Phase 3: draw the full design before building tools on it), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI).
+Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE3B.md](PLAN-PHASE3B.md) (added after Phase 3: draw the full design before building tools on it), [PLAN-PHASE3C.md](PLAN-PHASE3C.md) (added at Finley's request: never lose work, openings that fit, one home for the plan), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI).
 
 ## Later: making it bigger
 

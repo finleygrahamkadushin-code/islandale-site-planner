@@ -2,7 +2,7 @@
 
 Status: **draft, waiting for Finley's edits and OK.** Edit anything here; Claude Code reads this file before starting Phase 4.
 
-Branch: `phase-4-tools-ui` (to branch from `phase-3b-fidelity`, after Phase 3B passes; see [PLAN-PHASE3B.md](PLAN-PHASE3B.md)).
+Branch: `phase-4-tools-ui` (to branch from the Phase 3C branch once 3C passes; see [PLAN-PHASE3B.md](PLAN-PHASE3B.md) and [PLAN-PHASE3C.md](PLAN-PHASE3C.md)).
 
 ## Goal
 
@@ -112,7 +112,7 @@ Porting the rest of the old planner's features (decks and wings, walls editor, i
 
 ```
 Read PLAN.md and PLAN-PHASE4.md. Start Phase 4 on branch phase-4-tools-ui,
-from phase-3b-fidelity. Follow the order of work, tests first for each step.
+from the Phase 3C branch. Follow the order of work, tests first for each step.
 Show me the app in the browser after steps 1, 3, 4, 6 and 7. Commit after
 each step that leaves the app runnable. Stop and ask before changing any of
 the design decisions.
