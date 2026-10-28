@@ -239,6 +239,23 @@ check it in the browser, and commit.
 - One phase per branch; commit small; keep the app runnable after every commit.
 - When porting a feature, compare against the legacy file's behaviour and note any deliberate change in `PLAN.md`.
 
+## Opening fit rules
+
+Both planners use these numbers (`src/buildings/openingLayout.ts` and the old planner's `ext:openings-fit` block). Lengths are feet; a cut's `x` runs from the wall's left end as seen from outside to the opening itself, and the trim sits outside that.
+
+| Rule | Value |
+|---|---|
+| Outer frame to a wall end | at least 0.75 ft (9 in); across a corner sharper than 150°, the next wall's thickness (0.66 ft) ÷ sin(inside angle), if more |
+| Gap between two openings' outer frames | at least 4 in; a later opening slides along, then narrows, else it is marked as a conflict |
+| Head | sill + height at most the eave minus 0.5 ft |
+| Sill | at least 0 (the floor); a window with sill 0 keeps it |
+| Default trim (casing) | 3.5 in |
+| Smallest width or height | 1 ft |
+| Snap (old planner's editor) | 1 in, rounding inward so a snap never crosses a limit |
+| Wall covered by another enclosed part | the opening is kept but hidden |
+
+Stored fields shared by both planners: `id`, `kind` (window, slider, door, cutout), `edge`, `along`, `x`, `w`, `h`, `sill`, `trim`, `mullV`, `mullH`. Head and from-right are worked out, not stored.
+
 ## Deliberate changes from the legacy file
 
 Record here any behaviour that the rebuild intentionally does differently from `legacy/islandale-planner.html`.
@@ -248,3 +265,6 @@ Record here any behaviour that the rebuild intentionally does differently from `
 - A legacy bridge's route points are stored relative to the bridge's position instead of as absolute site points, so the bridge can be moved as one object.
 - Phase 3C (new app): autosave also saves when the tab is hidden or closed, writing a synchronous copy to localStorage (`islandale-plan.shadow`); the newer of the two copies wins on load. An unreadable save is kept as `islandale-plan.unreadable-<time>` before autosave resumes, and a file from a newer app opens read-only. The last 20 saves are in History. Only one tab edits at a time (a Web Lock); others are read-only until they take over. The leave-page prompt shows only when a save has failed, because the closing copy covers a save that is still pending.
 - Phase 3C (old planner), block `ext:autosave` appended to the end of `legacy/islandale-planner.html`: the layout saves to `islandale-layout` 0.4 s after every undoable change, every 2 s if anything else changed it, and when the tab is hidden or closed. "Save in browser" became "Save now". A History list keeps the last 10 layouts in `islandale-layout.history`, plus the layout as it was opened. The Walls editor's first change each time it opens also goes on the main undo stack.
+- Phase 3C (new app): the plan's home is `data/plans/islandale.plan.json`. While `npm run dev` runs, the dev server serves it at `/__plan`; every write names the revision it was based on, keeps the previous version in `data/plans/.history/` (last 50, not in git), and is refused if the file changed meanwhile, in which case the file's version loads as one undoable step. Editing the file (Claude Code) updates the open app the same way. `npm run plan:commit` commits it. End-to-end tests run their own server on port 5174 with their own plan folder.
+- Phase 3C (new app): openings are laid out by the fit rules above, drawn with flush casings that close at the corners, and edited in the Openings panel. An edit stores the fitted numbers; a saved scheme that breaks the rules is not changed when it loads, and the panel offers **Fit all**. Resizing or reshaping a cabin re-fits its openings in the same undo step. An along-cut is one opening with jambs only at its ends and at sharp corners.
+- Phase 3C (old planner), block `ext:openings-fit`: the Walls editor's clamp (`wlClamp`) is replaced by the fit rules, the fields take feet and inches and gain Head, From right, Trim, Mullions, Centre and Align heads, From-left reads correctly on mirrored curved walls, openings on straight walls get a flush frame inside the hole, and a wall covered by another part says so. Opening the Walls editor fits that building's openings as one undo step; resizing a building re-fits them. Not done there yet: frames on curved walls, starting doors at the slab top in 3D, and merging overlapping holes in `wallMeshes` (the fit now prevents overlaps).

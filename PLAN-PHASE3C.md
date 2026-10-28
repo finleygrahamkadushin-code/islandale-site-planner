@@ -1,6 +1,14 @@
 # Phase 3C plan: keep the work, fit the openings, one home for the plan
 
-Status: **in progress (started Oct 27 2026).** Finley approved Phase 3B and said "ok start" to option C with yes to questions 2 and 3. The other questions use the defaults below until he says otherwise.
+Status: **Parts 1 and 2 built, and the repo-file home (step 14); the hosted home (steps 13, 15-17) is still to do (Oct 27 2026).**
+
+**Built:** steps 1-12 and 14, with the tests listed below. The old planner artifact was republished twice (versions 35 and 36). `scripts/legacy-openings-check.mjs` passes for Scheme C and C2-C4, and so does the matching unit test for the new app.
+
+**Not yet:** step 13 (check that Claude chat can write an artifact's database), steps 15-17 (the hosted home, keeping it in step with the repo file, importing the old copies), and three old-planner details (frames on curved walls, doors starting at the slab top in 3D, merging overlapping holes as a safety net).
+
+**Deviations:** the leave-page prompt shows only when a save has failed, since the closing copy covers a pending save. A History entry made on opening is never merged into, so a bad edit straight after opening can be undone. The corner rule uses the next wall's thickness alone (0.66 ft ÷ sin), not thickness plus trim, so a square corner needs 0.75 ft plus trim, as the tests ask. Step 14 came before steps 9-12, because it is the part that gives Claude Code a way in.
+
+Earlier status: **in progress (started Oct 27 2026).** Finley approved Phase 3B and said "ok start" to option C with yes to questions 2 and 3. The other questions use the defaults below until he says otherwise.
 
 **Answers in force:**
 
