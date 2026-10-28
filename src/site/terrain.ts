@@ -45,6 +45,27 @@ export function elevationAt(t: Terrain, x: number, n: number): number {
   return (z00 * (1 - tx) + z10 * tx) * (1 - ty) + (z01 * (1 - tx) + z11 * tx) * ty
 }
 
+/**
+ * Ground elevation as the terrain mesh draws it, metres: each 2 m cell is
+ * two flat triangles split along the same diagonal as buildTerrainGeometry,
+ * so something draped with this sits exactly on the drawn ground.
+ */
+export function surfaceElevationAt(t: Terrain, x: number, n: number): number {
+  const fx = clamp((x - t.x0) / t.spacing, 0, t.nx - 1.001)
+  const fy = clamp((n - t.n0) / t.spacing, 0, t.ny - 1.001)
+  const i = Math.floor(fx)
+  const j = Math.floor(fy)
+  const tx = fx - i
+  const ty = fy - j
+  const k = j * t.nx + i
+  const z00 = t.z[k]
+  const z10 = t.z[k + 1]
+  const z01 = t.z[k + t.nx]
+  const z11 = t.z[k + t.nx + 1]
+  if (tx + ty <= 1) return z00 + (z10 - z00) * tx + (z01 - z00) * ty
+  return z11 + (z01 - z11) * (1 - tx) + (z10 - z11) * (1 - ty)
+}
+
 /** Site coordinates of a grid sample. */
 export function samplePosition(t: Terrain, col: number, row: number): readonly [number, number] {
   return [t.x0 + col * t.spacing, t.n0 + row * t.spacing]

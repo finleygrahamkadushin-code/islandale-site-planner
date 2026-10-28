@@ -36,11 +36,11 @@ export function cutSurface(c: Cut, x: number, n: number): number {
   return c.floor - SLAB_M + Math.max(0, sd) / BANK_RUN_PER_RISE
 }
 
-/** Displayed ground: the survey, lowered wherever a sunk floor cuts into it (never filled). */
-export function groundWithCuts(t: Terrain, cuts: readonly Cut[]): Ground {
-  if (!cuts.length) return (x, n) => elevationAt(t, x, n)
+/** Displayed ground: the survey (bilinear unless `survey` says otherwise), lowered wherever a sunk floor cuts into it (never filled). */
+export function groundWithCuts(t: Terrain, cuts: readonly Cut[], survey: (t: Terrain, x: number, n: number) => number = elevationAt): Ground {
+  if (!cuts.length) return (x, n) => survey(t, x, n)
   return (x, n) => {
-    let z = elevationAt(t, x, n)
+    let z = survey(t, x, n)
     for (const c of cuts) z = Math.min(z, cutSurface(c, x, n))
     return z
   }
