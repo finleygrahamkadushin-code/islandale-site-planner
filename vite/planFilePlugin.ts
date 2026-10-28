@@ -61,7 +61,12 @@ export function planFilePlugin(dir = 'data/plans'): Plugin {
           try {
             if (req.method === 'GET') {
               const { rev, text } = await store.read()
-              return text === null ? send(res, 404, { error: 'No plan file yet.', rev }, rev) : send(res, 200, text, rev)
+              // no file yet is a normal answer, not an error the browser console should report
+              if (text === null) {
+                res.setHeader('X-Plan-Missing', '1')
+                return send(res, 200, 'null', rev)
+              }
+              return send(res, 200, text, rev)
             }
             if (req.method === 'PUT') {
               const text = await readBody(req)

@@ -34,7 +34,7 @@ export const repoFileHome: PlanHome = {
   read: async () => {
     const res = await fetch(ENDPOINT, { cache: 'no-store' })
     const rev = res.headers.get('ETag') ?? 'none'
-    if (res.status === 404) return { rev, text: null }
+    if (res.status === 404 || res.headers.get('X-Plan-Missing') === '1') return { rev, text: null }
     if (!res.ok) throw new Error(`the plan file could not be read (${res.status})`)
     return { rev, text: await res.text() }
   },
