@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Vector3, type Mesh, type Object3D } from 'three'
+import { Box3, Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
 
@@ -58,6 +58,14 @@ export function CameraRig() {
         triangles += (g.index ? g.index.count : (g.attributes.position?.count ?? 0)) / 3
       })
       return { meshes, triangles: Math.round(triangles) }
+    }
+    // world bounds of one plan object's meshes, metres, for checks that something follows the ground
+    w.islandale.boundsOf = (id: string) => {
+      const box = new Box3()
+      scene.traverseVisible((o) => {
+        if (o.userData.objectId === id) box.expandByObject(o)
+      })
+      return box.isEmpty() ? null : { min: box.min.toArray(), max: box.max.toArray() }
     }
     // which wings (mass indexes) of each building draw a rail, for checks against the old planner
     w.islandale.railedMasses = () => {
