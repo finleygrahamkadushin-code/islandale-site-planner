@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { FIT, layoutOpenings } from './openingLayout'
 import type { LocalPoint } from './footprint'
+import { buildingMasses, massPoly } from './masses'
+import { fitMass, refitAll, withCutIds } from './openingEdits'
+import { planFromScheme } from '../store/fromLegacy'
+import { loadSchemes, schemeById } from '../site/schemes'
 
 // a 20 x 12 ft box wound like footprint.ts rectangles: edge 0 is the back wall (z = -6), edge 1 the right end
 const box: LocalPoint[] = [
@@ -106,5 +110,36 @@ describe('opening fit rules', () => {
     const r = one({ id: 1, kind: 'window', edge: 0, x: 8, w: 3, h: 4, sill: 3 })
     expect(r.notes).toEqual([])
     expect(r.cuts[0]).toEqual({ id: 1, kind: 'window', edge: 0, x: 8, w: 3, h: 4, sill: 3 })
+  })
+})
+
+describe('the opening check list for Scheme C and its prow variants', () => {
+  test.each(['C', 'C2', 'C3', 'C4'])('Scheme %s: after Fit all, openings clear corners, keep 4 in apart, stay under the eave and on the floor', (schemeId) => {
+    const plan = planFromScheme(schemeById(loadSchemes(), schemeId))
+    for (const o of Object.values(plan.objects)) {
+      if (o.type !== 'house') continue
+      const { params } = refitAll(withCutIds(o.params))
+      buildingMasses(params).forEach((m, mi) => {
+        if (m.kind !== 'wall') return
+        const { openings } = fitMass(params, mi)
+        const poly = massPoly(m)
+        for (const op of openings) {
+          const where = `${o.name} mass ${mi} cut ${op.id}`
+          expect(op.sill, where).toBeGreaterThanOrEqual(0)
+          expect(op.sill + op.h, where).toBeLessThanOrEqual(m.h - FIT.headFt + 1e-6)
+          if (op.along) continue
+          const a = poly[op.edge]
+          const b = poly[(op.edge + 1) % poly.length]
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1])
+          expect(op.x - op.trim, where).toBeGreaterThanOrEqual(FIT.cornerFt - 1e-6)
+          expect(len - op.x - op.w - op.trim, where).toBeGreaterThanOrEqual(FIT.cornerFt - 1e-6)
+          expect(op.conflict, where).toBe(false)
+          for (const other of openings) {
+            if (other === op || other.along || other.edge !== op.edge || other.x < op.x) continue
+            expect(other.x - other.trim - (op.x + op.w + op.trim), `${where} and ${other.id}`).toBeGreaterThanOrEqual(FIT.gapFt - 1e-6)
+          }
+        }
+      })
+    }
   })
 })

@@ -15182,4 +15182,105 @@ let lastClear='';
   window.islandaleAutosave={ saveNow:()=>saveNow(true), history:readHist };
 })();
 </script>
+<script>
+/* ===== ext:openings-fit (Phase 3C, appended; see PLAN.md "Opening fit rules") =====
+   Openings follow the same rules as the new planner: the outer frame keeps 9 in from a wall end (more across a
+   sharp corner, where the next wall's thickness covers it), openings keep 4 in apart, heads stay 6 in under the
+   eave, every length snaps to 1 in, and fields take feet and inches (2' 9", 33 in, 2.75). Each opening gets a
+   flush frame inside its hole (jambs, head, sill, mullions). Fields: trim (casing width, ft), mullV, mullH. */
+(function(){
+  const R={corner:0.75,wall:0.66,gap:4/12,head:0.5,trim:3.5/12,min:1,soft:30};
+  const snap=v=>Math.round(v*12)/12;
+  // clamp into [lo, hi] on whole inches, rounding inward so snapping never pushes past a limit
+  const clampIn=(v,lo,hi)=>{ const a=Math.ceil(lo*12-1e-6)/12, b=Math.floor(hi*12+1e-6)/12; return b<a?a:Math.min(b,Math.max(a,snap(v))); };
+  const trimOf=c=>(typeof c.trim==='number'&&c.trim>=0)?c.trim:R.trim;
+  const cutsOf=(o,m,mi)=>mi===0?(o.cuts||(o.cuts=[])):(m.cuts||(m.cuts=[]));
+  function turnAt(P,k){ const n=P.length, a=P[(k-1+n)%n], b=P[k], c=P[(k+1)%n]; const ux=b[0]-a[0], uz=b[1]-a[1], vx=c[0]-b[0], vz=c[1]-b[1];
+    return Math.abs(Math.atan2(ux*vz-uz*vx, ux*vx+uz*vz)*180/Math.PI); }
+  function clearAt(P,k){ const t=turnAt(P,k); if(t<R.soft) return R.corner; const inside=(180-t)*Math.PI/180; return Math.max(R.corner, inside>0.05?R.wall/Math.sin(Math.min(Math.PI/2,inside)):R.wall); }
+  function freeSpans(lo,hi,taken){ const out=[]; let s=lo; taken.slice().sort((p,q)=>p[0]-q[0]).forEach(([a,b])=>{ if(a-R.gap>s) out.push([s,Math.min(hi,a-R.gap)]); s=Math.max(s,b+R.gap); }); if(hi>s) out.push([s,hi]); return out.filter(([a,b])=>b-a>1e-6); }
+  // fit one cut on wall e of mass m, in place; returns true if anything changed
+  function fitCut(c,e,m,list){ const was=JSON.stringify([c.x,c.w,c.h,c.sill]); const L=e.L*M2FT, tr=trimOf(c);
+    c.w=snap(Math.max(R.min,+c.w||3)); c.h=snap(Math.max(R.min,+c.h||4)); c.sill=snap(Math.max(0,+c.sill||0)); c.x=snap(+c.x||0);
+    const lim=(+m.h||9)-R.head; if(c.sill+c.h>lim){ c.h=Math.max(R.min,snap(lim-c.sill)); if(c.sill+c.h>lim) c.sill=Math.max(0,snap(lim-c.h)); }
+    if(e.perim){ c.w=Math.min(c.w,Math.floor((L-2*R.corner)*12)/12); c.x=Math.max(0,Math.min(L-c.w,c.x)); return JSON.stringify([c.x,c.w,c.h,c.sill])!==was; }
+    const P=massPoly(m), n=P.length; const iL=e.flip?(e.i+1)%n:e.i, iR=e.flip?e.i:(e.i+1)%n; // x runs from the left end seen from outside
+    const lo=clearAt(P,iL), hi=L-clearAt(P,iR);
+    const others=list||(wlObj?wlStore(m):(m.cuts||[]))||[];
+    const taken=others.filter(q=>q!==c&&!q.along&&q.edge===c.edge).map(q=>[q.x-trimOf(q),q.x+q.w+trimOf(q)]);
+    const spans=freeSpans(lo,hi,taken), need=w=>w+2*tr; const mid=c.x+c.w/2;
+    const room=spans.filter(([a,b])=>b-a>=need(c.w)-1e-9); const dist=([a,b])=>mid<a?a-mid:mid>b?mid-b:0;
+    let pick=room.sort((p,q)=>dist(p)-dist(q))[0];
+    if(!pick){ const wide=spans.sort((p,q)=>(q[1]-q[0])-(p[1]-p[0]))[0]; if(wide&&wide[1]-wide[0]>=need(R.min)){ c.w=Math.floor((wide[1]-wide[0]-2*tr)*12+1e-6)/12; pick=wide; } }
+    if(pick) c.x=clampIn(c.x,pick[0]+tr,pick[1]-tr-c.w); else c.x=clampIn(c.x,lo+tr,hi-tr-c.w);
+    return JSON.stringify([c.x,c.w,c.h,c.sill])!==was; }
+  // the Walls editor's clamp becomes the shared fit
+  wlClamp=function(c,e,m){ fitCut(c,e,m); };
+  // fit every opening on a building; returns how many changed
+  function fitAll(o){ let n=0; masses(o).forEach((m,mi)=>{ if(isOpen(m)) return; const cs=cutsOf(o,m,mi); const faces=wallFaces(o,m);
+      cs.forEach(c=>{ const e=c.along?faces.find(f=>f.perim):faces.find(f=>!f.perim&&f.i===c.edge); if(e&&fitCut(c,e,m,cs)) n++; }); }); return n; }
+  window.islandaleFitOpenings=fitAll;
+  // opening the Walls editor fits that building's openings (one undo step, with a note)
+  const baseOpen=openWalls; openWalls=function(o){ const copy=serialize(); const n=fitAll(o);
+    if(n){ undoStack.push(copy); if(undoStack.length>60) undoStack.shift(); $('b-undo').disabled=false; rebuildObject(o); toast(n===1?'1 opening fitted to the wall rules':n+' openings fitted to the wall rules'); } return baseOpen.apply(this,arguments); };
+  // a building whose size or shape changes gets its openings fitted again
+  const shapeSig=o=>JSON.stringify([o.w,o.d,o.h,o.shape,o.taper,o.skew,o.pts,(o.wings||[]).map(w=>[w.w,w.d,w.h,w.shape,w.pts])]); const sigs=new WeakMap();
+  const baseRebuild=rebuildObject; rebuildObject=function(o){ if(o&&isBuilding(o)){ const s=shapeSig(o), was=sigs.get(o); sigs.set(o,s); if(was!==undefined&&was!==s){ const n=fitAll(o); if(n) toast(n===1?'1 opening fitted to the new walls':n+' openings fitted to the new walls'); } } return baseRebuild.apply(this,arguments); };
+
+  // ---- feet-and-inches fields, plus Head and From right, Centre and Align heads ----
+  function parseFtIn(t){ t=String(t).trim().toLowerCase().replace(/[’′]/g,"'").replace(/[”″]/g,'"').replace(/\s+/g,' '); const n='(\\d+(?:\\.\\d+)?|\\.\\d+)';
+    const P=[[`^${n}$`,m=>+m[1]],[`^${n} ?(?:'|ft|feet|foot)$`,m=>+m[1]],[`^${n} ?(?:"|in|inch|inches)$`,m=>+m[1]/12],[`^${n} ?(?:'|ft|feet|foot)(?: ?|-)${n} ?(?:"|in|inch|inches)?$`,m=>+m[1]+ +m[2]/12],['^(\\d+)-'+n+'$',m=>+m[1]+ +m[2]/12]];
+    for(const [re,f] of P){ const m=t.match(new RegExp(re)); if(m) return f(m); } return null; }
+  function fmtFtIn(ft){ const q=Math.abs(ft)<1, inch=q?Math.round(Math.abs(ft)*48)/4:Math.round(Math.abs(ft)*12), f=Math.floor(inch/12), i=inch-f*12, s=ft<0?'-':''; return f===0?`${s}${i}"`:(i===0?`${s}${f}'`:`${s}${f}' ${i}"`); }
+  const grid=$('wl-w').closest('.grid3');
+  function swapField(id){ const old=$(id); const inp=old.cloneNode(false); inp.type='text'; inp.removeAttribute('min'); inp.removeAttribute('step'); inp.style.width='100%'; old.replaceWith(inp); return inp; }
+  ['wl-w','wl-h','wl-sill','wl-x'].forEach(swapField);
+  const lab=(text,id)=>{ const l=document.createElement('label'); l.innerHTML=text; const i=document.createElement('input'); i.type='text'; i.id=id; i.style.width='100%'; l.appendChild(i); grid.appendChild(l); return i; };
+  lab('Head ft','wl-head'); lab('From right ft','wl-xr'); lab('Trim in','wl-trim');
+  const mull=document.createElement('label'); mull.innerHTML='Mullions'; const mv=document.createElement('input'), mh=document.createElement('input'); [mv,mh].forEach((x,k)=>{ x.type='number'; x.min='0'; x.max='8'; x.step='1'; x.id=k?'wl-mullh':'wl-mullv'; x.style.width='48%'; x.title=k?'across':'upright'; }); const mrow=document.createElement('span'); mrow.className='row'; mrow.style.gap='4px'; mrow.append(mv,mh); mull.appendChild(mrow); grid.appendChild(mull);
+  ['wl-w','wl-h','wl-sill','wl-x','wl-head','wl-xr'].forEach(id=>{ $(id).closest('label').firstChild.textContent=$(id).closest('label').firstChild.textContent.replace(/ ft$/,''); });
+  const btnRow=$('wl-del').parentNode; const mk2=(t,title)=>{ const b=document.createElement('button'); b.className='small'; b.textContent=t; b.title=title; btnRow.insertBefore(b,$('wl-del')); return b; };
+  const bCentre=mk2('Centre','Centre this opening on its wall'), bAlign=mk2('Align heads','Give the other openings on this part the same head height');
+  const note=document.createElement('p'); note.className='hint'; note.id='wl-fitnote'; $('wl-sel').appendChild(note);
+  const sel=()=>{ const c=wlCur(); if(!c) return null; const cut=(wlStore(c.m)||[]).find(q=>q.id===wlSel); return cut?{...c,cut}:null; };
+  const shownX=(cut,e)=>(e.perim&&e.flip)?e.L*M2FT-cut.x-cut.w:cut.x; // the From-left field reads left as seen from outside on mirrored curved walls too
+  function apply(fn){ const s=sel(); if(!s) return; wlSnapshot(); fn(s.cut,s.e,s.m); fitCut(s.cut,s.e,s.m); renderWalls(); rebuildObject(wlObj); }
+  const onLen=(id,set)=>$(id).addEventListener('change',()=>{ const v=parseFtIn($(id).value); if(v==null){ toast('Type a length such as 2\' 9", 33 in or 2.75'); renderWalls(); return; } apply((c,e)=>set(c,e,v)); });
+  onLen('wl-w',(c,e,v)=>{ const x0=shownX(c,e); c.w=v; if(e.perim&&e.flip) c.x=e.L*M2FT-x0-c.w; });
+  onLen('wl-h',(c,e,v)=>{ c.h=v; });
+  onLen('wl-sill',(c,e,v)=>{ c.sill=v; });
+  onLen('wl-head',(c,e,v)=>{ c.h=Math.max(R.min,v-c.sill); });
+  onLen('wl-x',(c,e,v)=>{ c.x=(e.perim&&e.flip)?e.L*M2FT-v-c.w:v; });
+  onLen('wl-xr',(c,e,v)=>{ const L=e.L*M2FT, left=L-c.w-v; c.x=(e.perim&&e.flip)?L-left-c.w:left; });
+  $('wl-trim').addEventListener('change',()=>{ const v=parseFtIn($('wl-trim').value.replace(/^(\d+(?:\.\d+)?)$/,'$1"')); if(v==null) return renderWalls(); apply(c=>{ c.trim=v; }); });
+  [mv,mh].forEach((x,k)=>x.addEventListener('change',()=>apply(c=>{ c[k?'mullH':'mullV']=Math.max(0,Math.min(8,Math.round(+x.value||0))); })));
+  bCentre.onclick=()=>apply((c,e)=>{ c.x=(e.L*M2FT-c.w)/2; });
+  bAlign.onclick=()=>{ const s=sel(); if(!s) return; wlSnapshot(); const head=s.cut.sill+s.cut.h; wlStore(s.m).forEach(q=>{ if(q===s.cut) return; if(q.kind==='door'||q.kind==='slider') q.h=Math.max(R.min,head-q.sill); else q.sill=Math.max(0,head-q.h); const e=q.along?wallFaces(wlObj,s.m).find(f=>f.perim):wallFaces(wlObj,s.m).find(f=>!f.perim&&f.i===q.edge); if(e) fitCut(q,e,s.m); }); renderWalls(); rebuildObject(wlObj); };
+  // show the selected opening's numbers in feet and inches, with the derived head and from-right
+  const baseRender=renderWalls; renderWalls=function(){ const r=baseRender.apply(this,arguments); const s=sel(); if(s){ const {cut,e}=s, L=e.L*M2FT, x=shownX(cut,e);
+      $('wl-w').value=fmtFtIn(cut.w); $('wl-h').value=fmtFtIn(cut.h); $('wl-sill').value=fmtFtIn(cut.sill); $('wl-x').value=fmtFtIn(x); $('wl-head').value=fmtFtIn(cut.sill+cut.h); $('wl-xr').value=fmtFtIn(L-x-cut.w);
+      $('wl-trim').value=fmtFtIn(trimOf(cut)); mv.value=cut.mullV||0; mh.value=cut.mullH||0; bCentre.hidden=!!e.perim;
+      note.textContent=`Keeps ${fmtFtIn(R.corner)} from corners, ${fmtFtIn(R.gap)} from other openings and ${fmtFtIn(R.head)} under the eave.`; }
+    // a wall another closed part covers: its openings are kept but hidden behind that part
+    try{ const c=wlCur(); if(c&&!c.e.perim){ const stats=$('wl-stats'); const covered=(()=>{ const P=massPolyLocal(wlObj,c.m); const a=P[c.e.i], b=P[(c.e.i+1)%P.length]; const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2, L=Math.hypot(b[0]-a[0],b[1]-a[1])||1; const ox=-(b[1]-a[1])/L, oz=(b[0]-a[0])/L;
+        const pts=[[mx+ox*0.4,mz+oz*0.4],[mx-ox*0.4,mz-oz*0.4]]; return masses(wlObj).some((m2,i)=>i!==c.mi&&!isOpen(m2)&&pts.some(p=>pip(massPolyLocal(wlObj,m2),p))); })();
+        if(covered&&(wlStore(c.m)||[]).some(q=>wlOn(q,c.e))){ const d=document.createElement('div'); d.style.gridColumn='1/-1'; d.innerHTML='<span>Note</span><b class="warn">Openings here are behind another part of the building</b>'; stats.appendChild(d); } } }catch(err){ console.error('[openings-fit] wall check',err); }
+    return r; };
+  const pip=(P,[x,z])=>{ let inside=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const [xi,zi]=P[i],[xj,zj]=P[j]; if(((zi>z)!==(zj>z))&&(x<(xj-xi)*(z-zi)/(zj-zi)+xi)) inside=!inside; } return inside; };
+
+  // ---- a flush frame inside each straight wall's holes: jambs, head, sill and mullions ----
+  const baseWalls=wallMeshes; wallMeshes=function(m,o,ghost,h,t,wallMat,mk,mi){ const g=baseWalls.apply(this,arguments);
+    try{ if(isCurved(m)||!g||!g.children) return g; if(mi==null){ mi=masses(o).indexOf(m); if(mi<0) mi=0; } const cuts=cutsOf(o,m,mi); const edges=wallEdges(o,m); const frameMat=mk('#ece6da');
+      const walls=g.children.filter(c=>c.isMesh&&c.geometry&&c.geometry.type==='ExtrudeGeometry');
+      edges.forEach((e,k)=>{ const wall=walls[k]; if(!wall) return; wall.geometry.computeBoundingBox(); const bb=wall.geometry.boundingBox, depth=bb.max.z-bb.min.z, zc=(bb.max.z+bb.min.z)/2;
+        cuts.filter(c=>c.edge===e.i&&!c.along).forEach(c=>{ if(c.kind==='cutout') return; const cw=Math.min(c.w*FT,e.L-0.1), ch=Math.min(c.h*FT,h-0.05); let u0=c.x*FT; if(e.flip) u0=e.L-u0-cw; u0=Math.max(0.05,Math.min(e.L-cw-0.05,u0)); const v0=Math.max(0,Math.min(h-ch,c.sill*FT));
+          const f=0.045, bar=(x,y,w,hh,d)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),frameMat); b.position.set(x,y,zc); b.castShadow=!ghost; wall.add(b); };
+          bar(u0+f/2,v0+ch/2,f,ch,depth); bar(u0+cw-f/2,v0+ch/2,f,ch,depth); bar(u0+cw/2,v0+ch-f/2,cw,f,depth); if(c.kind==='window') bar(u0+cw/2,v0+f/2,cw,f,depth*1.15);
+          const nv=c.mullV||0, nh=c.mullH||0; for(let i=1;i<=nv;i++) bar(u0+cw*i/(nv+1),v0+ch/2,0.04,ch,0.07); for(let i=1;i<=nh;i++) bar(u0+cw/2,v0+ch*i/(nh+1),cw,0.04,0.07); }); }); }
+    catch(err){ console.error('[openings-fit] frames',err); }
+    return g; };
+  // the site was built before this block loaded: rebuild the buildings once so they get their frames
+  try{ objects.filter(isBuilding).forEach(o=>rebuildObject(o)); }catch(err){ console.error('[openings-fit] first rebuild',err); }
+})();
+</script>
 </body></html>
