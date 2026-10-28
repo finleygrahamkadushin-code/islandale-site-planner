@@ -75,3 +75,36 @@ test('History lists the saves and restores one as an undoable step', async ({ pa
   await page.evaluate(() => (window as any).islandale.store.temporal.getState().undo())
   expect(await nameOf(page, id)).toBe('After the reload')
 })
+
+test('the Openings panel adds and resizes a window as undoable steps, and a locked cabin refuses', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const id = await page.evaluate(() => {
+    const s = (window as any).islandale.store.getState()
+    const id = s.plan.order.find((i: string) => s.plan.objects[i].name === 'Family lantern')
+    s.select([id])
+    return id as string
+  })
+  const cuts = () => page.evaluate((id) => ((window as any).islandale.store.getState().plan.objects[id].params.cuts ?? []).length as number, id)
+  const before = await cuts()
+  const panel = page.locator('details.openings')
+  await expect(panel).toBeVisible()
+  await panel.getByRole('button', { name: '+ Window' }).click()
+  expect(await cuts()).toBe(before + 1)
+
+  // the new window is the last row on its wall: make it 2' 6" wide
+  const row = panel.getByTestId('opening-row').last()
+  const width = row.getByLabel('Width')
+  await width.fill(`2' 6"`)
+  await width.press('Enter')
+  await expect(width).toHaveValue(`2' 6"`)
+  await page.evaluate(() => (window as any).islandale.store.temporal.getState().undo())
+  await page.evaluate(() => (window as any).islandale.store.temporal.getState().undo())
+  expect(await cuts()).toBe(before)
+
+  // locked: the panel's buttons are disabled and the store refuses
+  await page.getByLabel('Locked').check()
+  await expect(panel.getByRole('button', { name: '+ Window' })).toBeDisabled()
+  await page.evaluate((id) => (window as any).islandale.store.getState().addOpening(id, 0, { kind: 'window', edge: 0, x: 1, w: 2, h: 3, sill: 3 }), id)
+  expect(await cuts()).toBe(before)
+})

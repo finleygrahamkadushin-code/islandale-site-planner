@@ -116,3 +116,34 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   backdrop-filter: blur(8px);
 }
+
+/* Openings panel (Phase 3C) */
+.openings { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.openings > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.openings[open] > summary { margin-bottom: 6px; }
+.openings .row.between { justify-content: space-between; }
+.opening-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.opening { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.opening.focused { border-color: var(--accent); }
+.opening.conflict { border-color: var(--danger); }
+.opening .actions button { font-size: 11px; padding: 3px 6px; }
+.opening input[type='number'] { width: 44px; }
+.ft-in input { width: 100%; }
+.ft-in.bad input { border-color: var(--danger); }
+.ft-in .err { color: var(--danger); font-size: 10px; font-style: normal; }
+.fit-notes { margin: 0; padding-left: 16px; color: var(--muted); }
+.fit-notes .warn { color: var(--danger); }
+.fit-warn { color: var(--danger); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.elevation { width: 100%; height: auto; max-height: 120px; background: color-mix(in srgb, var(--fg) 4%, transparent); border-radius: 6px; }
+.elevation .el-wall { fill: color-mix(in srgb, var(--fg) 10%, transparent); stroke: var(--muted); stroke-width: 0.06; }
+.elevation .el-zone { fill: none; stroke: var(--muted); stroke-width: 0.03; stroke-dasharray: 0.2 0.15; }
+.elevation .el-trim { fill: var(--muted); }
+.elevation .el-open { fill: #6f8a96; }
+.elevation .el-door { fill: #8a6d54; }
+.elevation .el-cutout { fill: #1b1d1e; }
+.elevation .el-conflict .el-trim { fill: var(--danger); }
+.elevation .el-hidden { opacity: 0.35; }
+.elevation .el-focus .el-trim { fill: var(--accent); }
+.openings .actions { flex-wrap: wrap; }
+.openings .actions button { white-space: nowrap; }
+.fit-warn button { font-size: 11px; padding: 2px 8px; }

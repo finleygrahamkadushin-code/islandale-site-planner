@@ -4,6 +4,7 @@ import { num } from '../buildings/footprint'
 import { ftToM, mToFt } from '../site/units'
 import { isObjectLocked, usePlanStore } from '../store/planStore'
 import { LAYER_NAMES, layerOf } from '../store/types'
+import { OpeningsPanel } from './OpeningsPanel'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -66,6 +67,7 @@ function SingleInspector({ id }: { readonly id: string }) {
         </button>
       </div>
       {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
+      {o.type === 'house' && <OpeningsPanel id={id} />}
     </section>
   )
 }

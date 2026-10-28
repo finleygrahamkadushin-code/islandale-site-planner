@@ -5,6 +5,8 @@ import { CURRENT_SCHEME_ID, loadSchemes, schemeById } from '../site/schemes'
 import type { Site } from '../site/types'
 import type { Scheme } from '../site/schemes'
 import { planFromScheme } from './fromLegacy'
+import { editCuts, massWalls, nextCutId, refitAll, withCutIds, type EditResult } from '../buildings/openingEdits'
+import type { CutData, FitNote } from '../buildings/openingLayout'
 import type { ViewId } from '../scene/views'
 import {
   DEFAULT_ENVIRONMENT,
@@ -28,6 +30,12 @@ export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'loading'
 /** Why the plan cannot be edited in this tab, or null when it can. */
 export type ReadOnlyReason = 'other-tab' | 'newer-file' | 'unsafe-save' | null
 
+export interface OpeningFocus {
+  readonly objectId: ObjectId
+  readonly mass: number
+  readonly cutId: number
+}
+
 export interface Toast {
   readonly id: number
   readonly text: string
@@ -49,6 +57,8 @@ export interface PlanState {
   readonly contours: boolean | null
   readonly saveStatus: SaveStatus
   readonly readOnly: ReadOnlyReason
+  /** The opening picked in the Openings panel, outlined in 3D. */
+  readonly openingFocus: OpeningFocus | null
   readonly toast: Toast | null
   /** The last saved view asked for; `n` makes a repeat request fly again. */
   readonly viewRequest: { readonly id: ViewId; readonly n: number } | null
@@ -69,6 +79,16 @@ export interface PlanState {
   readonly setLocked: (id: ObjectId, locked: boolean) => void
   readonly setHidden: (id: ObjectId, hidden: boolean) => void
   readonly setLabelVisible: (id: ObjectId, visible: boolean) => void
+  // openings: mass 0 is the main walls, mass n the n-th wing; each is one undo step, refused when locked
+  readonly addOpening: (id: ObjectId, massIndex: number, cut: CutData) => void
+  readonly updateOpening: (id: ObjectId, massIndex: number, cutId: number, patch: Partial<CutData>) => void
+  readonly removeOpening: (id: ObjectId, massIndex: number, cutId: number) => void
+  readonly duplicateOpening: (id: ObjectId, massIndex: number, cutId: number) => void
+  readonly centreOpening: (id: ObjectId, massIndex: number, cutId: number) => void
+  /** Every other window on the mass takes this opening's head height. */
+  readonly alignHeads: (id: ObjectId, massIndex: number, cutId: number) => void
+  /** Fit every opening on a cabin by the rules (for saved schemes that break them). */
+  readonly fitAllOpenings: (id: ObjectId) => void
 
   // --- view state: not undo steps -------------------------------------
   readonly select: (ids: readonly ObjectId[]) => void
@@ -85,6 +105,7 @@ export interface PlanState {
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
+  readonly setOpeningFocus: (focus: OpeningFocus | null) => void
   readonly showToast: (text: string) => void
   readonly hydrate: (saved: {
     plan: Plan
@@ -95,6 +116,9 @@ export interface PlanState {
     contours?: boolean | null
   }) => void
 }
+
+/** Params whose change can move a cabin's walls, so its openings are re-fitted. */
+const SHAPE_KEYS = ['w', 'd', 'shape', 'pts', 'taper', 'skew', 'wings'] as const
 
 const READ_ONLY_TEXT: Record<Exclude<ReadOnlyReason, null>, string> = {
   'other-tab': 'The plan is open for editing in another tab',
@@ -129,6 +153,31 @@ export const usePlanStore = create<PlanState>()(
         set({ plan: { ...s.plan, objects: { ...s.plan.objects, [id]: patch(o) } } })
       }
 
+      /** Change a cabin's params and re-fit its openings, as one edit. */
+      const editRefit = (id: ObjectId, change: (p: Record<string, unknown>) => Record<string, unknown>) => {
+        let result: EditResult | null = null
+        edit(id, (o) => {
+          result = refitAll(withCutIds(change(o.params)))
+          return { ...o, params: result.params }
+        })
+        if (result) reportFit((result as EditResult).notes)
+      }
+      /** Change one mass's cuts; the fitted numbers are what is stored. */
+      const editOpenings = (id: ObjectId, mi: number, change: (cuts: CutData[], p: Record<string, unknown>) => CutData[]) => {
+        let result: EditResult | null = null
+        edit(id, (o) => {
+          const p = withCutIds(o.params)
+          result = editCuts(p, mi, (cuts) => change(cuts, p))
+          return { ...o, params: result.params }
+        })
+        if (result) reportFit((result as EditResult).notes)
+      }
+      const reportFit = (notes: readonly FitNote[]) => {
+        const moved = new Set(notes.map((n) => n.id))
+        if (moved.size === 1) get().showToast(`Opening ${notes[0].reason}`)
+        else if (moved.size > 1) get().showToast(`${moved.size} openings fitted`)
+      }
+
       return {
         site,
         schemes,
@@ -143,6 +192,7 @@ export const usePlanStore = create<PlanState>()(
         contours: null,
         saveStatus: 'loading',
         readOnly: null,
+        openingFocus: null,
         toast: null,
         viewRequest: null,
 
@@ -173,9 +223,10 @@ export const usePlanStore = create<PlanState>()(
           }
           set({ plan: { ...s.plan, objects } })
         },
-        resizeObject: (id, { w, d }) =>
-          edit(id, (o) => ({ ...o, params: { ...o.params, w: Math.max(1, w), d: Math.max(1, d) } })),
-        setObjectParams: (id, patch) => edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),
+        // a new size or shape re-fits the cabin's openings in the same undo step
+        resizeObject: (id, { w, d }) => editRefit(id, (p) => ({ ...p, w: Math.max(1, w), d: Math.max(1, d) })),
+        setObjectParams: (id, patch) =>
+          SHAPE_KEYS.some((k) => k in patch) ? editRefit(id, (p) => ({ ...p, ...patch })) : edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),
         renameObject: (id, name) => edit(id, (o) => ({ ...o, name })),
         deleteObjects: (ids) => {
           if (!writable()) return
@@ -202,6 +253,38 @@ export const usePlanStore = create<PlanState>()(
           if (writable()) set((s) => ({ plan: withObject(s.plan, id, { labelVisible }) }))
         },
 
+        addOpening: (id, mi, cut) =>
+          editOpenings(id, mi, (cuts, p) => [...cuts, { ...cut, id: nextCutId(p) }]),
+        updateOpening: (id, mi, cutId, patch) =>
+          editOpenings(id, mi, (cuts) => cuts.map((c) => (c.id === cutId ? { ...c, ...patch, id: cutId } : c))),
+        removeOpening: (id, mi, cutId) => editOpenings(id, mi, (cuts) => cuts.filter((c) => c.id !== cutId)),
+        duplicateOpening: (id, mi, cutId) =>
+          editOpenings(id, mi, (cuts, p) => {
+            const c = cuts.find((x) => x.id === cutId)
+            // the copy goes just to the right (seen from outside); the fit slides it along if that is taken
+            return c ? [...cuts, { ...c, id: nextCutId(p), x: (c.x ?? 0) + (c.w ?? 3) + 1 }] : cuts
+          }),
+        centreOpening: (id, mi, cutId) =>
+          editOpenings(id, mi, (cuts, p) =>
+            cuts.map((c) => {
+              if (c.id !== cutId || c.along) return c
+              const wall = massWalls(p, mi).find((w) => w.edge === c.edge)
+              return wall ? { ...c, x: (wall.lengthFt - (c.w ?? 3)) / 2 } : c
+            }),
+          ),
+        alignHeads: (id, mi, cutId) =>
+          editOpenings(id, mi, (cuts) => {
+            const ref = cuts.find((c) => c.id === cutId)
+            if (!ref) return cuts
+            const head = (ref.sill ?? 0) + (ref.h ?? 4)
+            return cuts.map((c) => {
+              if (c.id === cutId) return c
+              if (c.kind === 'door' || c.kind === 'slider') return { ...c, h: head - (c.sill ?? 0) }
+              return { ...c, sill: Math.max(0, head - (c.h ?? 4)) }
+            })
+          }),
+        fitAllOpenings: (id) => editRefit(id, (p) => p),
+
         select: (ids) => set({ selection: [...ids] }),
         toggleSelect: (id) =>
           set((s) => ({
@@ -223,6 +306,7 @@ export const usePlanStore = create<PlanState>()(
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),
+        setOpeningFocus: (openingFocus) => set({ openingFocus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
         hydrate: ({ plan, labelMode, layers, environment, displayStyle, contours }) =>
           set({
