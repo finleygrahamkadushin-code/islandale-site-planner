@@ -21,6 +21,8 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--muted); }
 button:disabled { opacity: 0.4; cursor: default; }
+a.old-planner { color: inherit; text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+a.old-planner:hover { border-color: var(--muted); }
 button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 button.danger { color: var(--danger); }
 input, select {

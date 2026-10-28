@@ -221,6 +221,62 @@ describe('the plan home', () => {
     expect(store().plan).toBe(before)
   })
 
+  test('a plan file from a newer planner, written while the app is open, is not loaded and is never saved over', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const newer = JSON.stringify({ ...JSON.parse(serializePlan(store().plan, view)), version: 2 })
+    h.editOutside(newer)
+    await settle()
+    await settle()
+    expect(store().readOnly).toBe('newer-file')
+    store().renameObject(firstId(), 'Would overwrite the newer file')
+    await running.flush()
+    expect(h.text()).toBe(newer)
+  })
+
+  test('a read-only tab does not move this browser’s home revision', async () => {
+    const { backend, ls } = fakeBackend({}, { 'islandale-plan.home-rev': 'r0' })
+    const h = fakeHome(serializePlan({ ...store().plan, name: 'Edited by Claude' }, view))
+    store().setReadOnly('other-tab')
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    expect(ls.get('islandale-plan.home-rev')).toBe('r0')
+  })
+
+  test('a change notice that arrives while a save is in flight waits for it, so the app does not reload its own save', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    let hold = false
+    let release: () => void = () => {}
+    let notify: () => void = () => {}
+    const home: PlanHome = {
+      ...h.home,
+      // like the real store, the row holds the new plan before the write call returns
+      write: async (t, base) => {
+        const result = await h.home.write(t, base)
+        if (hold) await new Promise<void>((r) => (release = r))
+        return result
+      },
+      onChange: (handler) => ((notify = handler), () => {}),
+    }
+    running = startAutosave({ backend, page: fakePage().page, home })
+    await running.ready
+    hold = true
+    store().renameObject(firstId(), 'Saving')
+    const saving = running.flush()
+    await settle()
+    notify() // the snapshot of this very save, delivered before the write returns
+    store().renameObject(firstId(), 'Edited after the save started')
+    hold = false
+    release()
+    await saving
+    await settle()
+    await settle()
+    expect(store().plan.objects[firstId()].name).toBe('Edited after the save started')
+  })
+
   test('a save based on an old revision does not overwrite the file; the file’s version is loaded', async () => {
     const { backend } = fakeBackend()
     const h = fakeHome()

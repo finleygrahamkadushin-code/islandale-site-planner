@@ -1,10 +1,19 @@
 # Phase 3C plan: keep the work, fit the openings, one home for the plan
 
-Status: **Parts 1 and 2 built, and the repo-file home (step 14); the hosted home (steps 13, 15-17) is still to do (Oct 27 2026).**
+Status: **Built, all steps (Oct 27 2026).** The hosted home is https://claude.ai/artifact/HpHkXNcd2ZWnp2UVdvPc3m.
 
 **Built:** steps 1-12 and 14, with the tests listed below. The old planner artifact was republished twice (versions 35 and 36). `scripts/legacy-openings-check.mjs` passes for Scheme C and C2-C4, and so does the matching unit test for the new app.
 
-**Not yet:** step 13 (check that Claude chat can write an artifact's database), steps 15-17 (the hosted home, keeping it in step with the repo file, importing the old copies), and three old-planner details (frames on curved walls, doors starting at the slab top in 3D, merging overlapping holes as a safety net).
+**Hosted home (steps 13, 15-17):**
+- **Step 13.** Claude Code's ArtifactData wrote the row, and an open copy of the page loaded the write and saved it back (row version 2 became 3). Claude chat uses the same artifact database tools, but this was not tried from a chat.
+- **Step 15.** One row instead of one per object; see PLAN.md, "Deliberate changes".
+- **Step 16.** Pull and push are ArtifactData steps that Claude Code runs (see PLAN.md, "Editing the plan from Claude"), not a script: a script cannot call ArtifactData. The "N saves behind" notice is not built.
+- **Step 17.** Automatic import is not possible across sites. The localhost plan came in through the repo file; the old artifact's layout comes in by copying and pasting.
+
+- **Review.** A review workflow (four areas, each finding checked by two skeptics) found the old planner's block writing over the row without checking it, and the new app able to mistake its own save for an outside edit. Both are fixed, with tests: `src/store/artifactHome.test.ts`, new cases in `src/store/autosave.test.ts`, and `scripts/legacy-hosted-check.mjs` (10 checks). Many verifiers did not finish because of a usage limit; every finding was read and the real ones fixed.
+- **Not checked live:** whether `legacy.html` inside the artifact gets the claude.ai runtime. Click **Old planner** in the hosted home and watch for the row `legacy/layout` to appear.
+
+**Not yet:** three old-planner details (frames on curved walls, doors starting at the slab top in 3D, merging overlapping holes as a safety net).
 
 **Deviations:** the leave-page prompt shows only when a save has failed, since the closing copy covers a pending save. A History entry made on opening is never merged into, so a bad edit straight after opening can be undone. The corner rule uses the next wall's thickness alone (0.66 ft ÷ sin), not thickness plus trim, so a square corner needs 0.75 ft plus trim, as the tests ask. Step 14 came before steps 9-12, because it is the part that gives Claude Code a way in.
 

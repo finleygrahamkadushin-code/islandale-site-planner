@@ -28,7 +28,7 @@ import {
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'loading'
 
 /** Why the plan cannot be edited in this tab, or null when it can. */
-export type ReadOnlyReason = 'other-tab' | 'newer-file' | 'unsafe-save' | null
+export type ReadOnlyReason = 'opening' | 'other-tab' | 'newer-file' | 'unsafe-save' | null
 
 export interface OpeningFocus {
   readonly objectId: ObjectId
@@ -121,6 +121,7 @@ export interface PlanState {
 const SHAPE_KEYS = ['w', 'd', 'shape', 'pts', 'taper', 'skew', 'wings'] as const
 
 const READ_ONLY_TEXT: Record<Exclude<ReadOnlyReason, null>, string> = {
+  opening: 'The saved plan is still opening; try again in a moment',
   'other-tab': 'The plan is open for editing in another tab',
   'newer-file': 'This save is from a newer version of the planner; it opens read-only',
   'unsafe-save': 'The old save could not be set aside safely, so editing is off',

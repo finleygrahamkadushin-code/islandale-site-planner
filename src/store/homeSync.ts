@@ -80,11 +80,13 @@ export function createHomeSync(home: PlanHome, backend: SaveBackend): HomeSync {
     if (store.getState().readOnly) return
     const copy = await fetchHome()
     if (!copy || !copy.changedOutside) return
-    setRev(copy.rev)
     if (copy.newer) {
-      warn(`${home.label} was saved by a newer planner; it was not loaded`)
+      // keep the old revision, so no save from this planner can replace the newer file
+      store.getState().setReadOnly('newer-file')
+      warn(`${home.label} was saved by a newer planner; it was not loaded, and this tab is read-only`)
       return
     }
+    setRev(copy.rev)
     store.getState().replacePlan(copy.file.plan)
     store.getState().showToast(`Loaded the plan from ${home.label}. Undo to go back.`)
   }
@@ -111,12 +113,16 @@ export function createHomeSync(home: PlanHome, backend: SaveBackend): HomeSync {
     else warn(`Saved in this browser, but not to ${home.label}: ${result.error}`)
   }
 
-  const offChange = home.onChange(() => void adoptHome())
+  // a change from elsewhere waits behind any save in flight, so the app never mistakes its own write for someone else's
+  const offChange = home.onChange(() => {
+    pushing = pushing.then(adoptHome)
+  })
 
   return {
     open: async () => {
       const copy = await fetchHome()
-      if (copy) setRev(copy.rev)
+      // a read-only tab only looks; the editing tab decides which revision this browser's copy is based on
+      if (copy && !store.getState().readOnly) setRev(copy.rev)
       return copy
     },
     push: (text) => {

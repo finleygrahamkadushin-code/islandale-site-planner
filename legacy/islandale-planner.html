@@ -15283,4 +15283,67 @@ let lastClear='';
   try{ objects.filter(isBuilding).forEach(o=>rebuildObject(o)); }catch(err){ console.error('[openings-fit] first rebuild',err); }
 })();
 </script>
+<script>
+/* ===== ext:hosted-home (Phase 3C, appended; see PLAN.md "Deliberate changes from the legacy file") =====
+   Served as legacy.html inside the hosted Islandale planner artifact, the layout also lives in that
+   artifact's database (row legacy/layout), so Claude chat and Claude Code can read and edit it and any
+   device sees the same copy. The layout is written there a moment after it changes; before each write
+   the row is read, and an edit made elsewhere is loaded as one undoable step instead of being
+   overwritten. This browser remembers the last hosted version it saw, so on opening a newer layout here
+   is kept and an edit made elsewhere wins. Anywhere else (no claude.ai runtime) this block does nothing. */
+(function(){
+  if(!window.claude||typeof window.claude.use!=='function') return;
+  const ROW='legacy/layout', SEEN='islandale-layout.hosted-seen', POLL=2000, MAX=240000, MINE=5;
+  const canon=v=>Array.isArray(v)?'['+v.map(canon).join(',')+']':(v&&typeof v==='object')?'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}':JSON.stringify(v);
+  const hash=s=>{ let a=0xdeadbeef, b=0x41c6ce57; for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); a=Math.imul(a^c,2654435761); b=Math.imul(b^c,1597334677); }
+    a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909); b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);
+    return (b>>>0).toString(16)+(a>>>0).toString(16); };
+  const getSeen=()=>{ try{ return localStorage.getItem(SEEN); }catch(e){ return null; } };
+  const setSeen=c=>{ try{ localStorage.setItem(SEEN,hash(c)); }catch(e){} };
+  const current=()=>{ try{ return JSON.parse(serialize()); }catch(e){ console.error('[hosted-home] could not serialize the layout',e); return null; } };
+  // pushed: the hosted version this page last wrote or loaded. mine: recent writes, so their echoes are not news.
+  let pushed=null, busy=false, warned='', bad=null; const mine=[];
+  const warn=t=>{ if(t!==warned){ warned=t; toast(t); } };
+  const remember=c=>{ pushed=c; setSeen(c); mine.push(hash(c)); if(mine.length>MINE) mine.shift(); };
+  const isMine=c=>c===pushed||mine.includes(hash(c));
+  function adopt(layout){ const c=canon(layout), cur=current();
+    if(cur&&canon(cur)===c){ remember(c); return; }
+    try{ pushUndo(); loadLayout(JSON.stringify(layout)); remember(c); bad=null; toast('Loaded the layout from the hosted home; Undo to go back'); }
+    catch(e){ bad=c; console.error('[hosted-home] could not load the layout',e);
+      warn('The hosted layout could not be loaded. It is left as it is, and changes here stay in this browser; Undo restores this copy'); } }
+  window.claude.use('db').then(db=>{ if(!db) return; const ref=db.doc(ROW);
+    async function push(){ if(busy) return; const layout=current(); if(!layout) return; const c=canon(layout); if(c===pushed) return;
+      const size=JSON.stringify(layout).length;
+      if(size>MAX){ warn('The layout is too big for the hosted home; it is saved in this browser only'); return; }
+      busy=true;
+      try{ const snap=await ref.get(), row=snap.exists?snap.data():null, rc=row&&row.layout?canon(row.layout):null;
+        if(rc!==null&&rc===bad){ warn('The hosted layout could not be loaded, so changes here stay in this browser until it is fixed'); return; }
+        // someone else changed the row since this page last saw it: load theirs (undoable) rather than write over it
+        if(rc!==null&&rc!==c&&!isMine(rc)){ adopt(row.layout); return; }
+        await ref.set({layout,savedAt:new Date().toISOString()}); remember(c); warned='';
+      }catch(e){ console.error('[hosted-home] save failed',e); warn('Saved in this browser, but not to the hosted home'); }
+      finally{ busy=false; } }
+    function open(){ return ref.get().then(snap=>{ const row=snap.exists?snap.data():null, cur=current();
+      if(!row||!row.layout){ push(); return; }
+      const rc=canon(row.layout);
+      if(cur&&rc===canon(cur)){ remember(rc); return; }
+      // the row is the version this browser last saw: the layout here is newer, so it goes up
+      if(getSeen()===hash(rc)){ pushed=rc; push(); return; }
+      adopt(row.layout); }); }
+    function start(){
+      setInterval(push,POLL);
+      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') push(); });
+      let tries=0;
+      const listen=()=>ref.onSnapshot(sn=>{ tries=0; if(sn.metadata.hasPendingWrites||pushed===null) return;
+          const r=sn.exists?sn.data():null; if(!r||!r.layout) return; const rc=canon(r.layout);
+          if(!isMine(rc)&&rc!==bad) adopt(r.layout); },
+        e=>{ console.error('[hosted-home] stopped listening for changes',e.code,e.message);
+          if(e.code==='unavailable'&&tries++<5) setTimeout(listen,3000); });
+      listen(); }
+    open().then(start,e=>{ console.error('[hosted-home] could not read the hosted layout',e);
+      warn('Could not reach the hosted home; saving in this browser only, trying again shortly');
+      setTimeout(()=>open().then(start,()=>warn('Could not reach the hosted home; saving in this browser only')),5000); });
+  });
+})();
+</script>
 </body></html>

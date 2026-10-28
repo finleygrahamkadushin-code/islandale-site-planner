@@ -15,6 +15,7 @@ const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[]
 
 const SAVE_TEXT = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved', error: 'Not saved', loading: 'Loading…' } as const
 const READ_ONLY_TEXT = {
+  opening: 'Opening the saved plan…',
   'other-tab': 'Read-only: open in another tab',
   'newer-file': 'Read-only: saved by a newer planner',
   'unsafe-save': 'Read-only: the old save is protected',
@@ -121,6 +122,13 @@ export function TopBar() {
       </div>
 
       <HistoryMenu />
+
+      {/* the built app runs as the hosted home, which also serves the old planner next to it */}
+      {import.meta.env.PROD && (
+        <a className="old-planner" href="./legacy.html" title="The old planner, sharing the hosted home">
+          Old planner
+        </a>
+      )}
 
       {readOnly && (
         <span className="readonly" data-testid="read-only">
