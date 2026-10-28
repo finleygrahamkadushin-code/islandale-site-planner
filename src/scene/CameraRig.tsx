@@ -70,6 +70,21 @@ export function CameraRig() {
       controls.target.set(...target)
       controls.update()
     }
+    // look at one object from a compass bearing (degrees from north, clockwise) and distance in metres
+    w.islandale.focus = (id: string, bearingDeg = 180, distanceM = 14, heightM = 4) => {
+      let target: Vector3 | null = null
+      scene.traverse((o) => {
+        if (!target && o.userData.objectId === id) target = o.getWorldPosition(new Vector3())
+      })
+      if (!target || !controls) return false
+      const t = target as Vector3
+      const b = (bearingDeg * Math.PI) / 180
+      flight.current = null
+      camera.position.set(t.x + Math.sin(b) * distanceM, t.y + heightM, t.z - Math.cos(b) * distanceM)
+      controls.target.set(t.x, t.y + 2, t.z)
+      controls.update()
+      return true
+    }
   }, [camera, gl, controls, scene])
 
   useFrame((_, dt) => {

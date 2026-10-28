@@ -61,21 +61,24 @@ interface SurfaceProps {
   readonly glow?: number
   /** Realistic only: tint by the geometry's vertex colours (tree crowns). */
   readonly vertexColors?: boolean
+  /** Pull the surface toward the camera in the depth test, for things laid on a wall face (openings). */
+  readonly layer?: number
 }
 
 /** The material (and, in Sketch, the edge lines) for one mesh. Use as a mesh child. */
-export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagramColor, glow = 0, vertexColors = false }: SurfaceProps) {
+export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagramColor, glow = 0, vertexColors = false, layer = 0 }: SurfaceProps) {
+  const lift = layer ? { polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -layer } : {}
   const map = useMemo(() => (style === 'realistic' && texture ? textureFor(texture, textureUnit) : null), [style, texture, textureUnit])
   const emissive = glow > 0 ? '#ffffff' : '#000000'
   const emissiveIntensity = glow * 0.22
 
   if (kind === 'glass') {
     if (style === 'realistic') {
-      return <meshPhysicalMaterial color="#1d2a30" roughness={0.04} metalness={0} clearcoat={1} clearcoatRoughness={0.03} envMapIntensity={2.4} reflectivity={0.9} />
+      return <meshPhysicalMaterial {...lift} color="#1d2a30" roughness={0.04} metalness={0} clearcoat={1} clearcoatRoughness={0.03} envMapIntensity={2.4} reflectivity={0.9} />
     }
     return (
       <>
-        <meshStandardMaterial color={style === 'diagram' ? '#9fb6c2' : '#c9d2d6'} roughness={0.3} />
+        <meshStandardMaterial {...lift} color={style === 'diagram' ? '#9fb6c2' : '#c9d2d6'} roughness={0.3} />
         {style === 'sketch' && <Edges color={SKETCH_LINE} />}
       </>
     )
@@ -85,15 +88,15 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     const base = vertexColors ? '#ffffff' : realisticColour(kind, color)
     const rough = kind === 'roof' ? (texture === 'seam' ? 0.45 : 0.95) : kind === 'frame' ? 0.6 : 0.9
     const metal = kind === 'roof' && texture === 'seam' ? 0.35 : 0
-    return <meshStandardMaterial color={base} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={emissiveIntensity} vertexColors={vertexColors} />
+    return <meshStandardMaterial {...lift} color={base} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={emissiveIntensity} vertexColors={vertexColors} />
   }
   if (style === 'diagram') {
-    return <meshLambertMaterial color={diagramColour(kind, diagramColor)} emissive={emissive} emissiveIntensity={emissiveIntensity} />
+    return <meshLambertMaterial {...lift} color={diagramColour(kind, diagramColor)} emissive={emissive} emissiveIntensity={emissiveIntensity} />
   }
   const tone = kind === 'frame' || kind === 'door' ? '#e1e0db' : kind === 'canopy' ? '#ecebe6' : WHITE
   return (
     <>
-      <meshStandardMaterial color={tone} roughness={1} metalness={0} emissive={emissive} emissiveIntensity={emissiveIntensity} />
+      <meshStandardMaterial {...lift} color={tone} roughness={1} metalness={0} emissive={emissive} emissiveIntensity={emissiveIntensity} />
       {style === 'sketch' && kind !== 'canopy' && kind !== 'trunk' && <Edges color={SKETCH_LINE} threshold={20} />}
     </>
   )

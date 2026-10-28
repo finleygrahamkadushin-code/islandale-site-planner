@@ -3,7 +3,7 @@ import { localFootprint } from './footprint'
 import { buildWalls } from './walls'
 import { buildRoof, ROOF_TYPES } from './roof'
 import { bounds, triangleCount } from './geom'
-import { placeOpenings } from './openings'
+import { layoutOpenings } from './openingLayout'
 import { postPositions, supportType } from './foundation'
 
 const FT = 0.3048
@@ -69,29 +69,31 @@ describe('roofs', () => {
 })
 
 describe('openings', () => {
+  const place = (cut: object, h: number) => layoutOpenings(rect, [cut], { wallHeightFt: h }).openings
   test('x is measured from the left end seen from outside (the far vertex)', () => {
     // edge 0 of the rect runs (-10,-8) → (10,-8), facing -z; seen from outside its left end is x = +10
-    const [o] = placeOpenings(rect, [{ edge: 0, kind: 'door', x: 2, w: 3, h: 7, sill: 0 }], 10)
-    expect(o.centre[0]).toBeCloseTo(10 - 2 - 1.5, 9)
-    expect(o.centre[2]).toBeCloseTo(-8, 9)
-    expect(o.normal).toEqual([0, -1])
-    expect(o.centre[1]).toBeCloseTo(3.5, 9)
+    const [o] = place({ edge: 0, kind: 'door', x: 2, w: 3, h: 7, sill: 0 }, 10)
+    const [p] = o.pieces
+    expect(p.centre[0]).toBeCloseTo(10 - 2 - 1.5, 9)
+    expect(p.centre[2]).toBeCloseTo(-8, 9)
+    expect(p.normal).toEqual([0, -1])
+    expect(p.centre[1]).toBeCloseTo(3.5, 9)
   })
 
   test('the Scheme C gathering door lands on its edge', () => {
-    const [o] = placeOpenings(rect, [{ edge: 0, kind: 'door', x: 12.25, w: 3.5, h: 7, sill: 0 }], 11)
-    expect(o.centre[0]).toBeCloseTo(10 - 12.25 - 1.75, 9)
+    const [o] = place({ edge: 0, kind: 'door', x: 12.25, w: 3.5, h: 7, sill: 0 }, 11)
+    expect(o.pieces[0].centre[0]).toBeCloseTo(10 - 12.25 - 1.75, 9)
   })
 
-  test('perimeter cuts split across corners', () => {
-    const out = placeOpenings(rect, [{ along: true, kind: 'window', x: 18, w: 4, h: 4, sill: 3 }], 10)
-    expect(out).toHaveLength(2)
-    expect(out.map((o) => o.edge)).toEqual([0, 1])
+  test('a perimeter cut is one opening drawn in pieces across the corner', () => {
+    const out = place({ along: true, kind: 'window', x: 18, w: 4, h: 4, sill: 3 }, 10)
+    expect(out).toHaveLength(1)
+    expect(out[0].pieces.map((p) => p.edge)).toEqual([0, 1])
   })
 
   test('openings never poke above the wall', () => {
-    const [o] = placeOpenings(rect, [{ edge: 1, kind: 'window', x: 1, w: 3, h: 9, sill: 3 }], 9)
-    expect(o.centre[1] + o.h / 2).toBeLessThanOrEqual(9)
+    const [o] = place({ edge: 1, kind: 'window', x: 1, w: 3, h: 9, sill: 3 }, 9)
+    expect(o.sill + o.h).toBeLessThanOrEqual(9)
   })
 })
 

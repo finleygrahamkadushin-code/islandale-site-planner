@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { massPoly, type Mass } from '../buildings/masses'
-import { placeOpenings } from '../buildings/openings'
+import { layoutOpenings } from '../buildings/openingLayout'
 import { buildWalls } from '../buildings/walls'
 import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
@@ -16,10 +16,28 @@ export interface SupportParams {
 }
 
 /** An enclosed mass: siding walls, framed openings, its roof, and posts or a skirt down to the slope. */
-export function WallMass({ m, look, site, supports, handlers }: { readonly m: Mass; readonly look: BuildingLook; readonly site: MassSite; readonly supports: SupportParams; readonly handlers: MeshHandlers }) {
+export function WallMass({
+  m,
+  look,
+  site,
+  supports,
+  handlers,
+  highlight = null,
+}: {
+  readonly m: Mass
+  readonly look: BuildingLook
+  readonly site: MassSite
+  readonly supports: SupportParams
+  readonly handlers: MeshHandlers
+  /** The id of the opening picked in the Openings panel, if it is on this mass. */
+  readonly highlight?: number | null
+}) {
   const poly = useMemo(() => massPoly(m), [m])
   const walls = useMemo(() => toGeometry(buildWalls(poly, m.h)), [poly, m.h])
-  const openings = useMemo(() => placeOpenings(poly, m.cuts, m.h), [poly, m.cuts, m.h])
+  const openings = useMemo(
+    () => layoutOpenings(poly, m.cuts, { wallHeightFt: m.h, buried: site.insideWalls }).openings,
+    [poly, m.cuts, m.h, site.insideWalls],
+  )
   useEffect(() => () => walls.dispose(), [walls])
   return (
     <>
@@ -27,8 +45,8 @@ export function WallMass({ m, look, site, supports, handlers }: { readonly m: Ma
         <Surface kind="wall" style={look.style} color={look.color} texture={look.siding} diagramColor={look.diagram} glow={look.glow} />
       </mesh>
       <RoofMesh m={m} poly={poly} look={look} handlers={handlers} />
-      {openings.map((op, i) => (
-        <OpeningMesh key={i} op={op} style={look.style} />
+      {openings.map((op) => (
+        <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} />
       ))}
       <Foundation poly={poly} site={site} support={supports.support} spacingFt={supports.spacingFt} postIn={supports.postIn} style={look.style} />
     </>
