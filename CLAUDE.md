@@ -1,6 +1,6 @@
 # Islandale Site Planner — working rules
 
-Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + React Three Fiber app, Islandale only for now. The old single-file planner lives at `legacy/islandale-planner.html` for reference and data extraction; do not edit it.
+Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + React Three Fiber app, Islandale only for now. The old single-file planner lives at `legacy/islandale-planner.html` for reference and data extraction. Edit it only through appended `ext:` blocks at the end of the file (Phase 3C: `ext:autosave`, `ext:openings-fit`), each recorded in `PLAN.md` under "Deliberate changes from the legacy file"; never change its earlier code in place.
 
 ## Rules
 

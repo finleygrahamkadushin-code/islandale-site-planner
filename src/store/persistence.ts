@@ -46,8 +46,24 @@ export function parsePlanFile(text: string): PlanFile {
 }
 
 export function validatePlanFile(raw: unknown): PlanFile {
+  if (isRecord(raw) && isNum(raw.version) && raw.version > PLAN_FILE_VERSION)
+    throw new Error(`Unsupported plan file version ${raw.version}.`)
+  return migratePlanFile(raw).file
+}
+
+/**
+ * Bring any readable plan file up to the current version. A file from a newer
+ * version of the app is read as far as possible and flagged `newer`, so the
+ * caller can open it read-only instead of rejecting it and then overwriting it.
+ */
+export function migratePlanFile(raw: unknown): { readonly file: PlanFile; readonly newer: boolean } {
   if (!isRecord(raw)) throw new Error('Plan file must be an object.')
-  if (raw.version !== PLAN_FILE_VERSION) throw new Error(`Unsupported plan file version ${String(raw.version)}.`)
+  if (!isNum(raw.version) || raw.version < 1) throw new Error(`Unsupported plan file version ${String(raw.version)}.`)
+  const newer = raw.version > PLAN_FILE_VERSION
+  return { file: readCurrent(raw), newer }
+}
+
+function readCurrent(raw: Record<string, unknown>): PlanFile {
   const plan = validatePlan(raw.plan)
   const view = validateView(raw.view)
   return { version: PLAN_FILE_VERSION, app: 'islandale-site-planner', savedAt: str(raw.savedAt, ''), plan, view }
@@ -119,15 +135,35 @@ function validateView(raw: unknown): PlanFile['view'] {
   return { labelMode, layers, environment, displayStyle, contours }
 }
 
-export async function saveToBrowser(plan: Plan, view: PlanFile['view']): Promise<void> {
-  await idbSet(AUTOSAVE_KEY, serializePlan(plan, view))
+/** A synchronous copy written as the tab closes, when an IndexedDB write may not finish. */
+export const SHADOW_KEY = 'islandale-plan.shadow'
+/** Prefix for a save that could not be read, kept aside so it is never overwritten. */
+export const UNREADABLE_PREFIX = 'islandale-plan.unreadable-'
+
+/** Where autosave keeps its copies; the browser one is IndexedDB plus localStorage. */
+export interface SaveBackend {
+  readonly read: (key: string) => Promise<unknown>
+  readonly write: (key: string, value: unknown) => Promise<void>
+  readonly readSync: (key: string) => string | null
+  readonly writeSync: (key: string, value: string) => void
 }
 
-/** The autosaved plan, or null when there is none or it cannot be read. */
-export async function loadFromBrowser(): Promise<PlanFile | null> {
-  const text = await idbGet<string>(AUTOSAVE_KEY)
-  if (typeof text !== 'string') return null
-  return parsePlanFile(text)
+export const browserBackend: SaveBackend = {
+  read: (key) => idbGet(key),
+  write: (key, value) => idbSet(key, value),
+  readSync: (key) => localStorage.getItem(key),
+  writeSync: (key, value) => localStorage.setItem(key, value),
+}
+
+/** Parse saved text; `newer` means it came from a newer app and must open read-only. */
+export function readSavedText(text: string): { readonly file: PlanFile; readonly newer: boolean } {
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    throw new Error('The save is not JSON.')
+  }
+  return migratePlanFile(raw)
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)

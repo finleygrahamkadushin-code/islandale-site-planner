@@ -25,6 +25,9 @@ import {
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'loading'
 
+/** Why the plan cannot be edited in this tab, or null when it can. */
+export type ReadOnlyReason = 'other-tab' | 'newer-file' | 'unsafe-save' | null
+
 export interface Toast {
   readonly id: number
   readonly text: string
@@ -45,6 +48,7 @@ export interface PlanState {
   /** Contour lines: on, off, or null to follow the display style (off in Realistic). */
   readonly contours: boolean | null
   readonly saveStatus: SaveStatus
+  readonly readOnly: ReadOnlyReason
   readonly toast: Toast | null
   /** The last saved view asked for; `n` makes a repeat request fly again. */
   readonly viewRequest: { readonly id: ViewId; readonly n: number } | null
@@ -80,6 +84,7 @@ export interface PlanState {
   readonly setContours: (contours: boolean | null) => void
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
+  readonly setReadOnly: (reason: ReadOnlyReason) => void
   readonly showToast: (text: string) => void
   readonly hydrate: (saved: {
     plan: Plan
@@ -91,6 +96,12 @@ export interface PlanState {
   }) => void
 }
 
+const READ_ONLY_TEXT: Record<Exclude<ReadOnlyReason, null>, string> = {
+  'other-tab': 'The plan is open for editing in another tab',
+  'newer-file': 'This save is from a newer version of the planner; it opens read-only',
+  'unsafe-save': 'The old save could not be set aside safely, so editing is off',
+}
+
 const site = loadIslandale()
 const schemes = loadSchemes()
 let toastSeq = 0
@@ -99,7 +110,15 @@ export const usePlanStore = create<PlanState>()(
   temporal(
     (set, get) => {
       /** Apply an edit to one object unless it is locked; a locked object shows a toast instead. */
+      /** False, with a toast, when this tab may not change the plan. */
+      const writable = (): boolean => {
+        const s = get()
+        if (!s.readOnly) return true
+        s.showToast(READ_ONLY_TEXT[s.readOnly])
+        return false
+      }
       const edit = (id: ObjectId, patch: (o: PlanObject) => PlanObject): void => {
+        if (!writable()) return
         const s = get()
         const o = s.plan.objects[id]
         if (!o) throw new Error(`unknown object "${id}"`)
@@ -123,12 +142,16 @@ export const usePlanStore = create<PlanState>()(
         displayStyle: 'realistic',
         contours: null,
         saveStatus: 'loading',
+        readOnly: null,
         toast: null,
         viewRequest: null,
 
-        loadScheme: (schemeId) =>
-          set({ plan: planFromScheme(schemeById(get().schemes, schemeId)), selection: [] }),
-        replacePlan: (plan) => set({ plan, selection: [] }),
+        loadScheme: (schemeId) => {
+          if (writable()) set({ plan: planFromScheme(schemeById(get().schemes, schemeId)), selection: [] })
+        },
+        replacePlan: (plan) => {
+          if (writable()) set({ plan, selection: [] })
+        },
         moveObject: (id, position) => edit(id, (o) => ({ ...o, position: { ...position } })),
         rotateObject: (id, rotation) => edit(id, (o) => ({ ...o, rotation: normalizeDeg(rotation) })),
         transformObject: (id, t) =>
@@ -138,6 +161,7 @@ export const usePlanStore = create<PlanState>()(
             rotation: t.rotation === undefined ? o.rotation : normalizeDeg(t.rotation),
           })),
         nudgeObjects: (ids, dx, dn) => {
+          if (!writable()) return
           const s = get()
           const movable = ids.filter((id) => s.plan.objects[id] && !isObjectLocked(s, id))
           if (movable.length < ids.length) s.showToast(ids.length === 1 ? `${s.plan.objects[ids[0]]?.name ?? 'Object'} is locked` : 'Some objects are locked')
@@ -154,6 +178,7 @@ export const usePlanStore = create<PlanState>()(
         setObjectParams: (id, patch) => edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),
         renameObject: (id, name) => edit(id, (o) => ({ ...o, name })),
         deleteObjects: (ids) => {
+          if (!writable()) return
           const s = get()
           const deletable = ids.filter((id) => s.plan.objects[id] && !isObjectLocked(s, id))
           const refused = ids.length - deletable.length
@@ -167,9 +192,15 @@ export const usePlanStore = create<PlanState>()(
           })
         },
         // Locking is allowed on a locked object (it is how you unlock), so it bypasses `edit`.
-        setLocked: (id, locked) => set((s) => ({ plan: withObject(s.plan, id, { locked }) })),
-        setHidden: (id, hidden) => set((s) => ({ plan: withObject(s.plan, id, { hidden }) })),
-        setLabelVisible: (id, labelVisible) => set((s) => ({ plan: withObject(s.plan, id, { labelVisible }) })),
+        setLocked: (id, locked) => {
+          if (writable()) set((s) => ({ plan: withObject(s.plan, id, { locked }) }))
+        },
+        setHidden: (id, hidden) => {
+          if (writable()) set((s) => ({ plan: withObject(s.plan, id, { hidden }) }))
+        },
+        setLabelVisible: (id, labelVisible) => {
+          if (writable()) set((s) => ({ plan: withObject(s.plan, id, { labelVisible }) }))
+        },
 
         select: (ids) => set({ selection: [...ids] }),
         toggleSelect: (id) =>
@@ -191,6 +222,7 @@ export const usePlanStore = create<PlanState>()(
         setContours: (contours) => set({ contours }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
+        setReadOnly: (readOnly) => set({ readOnly }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
         hydrate: ({ plan, labelMode, layers, environment, displayStyle, contours }) =>
           set({

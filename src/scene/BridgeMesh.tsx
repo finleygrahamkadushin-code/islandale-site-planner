@@ -41,7 +41,12 @@ export function BridgeMesh({ o }: { readonly o: PlanObject }) {
     const parts = buildBoardwalk(path, width, boardwalkColumns(path, ground, inBuilding), ground)
     return { deck: toGeometry(parts.deck), body: toGeometry(parts.body), glass: toGeometry(parts.glass), steel: toGeometry(parts.steel) }
   }, [route, width, terrain, buildings])
-  useEffect(() => () => mesh && Object.values(mesh).forEach((g) => g.dispose()), [mesh])
+  useEffect(
+    () => () => {
+      if (mesh) Object.values(mesh).forEach((g) => g.dispose())
+    },
+    [mesh],
+  )
   if (!mesh) return null
   const glow = selected ? 1 : hovered ? 0.4 : 0
   return (

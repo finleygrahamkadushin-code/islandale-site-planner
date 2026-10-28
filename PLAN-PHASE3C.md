@@ -1,6 +1,18 @@
 # Phase 3C plan: keep the work, fit the openings, one home for the plan
 
-Status: **draft, waiting for Finley's OK.** Goes after Phase 3B and before Phase 4. Do not start it until Phase 3B passes its done-when check. Phase 3B is built and waiting for Finley's look.
+Status: **in progress (started Oct 27 2026).** Finley approved Phase 3B and said "ok start" to option C with yes to questions 2 and 3. The other questions use the defaults below until he says otherwise.
+
+**Answers in force:**
+
+1. Home: **C**, the repo file first (step 14), then the hosted artifact database (steps 13, 15-17).
+2. The old planner may be edited through appended `ext:` blocks only. CLAUDE.md now says so.
+3. The Openings panel is pulled forward from Phase 5.
+4. Default: the old planner joins the hosted home as `legacy.html` and keeps its own autosave too.
+5. Default: both old copies come in as History versions; nothing is overwritten.
+6. Default: 3.5 in trim, 4 in gap, 0.75 ft corner clearance, 1 in snap. Trim sits proud of the wall, inside the corner clearance, so it never reaches the next wall.
+7. Default: saved schemes are warned with **Fit all**, not changed on load.
+8. Default: nobody else edits the home.
+9. Default: the repo is not pushed anywhere until Finley asks.
 
 Branch: `phase-3c-safe-work`, branched from `phase-3b-fidelity` once 3B is merged or approved.
 

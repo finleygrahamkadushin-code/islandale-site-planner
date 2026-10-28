@@ -3,6 +3,8 @@ import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { usePlanStore } from '../store/planStore'
+import { activeTabLock } from '../store/tabLock'
+import { HistoryMenu } from './HistoryMenu'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
@@ -12,6 +14,11 @@ const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[]
 ]
 
 const SAVE_TEXT = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved', error: 'Not saved', loading: 'Loading…' } as const
+const READ_ONLY_TEXT = {
+  'other-tab': 'Read-only: open in another tab',
+  'newer-file': 'Read-only: saved by a newer planner',
+  'unsafe-save': 'Read-only: the old save is protected',
+} as const
 
 export function TopBar() {
   const plan = usePlanStore((s) => s.plan)
@@ -20,6 +27,7 @@ export function TopBar() {
   const setLabelMode = usePlanStore((s) => s.setLabelMode)
   const loadScheme = usePlanStore((s) => s.loadScheme)
   const saveStatus = usePlanStore((s) => s.saveStatus)
+  const readOnly = usePlanStore((s) => s.readOnly)
   const displayStyle = usePlanStore((s) => s.displayStyle)
   const setDisplayStyle = usePlanStore((s) => s.setDisplayStyle)
   const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
@@ -111,6 +119,19 @@ export function TopBar() {
           Reset
         </button>
       </div>
+
+      <HistoryMenu />
+
+      {readOnly && (
+        <span className="readonly" data-testid="read-only">
+          {READ_ONLY_TEXT[readOnly]}
+          {readOnly === 'other-tab' && (
+            <button onClick={() => void activeTabLock()?.takeOver()} title="Move editing to this tab; the other tab saves and becomes read-only">
+              Take over editing
+            </button>
+          )}
+        </span>
+      )}
 
       <span className={`muted save ${saveStatus}`} data-testid="save-status">
         {SAVE_TEXT[saveStatus]}
