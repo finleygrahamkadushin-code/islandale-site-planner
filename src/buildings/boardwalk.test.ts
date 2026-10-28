@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
-import { boardwalkColumns, boardwalkPath } from './boardwalk'
+import { loadIslandaleTerrain } from '../site/islandale'
+import { surfaceElevationAt } from '../site/terrain'
+import { boardwalkColumns, boardwalkPath, RIBBON_DEPTH_M } from './boardwalk'
 
 type Obj = { name: string; t: string; pts?: number[][] } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
@@ -40,5 +42,40 @@ describe('boardwalkColumns', () => {
     const high = boardwalkColumns(p, () => 0)
     expect(high.length).toBeGreaterThanOrEqual(5)
     expect(boardwalkColumns(p, () => 2.9)).toEqual([])
+  })
+})
+
+describe('the Elders’ walk on the Islandale terrain (C and C2–C4)', () => {
+  const t = loadIslandaleTerrain()
+  const ground = (x: number, n: number) => surfaceElevationAt(t, x, n)
+  const variants = all.filter((s) => /^C\d?$/.test(s.id))
+  const walks = variants.map((s) => {
+    const o = s.objects.find((b) => b.t === 'bridge')!
+    return [s.id, boardwalkPath(o.pts!.map(([x, n, e]) => [x, n, e * FT] as const))!] as const
+  })
+
+  test('there are four variants, each with its boardwalk', () => {
+    expect(walks.map(([id]) => id)).toEqual(['C', 'C2', 'C3', 'C4'])
+  })
+  test.each(walks)('%s never dips into the ground', (_, p) => {
+    for (const s of p.samples) expect(s.e - RIBBON_DEPTH_M).toBeGreaterThan(ground(s.x, s.n))
+  })
+  test.each(walks)('%s keeps its stated 1:21 slope, never steeper than 1:20', (_, p) => {
+    const a = p.samples[0]
+    const b = p.samples[p.samples.length - 1]
+    expect(p.length / Math.abs(a.e - b.e)).toBeCloseTo(21, -0.5)
+    for (let i = 1; i < p.samples.length; i++) {
+      const q = p.samples[i - 1]
+      const s = p.samples[i]
+      expect(Math.abs(s.e - q.e) / Math.hypot(s.x - q.x, s.n - q.n)).toBeLessThanOrEqual(1 / 20)
+    }
+  })
+  test.each(walks)('%s stands on posts no more than 7 m apart wherever the ground falls away', (_, p) => {
+    const cols = boardwalkColumns(p, ground)
+    const step = p.length / (p.samples.length - 1)
+    // the deck is well off the ground along its whole length here, so posts run end to end
+    expect(cols[0] * step).toBeLessThan(1.5)
+    expect((p.samples.length - 1 - cols[cols.length - 1]) * step).toBeLessThan(1.5)
+    for (let k = 1; k < cols.length; k++) expect((cols[k] - cols[k - 1]) * step).toBeLessThanOrEqual(7)
   })
 })
