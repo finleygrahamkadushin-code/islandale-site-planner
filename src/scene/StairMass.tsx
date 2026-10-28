@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { Mass } from '../buildings/masses'
+import { stairHasHandrails } from '../buildings/rails'
 import { HANDRAIL_IN, stairLayout } from '../buildings/stairs'
 import { ftToM } from '../site/units'
 import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
@@ -17,15 +18,17 @@ export function StairMass({ m, look, site, handlers }: { readonly m: Mass; reado
     () => stairLayout({ widthFt: m.w, nominalRunFt: m.d, floor: site.floor, groundAt: (z) => site.groundAt(0, z) }),
     [m.w, m.d, site],
   )
-  if (!layout.steps.length) return null
+  const rails = stairHasHandrails(m)
+  if (!layout.steps.length && !rails) return null
   const w = ftToM(m.w)
   const { style, glow } = look
   // heights here are relative to the mass floor
   const rel = (y: number) => y - site.floor
   const lowestUnder = (z0: number, z1: number) => Math.min(...[-m.w / 2, 0, m.w / 2].flatMap((x) => [site.groundAt(x, z0), site.groundAt(x, z1)]))
-  const z0 = layout.steps[0].z0
-  const footTop = rel(site.groundAt(0, layout.footZ))
-  const rails = m.rail !== false && layout.math.risers >= 2
+  // with one riser or none there are no tread blocks: the rails run the wing's length down to the ground
+  const z0 = layout.steps[0]?.z0 ?? -m.d / 2
+  const footZ = layout.steps.length ? layout.footZ : m.d / 2
+  const footTop = rel(site.groundAt(0, footZ))
   return (
     <>
       {layout.steps.map((s, i) => {
@@ -42,9 +45,9 @@ export function StairMass({ m, look, site, handlers }: { readonly m: Mass; reado
         [-1, 1].map((side) => {
           const x = side * (w / 2 - RAIL_POST_M / 2)
           const top: [number, number, number] = [x, HANDRAIL_M, ftToM(z0)]
-          const foot: [number, number, number] = [x, footTop + HANDRAIL_M, ftToM(layout.footZ)]
+          const foot: [number, number, number] = [x, footTop + HANDRAIL_M, ftToM(footZ)]
           return (
-            <group key={side}>
+            <group key={side} name="rail">
               <Segment a={top} b={foot} size={RAIL_M}>
                 <Surface kind="wood" style={style} />
               </Segment>

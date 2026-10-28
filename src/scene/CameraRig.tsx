@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Vector3, type Mesh } from 'three'
+import { Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
 
@@ -58,6 +58,23 @@ export function CameraRig() {
         triangles += (g.index ? g.index.count : (g.attributes.position?.count ?? 0)) / 3
       })
       return { meshes, triangles: Math.round(triangles) }
+    }
+    // which wings (mass indexes) of each building draw a rail, for checks against the old planner
+    w.islandale.railedMasses = () => {
+      const out: Record<string, number[]> = {}
+      scene.traverseVisible((o) => {
+        if (o.name !== 'rail') return
+        let mass: number | undefined
+        for (let p: Object3D | null = o; p; p = p.parent) {
+          if (mass === undefined && typeof p.userData.mass === 'number') mass = p.userData.mass
+          const id = p.userData.objectId
+          if (typeof id === 'string' && mass !== undefined) {
+            out[id] = [...new Set([...(out[id] ?? []), mass])].sort((a, b) => a - b)
+            break
+          }
+        }
+      })
+      return out
     }
     w.islandale.look = (position: [number, number, number], target: [number, number, number], fov?: number) => {
       if (!controls) return

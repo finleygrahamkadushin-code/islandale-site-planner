@@ -44,8 +44,8 @@ export interface Mass {
   readonly steps?: DeckSteps
   /** false: a roof over part of a deck, with no floor of its own. */
   readonly slab: boolean
-  /** false: never railed; true: always railed; undefined: railed by drop. */
-  readonly rail?: boolean
+  /** false: never railed; true: always railed; 'sides': a deck railed along its sides, ends open; undefined: the default rule (rails.ts guardRule). */
+  readonly rail?: boolean | 'sides'
 }
 
 const KINDS: readonly MassKind[] = ['wall', 'porch', 'deck', 'stair', 'ramp']
@@ -89,7 +89,7 @@ function toMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mass 
     cuts: Array.isArray(p.cuts) ? (p.cuts as LegacyCut[]) : [],
     steps: deckSteps(p.steps),
     slab: p.slab !== false,
-    rail: typeof p.rail === 'boolean' ? p.rail : undefined,
+    rail: typeof p.rail === 'boolean' || p.rail === 'sides' ? p.rail : undefined,
   }
 }
 

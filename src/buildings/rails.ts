@@ -1,5 +1,6 @@
 import type { LocalPoint } from './footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
+import type { Mass } from './masses'
 
 const FT = 0.3048
 const IN = 0.0254
@@ -17,9 +18,64 @@ const POST_M = 0.09
 /** Rails are judged in pieces about this long, feet. */
 const PIECE_FT = 2
 
+/** Outlines with more edges than this are curves; legacy 'sides' only applies to straight-sided decks. */
+const CURVED_EDGES = 24
+/** Legacy surfaceDropFt probes the ground this far outside a wing's outline, feet (0.9 m). */
+const DROP_PROBE_FT = 0.9 / FT
+/** Legacy SLAB_M: the floor slab adds to the drop. */
+const SLAB_M = 0.15
+
+/**
+ * Port of legacy surfaceDropFt(): the largest drop from a wing's walking
+ * surface to the ground just outside it, metres. The ground is read 0.9 m
+ * out from each corner and edge midpoint, away from the outline's centre.
+ * `groundAt` takes a point in the outline's own frame (feet).
+ */
+export function wingDropM(poly: readonly LocalPoint[], floor: number, groundAt: (x: number, z: number) => number): number {
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length
+  const cz = poly.reduce((s, p) => s + p[1], 0) / poly.length
+  let drop = 0
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length]
+    for (const [x, z] of [p, [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]]) {
+      const l = Math.hypot(x - cx, z - cz) || 1
+      drop = Math.max(drop, floor - groundAt(x + ((x - cx) / l) * DROP_PROBE_FT, z + ((z - cz) / l) * DROP_PROBE_FT))
+    }
+  })
+  return drop + SLAB_M
+}
+
+/**
+ * Which edges of a deck or porch floor get a guard, as the old planner
+ * decides it; null when the wing has none. A deck wing is railed on every
+ * edge (legacy massMesh deck branch), except edges with sitting steps and,
+ * for rail 'sides', its ends (odd edges). A porch is railed all round when
+ * it is raised above the floor, forced (rail true), or more than 30 in
+ * above the ground anywhere just outside it (legacy raisedRail and
+ * wingNeedsGuard). rail false: none at all.
+ */
+export function guardRule(m: Pick<Mass, 'kind' | 'rail' | 'lvl' | 'steps'>, edgeCount: number, dropM: number): ((i: number) => boolean) | null {
+  if (m.rail === false) return null
+  const steps = m.steps
+  const onSteps = (i: number) => !!steps && i >= steps.e0 && i <= steps.e1
+  if (m.kind === 'deck') {
+    const sides = m.rail === 'sides' && edgeCount <= CURVED_EDGES
+    return (i) => onSteps(i) || (sides && i % 2 === 1)
+  }
+  return m.rail === true || m.lvl > 0 || dropM > GUARD_DROP_M ? onSteps : null
+}
+
+/**
+ * A stair wing gets handrails on both sides unless its rail is off (legacy
+ * stairWingSpec: rail = m.rail !== false). The old planner counts its slab
+ * in the drop, so even a stair landing level with the ground has a step
+ * and its rails there.
+ */
+export function stairHasHandrails(m: Pick<Mass, 'rail'>): boolean {
+  return m.rail !== false
+}
+
 interface RailRules {
-  /** Ground drop below the floor at a point, metres. */
-  readonly dropAt: (p: LocalPoint) => number
   /** Edges that stay open (steps, stairs). */
   readonly skipEdge: (i: number) => boolean
   /** Points where a wall or another mass is in the way. */
@@ -27,8 +83,8 @@ interface RailRules {
 }
 
 /**
- * Where a guard runs round an outline (feet): every open edge piece more
- * than 30 in above the ground, joined into continuous polylines. A run
+ * Where a guard runs round an outline (feet): every edge piece that is
+ * neither skipped nor blocked, joined into continuous polylines. A run
  * that goes all the way round comes back to its start.
  */
 export function railRuns(poly: readonly LocalPoint[], rules: RailRules): LocalPoint[][] {
@@ -41,7 +97,7 @@ export function railRuns(poly: readonly LocalPoint[], rules: RailRules): LocalPo
       const p: LocalPoint = [a[0] + ((b[0] - a[0]) * j) / k, a[1] + ((b[1] - a[1]) * j) / k]
       const q: LocalPoint = [a[0] + ((b[0] - a[0]) * (j + 1)) / k, a[1] + ((b[1] - a[1]) * (j + 1)) / k]
       const mid: LocalPoint = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
-      pieces.push({ a: p, b: q, keep: !rules.skipEdge(i) && !rules.blocked(mid) && rules.dropAt(mid) > GUARD_DROP_M })
+      pieces.push({ a: p, b: q, keep: !rules.skipEdge(i) && !rules.blocked(mid) })
     }
   })
   if (pieces.every((p) => p.keep)) return [[...pieces.map((p) => p.a), pieces[0].a]]
