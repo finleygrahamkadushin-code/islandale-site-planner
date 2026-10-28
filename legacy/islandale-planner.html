@@ -15119,4 +15119,67 @@ let lastClear='';
 (function loop(){ requestAnimationFrame(loop); controls.update(); const key=selected?selected.id+':'+selected.x+':'+selected.n+':'+selected.rot+':'+selected.w+':'+selected.d+':'+objects.length+':'+$('sb-shore').value+$('sb-side').value:''; if(key!==lastClear){ lastClear=key; rebuildClearance(); } (typeof renderFrame==='function'?renderFrame:()=>renderer.render(scene,camera))(); drawLabels(); })();
 </script>
 
+<script>
+/* ===== ext:autosave (Phase 3C, appended; see PLAN.md "Deliberate changes from the legacy file") =====
+   The layout saves itself: shortly after every change, every 2 s if anything differs, and whenever the tab
+   is hidden or closed. The last 10 layouts are kept under 'islandale-layout.history' and can be restored
+   from History. Walls-editor changes join the main undo, so they are saved too. */
+(function(){
+  const KEY='islandale-layout', HKEY='islandale-layout.history', MAX=10, DELAY=400, POLL=2000, GAP=60000;
+  let last=null, timer=null;
+  try{ last=localStorage.getItem(KEY); }catch(e){}
+  const hm=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const saveBtn=$('btn-save'), row=saveBtn.parentNode;
+  saveBtn.textContent='Save now'; saveBtn.title='Layouts save automatically; this saves straight away';
+  const hBtn=document.createElement('button'); hBtn.id='btn-history'; hBtn.className='small'; hBtn.textContent='History';
+  hBtn.title='The last '+MAX+' saved layouts'; $('btn-load').after(hBtn);
+  const status=document.createElement('p'); status.id='autosave-status'; status.className='hint'; status.style.margin='4px 0 0';
+  const list=document.createElement('div'); list.id='autosave-history'; list.hidden=true;
+  list.style.cssText='display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:220px;overflow:auto';
+  row.after(status); status.after(list);
+  const show=t=>{ status.textContent=t; status.style.color=/^Not saved/.test(t)?'var(--danger,#c33)':''; };
+
+  function readHist(){ try{ const h=JSON.parse(localStorage.getItem(HKEY)||'[]'); return Array.isArray(h)?h.filter(e=>e&&typeof e.t==='number'&&typeof e.s==='string'):[]; }catch(e){ return []; } }
+  // Saves under a minute apart share one entry, except the one made on opening, which stays as it was.
+  function addHist(s,opened){ const h=readHist(), now=Date.now(), top=h[0];
+    if(opened&&top&&top.o) h[0]={t:now,s,o:1};
+    else if(!opened&&top&&!top.o&&now-top.t<GAP) h[0]={t:top.t,s};
+    else h.unshift(opened?{t:now,s,o:1}:{t:now,s});
+    localStorage.setItem(HKEY,JSON.stringify(h.slice(0,MAX))); }
+  function saveNow(force){ clearTimeout(timer); timer=null; let s;
+    try{ s=serialize(); }catch(e){ console.error('[autosave] could not serialize the layout',e); return; }
+    if(s===last&&!force) return;
+    try{ localStorage.setItem(KEY,s); last=s; addHist(s,false); show('Saved '+hm(Date.now())+' · saves itself after every change'); }
+    catch(e){ console.error('[autosave] save failed',e); show('Not saved: browser storage is full or blocked here. Use Copy layout as text.'); } }
+  const schedule=()=>{ clearTimeout(timer); timer=setTimeout(saveNow,DELAY); };
+
+  // every undoable change goes through pushUndo, which runs just before the change: save a moment after
+  const basePush=pushUndo; pushUndo=function(){ const r=basePush.apply(this,arguments); schedule(); return r; };
+  const baseUndo=undo; undo=function(){ const r=baseUndo.apply(this,arguments); schedule(); return r; };
+  // the Walls editor keeps its own undo; its first change each time it opens also joins the main undo
+  let wallsFresh=false;
+  const baseOpenWalls=openWalls; openWalls=function(){ wallsFresh=true; return baseOpenWalls.apply(this,arguments); };
+  const baseWlSnap=wlSnapshot; wlSnapshot=function(){ if(wallsFresh){ wallsFresh=false; pushUndo(); } else schedule(); return baseWlSnap.apply(this,arguments); };
+  // drags and sliders that change things without an undo step are caught by a light poll
+  setInterval(()=>saveNow(false),POLL);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveNow(false); });
+  addEventListener('pagehide',()=>saveNow(false));
+  addEventListener('beforeunload',()=>saveNow(false));
+  saveBtn.onclick=()=>{ saveNow(true); toast(/^Not saved/.test(status.textContent)?'Could not save in this browser':'Saved'); };
+
+  function renderHist(){ list.innerHTML=''; const h=readHist();
+    if(!h.length){ const p=document.createElement('p'); p.className='hint'; p.textContent='No saves yet.'; list.appendChild(p); return; }
+    h.forEach(e=>{ let n='?'; try{ n=(JSON.parse(e.s).objects||[]).length; }catch(_){}
+      const r=document.createElement('div'); r.className='row'; r.style.cssText='justify-content:space-between;align-items:center;gap:6px';
+      const l=document.createElement('span'); l.className='hint'; l.textContent=hm(e.t)+(e.o?' · opened':'')+' · '+n+' objects';
+      const b=document.createElement('button'); b.className='small'; b.textContent='Restore';
+      b.onclick=()=>{ try{ JSON.parse(e.s); }catch(_){ toast('That save could not be read'); return; } pushUndo(); loadLayout(e.s); toast('Restored the '+hm(e.t)+' save; Undo to go back'); list.hidden=true; };
+      r.append(l,b); list.appendChild(r); }); }
+  hBtn.onclick=()=>{ list.hidden=!list.hidden; if(!list.hidden) renderHist(); };
+
+  // the layout restored on opening becomes the first History entry, so a bad edit after opening can be undone
+  try{ if(last) addHist(last,true); show(last?'Saved · saves itself after every change':'Saves itself after every change'); }catch(e){ show('Not saved: browser storage is blocked here. Use Copy layout as text.'); }
+  window.islandaleAutosave={ saveNow:()=>saveNow(true), history:readHist };
+})();
+</script>
 </body></html>
