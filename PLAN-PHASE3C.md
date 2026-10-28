@@ -11,7 +11,7 @@ Status: **Built, all steps (Oct 27 2026).** The hosted home is https://claude.ai
 - **Step 17.** Automatic import is not possible across sites. The localhost plan came in through the repo file; the old artifact's layout comes in by copying and pasting.
 
 - **Review.** A review workflow (four areas, each finding checked by two skeptics) found the old planner's block writing over the row without checking it, and the new app able to mistake its own save for an outside edit. Both are fixed, with tests: `src/store/artifactHome.test.ts`, new cases in `src/store/autosave.test.ts`, and `scripts/legacy-hosted-check.mjs` (10 checks). Many verifiers did not finish because of a usage limit; every finding was read and the real ones fixed.
-- **Not checked live:** whether `legacy.html` inside the artifact gets the claude.ai runtime. Click **Old planner** in the hosted home and watch for the row `legacy/layout` to appear.
+- **Old planner in the hosted home.** Opened as its own page, `legacy.html` got no claude.ai runtime: Finley opened it on Oct 28 and no `legacy/layout` row appeared. It now opens in a frame over the new planner and borrows the main page's runtime. `scripts/hosted-build-check.mjs` checks this against the build (5 checks); the live check is still to be repeated.
 
 **Not yet:** three old-planner details (frames on curved walls, doors starting at the slab top in 3D, merging overlapping holes as a safety net).
 

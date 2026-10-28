@@ -15287,12 +15287,16 @@ let lastClear='';
 /* ===== ext:hosted-home (Phase 3C, appended; see PLAN.md "Deliberate changes from the legacy file") =====
    Served as legacy.html inside the hosted Islandale planner artifact, the layout also lives in that
    artifact's database (row legacy/layout), so Claude chat and Claude Code can read and edit it and any
-   device sees the same copy. The layout is written there a moment after it changes; before each write
+   device sees the same copy. Opened as its own page it gets no runtime, so the hosted home shows it in
+   a frame and this block borrows the main page's runtime (same site, so it can reach it). The layout is written there a moment after it changes; before each write
    the row is read, and an edit made elsewhere is loaded as one undoable step instead of being
    overwritten. This browser remembers the last hosted version it saw, so on opening a newer layout here
    is kept and an edit made elsewhere wins. Anywhere else (no claude.ai runtime) this block does nothing. */
 (function(){
-  if(!window.claude||typeof window.claude.use!=='function') return;
+  // the hosted home opens this page in a frame inside its main page, which holds the claude.ai runtime
+  const parentRuntime=()=>{ try{ return window.parent!==window?window.parent.claude:null; }catch(e){ return null; } };
+  const rt=window.claude||parentRuntime();
+  if(!rt||typeof rt.use!=='function') return;
   const ROW='legacy/layout', SEEN='islandale-layout.hosted-seen', POLL=2000, MAX=240000, MINE=5;
   const canon=v=>Array.isArray(v)?'['+v.map(canon).join(',')+']':(v&&typeof v==='object')?'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}':JSON.stringify(v);
   const hash=s=>{ let a=0xdeadbeef, b=0x41c6ce57; for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); a=Math.imul(a^c,2654435761); b=Math.imul(b^c,1597334677); }
@@ -15311,7 +15315,7 @@ let lastClear='';
     try{ pushUndo(); loadLayout(JSON.stringify(layout)); remember(c); bad=null; toast('Loaded the layout from the hosted home; Undo to go back'); }
     catch(e){ bad=c; console.error('[hosted-home] could not load the layout',e);
       warn('The hosted layout could not be loaded. It is left as it is, and changes here stay in this browser; Undo restores this copy'); } }
-  window.claude.use('db').then(db=>{ if(!db) return; const ref=db.doc(ROW);
+  rt.use('db').then(db=>{ if(!db) return; const ref=db.doc(ROW);
     async function push(){ if(busy) return; const layout=current(); if(!layout) return; const c=canon(layout); if(c===pushed) return;
       const size=JSON.stringify(layout).length;
       if(size>MAX){ warn('The layout is too big for the hosted home; it is saved in this browser only'); return; }

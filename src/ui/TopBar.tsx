@@ -1,10 +1,11 @@
-import { useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
+import { LegacyPlanner } from './LegacyPlanner'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
@@ -22,6 +23,7 @@ const READ_ONLY_TEXT = {
 } as const
 
 export function TopBar() {
+  const [legacyOpen, setLegacyOpen] = useState(false)
   const plan = usePlanStore((s) => s.plan)
   const schemes = usePlanStore((s) => s.schemes)
   const labelMode = usePlanStore((s) => s.labelMode)
@@ -125,10 +127,11 @@ export function TopBar() {
 
       {/* the built app runs as the hosted home, which also serves the old planner next to it */}
       {import.meta.env.PROD && (
-        <a className="old-planner" href="./legacy.html" title="The old planner, sharing the hosted home">
+        <button onClick={() => setLegacyOpen(true)} title="The old planner, sharing the hosted home">
           Old planner
-        </a>
+        </button>
       )}
+      {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
 
       {readOnly && (
         <span className="readonly" data-testid="read-only">
