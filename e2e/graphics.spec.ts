@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { clearSaves } from './fresh'
 
 /** Phase 3: every display style and saved view renders cleanly and changes no plan data. */
 
@@ -19,7 +20,7 @@ const undoSteps = (page: Page) => page.evaluate(() => (window as any).islandale.
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.evaluate(() => indexedDB.deleteDatabase('keyval-store'))
+  await clearSaves(page)
   await page.reload()
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
 })

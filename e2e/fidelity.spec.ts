@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { clearSaves } from './fresh'
 
 /** Phase 3B: Scheme C and its prow variants draw every wing, rail, step and tree without errors. */
 
@@ -18,7 +19,7 @@ const drawn = (page: Page) => page.evaluate(() => (window as any).islandale.scen
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await page.evaluate(() => indexedDB.deleteDatabase('keyval-store'))
+  await clearSaves(page)
   await page.reload()
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
 })

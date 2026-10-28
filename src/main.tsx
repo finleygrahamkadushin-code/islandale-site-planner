@@ -5,6 +5,7 @@ import './app/styles.css'
 import { usePlanStore } from './store/planStore'
 import { activeAutosave, startAutosave } from './store/autosave'
 import { CHANNEL_NAME, startTabLock } from './store/tabLock'
+import { defaultHome } from './store/planHome'
 
 // For end-to-end tests and debugging in the console.
 declare global {
@@ -19,7 +20,7 @@ const tabLock =
   'locks' in navigator && typeof BroadcastChannel !== 'undefined'
     ? startTabLock({ locks: navigator.locks, channel: new BroadcastChannel(CHANNEL_NAME), autosave: activeAutosave })
     : null
-void (tabLock?.ready ?? Promise.resolve()).then(() => startAutosave())
+void (tabLock?.ready ?? Promise.resolve()).then(() => startAutosave({ home: defaultHome() }))
 
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('Missing #root element')

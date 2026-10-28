@@ -11,6 +11,8 @@ import {
 } from './persistence'
 import { HISTORY_KEY, OPENED_LABEL, addToHistory, describeChange, readHistory, type HistoryEntry } from './history'
 import type { Plan } from './types'
+import { createHomeSync } from './homeSync'
+import type { PlanHome } from './planHome'
 
 export const SAVE_DELAY_MS = 400
 const RECOVERED_LABEL = 'opened, with the changes made as the tab closed'
@@ -51,12 +53,16 @@ interface Options {
   readonly backend?: SaveBackend
   readonly page?: PageEvents
   readonly now?: () => Date
+  /** The plan's home (the repo file while the dev server runs); null keeps the plan in this browser only. */
+  readonly home?: PlanHome | null
 }
 
 interface Candidate {
   readonly file: PlanFile
   readonly newer: boolean
-  readonly source: 'main' | 'shadow'
+  readonly source: 'main' | 'shadow' | 'home'
+  /** Only for the home: it was edited outside this browser, so it wins. */
+  readonly changedOutside?: boolean
 }
 
 let current: Autosave | null = null
@@ -68,8 +74,14 @@ export const activeAutosave = (): Autosave | null => current
  * save after every change to the plan or the view, again whenever the tab is
  * hidden or closed, and keep the last saves as history.
  */
-export function startAutosave({ backend = browserBackend, page = browserPageEvents, now = () => new Date() }: Options = {}): Autosave {
+export function startAutosave({
+  backend = browserBackend,
+  page = browserPageEvents,
+  now = () => new Date(),
+  home = null,
+}: Options = {}): Autosave {
   const store = usePlanStore
+  const sync = home ? createHomeSync(home, backend) : null
   let timer: ReturnType<typeof setTimeout> | null = null
   let hydrated = false
   let stopped = false
@@ -101,6 +113,8 @@ export function startAutosave({ backend = browserBackend, page = browserPageEven
     try {
       await backend.write(AUTOSAVE_KEY, text)
       if (!dirty) store.getState().setSaveStatus('saved')
+      // the browser copy is safe; now the home
+      await sync?.push(text)
     } catch (err) {
       dirty = true
       console.error('[autosave] save failed', err)
@@ -194,10 +208,14 @@ export function startAutosave({ backend = browserBackend, page = browserPageEven
         console.error('[autosave] the closing copy is unreadable; ignoring it', err)
       }
     }
+    const fromHome = await sync?.open()
+    if (fromHome) found.push({ ...fromHome, source: 'home' })
     return found
   }
 
+  /** A home edited elsewhere wins; otherwise the newest copy does. */
   const newest = (found: readonly Candidate[]): Candidate | null =>
+    found.find((c) => c.changedOutside) ??
     found.reduce<Candidate | null>((a, c) => (!a || Date.parse(c.file.savedAt) > Date.parse(a.file.savedAt) ? c : a), null)
 
   const load = async () => {
@@ -215,11 +233,14 @@ export function startAutosave({ backend = browserBackend, page = browserPageEven
       lastPlan = store.getState().plan
       store.getState().setSaveStatus(store.getState().readOnly ? 'error' : 'saved')
       hydrated = true
-      if (!best || store.getState().readOnly) return
-      // The copy written as the tab closed is newer than the main save: write it through.
-      const recovered = best.source === 'shadow'
+      if (store.getState().readOnly) return
       const text = textNow()
-      if (recovered) await backend.write(AUTOSAVE_KEY, text)
+      // the home is missing or older than this browser's copy: bring it up to date
+      if (best?.source !== 'home') await sync?.push(text)
+      if (!best) return
+      // the copy written as the tab closed, or the home, is newer than the main save: write it through
+      const recovered = best.source === 'shadow'
+      if (best.source !== 'main') await backend.write(AUTOSAVE_KEY, text)
       await recordHistory(text, lastPlan, true, recovered ? RECOVERED_LABEL : OPENED_LABEL)
     } catch (err) {
       console.error('[autosave] could not open the saved plan', err)
@@ -250,6 +271,7 @@ export function startAutosave({ backend = browserBackend, page = browserPageEven
       stopped = true
       unsubscribe()
       for (const off of offEvents) off()
+      sync?.stop()
       if (current === api) current = null
     },
   }

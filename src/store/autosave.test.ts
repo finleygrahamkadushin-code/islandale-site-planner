@@ -4,6 +4,7 @@ import { AUTOSAVE_KEY, SHADOW_KEY, UNREADABLE_PREFIX, readSavedText, serializePl
 import { HISTORY_KEY } from './history'
 import { usePlanStore } from './planStore'
 import { DEFAULT_LAYERS } from './types'
+import type { PlanHome } from './planHome'
 
 const store = () => usePlanStore.getState()
 const firstId = () => store().plan.order[0]
@@ -134,5 +135,103 @@ describe('autosave', () => {
     const name = store().plan.objects[firstId()].name
     expect(running.history().map((e) => e.label)).toEqual([`moved ${name}`, 'opened'])
     expect(db.get(HISTORY_KEY)).toEqual(running.history())
+  })
+})
+
+/** An in-memory plan home with revisions, like the dev server's plan file. */
+function fakeHome(initial: string | null = null) {
+  let text = initial
+  let n = initial ? 1 : 0
+  const revNow = () => (text === null ? 'none' : `r${n}`)
+  const handlers = new Set<() => void>()
+  const home: PlanHome = {
+    label: 'the plan file',
+    read: async () => ({ rev: revNow(), text }),
+    write: async (t, baseRev) => {
+      if (baseRev !== revNow()) return { ok: false, conflict: true, rev: revNow(), error: 'changed' }
+      text = t
+      n++
+      return { ok: true, rev: revNow() }
+    },
+    onChange: (h) => {
+      handlers.add(h)
+      return () => handlers.delete(h)
+    },
+  }
+  /** Claude edits the file. */
+  const editOutside = (t: string) => {
+    text = t
+    n++
+    handlers.forEach((h) => h())
+  }
+  return { home, editOutside, text: () => text }
+}
+
+describe('the plan home', () => {
+  let running: Autosave | null = null
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    usePlanStore.temporal.getState().clear()
+  })
+  afterEach(async () => {
+    await running?.stop()
+    running = null
+  })
+
+  test('a missing plan file is created from this browser’s plan', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    expect(readSavedText(h.text()!).file.plan.order).toEqual(store().plan.order)
+  })
+
+  test('every save also goes to the plan file', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    store().renameObject(firstId(), 'In the file')
+    await running.flush()
+    expect(readSavedText(h.text()!).file.plan.objects[firstId()].name).toBe('In the file')
+  })
+
+  test('a plan file edited while the app was closed wins over the browser’s copy', async () => {
+    const local = serializePlan({ ...store().plan, name: 'Browser copy' }, view, new Date('2026-10-27T12:00:00Z'))
+    const edited = serializePlan({ ...store().plan, name: 'Edited by Claude' }, view, new Date('2026-10-27T09:00:00Z'))
+    const { backend } = fakeBackend({ [AUTOSAVE_KEY]: local }, { 'islandale-plan.home-rev': 'r0' })
+    const h = fakeHome(edited)
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    expect(store().plan.name).toBe('Edited by Claude')
+  })
+
+  test('an edit to the plan file while the app is open loads as one undoable step', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const before = store().plan
+    h.editOutside(serializePlan({ ...before, name: 'Claude changed it' }, view))
+    await settle()
+    await settle()
+    expect(store().plan.name).toBe('Claude changed it')
+    usePlanStore.temporal.getState().undo()
+    expect(store().plan).toBe(before)
+  })
+
+  test('a save based on an old revision does not overwrite the file; the file’s version is loaded', async () => {
+    const { backend } = fakeBackend()
+    const h = fakeHome()
+    const home: PlanHome = { ...h.home, onChange: () => () => {} } // the change notice is missed
+    running = startAutosave({ backend, page: fakePage().page, home })
+    await running.ready
+    h.editOutside(serializePlan({ ...store().plan, name: 'Claude changed it' }, view))
+    store().renameObject(firstId(), 'Stale edit')
+    await running.flush()
+    await settle()
+    expect(store().plan.name).toBe('Claude changed it')
+    expect(readSavedText(h.text()!).file.plan.name).toBe('Claude changed it')
   })
 })

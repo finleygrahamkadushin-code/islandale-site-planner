@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { clearSaves } from './fresh'
 
 /**
  * Phase 2 done-when check: rearrange Scheme C, lock it, hide names, reload,
@@ -40,7 +41,7 @@ async function waitSaved(page: Page) {
 test('move, lock, hide names, reload: the plan comes back unchanged', async ({ page }) => {
   await page.goto('/')
   // Start from a clean browser: drop any earlier autosave, then reload.
-  await page.evaluate(() => indexedDB.deleteDatabase('keyval-store'))
+  await clearSaves(page)
   await page.reload()
   await waitSaved(page)
 

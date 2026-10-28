@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "extract": "node scripts/extract-legacy.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "plan:commit": "git add data/plans/islandale.plan.json && git commit -m \"chore(plan): save the Islandale plan\" -- data/plans/islandale.plan.json"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

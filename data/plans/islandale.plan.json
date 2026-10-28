@@ -1,0 +1,2839 @@
+{
+  "version": 1,
+  "app": "islandale-site-planner",
+  "savedAt": "2026-10-28T02:04:17.549Z",
+  "plan": {
+    "name": "C · Prow & Lantern",
+    "siteId": "islandale",
+    "schemeId": "C",
+    "objects": {
+      "C-0": {
+        "id": "C-0",
+        "type": "house",
+        "name": "Gathering prow",
+        "position": {
+          "x": -1.5,
+          "n": 0.5
+        },
+        "rotation": 35,
+        "params": {
+          "w": 28,
+          "d": 26,
+          "h": 11,
+          "color": "#c4a77d",
+          "lift": 0.9,
+          "roofColor": "#3c4043",
+          "shape": "poly",
+          "roof": "prow",
+          "pitch": 7,
+          "ridge": "z",
+          "overhang": 2.5,
+          "support": "posts",
+          "postSpacing": 8,
+          "postSize": 8,
+          "bracing": true,
+          "wings": [
+            {
+              "dx": 0,
+              "dz": -16.5,
+              "w": 10,
+              "d": 7,
+              "h": 9,
+              "shape": "oct",
+              "roof": "pyramid",
+              "pitch": 6,
+              "ridge": "x",
+              "overhang": 1,
+              "kind": "porch",
+              "open": true
+            },
+            {
+              "kind": "stair",
+              "open": true,
+              "dx": 0,
+              "dz": -22.5,
+              "rot": 180,
+              "w": 5,
+              "d": 5,
+              "h": 0,
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0
+            },
+            {
+              "dx": -3.27,
+              "dz": 8.5,
+              "rot": 0,
+              "w": 45.5,
+              "d": 33,
+              "shape": "poly",
+              "pts": [
+                [
+                  22.73,
+                  1.68
+                ],
+                [
+                  11.12,
+                  12.5
+                ],
+                [
+                  5.27,
+                  16.5
+                ],
+                [
+                  -2.06,
+                  16.5
+                ],
+                [
+                  -4.76,
+                  16.32
+                ],
+                [
+                  -7.41,
+                  15.8
+                ],
+                [
+                  -9.97,
+                  14.93
+                ],
+                [
+                  -12.39,
+                  13.73
+                ],
+                [
+                  -14.64,
+                  12.23
+                ],
+                [
+                  -16.68,
+                  10.45
+                ],
+                [
+                  -18.46,
+                  8.41
+                ],
+                [
+                  -19.96,
+                  6.16
+                ],
+                [
+                  -21.16,
+                  3.74
+                ],
+                [
+                  -22.03,
+                  1.18
+                ],
+                [
+                  -22.55,
+                  -1.47
+                ],
+                [
+                  -22.73,
+                  -4.17
+                ],
+                [
+                  -22.73,
+                  -16.5
+                ],
+                [
+                  -10.73,
+                  -16.5
+                ],
+                [
+                  -10.73,
+                  -4.17
+                ],
+                [
+                  -10.66,
+                  -3.04
+                ],
+                [
+                  -10.43,
+                  -1.93
+                ],
+                [
+                  -10.07,
+                  -0.85
+                ],
+                [
+                  -9.57,
+                  0.16
+                ],
+                [
+                  -8.94,
+                  1.11
+                ],
+                [
+                  -8.19,
+                  1.96
+                ],
+                [
+                  -7.34,
+                  2.71
+                ],
+                [
+                  -6.39,
+                  3.34
+                ],
+                [
+                  -5.38,
+                  3.84
+                ],
+                [
+                  -4.3,
+                  4.2
+                ],
+                [
+                  -3.19,
+                  4.43
+                ],
+                [
+                  -2.06,
+                  4.5
+                ],
+                [
+                  7.97,
+                  4.5
+                ],
+                [
+                  17.27,
+                  -4.17
+                ]
+              ],
+              "kind": "deck",
+              "open": true,
+              "h": 1,
+              "steps": {
+                "e0": 3,
+                "e1": 14,
+                "tread": 1.75
+              },
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0
+            },
+            {
+              "dx": -18,
+              "dz": -1.835,
+              "w": 8,
+              "d": 12.33,
+              "h": 8.5,
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "z",
+              "overhang": 1,
+              "kind": "porch",
+              "open": true,
+              "slab": false
+            }
+          ],
+          "cuts": [
+            {
+              "id": 9100,
+              "edge": 0,
+              "kind": "door",
+              "x": 12.25,
+              "w": 3.5,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9101,
+              "edge": 16,
+              "kind": "slider",
+              "x": 8,
+              "w": 6,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9102,
+              "edge": 3,
+              "kind": "slider",
+              "x": 1.02,
+              "w": 8,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9103,
+              "edge": 0,
+              "kind": "window",
+              "x": 23,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9104,
+              "edge": 16,
+              "kind": "window",
+              "x": 14.16,
+              "w": 2.5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9105,
+              "edge": 1,
+              "kind": "window",
+              "x": 5.84,
+              "w": 5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9106,
+              "edge": 1,
+              "kind": "window",
+              "x": 1.23,
+              "w": 3,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9107,
+              "edge": 2,
+              "kind": "window",
+              "x": 2.57,
+              "w": 6,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9108,
+              "kind": "window",
+              "x": 70.88,
+              "w": 8,
+              "h": 5,
+              "sill": 2.5,
+              "along": true
+            },
+            {
+              "id": 9109,
+              "edge": 0,
+              "kind": "window",
+              "x": 7,
+              "w": 1.5,
+              "h": 2.5,
+              "sill": 4.5
+            },
+            {
+              "id": 9110,
+              "edge": 0,
+              "kind": "window",
+              "x": 1.25,
+              "w": 2,
+              "h": 4,
+              "sill": 3
+            }
+          ],
+          "keepPlan": true,
+          "intCabin": "gathering",
+          "floors": [
+            {
+              "name": "Main floor",
+              "rooms": [
+                {
+                  "id": 5547,
+                  "name": "Entry",
+                  "type": "entry",
+                  "pts": [
+                    [
+                      3.5,
+                      -13
+                    ],
+                    [
+                      3.5,
+                      -8
+                    ],
+                    [
+                      -3.5,
+                      -8
+                    ],
+                    [
+                      -3.5,
+                      -13
+                    ]
+                  ]
+                },
+                {
+                  "id": 5548,
+                  "name": "Powder",
+                  "type": "bath",
+                  "pts": [
+                    [
+                      9,
+                      -13
+                    ],
+                    [
+                      9,
+                      -8
+                    ],
+                    [
+                      3.5,
+                      -8
+                    ],
+                    [
+                      3.5,
+                      -13
+                    ]
+                  ]
+                },
+                {
+                  "id": 5549,
+                  "name": "Pantry",
+                  "type": "pantry",
+                  "pts": [
+                    [
+                      -3.5,
+                      -13
+                    ],
+                    [
+                      -3.5,
+                      -8
+                    ],
+                    [
+                      -8,
+                      -8
+                    ],
+                    [
+                      -8,
+                      -13
+                    ]
+                  ]
+                },
+                {
+                  "id": 5550,
+                  "name": "Laundry & storage",
+                  "type": "laundry",
+                  "pts": [
+                    [
+                      14,
+                      -8
+                    ],
+                    [
+                      9,
+                      -8
+                    ],
+                    [
+                      9,
+                      -13
+                    ],
+                    [
+                      14,
+                      -13
+                    ]
+                  ]
+                },
+                {
+                  "id": 5545,
+                  "name": "Kitchen",
+                  "type": "kitchen",
+                  "pts": [
+                    [
+                      -8,
+                      -8
+                    ],
+                    [
+                      -4,
+                      -8
+                    ],
+                    [
+                      -4,
+                      4.33
+                    ],
+                    [
+                      -14,
+                      4.33
+                    ],
+                    [
+                      -14,
+                      -13
+                    ],
+                    [
+                      -8,
+                      -13
+                    ]
+                  ]
+                },
+                {
+                  "id": 5551,
+                  "name": "Hearth hall",
+                  "type": "hall",
+                  "pts": [
+                    [
+                      -4,
+                      -8
+                    ],
+                    [
+                      3,
+                      -8
+                    ],
+                    [
+                      3,
+                      4.33
+                    ],
+                    [
+                      -4,
+                      4.33
+                    ]
+                  ]
+                },
+                {
+                  "id": 5552,
+                  "name": "Dining · 8",
+                  "type": "dining",
+                  "pts": [
+                    [
+                      3,
+                      -8
+                    ],
+                    [
+                      14,
+                      -8
+                    ],
+                    [
+                      14,
+                      4.33
+                    ],
+                    [
+                      3,
+                      4.33
+                    ]
+                  ]
+                },
+                {
+                  "id": 5553,
+                  "name": "Lounge · prow",
+                  "type": "living",
+                  "pts": [
+                    [
+                      -14,
+                      4.33
+                    ],
+                    [
+                      14,
+                      4.33
+                    ],
+                    [
+                      4.7,
+                      13
+                    ],
+                    [
+                      -5.33,
+                      13
+                    ],
+                    [
+                      -7.57,
+                      12.7
+                    ],
+                    [
+                      -9.66,
+                      11.84
+                    ],
+                    [
+                      -11.46,
+                      10.46
+                    ],
+                    [
+                      -12.84,
+                      8.66
+                    ],
+                    [
+                      -13.7,
+                      6.57
+                    ]
+                  ]
+                }
+              ],
+              "openings": [
+                {
+                  "id": 5554,
+                  "room": 5547,
+                  "edge": 3,
+                  "pos": 0.5,
+                  "width": 3.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5555,
+                  "room": 5547,
+                  "edge": 1,
+                  "pos": 0.536,
+                  "width": 6.5,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5556,
+                  "room": 5548,
+                  "edge": 1,
+                  "pos": 0.318,
+                  "width": 2.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5557,
+                  "room": 5549,
+                  "edge": 2,
+                  "pos": 0.28,
+                  "width": 2.83,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5558,
+                  "room": 5550,
+                  "edge": 0,
+                  "pos": 0.45,
+                  "width": 2.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5559,
+                  "room": 5545,
+                  "edge": 1,
+                  "pos": 0.406,
+                  "width": 8,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5560,
+                  "room": 5552,
+                  "edge": 3,
+                  "pos": 0.497,
+                  "width": 6,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5561,
+                  "room": 5553,
+                  "edge": 0,
+                  "pos": 0.179,
+                  "width": 6,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5562,
+                  "room": 5553,
+                  "edge": 0,
+                  "pos": 0.482,
+                  "width": 5,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5563,
+                  "room": 5553,
+                  "edge": 0,
+                  "pos": 0.813,
+                  "width": 6,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5564,
+                  "room": 5545,
+                  "edge": 3,
+                  "pos": 0.365,
+                  "width": 6,
+                  "kind": "slider",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5565,
+                  "room": 5553,
+                  "edge": 2,
+                  "pos": 0.469,
+                  "width": 8,
+                  "kind": "slider",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5566,
+                  "room": 5545,
+                  "edge": 4,
+                  "pos": 0.5,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5567,
+                  "room": 5545,
+                  "edge": 3,
+                  "pos": 0.111,
+                  "width": 2.5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5568,
+                  "room": 5552,
+                  "edge": 1,
+                  "pos": 0.324,
+                  "width": 5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5569,
+                  "room": 5552,
+                  "edge": 1,
+                  "pos": 0.779,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5570,
+                  "room": 5553,
+                  "edge": 1,
+                  "pos": 0.5,
+                  "width": 6,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5572,
+                  "room": 5548,
+                  "edge": 3,
+                  "pos": 0.5,
+                  "width": 1.5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5573,
+                  "room": 5550,
+                  "edge": 2,
+                  "pos": 0.55,
+                  "width": 2,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5590,
+                  "room": 5553,
+                  "edge": 4,
+                  "pos": 0.5,
+                  "width": 1.75,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5591,
+                  "room": 5553,
+                  "edge": 5,
+                  "pos": 0.5,
+                  "width": 1.75,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5592,
+                  "room": 5553,
+                  "edge": 6,
+                  "pos": 0.5,
+                  "width": 1.75,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5593,
+                  "room": 5553,
+                  "edge": 7,
+                  "pos": 0.5,
+                  "width": 1.75,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                }
+              ],
+              "furniture": [
+                {
+                  "id": 5574,
+                  "type": "fridge",
+                  "x": -12.25,
+                  "z": -11,
+                  "rot": 270,
+                  "w": 3,
+                  "d": 2.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5575,
+                  "type": "counter",
+                  "x": -12.5,
+                  "z": -7.5,
+                  "rot": 270,
+                  "w": 4,
+                  "d": 2,
+                  "mirror": false
+                },
+                {
+                  "id": 5576,
+                  "type": "counter",
+                  "x": -9.62,
+                  "z": -11.5,
+                  "rot": 0,
+                  "w": 2.75,
+                  "d": 2,
+                  "mirror": false
+                },
+                {
+                  "id": 5577,
+                  "type": "island",
+                  "x": -6.4,
+                  "z": -2.5,
+                  "rot": 90,
+                  "w": 5,
+                  "d": 2.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5578,
+                  "type": "wardrobe",
+                  "x": -5.75,
+                  "z": -11.9,
+                  "rot": 0,
+                  "w": 3.5,
+                  "d": 1.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5579,
+                  "type": "toilet",
+                  "x": 7.66,
+                  "z": -11.15,
+                  "rot": 90,
+                  "w": 1.67,
+                  "d": 2.33,
+                  "mirror": false
+                },
+                {
+                  "id": 5580,
+                  "type": "vanity",
+                  "x": 4.42,
+                  "z": -9.15,
+                  "rot": 270,
+                  "w": 1.67,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5581,
+                  "type": "wardrobe",
+                  "x": -2.71,
+                  "z": -11,
+                  "rot": 270,
+                  "w": 3,
+                  "d": 1.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5582,
+                  "type": "washer",
+                  "x": 12.25,
+                  "z": -11.25,
+                  "rot": 0,
+                  "w": 2.5,
+                  "d": 2.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5583,
+                  "type": "wardrobe",
+                  "x": 10.05,
+                  "z": -11.88,
+                  "rot": 0,
+                  "w": 1.75,
+                  "d": 1.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5584,
+                  "type": "dining8",
+                  "x": 8.75,
+                  "z": -1.75,
+                  "rot": 0,
+                  "w": 7,
+                  "d": 8,
+                  "mirror": false
+                },
+                {
+                  "id": 5585,
+                  "type": "sofa",
+                  "x": 0,
+                  "z": 6,
+                  "rot": 0,
+                  "w": 8,
+                  "d": 3,
+                  "mirror": false
+                },
+                {
+                  "id": 5586,
+                  "type": "coffee",
+                  "x": 0,
+                  "z": 8.75,
+                  "rot": 0,
+                  "w": 4,
+                  "d": 2,
+                  "mirror": false
+                },
+                {
+                  "id": 5587,
+                  "type": "armchair",
+                  "x": -5,
+                  "z": 9,
+                  "rot": 270,
+                  "w": 2.75,
+                  "d": 2.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5588,
+                  "type": "armchair",
+                  "x": 5,
+                  "z": 9,
+                  "rot": 90,
+                  "w": 2.75,
+                  "d": 2.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5589,
+                  "type": "stove",
+                  "x": -8.8,
+                  "z": 6.6,
+                  "rot": 45,
+                  "w": 3,
+                  "d": 3,
+                  "mirror": false
+                }
+              ]
+            }
+          ],
+          "earth": {
+            "sink": 4
+          },
+          "pts": [
+            [
+              -14,
+              -13
+            ],
+            [
+              14,
+              -13
+            ],
+            [
+              14,
+              4.33
+            ],
+            [
+              4.7,
+              13
+            ],
+            [
+              -5.33,
+              13
+            ],
+            [
+              -6.46,
+              12.93
+            ],
+            [
+              -7.57,
+              12.7
+            ],
+            [
+              -8.65,
+              12.34
+            ],
+            [
+              -9.66,
+              11.84
+            ],
+            [
+              -10.61,
+              11.21
+            ],
+            [
+              -11.46,
+              10.46
+            ],
+            [
+              -12.21,
+              9.61
+            ],
+            [
+              -12.84,
+              8.66
+            ],
+            [
+              -13.34,
+              7.65
+            ],
+            [
+              -13.7,
+              6.57
+            ],
+            [
+              -13.93,
+              5.46
+            ],
+            [
+              -14,
+              4.33
+            ]
+          ]
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-1": {
+        "id": "C-1",
+        "type": "house",
+        "name": "Family lantern",
+        "position": {
+          "x": -12.963,
+          "n": 13.82
+        },
+        "rotation": -22,
+        "params": {
+          "w": 18,
+          "d": 18,
+          "h": 9,
+          "color": "#8a7f72",
+          "lift": 0.5,
+          "roofColor": "#3c4043",
+          "shape": "oct",
+          "roof": "pyramid",
+          "pitch": 12,
+          "ridge": "x",
+          "overhang": 2,
+          "support": "posts",
+          "postSpacing": 6,
+          "postSize": 8,
+          "bracing": true,
+          "wings": [
+            {
+              "dx": -2.25,
+              "dz": 11.5,
+              "w": 9,
+              "d": 5,
+              "h": 8,
+              "shape": "rect",
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "x",
+              "overhang": 1,
+              "kind": "porch",
+              "open": true
+            },
+            {
+              "kind": "stair",
+              "open": true,
+              "dx": -2.25,
+              "dz": 16,
+              "rot": 0,
+              "w": 4,
+              "d": 4,
+              "h": 0,
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0
+            }
+          ],
+          "cuts": [
+            {
+              "id": 9100,
+              "edge": 1,
+              "kind": "door",
+              "x": -0.02,
+              "w": 3,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9101,
+              "edge": 7,
+              "kind": "window",
+              "x": 0.23,
+              "w": 5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9102,
+              "edge": 0,
+              "kind": "window",
+              "x": 1.73,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9103,
+              "edge": 5,
+              "kind": "window",
+              "x": 1.73,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9104,
+              "edge": 4,
+              "kind": "window",
+              "x": 2.23,
+              "w": 3,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9105,
+              "edge": 6,
+              "kind": "window",
+              "x": 2.23,
+              "w": 3,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9106,
+              "edge": 3,
+              "kind": "window",
+              "x": 0.52,
+              "w": 2,
+              "h": 2.5,
+              "sill": 4.5
+            }
+          ],
+          "keepPlan": true,
+          "intCabin": "family",
+          "floors": [
+            {
+              "name": "Main floor · Maya, Ren, Leo & Ana",
+              "rooms": [
+                {
+                  "id": 5496,
+                  "name": "Hall",
+                  "type": "hall",
+                  "pts": [
+                    [
+                      -4,
+                      -3.25
+                    ],
+                    [
+                      -0.5,
+                      -3.25
+                    ],
+                    [
+                      -0.5,
+                      9
+                    ],
+                    [
+                      -3.73,
+                      9
+                    ],
+                    [
+                      -4,
+                      8.73
+                    ]
+                  ]
+                },
+                {
+                  "id": 5497,
+                  "name": "Bath",
+                  "type": "bath",
+                  "pts": [
+                    [
+                      -9,
+                      -3.25
+                    ],
+                    [
+                      -4,
+                      -3.25
+                    ],
+                    [
+                      -4,
+                      4
+                    ],
+                    [
+                      -8.73,
+                      4
+                    ],
+                    [
+                      -9,
+                      3.73
+                    ]
+                  ]
+                },
+                {
+                  "id": 5498,
+                  "name": "Coats",
+                  "type": "closet",
+                  "pts": [
+                    [
+                      -8.73,
+                      4
+                    ],
+                    [
+                      -4,
+                      4
+                    ],
+                    [
+                      -4,
+                      8.73
+                    ]
+                  ]
+                },
+                {
+                  "id": 5499,
+                  "name": "Parents · Maya & Ren",
+                  "type": "bedroom",
+                  "pts": [
+                    [
+                      -0.5,
+                      -3.25
+                    ],
+                    [
+                      9,
+                      -3.25
+                    ],
+                    [
+                      9,
+                      3.73
+                    ],
+                    [
+                      3.73,
+                      9
+                    ],
+                    [
+                      -0.5,
+                      9
+                    ]
+                  ]
+                },
+                {
+                  "id": 5500,
+                  "name": "Bunk room · Leo & Ana",
+                  "type": "bedroom",
+                  "pts": [
+                    [
+                      9,
+                      -3.25
+                    ],
+                    [
+                      -9,
+                      -3.25
+                    ],
+                    [
+                      -9,
+                      -3.73
+                    ],
+                    [
+                      -3.73,
+                      -9
+                    ],
+                    [
+                      3.73,
+                      -9
+                    ],
+                    [
+                      9,
+                      -3.73
+                    ]
+                  ]
+                }
+              ],
+              "openings": [
+                {
+                  "id": 5501,
+                  "room": 5496,
+                  "edge": 2,
+                  "pos": 0.542,
+                  "width": 3,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5502,
+                  "room": 5497,
+                  "edge": 1,
+                  "pos": 0.531,
+                  "width": 2.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5503,
+                  "room": 5498,
+                  "edge": 1,
+                  "pos": 0.507,
+                  "width": 2.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5504,
+                  "room": 5499,
+                  "edge": 4,
+                  "pos": 0.327,
+                  "width": 2.67,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5505,
+                  "room": 5500,
+                  "edge": 0,
+                  "pos": 0.625,
+                  "width": 2.67,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5506,
+                  "room": 5499,
+                  "edge": 1,
+                  "pos": 0.609,
+                  "width": 5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5507,
+                  "room": 5499,
+                  "edge": 2,
+                  "pos": 0.5,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5508,
+                  "room": 5500,
+                  "edge": 3,
+                  "pos": 0.5,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5509,
+                  "room": 5500,
+                  "edge": 2,
+                  "pos": 0.5,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5510,
+                  "room": 5500,
+                  "edge": 4,
+                  "pos": 0.5,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5511,
+                  "room": 5497,
+                  "edge": 4,
+                  "pos": 0.85,
+                  "width": 2,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                }
+              ],
+              "furniture": [
+                {
+                  "id": 5512,
+                  "type": "shower",
+                  "x": -6.33,
+                  "z": -1.83,
+                  "rot": 0,
+                  "w": 4.33,
+                  "d": 2.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5513,
+                  "type": "toilet",
+                  "x": -7.33,
+                  "z": 0.67,
+                  "rot": 270,
+                  "w": 1.67,
+                  "d": 2.33,
+                  "mirror": false
+                },
+                {
+                  "id": 5514,
+                  "type": "vanity",
+                  "x": -7.75,
+                  "z": 2.67,
+                  "rot": 270,
+                  "w": 1.5,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5515,
+                  "type": "queen",
+                  "x": 4.08,
+                  "z": 0.25,
+                  "rot": 0,
+                  "w": 5,
+                  "d": 6.67,
+                  "mirror": false
+                },
+                {
+                  "id": 5516,
+                  "type": "dresser",
+                  "x": 1.7,
+                  "z": 7.75,
+                  "rot": 180,
+                  "w": 3.5,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5517,
+                  "type": "bunk",
+                  "x": 0,
+                  "z": -6.88,
+                  "rot": 90,
+                  "w": 3.25,
+                  "d": 6.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5518,
+                  "type": "dresser",
+                  "x": 5.57,
+                  "z": -5.57,
+                  "rot": 45,
+                  "w": 2.5,
+                  "d": 1.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5519,
+                  "type": "desk",
+                  "x": -5.3,
+                  "z": -4.29,
+                  "rot": 180,
+                  "w": 3,
+                  "d": 1.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5520,
+                  "type": "wardrobe",
+                  "x": -5.33,
+                  "z": 4.79,
+                  "rot": 0,
+                  "w": 2.33,
+                  "d": 1.25,
+                  "mirror": false
+                }
+              ]
+            }
+          ]
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-2": {
+        "id": "C-2",
+        "type": "house",
+        "name": "Family twin pod",
+        "position": {
+          "x": -6.882,
+          "n": 11.252
+        },
+        "rotation": -22,
+        "params": {
+          "w": 19,
+          "d": 11.5,
+          "h": 9,
+          "color": "#7d8a80",
+          "lift": 1.83,
+          "roofColor": "#3c4043",
+          "roof": "butterfly",
+          "pitch": 3,
+          "ridge": "z",
+          "overhang": 1.5,
+          "support": "posts",
+          "postSpacing": 7,
+          "postSize": 6,
+          "bracing": false,
+          "wings": [
+            {
+              "dx": 0,
+              "dz": 8.75,
+              "w": 9,
+              "d": 6,
+              "h": 8,
+              "shape": "rect",
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "x",
+              "overhang": 1,
+              "kind": "porch",
+              "open": true
+            },
+            {
+              "kind": "stair",
+              "open": true,
+              "dx": 0,
+              "dz": 17,
+              "rot": 0,
+              "w": 4,
+              "d": 4,
+              "h": 0,
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0
+            },
+            {
+              "dx": -12.7,
+              "dz": 12.5,
+              "w": 16.4,
+              "d": 5,
+              "h": 8,
+              "shape": "rect",
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "x",
+              "overhang": 0.5,
+              "kind": "porch",
+              "open": true
+            }
+          ],
+          "cuts": [
+            {
+              "id": 9100,
+              "edge": 2,
+              "kind": "door",
+              "x": 8,
+              "w": 3,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9101,
+              "edge": 3,
+              "kind": "window",
+              "x": 3.75,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9102,
+              "edge": 2,
+              "kind": "window",
+              "x": 3.85,
+              "w": 2.5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9103,
+              "edge": 0,
+              "kind": "window",
+              "x": 14.1,
+              "w": 3,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9104,
+              "edge": 1,
+              "kind": "window",
+              "x": 3.25,
+              "w": 5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9105,
+              "edge": 2,
+              "kind": "window",
+              "x": 12.65,
+              "w": 2.5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9106,
+              "edge": 0,
+              "kind": "window",
+              "x": 1.9,
+              "w": 3,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9107,
+              "edge": 0,
+              "kind": "window",
+              "x": 8.5,
+              "w": 2,
+              "h": 2.5,
+              "sill": 4.5
+            }
+          ],
+          "keepPlan": true,
+          "intCabin": "twin",
+          "floors": [
+            {
+              "name": "Main floor · Daniel & Sofia",
+              "rooms": [
+                {
+                  "id": 5521,
+                  "name": "Entry",
+                  "type": "entry",
+                  "pts": [
+                    [
+                      -2.75,
+                      2
+                    ],
+                    [
+                      2.75,
+                      2
+                    ],
+                    [
+                      2.75,
+                      5.75
+                    ],
+                    [
+                      -2.75,
+                      5.75
+                    ]
+                  ]
+                },
+                {
+                  "id": 5522,
+                  "name": "Bath",
+                  "type": "bath",
+                  "pts": [
+                    [
+                      -2.75,
+                      -5.75
+                    ],
+                    [
+                      2.75,
+                      -5.75
+                    ],
+                    [
+                      2.75,
+                      2
+                    ],
+                    [
+                      -2.75,
+                      2
+                    ]
+                  ]
+                },
+                {
+                  "id": 5523,
+                  "name": "Daniel",
+                  "type": "bedroom",
+                  "pts": [
+                    [
+                      -9.5,
+                      -5.75
+                    ],
+                    [
+                      -2.75,
+                      -5.75
+                    ],
+                    [
+                      -2.75,
+                      5.75
+                    ],
+                    [
+                      -9.5,
+                      5.75
+                    ]
+                  ]
+                },
+                {
+                  "id": 5524,
+                  "name": "Sofia",
+                  "type": "bedroom",
+                  "pts": [
+                    [
+                      2.75,
+                      -5.75
+                    ],
+                    [
+                      9.5,
+                      -5.75
+                    ],
+                    [
+                      9.5,
+                      5.75
+                    ],
+                    [
+                      2.75,
+                      5.75
+                    ]
+                  ]
+                }
+              ],
+              "openings": [
+                {
+                  "id": 5525,
+                  "room": 5521,
+                  "edge": 2,
+                  "pos": 0.5,
+                  "width": 3,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5526,
+                  "room": 5522,
+                  "edge": 2,
+                  "pos": 0.3,
+                  "width": 2.33,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5527,
+                  "room": 5523,
+                  "edge": 1,
+                  "pos": 0.839,
+                  "width": 2.67,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5528,
+                  "room": 5524,
+                  "edge": 3,
+                  "pos": 0.161,
+                  "width": 2.67,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5529,
+                  "room": 5523,
+                  "edge": 3,
+                  "pos": 0.5,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5530,
+                  "room": 5523,
+                  "edge": 2,
+                  "pos": 0.244,
+                  "width": 2.5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5531,
+                  "room": 5523,
+                  "edge": 0,
+                  "pos": 0.504,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5532,
+                  "room": 5524,
+                  "edge": 1,
+                  "pos": 0.5,
+                  "width": 5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5533,
+                  "room": 5524,
+                  "edge": 2,
+                  "pos": 0.756,
+                  "width": 2.5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5534,
+                  "room": 5524,
+                  "edge": 0,
+                  "pos": 0.496,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5535,
+                  "room": 5522,
+                  "edge": 0,
+                  "pos": 0.5,
+                  "width": 2,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                }
+              ],
+              "furniture": [
+                {
+                  "id": 5536,
+                  "type": "shower",
+                  "x": 0,
+                  "z": -4,
+                  "rot": 0,
+                  "w": 5.17,
+                  "d": 2.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5537,
+                  "type": "toilet",
+                  "x": -1.41,
+                  "z": -1.5,
+                  "rot": 270,
+                  "w": 1.67,
+                  "d": 2.33,
+                  "mirror": false
+                },
+                {
+                  "id": 5538,
+                  "type": "vanity",
+                  "x": -1.71,
+                  "z": 0.75,
+                  "rot": 270,
+                  "w": 2,
+                  "d": 1.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5539,
+                  "type": "twin",
+                  "x": -7.38,
+                  "z": -2.13,
+                  "rot": 0,
+                  "w": 3.25,
+                  "d": 6.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5540,
+                  "type": "desk",
+                  "x": -4.17,
+                  "z": -4.38,
+                  "rot": 0,
+                  "w": 2.5,
+                  "d": 1.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5541,
+                  "type": "dresser",
+                  "x": -7.25,
+                  "z": 4.5,
+                  "rot": 180,
+                  "w": 3.5,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5542,
+                  "type": "twin",
+                  "x": 7.38,
+                  "z": -2.13,
+                  "rot": 0,
+                  "w": 3.25,
+                  "d": 6.25,
+                  "mirror": false
+                },
+                {
+                  "id": 5543,
+                  "type": "desk",
+                  "x": 4.17,
+                  "z": -4.38,
+                  "rot": 0,
+                  "w": 2.5,
+                  "d": 1.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5544,
+                  "type": "dresser",
+                  "x": 7.25,
+                  "z": 4.5,
+                  "rot": 180,
+                  "w": 3.5,
+                  "d": 1.5,
+                  "mirror": false
+                }
+              ]
+            }
+          ]
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-3": {
+        "id": "C-3",
+        "type": "house",
+        "name": "Elders’ wedge",
+        "position": {
+          "x": -13.384,
+          "n": 3.58
+        },
+        "rotation": 158,
+        "params": {
+          "w": 28,
+          "d": 18,
+          "h": 10,
+          "color": "#dcd3c2",
+          "lift": 0.3,
+          "roofColor": "#3c4043",
+          "shape": "trap",
+          "taper": 0.75,
+          "roof": "hip",
+          "pitch": 5,
+          "ridge": "x",
+          "overhang": 2.5,
+          "support": "slab",
+          "postSpacing": 8,
+          "postSize": 6,
+          "bracing": false,
+          "wings": [
+            {
+              "dx": 0,
+              "dz": -12,
+              "w": 20,
+              "d": 6,
+              "h": 8.5,
+              "shape": "rect",
+              "rot": 180,
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "x",
+              "overhang": 1,
+              "kind": "porch",
+              "open": true
+            },
+            {
+              "dx": 0.5,
+              "dz": 11.5,
+              "w": 7,
+              "d": 5,
+              "h": 8,
+              "shape": "rect",
+              "roof": "shed",
+              "pitch": 2,
+              "ridge": "x",
+              "overhang": 0.5,
+              "kind": "porch",
+              "open": true
+            },
+            {
+              "kind": "deck",
+              "open": true,
+              "rail": "sides",
+              "dx": 13.13,
+              "dz": 11.5,
+              "rot": 0,
+              "w": 18.26,
+              "d": 4,
+              "h": 1,
+              "shape": "rect",
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0
+            }
+          ],
+          "cuts": [
+            {
+              "id": 9100,
+              "edge": 2,
+              "kind": "door",
+              "x": 13,
+              "w": 3,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9101,
+              "edge": 3,
+              "kind": "door",
+              "x": 10.22,
+              "w": 3.5,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9102,
+              "edge": 0,
+              "kind": "slider",
+              "x": 16.5,
+              "w": 3.5,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9103,
+              "edge": 0,
+              "kind": "slider",
+              "x": 8,
+              "w": 3,
+              "h": 7,
+              "sill": 0
+            },
+            {
+              "id": 9104,
+              "edge": 3,
+              "kind": "window",
+              "x": 2.08,
+              "w": 5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9105,
+              "edge": 2,
+              "kind": "window",
+              "x": 3,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9106,
+              "edge": 3,
+              "kind": "window",
+              "x": 13.53,
+              "w": 2.5,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9107,
+              "edge": 2,
+              "kind": "window",
+              "x": 22.4,
+              "w": 3,
+              "h": 2.5,
+              "sill": 4.5
+            },
+            {
+              "id": 9108,
+              "edge": 1,
+              "kind": "window",
+              "x": 11.75,
+              "w": 4,
+              "h": 4,
+              "sill": 3
+            },
+            {
+              "id": 9109,
+              "edge": 2,
+              "kind": "window",
+              "x": 11.13,
+              "w": 1.25,
+              "h": 4,
+              "sill": 3
+            }
+          ],
+          "keepPlan": true,
+          "intCabin": "elders",
+          "floors": [
+            {
+              "name": "Main floor",
+              "rooms": [
+                {
+                  "id": 5467,
+                  "name": "Sitting room",
+                  "type": "living",
+                  "pts": [
+                    [
+                      -3,
+                      -9
+                    ],
+                    [
+                      -3,
+                      9
+                    ],
+                    [
+                      -14,
+                      9
+                    ],
+                    [
+                      -10.5,
+                      -9
+                    ]
+                  ]
+                },
+                {
+                  "id": 5468,
+                  "name": "Entry hall",
+                  "type": "hall",
+                  "pts": [
+                    [
+                      -3,
+                      1
+                    ],
+                    [
+                      2,
+                      1
+                    ],
+                    [
+                      2,
+                      9
+                    ],
+                    [
+                      -3,
+                      9
+                    ]
+                  ]
+                },
+                {
+                  "id": 5469,
+                  "name": "Accessible bath",
+                  "type": "bath",
+                  "pts": [
+                    [
+                      2,
+                      1
+                    ],
+                    [
+                      12.44,
+                      1
+                    ],
+                    [
+                      14,
+                      9
+                    ],
+                    [
+                      2,
+                      9
+                    ]
+                  ]
+                },
+                {
+                  "id": 5470,
+                  "name": "Bedroom · Elena & Tomas",
+                  "type": "bedroom",
+                  "pts": [
+                    [
+                      12.44,
+                      1
+                    ],
+                    [
+                      -3,
+                      1
+                    ],
+                    [
+                      -3,
+                      -9
+                    ],
+                    [
+                      10.5,
+                      -9
+                    ]
+                  ]
+                }
+              ],
+              "openings": [
+                {
+                  "id": 5471,
+                  "room": 5468,
+                  "edge": 2,
+                  "pos": 0.3,
+                  "width": 3,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5472,
+                  "room": 5468,
+                  "edge": 3,
+                  "pos": 0.375,
+                  "width": 4,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5473,
+                  "room": 5469,
+                  "edge": 3,
+                  "pos": 0.469,
+                  "width": 3,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5474,
+                  "room": 5470,
+                  "edge": 0,
+                  "pos": 0.773,
+                  "width": 3,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5475,
+                  "room": 5469,
+                  "edge": 0,
+                  "pos": 0.785,
+                  "width": 2.67,
+                  "kind": "door",
+                  "flip": false,
+                  "out": true
+                },
+                {
+                  "id": 5476,
+                  "room": 5467,
+                  "edge": 2,
+                  "pos": 0.347,
+                  "width": 3.5,
+                  "kind": "door",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5477,
+                  "room": 5467,
+                  "edge": 3,
+                  "pos": 0.367,
+                  "width": 3.5,
+                  "kind": "slider",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5478,
+                  "room": 5470,
+                  "edge": 2,
+                  "pos": 0.296,
+                  "width": 3,
+                  "kind": "slider",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5479,
+                  "room": 5467,
+                  "edge": 2,
+                  "pos": 0.75,
+                  "width": 5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5480,
+                  "room": 5467,
+                  "edge": 1,
+                  "pos": 0.545,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5481,
+                  "room": 5467,
+                  "edge": 2,
+                  "pos": 0.194,
+                  "width": 2.5,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5482,
+                  "room": 5469,
+                  "edge": 2,
+                  "pos": 0.342,
+                  "width": 3,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5483,
+                  "room": 5470,
+                  "edge": 3,
+                  "pos": 0.45,
+                  "width": 4,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5484,
+                  "room": 5468,
+                  "edge": 2,
+                  "pos": 0.85,
+                  "width": 1.25,
+                  "kind": "window",
+                  "flip": false,
+                  "out": false
+                }
+              ],
+              "furniture": [
+                {
+                  "id": 5485,
+                  "type": "shower",
+                  "x": 9.7,
+                  "z": 6,
+                  "rot": 180,
+                  "w": 5,
+                  "d": 5,
+                  "mirror": false
+                },
+                {
+                  "id": 5486,
+                  "type": "toilet",
+                  "x": 3.5,
+                  "z": 2.36,
+                  "rot": 0,
+                  "w": 1.67,
+                  "d": 2.33,
+                  "mirror": false
+                },
+                {
+                  "id": 5487,
+                  "type": "vanity",
+                  "x": 6.1,
+                  "z": 2.06,
+                  "rot": 0,
+                  "w": 2,
+                  "d": 1.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5488,
+                  "type": "queen",
+                  "x": 5,
+                  "z": -5.15,
+                  "rot": 0,
+                  "w": 5,
+                  "d": 6.67,
+                  "mirror": false
+                },
+                {
+                  "id": 5489,
+                  "type": "wardrobe",
+                  "x": -1.82,
+                  "z": -6.45,
+                  "rot": 270,
+                  "w": 4,
+                  "d": 2,
+                  "mirror": false
+                },
+                {
+                  "id": 5490,
+                  "type": "dresser",
+                  "x": -2.08,
+                  "z": -2.5,
+                  "rot": 270,
+                  "w": 3.5,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5491,
+                  "type": "sofa",
+                  "x": -4.67,
+                  "z": -4.5,
+                  "rot": 90,
+                  "w": 6.5,
+                  "d": 3,
+                  "mirror": false
+                },
+                {
+                  "id": 5492,
+                  "type": "coffee",
+                  "x": -7.5,
+                  "z": -4.75,
+                  "rot": 90,
+                  "w": 3,
+                  "d": 1.5,
+                  "mirror": false
+                },
+                {
+                  "id": 5493,
+                  "type": "armchair",
+                  "x": -9,
+                  "z": -1.8,
+                  "rot": 225,
+                  "w": 2.75,
+                  "d": 2.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5494,
+                  "type": "armchair",
+                  "x": -8.5,
+                  "z": 6.6,
+                  "rot": 0,
+                  "w": 2.75,
+                  "d": 2.75,
+                  "mirror": false
+                },
+                {
+                  "id": 5495,
+                  "type": "wardrobe",
+                  "x": -5,
+                  "z": 7.87,
+                  "rot": 180,
+                  "w": 3,
+                  "d": 1.25,
+                  "mirror": false
+                }
+              ]
+            }
+          ]
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-4": {
+        "id": "C-4",
+        "type": "bridge",
+        "name": "Elders’ walk · 1:21 boardwalk",
+        "position": {
+          "x": -12.018,
+          "n": -3.125
+        },
+        "rotation": 0,
+        "params": {
+          "style": "ribbon",
+          "w": 5,
+          "d": 81,
+          "h": 1,
+          "color": "#a98c62",
+          "route": [
+            [
+              2.463000000000001,
+              5.84,
+              27.49
+            ],
+            [
+              3.027000000000001,
+              3.961,
+              27.17
+            ],
+            [
+              1.8660000000000014,
+              1.1019999999999999,
+              26.66
+            ],
+            [
+              -1.379999999999999,
+              -1.1710000000000003,
+              26.02
+            ],
+            [
+              -3.7639999999999993,
+              -4.143,
+              25.4
+            ],
+            [
+              -2.2029999999999994,
+              -5.84,
+              25
+            ],
+            [
+              0.14100000000000001,
+              -3.343,
+              24.45
+            ],
+            [
+              2.074,
+              -1.3200000000000003,
+              23.99
+            ],
+            [
+              3.764000000000001,
+              -0.5459999999999998,
+              23.69
+            ]
+          ]
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-5": {
+        "id": "C-5",
+        "type": "pad",
+        "name": "Driveway · west notch",
+        "position": {
+          "x": -23.5,
+          "n": 6
+        },
+        "rotation": 40,
+        "params": {
+          "w": 24,
+          "d": 12,
+          "h": 0.2,
+          "color": "#8c8c86",
+          "lift": 0,
+          "shape": "para",
+          "skew": -6
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-6": {
+        "id": "C-6",
+        "type": "pad",
+        "name": "Parking · drop-off",
+        "position": {
+          "x": -21,
+          "n": 11
+        },
+        "rotation": 150,
+        "params": {
+          "w": 26,
+          "d": 18,
+          "h": 0.2,
+          "color": "#9a9a94",
+          "lift": 0,
+          "cars": 3,
+          "shape": "trap",
+          "taper": 0.65
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-7": {
+        "id": "C-7",
+        "type": "pad",
+        "name": "Firepit patio · flagstone",
+        "position": {
+          "x": 2.107,
+          "n": -17.117
+        },
+        "rotation": -15,
+        "params": {
+          "w": 16,
+          "d": 16,
+          "h": 0.3,
+          "color": "#b5a68c",
+          "lift": 0,
+          "shape": "oct"
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-8": {
+        "id": "C-8",
+        "type": "pad",
+        "name": "Path to beach",
+        "position": {
+          "x": 8.452,
+          "n": -17.853
+        },
+        "rotation": -6.617,
+        "params": {
+          "w": 24.9,
+          "d": 4,
+          "h": 0.2,
+          "color": "#b8a888",
+          "lift": 0
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-9": {
+        "id": "C-9",
+        "type": "pad",
+        "name": "Path to beach",
+        "position": {
+          "x": 14,
+          "n": -22.5
+        },
+        "rotation": -66.038,
+        "params": {
+          "w": 34.7,
+          "d": 4,
+          "h": 0.2,
+          "color": "#b8a888",
+          "lift": 0
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-10": {
+        "id": "C-10",
+        "type": "tree",
+        "name": "Madrone · keep",
+        "position": {
+          "x": -6,
+          "n": -12
+        },
+        "rotation": 0,
+        "params": {
+          "w": 24,
+          "d": 24,
+          "h": 30,
+          "color": "#4f7d4b",
+          "lift": 0,
+          "tree": true
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-11": {
+        "id": "C-11",
+        "type": "tree",
+        "name": "Madrone · keep",
+        "position": {
+          "x": -22,
+          "n": -4
+        },
+        "rotation": 0,
+        "params": {
+          "w": 24,
+          "d": 24,
+          "h": 30,
+          "color": "#4f7d4b",
+          "lift": 0,
+          "tree": true
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-12": {
+        "id": "C-12",
+        "type": "tree",
+        "name": "Madrone · keep",
+        "position": {
+          "x": 10,
+          "n": -12
+        },
+        "rotation": 0,
+        "params": {
+          "w": 22,
+          "d": 22,
+          "h": 28,
+          "color": "#4f7d4b",
+          "lift": 0,
+          "tree": true
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-13": {
+        "id": "C-13",
+        "type": "tree",
+        "name": "Madrone · keep",
+        "position": {
+          "x": 20,
+          "n": -20
+        },
+        "rotation": 0,
+        "params": {
+          "w": 22,
+          "d": 22,
+          "h": 28,
+          "color": "#4f7d4b",
+          "lift": 0,
+          "tree": true
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-14": {
+        "id": "C-14",
+        "type": "pad",
+        "name": "Lane · gravel",
+        "position": {
+          "x": -13.622,
+          "n": 9.124
+        },
+        "rotation": -22.02,
+        "params": {
+          "w": 27.5,
+          "d": 7,
+          "h": 0.2,
+          "color": "#b8b0a0",
+          "lift": 0
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-15": {
+        "id": "C-15",
+        "type": "pad",
+        "name": "Lane · gravel",
+        "position": {
+          "x": -8.94,
+          "n": 7.365
+        },
+        "rotation": -17.103,
+        "params": {
+          "w": 13.7,
+          "d": 7,
+          "h": 0.2,
+          "color": "#b8b0a0",
+          "lift": 0
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-16": {
+        "id": "C-16",
+        "type": "pad",
+        "name": "Lane · gravel",
+        "position": {
+          "x": -6.76,
+          "n": 6.888
+        },
+        "rotation": -3.59,
+        "params": {
+          "w": 9.4,
+          "d": 7,
+          "h": 0.2,
+          "color": "#b8b0a0",
+          "lift": 0
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      }
+    },
+    "order": [
+      "C-0",
+      "C-1",
+      "C-2",
+      "C-3",
+      "C-4",
+      "C-5",
+      "C-6",
+      "C-7",
+      "C-8",
+      "C-9",
+      "C-10",
+      "C-11",
+      "C-12",
+      "C-13",
+      "C-14",
+      "C-15",
+      "C-16"
+    ]
+  },
+  "view": {
+    "labelMode": "all",
+    "layers": {
+      "buildings": {
+        "visible": true,
+        "locked": false
+      },
+      "paths": {
+        "visible": true,
+        "locked": false
+      },
+      "trees": {
+        "visible": true,
+        "locked": false
+      },
+      "labels": {
+        "visible": true,
+        "locked": false
+      }
+    },
+    "environment": {
+      "season": "sep",
+      "hour": 16.75,
+      "tideFt": 6.2
+    },
+    "displayStyle": "realistic",
+    "contours": null
+  }
+}

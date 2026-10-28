@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { clearSaves } from './fresh'
 
 /** Phase 3C lost-work drills for the new app. */
 
@@ -6,10 +7,7 @@ const ready = (page: Page) => expect(page.getByTestId('save-status')).toHaveText
 
 async function freshStart(page: Page) {
   await page.goto('/')
-  await page.evaluate(() => {
-    indexedDB.deleteDatabase('keyval-store')
-    localStorage.clear()
-  })
+  await clearSaves(page)
   await page.reload()
   await ready(page)
 }
