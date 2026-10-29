@@ -1,4 +1,5 @@
 import { buildingMasses, MAX_WINGS, massPoly, wingSlots } from '../buildings/masses'
+import { isRailable } from '../buildings/railRules'
 import { buildingRailStyle, hasRailMap, withRailStyle, writeAll, writeEdge, type RailState, type RailStyle } from '../buildings/railEdits'
 import { wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing } from '../buildings/wingEdits'
 import { railDraws } from './railResolver'
@@ -119,6 +120,8 @@ export function partActions({ get, set, editable, edit, editRefit, refitObject }
         if (deck && mi !== 0) throw new Error('a standalone deck is mass 0')
         const mass = buildingMasses(o.params)[mi]
         if (!mass) throw new Error(`no mass ${mi}`)
+        // stairs and ramps carry handrails by their style, walls none; only decks and porches rail per edge
+        if (!deck && !isRailable(mass)) throw new Error(`mass ${mi} of "${id}" is a ${mass.kind}; only decks and porches rail per edge`)
         const src = deck ? o.params : wingAt(o.params, mi)
         const n = massPoly(mass).length
         const s = get()

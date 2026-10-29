@@ -138,7 +138,11 @@ describe('part actions', () => {
 
     test('a mass that is not there is a programming error', () => {
       expect(() => store().updateWing(PROW, 9, { dx: 1 })).toThrow(/no mass 9/)
-      expect(() => store().setRail(PROW, 0, 0, 'on')).toThrow(/main walls/)
+      expect(() => store().setRail(PROW, 0, 0, 'on')).toThrow(/is a wall; only decks and porches rail per edge/)
+      // stair handrails come with the stair's style, not per edge
+      const stair = buildingMasses(store().plan.objects[PROW].params).findIndex((m) => m.kind === 'stair')
+      expect(stair).toBeGreaterThan(0)
+      expect(() => store().setRail(PROW, stair, 0, 'off')).toThrow(/is a stair/)
     })
   })
 
