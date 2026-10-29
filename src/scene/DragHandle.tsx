@@ -61,16 +61,26 @@ export function DragHandle({ o, y, begin, className, testId, title, cursor, chil
   const live = useRef<Live | null>(null)
   const onKey = useMemo(
     () => (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || !live.current) return
-      // before the app's own Escape, which would drop the picked part too
+      if (!live.current) return
+      // Every key stops here while a drag is live, before the app's own
+      // shortcuts: Delete or Undo could remove the part under the drag.
       e.stopImmediatePropagation()
+      if (e.key !== 'Escape') return
       e.preventDefault()
       live.current.session.cancel()
       live.current = null
     },
     [],
   )
-  useEffect(() => () => window.removeEventListener('keydown', onKey, true), [onKey])
+  // A handle that goes away mid-drag (part dropped, building locked) drops its drag too.
+  useEffect(
+    () => () => {
+      window.removeEventListener('keydown', onKey, true)
+      live.current?.session.cancel()
+      live.current = null
+    },
+    [onKey],
+  )
 
   const finish = (e: ReactPointerEvent<HTMLElement>, commit: boolean) => {
     e.stopPropagation()
