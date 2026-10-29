@@ -1,0 +1,264 @@
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import { buildingMasses, MAX_WINGS } from '../buildings/masses'
+import { wingAt } from '../buildings/wingEdits'
+import { MAIN_STAYS_TEXT, MAX_PARTS_TEXT } from './partActions'
+import { pickedPartOf, usePlanStore } from './planStore'
+import { setRailDrawResolver } from './railResolver'
+import type { PlanObject } from './types'
+
+const store = () => usePlanStore.getState()
+const history = () => usePlanStore.temporal.getState()
+const PROW = 'C-0' // main, Porch 1, Stair 2, Deck 3, Porch 4
+const WEDGE = 'C-3' // main, Porch 1, Porch 2, Deck 3 (rail 'sides')
+const params = (id: string) => store().plan.objects[id].params
+const masses = (id: string) => buildingMasses(params(id))
+
+describe('part actions', () => {
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    store().lockAll(false)
+    history().clear()
+  })
+  afterEach(() => setRailDrawResolver(null))
+
+  /** Run an action, check it made one undo step, and that undo brings back the plan before it. */
+  const oneStep = (act: () => void) => {
+    const before = store().plan
+    act()
+    expect(store().plan).not.toBe(before)
+    expect(history().pastStates).toHaveLength(1)
+    history().undo()
+    expect(store().plan).toBe(before)
+    history().redo()
+  }
+
+  describe('every action is one undo step', () => {
+    test('updateWing moves and sizes one wing and leaves the others alone', () => {
+      const was = params(PROW).wings as unknown[]
+      oneStep(() => store().updateWing(PROW, 3, { dx: 2, w: 40, rot: 370 }))
+      expect(masses(PROW)[3]).toMatchObject({ kind: 'deck', dx: 2, w: 40, rot: 10 })
+      const now = params(PROW).wings as unknown[]
+      expect([0, 1, 3].map((i) => now[i])).toEqual([0, 1, 3].map((i) => was[i]))
+    })
+
+    test('addWing appends a wing and returns its mass index', () => {
+      let mi: number | null = null
+      oneStep(() => {
+        mi = store().addWing(PROW, { kind: 'ramp', open: true, w: 4, d: 12, rot: -90 })
+      })
+      expect(mi).toBe(5)
+      expect(masses(PROW)[5].kind).toBe('ramp')
+    })
+
+    test('removeWing takes a wing out; later masses move down one', () => {
+      oneStep(() => store().removeWing(PROW, 2))
+      expect(masses(PROW).map((m) => m.kind)).toEqual(['wall', 'porch', 'deck', 'porch'])
+    })
+
+    test('setRail on one edge, and on all edges', () => {
+      oneStep(() => store().setRail(WEDGE, 3, 0, 'off'))
+      expect(wingAt(params(WEDGE), 3).rails).toMatchObject({ 0: false })
+      history().clear()
+      oneStep(() => store().setRail(WEDGE, 3, 'all', 'on'))
+      expect(wingAt(params(WEDGE), 3)).toMatchObject({ rails: { 0: true, 1: true, 2: true, 3: true } })
+      expect(wingAt(params(WEDGE), 3).rail).toBeUndefined()
+    })
+
+    test('setRailStyle stores the style per building; choosing the same style again is no step', () => {
+      oneStep(() => store().setRailStyle(PROW, 'cable'))
+      expect(params(PROW).ext).toEqual({ parts: { rail: { style: 'cable' } } })
+      history().clear()
+      store().setRailStyle(PROW, 'cable')
+      expect(history().pastStates).toHaveLength(0)
+    })
+  })
+
+  describe('locks', () => {
+    const everyAction = () => {
+      store().updateWing(PROW, 1, { dx: 3 })
+      expect(store().addWing(PROW, { kind: 'deck', w: 4, d: 4 })).toBeNull()
+      store().removeWing(PROW, 1)
+      store().setRail(PROW, 3, 1, 'off')
+      store().setRail(PROW, 3, 'all', 'on')
+      store().setRailStyle(PROW, 'glass')
+    }
+
+    test('a locked building refuses every part action, with the locked toast', () => {
+      store().setLocked(PROW, true)
+      history().clear()
+      const before = store().plan
+      everyAction()
+      expect(store().plan).toBe(before)
+      expect(history().pastStates).toHaveLength(0)
+      expect(store().toast?.text).toBe('Gathering prow is locked')
+    })
+
+    test('so does a locked buildings layer', () => {
+      store().setLayer('buildings', { locked: true })
+      const before = store().plan
+      everyAction()
+      expect(store().plan).toBe(before)
+      expect(store().toast?.text).toMatch(/locked/)
+    })
+
+    test('and so does a read-only tab', () => {
+      store().setReadOnly('other-tab')
+      const before = store().plan
+      everyAction()
+      expect(store().plan).toBe(before)
+      expect(store().toast?.text).toMatch(/another tab/)
+      store().setReadOnly(null)
+    })
+  })
+
+  describe('refusals', () => {
+    test(`a cabin takes at most ${MAX_WINGS} wings`, () => {
+      for (let i = masses(PROW).length - 1; i < MAX_WINGS; i++) store().addWing(PROW, { kind: 'deck', w: 4, d: 4, dx: i })
+      expect(masses(PROW)).toHaveLength(MAX_WINGS + 1)
+      const before = store().plan
+      expect(store().addWing(PROW, { kind: 'deck', w: 4, d: 4 })).toBeNull()
+      expect(store().plan).toBe(before)
+      expect(store().toast?.text).toBe(MAX_PARTS_TEXT)
+    })
+
+    test('the main walls cannot be removed', () => {
+      const before = store().plan
+      store().removeWing(PROW, 0)
+      expect(store().plan).toBe(before)
+      expect(store().toast?.text).toBe(MAIN_STAYS_TEXT)
+    })
+
+    test('a mass that is not there is a programming error', () => {
+      expect(() => store().updateWing(PROW, 9, { dx: 1 })).toThrow(/no mass 9/)
+      expect(() => store().setRail(PROW, 0, 0, 'on')).toThrow(/main walls/)
+    })
+  })
+
+  describe('the first per-edge write keeps what is drawn', () => {
+    test('with the scene rule installed only the clicked edge changes', () => {
+      // the wedge's deck under 'sides': legacy draws 0 and 2; say per-edge auto would draw only 0
+      const draws = [
+        { legacy: true, auto: true, free: true },
+        { legacy: false, auto: false, free: true },
+        { legacy: true, auto: false, free: true },
+        { legacy: false, auto: false, free: false },
+      ]
+      let asked: { id: string; mass: number } | null = null
+      setRailDrawResolver((q) => {
+        asked = { id: q.id, mass: q.mass }
+        return draws
+      })
+      store().setRail(WEDGE, 3, 1, 'on')
+      expect(asked).toEqual({ id: WEDGE, mass: 3 })
+      expect(wingAt(params(WEDGE), 3)).toMatchObject({ rails: { 1: true, 2: true } })
+      expect(wingAt(params(WEDGE), 3).rail).toBeUndefined()
+      // "all on" skips the edge another part covers
+      store().setRail(WEDGE, 3, 'all', 'on')
+      expect(wingAt(params(WEDGE), 3).rails).toEqual({ 0: true, 1: true, 2: true })
+    })
+
+    test('without it the old flag is frozen, as the old planner does', () => {
+      store().setRail(WEDGE, 3, 0, 'auto')
+      expect(wingAt(params(WEDGE), 3).rails).toEqual({ 2: true, 1: false, 3: false })
+    })
+  })
+
+  test('a standalone deck keeps its rails on its own params, as mass 0', () => {
+    const deck: PlanObject = {
+      id: 'D-1',
+      type: 'deck',
+      name: 'Ring deck',
+      position: { x: 0, n: 0 },
+      rotation: 0,
+      params: { w: 12, d: 12, h: 3, rail: true },
+      locked: false,
+      hidden: false,
+      labelVisible: true,
+    }
+    const plan = store().plan
+    store().replacePlan({ ...plan, objects: { ...plan.objects, [deck.id]: deck }, order: [...plan.order, deck.id] })
+    history().clear()
+    oneStep(() => store().setRail(deck.id, 0, 2, 'off'))
+    expect(params(deck.id)).toEqual({ w: 12, d: 12, h: 3, rails: { 0: true, 1: true, 2: false, 3: true } })
+    expect(() => store().setRail(deck.id, 1, 0, 'on')).toThrow()
+  })
+
+  test('removing a wing shifts exterior paint keyed by mass index in the same step', () => {
+    store().setObjectParams(PROW, { ext: { masses: { '1': { wall: 'a' }, '2': { rail: { style: 'steel' } }, '4': { wall: 'd' } } } })
+    history().clear()
+    store().removeWing(PROW, 2)
+    expect(params(PROW).ext).toEqual({ masses: { '1': { wall: 'a' }, '3': { wall: 'd' } } })
+    expect(history().pastStates).toHaveLength(1)
+  })
+})
+
+describe('the picked part', () => {
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    store().lockAll(false)
+    store().select([])
+    history().clear()
+  })
+
+  test('picking a part selects its building and is no undo step; a bad pick is ignored', () => {
+    store().pickPart({ objectId: PROW, mass: 2 })
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 2 })
+    expect(store().selection).toEqual([PROW])
+    expect(history().pastStates).toHaveLength(0)
+    store().pickPart({ objectId: PROW, mass: 9 })
+    store().pickPart({ objectId: 'C-5', mass: 0 }) // a pad, not a building
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 2 })
+    store().pickPart(null)
+    expect(store().pickedPart).toBeNull()
+    expect(store().selection).toEqual([PROW])
+  })
+
+  test('picking is allowed on a locked building', () => {
+    store().setLocked(PROW, true)
+    store().pickPart({ objectId: PROW, mass: 0 })
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 0 })
+  })
+
+  test.each([
+    ['selecting something else', () => store().select([WEDGE])],
+    ['selecting nothing', () => store().select([])],
+    ['shift-selecting', () => store().toggleSelect(WEDGE)],
+    ['loading a scheme', () => store().loadScheme('C2')],
+    ['replacing the plan', () => store().replacePlan(store().plan)],
+    ['opening a saved plan', () => store().hydrate({ plan: store().plan })],
+    ['deleting its building', () => store().deleteObjects([PROW])],
+    ['removing a wing of its building', () => store().removeWing(PROW, 4)],
+  ])('%s drops it', (_name, act) => {
+    store().pickPart({ objectId: PROW, mass: 3 })
+    act()
+    expect(store().pickedPart).toBeNull()
+  })
+
+  test('selecting its own building again keeps it, and so do edits elsewhere', () => {
+    store().pickPart({ objectId: PROW, mass: 3 })
+    store().select([PROW])
+    store().removeWing(WEDGE, 1)
+    store().updateWing(PROW, 3, { dx: 1 })
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 3 })
+  })
+
+  test('removing a wing also drops the opening focus on that building', () => {
+    store().setOpeningFocus({ objectId: PROW, mass: 0, cutId: 1 })
+    store().removeWing(PROW, 1)
+    expect(store().openingFocus).toBeNull()
+  })
+
+  test('undo that takes the picked mass away drops the part', () => {
+    const mi = store().addWing(PROW, { kind: 'deck', w: 6, d: 6, dz: 30 })!
+    store().pickPart({ objectId: PROW, mass: mi })
+    history().undo()
+    expect(store().pickedPart).toBeNull()
+    expect(pickedPartOf(store())).toBeNull()
+    history().redo()
+    store().pickPart({ objectId: PROW, mass: 1 })
+    history().undo() // the mass is still there, so the part stays
+    expect(pickedPartOf(store())).toEqual({ objectId: PROW, mass: 1 })
+  })
+})

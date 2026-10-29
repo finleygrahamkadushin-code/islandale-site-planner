@@ -8,6 +8,8 @@ import { planFromScheme } from './fromLegacy'
 import { editCuts, massWalls, nextCutId, refitAll, withCutIds, type EditResult } from '../buildings/openingEdits'
 import type { CutData, FitNote } from '../buildings/openingLayout'
 import type { ViewId } from '../scene/views'
+import { normalizeDeg } from '../site/units'
+import { partActions, partExists, type RailState, type RailStyle } from './partActions'
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_LAYERS,
@@ -36,6 +38,12 @@ export interface OpeningFocus {
   readonly cutId: number
 }
 
+/** One part of a building picked for editing: mass 0 is the main walls, mass n the n-th wing. */
+export interface PickedPart {
+  readonly objectId: ObjectId
+  readonly mass: number
+}
+
 export interface Toast {
   readonly id: number
   readonly text: string
@@ -59,6 +67,8 @@ export interface PlanState {
   readonly readOnly: ReadOnlyReason
   /** The opening picked in the Openings panel, outlined in 3D. */
   readonly openingFocus: OpeningFocus | null
+  /** The building part picked for editing; read it through pickedPartOf, which checks it still exists. */
+  readonly pickedPart: PickedPart | null
   readonly toast: Toast | null
   /** The last saved view asked for; `n` makes a repeat request fly again. */
   readonly viewRequest: { readonly id: ViewId; readonly n: number } | null
@@ -89,6 +99,16 @@ export interface PlanState {
   readonly alignHeads: (id: ObjectId, massIndex: number, cutId: number) => void
   /** Fit every opening on a cabin by the rules (for saved schemes that break them). */
   readonly fitAllOpenings: (id: ObjectId) => void
+  // parts: mass n (n >= 1) is the n-th wing; each is one undo step, refused when locked
+  readonly updateWing: (id: ObjectId, massIndex: number, patch: Record<string, unknown>) => void
+  /** Add a wing at the end; returns its mass index, or null when refused (locked, or the cabin is full). */
+  readonly addWing: (id: ObjectId, wing: Record<string, unknown>) => number | null
+  /** Remove a wing; later wings (and their exterior paint) move down one mass index. */
+  readonly removeWing: (id: ObjectId, massIndex: number) => void
+  /** One edge's rail, or every edge's ('all'). A standalone deck is mass 0 and keeps its rails on its own params. */
+  readonly setRail: (id: ObjectId, massIndex: number, edge: number | 'all', state: RailState) => void
+  /** The building's rail style (wood, steel, cable, glass, none). */
+  readonly setRailStyle: (id: ObjectId, style: RailStyle) => void
 
   // --- view state: not undo steps -------------------------------------
   readonly select: (ids: readonly ObjectId[]) => void
@@ -106,6 +126,8 @@ export interface PlanState {
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
   readonly setOpeningFocus: (focus: OpeningFocus | null) => void
+  /** Pick a part (its building becomes the selection), or null to go back to the whole building. */
+  readonly pickPart: (part: PickedPart | null) => void
   readonly showToast: (text: string) => void
   readonly hydrate: (saved: {
     plan: Plan
@@ -134,7 +156,6 @@ let toastSeq = 0
 export const usePlanStore = create<PlanState>()(
   temporal(
     (set, get) => {
-      /** Apply an edit to one object unless it is locked; a locked object shows a toast instead. */
       /** False, with a toast, when this tab may not change the plan. */
       const writable = (): boolean => {
         const s = get()
@@ -142,15 +163,21 @@ export const usePlanStore = create<PlanState>()(
         s.showToast(READ_ONLY_TEXT[s.readOnly])
         return false
       }
-      const edit = (id: ObjectId, patch: (o: PlanObject) => PlanObject): void => {
-        if (!writable()) return
+      /** The object when it may be changed; a read-only tab or a locked object shows a toast and gives null. */
+      const editable = (id: ObjectId): PlanObject | null => {
+        if (!writable()) return null
         const s = get()
         const o = s.plan.objects[id]
         if (!o) throw new Error(`unknown object "${id}"`)
-        if (isObjectLocked(s, id)) {
-          s.showToast(`${o.name} is locked`)
-          return
-        }
+        if (!isObjectLocked(s, id)) return o
+        s.showToast(`${o.name} is locked`)
+        return null
+      }
+      /** Apply an edit to one object unless it is locked; a locked object shows a toast instead. */
+      const edit = (id: ObjectId, patch: (o: PlanObject) => PlanObject): void => {
+        const o = editable(id)
+        if (!o) return
+        const s = get()
         set({ plan: { ...s.plan, objects: { ...s.plan.objects, [id]: patch(o) } } })
       }
 
@@ -194,14 +221,15 @@ export const usePlanStore = create<PlanState>()(
         saveStatus: 'loading',
         readOnly: null,
         openingFocus: null,
+        pickedPart: null,
         toast: null,
         viewRequest: null,
 
         loadScheme: (schemeId) => {
-          if (writable()) set({ plan: planFromScheme(schemeById(get().schemes, schemeId)), selection: [] })
+          if (writable()) set({ plan: planFromScheme(schemeById(get().schemes, schemeId)), selection: [], pickedPart: null })
         },
         replacePlan: (plan) => {
-          if (writable()) set({ plan, selection: [] })
+          if (writable()) set({ plan, selection: [], pickedPart: null })
         },
         moveObject: (id, position) => edit(id, (o) => ({ ...o, position: { ...position } })),
         rotateObject: (id, rotation) => edit(id, (o) => ({ ...o, rotation: normalizeDeg(rotation) })),
@@ -241,6 +269,7 @@ export const usePlanStore = create<PlanState>()(
           set({
             plan: { ...s.plan, objects, order: s.plan.order.filter((id) => !gone.has(id)) },
             selection: s.selection.filter((id) => !gone.has(id)),
+            pickedPart: s.pickedPart && gone.has(s.pickedPart.objectId) ? null : s.pickedPart,
           })
         },
         // Locking is allowed on a locked object (it is how you unlock), so it bypasses `edit`.
@@ -285,11 +314,18 @@ export const usePlanStore = create<PlanState>()(
             })
           }),
         fitAllOpenings: (id) => editRefit(id, (p) => p),
+        ...partActions({ get, set, editable, edit, editRefit }),
 
-        select: (ids) => set({ selection: [...ids] }),
+        // the picked part survives only a selection of exactly its own building
+        select: (ids) =>
+          set((s) => ({
+            selection: [...ids],
+            pickedPart: s.pickedPart && ids.length === 1 && ids[0] === s.pickedPart.objectId ? s.pickedPart : null,
+          })),
         toggleSelect: (id) =>
           set((s) => ({
             selection: s.selection.includes(id) ? s.selection.filter((x) => x !== id) : [...s.selection, id],
+            pickedPart: null,
           })),
         setHovered: (hovered) => set({ hovered }),
         setSiteLocked: (siteLocked) => set({ siteLocked }),
@@ -318,6 +354,7 @@ export const usePlanStore = create<PlanState>()(
             displayStyle: displayStyle ?? get().displayStyle,
             contours: contours === undefined ? get().contours : contours,
             selection: [],
+            pickedPart: null,
           }),
       }
     },
@@ -330,6 +367,14 @@ export const usePlanStore = create<PlanState>()(
 )
 
 export const useTemporalStore = usePlanStore.temporal
+
+// Undo, redo or an outside edit can take away the picked part's mass; drop it then (not an undo step).
+usePlanStore.subscribe((s, prev) => {
+  if (s.plan !== prev.plan && s.pickedPart && !partExists(s.plan, s.pickedPart)) usePlanStore.setState({ pickedPart: null })
+})
+
+export { normalizeDeg }
+export { pickedPartOf } from './partActions'
 
 /** Locked by its own padlock or by its layer's padlock. */
 export function isObjectLocked(s: Pick<PlanState, 'plan' | 'layers'>, id: ObjectId): boolean {
@@ -376,9 +421,4 @@ export function clampEnvironment(e: Environment): Environment {
     hour: clamp(e.hour, HOUR_RANGE.min, HOUR_RANGE.max),
     tideFt: clamp(e.tideFt, TIDE_RANGE_FT.min, TIDE_RANGE_FT.max),
   }
-}
-
-export function normalizeDeg(deg: number): number {
-  const d = ((deg % 360) + 360) % 360
-  return d > 180 ? d - 360 : d
 }
