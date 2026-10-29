@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { useThree } from '@react-three/fiber'
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from 'three'
 import { siteToLocal, type LocalPoint } from '../buildings/footprint'
 import type { PlanObject } from '../store/types'
@@ -28,8 +27,15 @@ export function pointerLocal(clientX: number, clientY: number, camera: Camera, d
   return siteToLocal(o.position, o.rotation, [hit.x, -hit.z])
 }
 
+/** The canvas's camera and element. A handle lives in a drei Html root, outside the Canvas, so it cannot call useThree itself. */
+export interface HandleView {
+  readonly camera: Camera
+  readonly dom: HTMLElement
+}
+
 interface Props {
   readonly o: PlanObject
+  readonly view: HandleView
   /** Elevation of the horizontal plane the pointer is read on, metres. */
   readonly y: number
   /** Start a drag from the pointer's first point (building frame), or null to refuse it. */
@@ -55,9 +61,8 @@ interface Live {
  * the pointer, waits for 3 px of movement, feeds every move to the
  * session, commits once on release, and Esc drops the drag without a step.
  */
-export function DragHandle({ o, y, begin, className, testId, title, cursor, children }: Props) {
-  const camera = useThree((s) => s.camera)
-  const dom = useThree((s) => s.gl.domElement)
+export function DragHandle({ o, view, y, begin, className, testId, title, cursor, children }: Props) {
+  const { camera, dom } = view
   const live = useRef<Live | null>(null)
   const onKey = useMemo(
     () => (e: KeyboardEvent) => {

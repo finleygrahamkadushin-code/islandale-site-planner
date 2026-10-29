@@ -7,7 +7,7 @@ import { cursorFor, edgeDeltaFt, edgeMid, edgeNormal, gripCentre, hostDirection,
 import { RECT_EDGES, withMainEdgeResized, withWing } from '../buildings/wingEdits'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
-import { DragHandle, type DragSession } from './DragHandle'
+import { DragHandle, type DragSession, type HandleView } from './DragHandle'
 import type { DragState } from './editing'
 import { toScene } from './frame'
 import { inGroup, type PartFrame } from './partFrame'
@@ -32,6 +32,8 @@ interface Props {
 export function PartHandles({ o, mi, frame, setDrag }: Props) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
+  const dom = useThree((s) => s.gl.domElement)
+  const view: HandleView = { camera, dom }
   const updateWing = usePlanStore((s) => s.updateWing)
   const resizeMainEdge = usePlanStore((s) => s.resizeMainEdge)
   const m = frame.masses[mi]
@@ -100,6 +102,7 @@ export function PartHandles({ o, mi, frame, setDrag }: Props) {
           <ScreenChip key={`e${i}`} position={at(mid)} layer={LAYER.handle}>
             <DragHandle
               o={o}
+              view={view}
               y={y}
               className="ph-edge"
               testId={`part-handle-${i}`}
@@ -114,6 +117,7 @@ export function PartHandles({ o, mi, frame, setDrag }: Props) {
         <ScreenChip position={at([0, 0])} layer={LAYER.handle}>
           <DragHandle
             o={o}
+            view={view}
             y={y}
             className="ph-grip"
             testId="part-grip"
@@ -133,7 +137,7 @@ export function PartHandles({ o, mi, frame, setDrag }: Props) {
       )}
       {mi > 0 && (
         <ScreenChip position={at([0, m.d / 2 + KNOB_OUT_FT])} layer={LAYER.handle}>
-          <DragHandle o={o} y={y} className="ph-knob" testId="part-knob" title="Drag to turn this part (5° steps) · Shift: free" begin={() => wingSession((p, free) => ({ rot: knobAngle(m, p, !free) }))}>
+          <DragHandle o={o} view={view} y={y} className="ph-knob" testId="part-knob" title="Drag to turn this part (5° steps) · Shift: free" begin={() => wingSession((p, free) => ({ rot: knobAngle(m, p, !free) }))}>
             ↻
           </DragHandle>
         </ScreenChip>
