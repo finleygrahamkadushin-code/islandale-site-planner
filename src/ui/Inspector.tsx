@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { num } from '../buildings/footprint'
 import { ftToM, mToFt } from '../site/units'
-import { isObjectLocked, usePlanStore } from '../store/planStore'
+import { isObjectLocked, pickedPartOf, usePlanStore } from '../store/planStore'
 import { LAYER_NAMES, layerOf } from '../store/types'
+import { NumField, TextField } from './fields'
 import { OpeningsPanel } from './OpeningsPanel'
+import { PartInspector } from './PartInspector'
+import { RailingsPanel } from './RailingsPanel'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -19,6 +21,8 @@ function SingleInspector({ id }: { readonly id: string }) {
   const o = usePlanStore((s) => s.plan.objects[id])
   const locked = usePlanStore((s) => isObjectLocked(s, id))
   const layerLocked = usePlanStore((s) => (o ? s.layers[layerOf(o)].locked : false))
+  const part = usePlanStore(pickedPartOf)
+  const picked = part?.objectId === id ? part.mass : null
   const a = usePlanStore(
     useShallow((s) => ({
       rename: s.renameObject, move: s.moveObject, rotate: s.rotateObject, resize: s.resizeObject,
@@ -40,18 +44,23 @@ function SingleInspector({ id }: { readonly id: string }) {
           {TYPE_NAMES[o.type] ?? o.type} · {LAYER_NAMES[layerOf(o)]}
         </div>
       </header>
-      <div className="grid2">
-        <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
-        <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
-        <NumField label="Rotation" unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
-        <NumField label="Height" unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
-        {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
-        {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
-      </div>
-      <label className="row">
-        <span>Colour</span>
-        <input type="color" value={color} disabled={dis} onChange={(e) => a.params(id, { color: e.target.value })} />
-      </label>
+      {picked !== null && <PartInspector id={id} mass={picked} />}
+      {picked === null && (
+        <div className="grid2">
+          <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
+          <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
+          <NumField label="Rotation" unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
+          <NumField label="Height" unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
+          {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
+          {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
+        </div>
+      )}
+      {picked === null && (
+        <label className="row">
+          <span>Colour</span>
+          <input type="color" value={color} disabled={dis} onChange={(e) => a.params(id, { color: e.target.value })} />
+        </label>
+      )}
       <label className="row">
         <input type="checkbox" checked={o.locked} onChange={(e) => a.setLocked(id, e.target.checked)} />
         <span>Locked{layerLocked ? ' (layer is locked too)' : ''}</span>
@@ -68,6 +77,7 @@ function SingleInspector({ id }: { readonly id: string }) {
       </div>
       {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
       {o.type === 'house' && <OpeningsPanel id={id} />}
+      {(o.type === 'house' || o.type === 'deck') && <RailingsPanel id={id} />}
     </section>
   )
 }
@@ -94,41 +104,5 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
         </button>
       </div>
     </section>
-  )
-}
-
-/** Text input that commits on blur or Enter, so typing is not an undo step per keystroke. */
-function TextField({ label, value, disabled, onCommit }: { label: string; value: string; disabled?: boolean; onCommit: (v: string) => void }) {
-  const [draft, setDraft] = useState(value)
-  useEffect(() => setDraft(value), [value])
-  const commit = () => {
-    const v = draft.trim()
-    if (v && v !== value) onCommit(v)
-    else setDraft(value)
-  }
-  return (
-    <label className="field">
-      <span className="muted small">{label}</span>
-      <input value={draft} disabled={disabled} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-    </label>
-  )
-}
-
-function NumField({ label, unit, value, disabled, min, onCommit }: { label: string; unit: string; value: number; disabled?: boolean; min?: number; onCommit: (v: number) => void }) {
-  const shown = Number.isInteger(value) ? String(value) : value.toFixed(1)
-  const [draft, setDraft] = useState(shown)
-  useEffect(() => setDraft(shown), [shown])
-  const commit = () => {
-    const v = Number(draft)
-    if (Number.isFinite(v) && v !== value && (min === undefined || v >= min)) onCommit(v)
-    else setDraft(shown)
-  }
-  return (
-    <label className="field">
-      <span className="muted small">
-        {label} <em>{unit}</em>
-      </span>
-      <input type="number" step="0.5" value={draft} disabled={disabled} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-    </label>
   )
 }

@@ -12,6 +12,7 @@ import { EditGizmos } from './EditGizmos'
 import { SceneEnvironment } from './SceneEnvironment'
 import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
+import { PartHud } from '../ui/PartHud'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -24,6 +25,7 @@ export function Scene() {
   return (
     <div className="viewport">
     <LabelLayer />
+    <PartHud drag={drag} />
     <Canvas
       shadows="percentage"
       camera={{ position: [target[0] + 32, target[1] + 26, target[2] + 40], fov: 45, near: 0.5, far: 8000 }}

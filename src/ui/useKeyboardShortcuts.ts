@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
+import { partKey } from './partKeys'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
@@ -14,7 +15,7 @@ function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
 }
 
-/** Undo/redo, delete, escape and arrow-key nudges for the selection. */
+/** Undo/redo, delete, escape and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -30,6 +31,10 @@ export function useKeyboardShortcuts(): void {
       if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault()
         usePlanStore.temporal.getState().redo()
+        return
+      }
+      if (!mod && partKey(e, usePlanStore.getState)) {
+        e.preventDefault()
         return
       }
       if (e.key === 'Escape') {
