@@ -123,9 +123,9 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 /* Openings panel (Phase 3C) */
-.openings { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-.openings > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
-.openings[open] > summary { margin-bottom: 6px; }
+.openings, .railings { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.openings > summary, .railings > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.openings[open] > summary, .railings[open] > summary { margin-bottom: 6px; }
 .openings .row.between { justify-content: space-between; }
 .opening-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .opening { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }

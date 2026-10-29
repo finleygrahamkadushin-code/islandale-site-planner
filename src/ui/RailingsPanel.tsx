@@ -31,7 +31,7 @@ export function RailingsPanel({ id }: { readonly id: string }) {
   const railable = deck ? [] : masses.flatMap((m, i) => (i > 0 && isRailable(m) ? [i] : []))
   if (!deck && !railable.length) return null
   return (
-    <details className="openings railings" open>
+    <details className="railings" open>
       <summary>
         Railings <span className="muted small">{mi === null ? '' : deck ? o.name : railTarget(masses[mi], mi)}</span>
       </summary>
