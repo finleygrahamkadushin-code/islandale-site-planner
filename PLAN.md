@@ -196,7 +196,9 @@ Six phases (plus 3B and 3C, added after Phase 3), each ending in something you c
 
 Don't start a phase until the one before passes its done-when check; that keeps the app runnable the whole way through.
 
-Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE3B.md](PLAN-PHASE3B.md) (added after Phase 3: draw the full design before building tools on it), [PLAN-PHASE3C.md](PLAN-PHASE3C.md) (added at Finley's request: never lose work, openings that fit, one home for the plan), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI).
+**Order change (Oct 29 2026, Finley's OK):** Phase 5 parts 5A–5D come before Phase 4, because the design itself is what the new app is missing; Phase 4 follows with 5E's tools folded into its Track 2, then 5F. See [PLAN-PHASE5.md](PLAN-PHASE5.md).
+
+Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE3B.md](PLAN-PHASE3B.md) (added after Phase 3: draw the full design before building tools on it), [PLAN-PHASE3C.md](PLAN-PHASE3C.md) (added at Finley's request: never lose work, openings that fit, one home for the plan), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI), [PLAN-PHASE5.md](PLAN-PHASE5.md) (Phase 5 split into six parts from an audit of every feature the old planner has, with the full gap list).
 
 ## Later: making it bigger
 
