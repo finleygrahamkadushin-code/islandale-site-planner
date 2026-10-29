@@ -192,7 +192,7 @@ export function attachSpec(masses: readonly Mass[], mi: number, i: number, kind:
 /** The new wing's outline pulled in 0.15 ft, so touching its host is not an overlap (legacy overlapsAny). */
 const INSET_FT = 0.15
 
-/** Whether a wing (raw) overlaps any mass: a corner of its inset outline inside one, or an edge crossing one. */
+/** Whether a wing (raw) overlaps any mass: a corner of either outline inside the other, or an edge crossing one. */
 export function overlapsAny(masses: readonly Mass[], wing: Params): boolean {
   const P = massBuildingPoly(wingMass(wing))
   const cx = P.reduce((s, p) => s + p[0], 0) / P.length
@@ -205,6 +205,7 @@ export function overlapsAny(masses: readonly Mass[], wing: Params): boolean {
     const Q = massBuildingPoly(m)
     if (Q.length < 3) return false
     if (inset.some(([x, z]) => pointInPolygon(Q, x, z))) return true
+    if (Q.some(([x, z]) => pointInPolygon(inset, x, z))) return true
     return inset.some((a, k) => Q.some((c, j) => crosses(a, inset[(k + 1) % inset.length], c, Q[(j + 1) % Q.length])))
   })
 }

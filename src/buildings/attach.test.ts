@@ -116,6 +116,11 @@ describe('overlapsAny', () => {
     expect(overlapsAny(masses, { w: 12, d: 10, dx: 15, rot: 90 })).toBe(false)
     expect(overlapsAny(masses, { w: 12, d: 10, dx: 14, rot: 90 })).toBe(true)
   })
+
+  test('a small part lying wholly inside the new wing overlaps it (legacy polysOverlap)', () => {
+    const masses = buildingMasses(box({ wings: [{ kind: 'deck', w: 2, d: 2, dx: 15, dz: 0, rot: 0 }] }))
+    expect(overlapsAny(masses, { w: 12, d: 10, dx: 15, rot: 90 })).toBe(true)
+  })
 })
 
 describe('doorCut', () => {
