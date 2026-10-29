@@ -5,6 +5,7 @@ import {
   clearanceHits,
   junctionOpenings,
   mergeIntervals,
+  doorAtStairTop,
   postsClearOfDoors,
   wallAbutOpenings,
   type ClearItem,
@@ -113,9 +114,11 @@ export interface ObjectRails {
   readonly rails: readonly (EdgeRail[] | null)[]
   /** For mass mi: whether a mass-local point (feet) is in front of a door of another mass (legacy porchPostKeep). */
   readonly inDoorway: (mi: number) => (p: LocalPoint) => boolean
+  /** For a stair or ramp wing mi: a door of any building at its top, so its handrails start back from it (legacy stairClearTopFor). */
+  readonly clearTop: (mi: number) => boolean
 }
 
-const NO_RAILS: ObjectRails = { rails: [], inDoorway: () => () => false }
+const NO_RAILS: ObjectRails = { rails: [], inDoorway: () => () => false, clearTop: () => false }
 
 /** The rails of a building or standalone deck, drawn where `o` is (not where the world has it). */
 export function objectRailSite(world: RailWorld, o: PlanObject): ObjectRails {
@@ -136,7 +139,12 @@ export function objectRailSite(world: RailWorld, o: PlanObject): ObjectRails {
     const z = surfaceZ(me, m)
     return (p: LocalPoint) => !postsClearOfDoors([massSite(o, m, p)], spots, z)[0]
   }
-  return { rails, inDoorway }
+  // the old rail-clear answer always wins over a wing's own clearTop flag
+  const clearTop = (mi: number) => {
+    const m = me.masses[mi]
+    return !me.standalone && !!m && isAccess(m) && doorAtStairTop(stairTopOf(o, m), surfaceZ(me, m), doors)
+  }
+  return { rails, inDoorway, clearTop }
 }
 
 /** Per mass, every edge's rail (null for masses that never carry a guard), for a building or standalone deck. */

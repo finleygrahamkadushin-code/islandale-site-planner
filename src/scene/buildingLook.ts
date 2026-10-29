@@ -39,6 +39,8 @@ export interface MassSite {
   readonly railStyle?: RailStyle
   /** Whether a mass-local point (feet) stands in front of a door of another mass, so a porch post there is left out. */
   readonly inDoorway?: (p: LocalPoint) => boolean
+  /** A stair or ramp wing with a door at its top: its handrails start back from it (railSite clearTop). */
+  readonly clearTop?: boolean
 }
 
 export function buildingLook(o: PlanObject, style: DisplayStyle, glow: number): BuildingLook {

@@ -1,5 +1,6 @@
 import type { LocalPoint } from './footprint'
 import type { Mass } from './masses'
+import type { RailStyle } from './railEdits'
 import type { Interval } from './railOpenings'
 
 const FT = 0.3048
@@ -56,13 +57,14 @@ export function guardRule(m: Pick<Mass, 'kind' | 'rail' | 'lvl' | 'steps'>, edge
 }
 
 /**
- * A stair wing gets handrails on both sides unless its rail is off (legacy
- * stairWingSpec: rail = m.rail !== false). The old planner counts its slab
- * in the drop, so even a stair landing level with the ground has a step
- * and its rails there.
+ * Whether a stair or ramp wing has handrails (legacy stair-geom): its rail
+ * is not off and the style is not 'none', and a stair also needs more than
+ * one riser. With the 0.3 m least drop every stair wing has at least two,
+ * so even one landing level with the ground keeps its rails.
  */
-export function stairHasHandrails(m: Pick<Mass, 'rail'>): boolean {
-  return m.rail !== false
+export function stairHasHandrails(m: Pick<Mass, 'kind' | 'rail'>, n: number, style: RailStyle = 'wood'): boolean {
+  if (m.rail === false || style === 'none') return false
+  return m.kind === 'ramp' || n > 1
 }
 
 /**

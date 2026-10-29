@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { buildingMasses } from '../buildings/masses'
 import type { EdgeRail } from '../buildings/railRules'
-import { stairHasHandrails } from '../buildings/rails'
 import { loadIslandaleTerrain } from '../site/islandale'
 import { loadSchemes, schemeById } from '../site/schemes'
 import { planFromScheme } from '../store/fromLegacy'
@@ -9,12 +8,13 @@ import { usePlanStore } from '../store/planStore'
 import { setRailDrawResolver } from '../store/railResolver'
 import type { Plan, PlanObject } from '../store/types'
 import { objectRails, planRailWorld, resolveRailDraws } from './railSite'
+import { stairInfo } from './stairSite'
 
 const terrain = loadIslandaleTerrain()
 const objectsOf = (plan: Plan): PlanObject[] => plan.order.map((id) => plan.objects[id])
 const schemePlan = (id: string) => planFromScheme(schemeById(loadSchemes(), id))
 
-/** Per building, the masses and edges the scene draws a rail on: guards that keep a run, and stair handrails (sides 1 and 3). */
+/** Per building, the masses and edges the scene draws a rail on: guards that keep a run, and stair and ramp handrails (sides 1 and 3). */
 function railed(plan: Plan): Record<string, Record<number, number[]>> {
   const world = planRailWorld(objectsOf(plan), terrain)
   const out: Record<string, Record<number, number[]>> = {}
@@ -22,7 +22,9 @@ function railed(plan: Plan): Record<string, Record<number, number[]>> {
     if (o.type !== 'house') continue
     const rails = objectRails(world, o)
     buildingMasses(o.params).forEach((m, mi) => {
-      const edges = m.kind === 'stair' ? (stairHasHandrails(m) ? [1, 3] : []) : (rails[mi] ?? []).filter((e) => e.runs.length).map((e) => e.i)
+      const access = m.kind === 'stair' || m.kind === 'ramp'
+      const handrails = (stairInfo(world, o, mi)?.rails ?? []).filter((r) => !r.skipped).map((r) => (r.side > 0 ? 1 : 3))
+      const edges = access ? handrails.sort((a, b) => a - b) : (rails[mi] ?? []).filter((e) => e.runs.length).map((e) => e.i)
       if (edges.length) (out[o.id] ??= {})[mi] = edges
     })
   }

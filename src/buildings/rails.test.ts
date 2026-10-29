@@ -77,10 +77,18 @@ describe('guardRule (legacy wing rails)', () => {
 })
 
 describe('stairHasHandrails', () => {
-  const stair = (rail?: boolean): Mass => buildingMasses({ w: 20, d: 20, wings: [{ kind: 'stair', open: true, w: 4, d: 4, rail }] })[1]
-  test('every stair gets handrails unless its rail is off, as in the old planner', () => {
-    expect(stairHasHandrails(stair())).toBe(true)
-    expect(stairHasHandrails(stair(false))).toBe(false)
+  const access = (kind: 'stair' | 'ramp', rail?: boolean): Mass => buildingMasses({ w: 20, d: 20, wings: [{ kind, open: true, w: 4, d: 4, rail }] })[1]
+  test('a stair has handrails with more than one riser, unless its rail is off or the style is none', () => {
+    expect(stairHasHandrails(access('stair'), 3)).toBe(true)
+    expect(stairHasHandrails(access('stair'), 1)).toBe(false)
+    expect(stairHasHandrails(access('stair', false), 3)).toBe(false)
+    expect(stairHasHandrails(access('stair'), 3, 'none')).toBe(false)
+    expect(stairHasHandrails(access('stair'), 3, 'cable')).toBe(true)
+  })
+  test('a ramp always has handrails unless its rail is off or the style is none', () => {
+    expect(stairHasHandrails(access('ramp'), 0)).toBe(true)
+    expect(stairHasHandrails(access('ramp', false), 0)).toBe(false)
+    expect(stairHasHandrails(access('ramp'), 0, 'none')).toBe(false)
   })
 })
 

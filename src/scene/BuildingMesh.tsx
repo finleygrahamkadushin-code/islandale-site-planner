@@ -7,12 +7,12 @@ import { railStyleOf } from '../buildings/railEdits'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
+import { AccessMass } from './AccessMass'
 import { buildingLook, type MassSite } from './buildingLook'
 import { toScene } from './frame'
 import { DeckMass, PorchMass } from './OpenMass'
 import { baseElevation } from './placement'
 import { objectRailSite } from './railSite'
-import { StairMass } from './StairMass'
 import { useDisplayStyle } from './useDisplayStyle'
 import { useObjectInteraction } from './useObjectInteraction'
 import { useEarthworks } from './useEarthworks'
@@ -22,7 +22,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 const NO_WELLS: readonly TreeWell[] = []
 
-/** A cabin: its main walls plus every wing (porches, decks, stairs), each set at its offset, turn and level. */
+/** A cabin: its main walls plus every wing (porches, decks, stairs, ramps), each set at its offset, turn and level. */
 export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
   const { ground } = useEarthworks()
@@ -61,6 +61,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
           rails: rails.rails[index] ?? null,
           railStyle: railStyleOf(o.params, index),
           inDoorway: rails.inDoorway(index),
+          clearTop: rails.clearTop(index),
         }),
       ),
     [masses, outlines, closed, ground, base, o.position, o.rotation, o.params, rails],
@@ -87,7 +88,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
           {m.kind === 'wall' && <WallMass m={m} look={look} site={sites[i]} supports={supports} handlers={handlers} highlight={focus?.objectId === o.id && focus.mass === i ? focus.cutId : null} />}
           {m.kind === 'porch' && <PorchMass m={m} look={look} site={sites[i]} handlers={handlers} />}
           {m.kind === 'deck' && <DeckMass m={m} look={look} site={sites[i]} handlers={handlers} wells={wells[i]} />}
-          {m.kind === 'stair' && <StairMass m={m} look={look} site={sites[i]} handlers={handlers} />}
+          {(m.kind === 'stair' || m.kind === 'ramp') && <AccessMass masses={masses} mi={i} look={look} site={sites[i]} handlers={handlers} />}
         </group>
       ))}
     </group>

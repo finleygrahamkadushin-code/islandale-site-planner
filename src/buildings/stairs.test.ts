@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { stairLayout, stairMath } from './stairs'
+import { stairGeomMath, stairMath } from './stairs'
 
 const IN = 0.0254
 
-describe('stairMath (legacy rule: risers of 7 in or less, 11 in treads)', () => {
+describe('stairMath (stair-connect form: risers of 7 in or less, 11 in treads)', () => {
   test('a 3 ft drop gives 6 risers of 6 in and 5 treads', () => {
     const s = stairMath(36 * IN)
     expect(s.risers).toBe(6)
@@ -20,25 +20,24 @@ describe('stairMath (legacy rule: risers of 7 in or less, 11 in treads)', () => 
   })
 })
 
-describe('stairLayout', () => {
-  test('starts at the floor on the -z end and steps down outward to the ground', () => {
-    const s = stairLayout({ widthFt: 5, nominalRunFt: 5, floor: 10, groundAt: () => 10 - 36 * IN })
-    expect(s.steps).toHaveLength(5)
-    expect(s.steps[0].z0).toBeCloseTo(-2.5)
-    expect(s.steps[0].top).toBeCloseTo(10 - 6 * IN)
-    const last = s.steps[s.steps.length - 1]
-    expect(last.z1).toBeCloseTo(-2.5 + 55 / 12)
-    expect(last.top).toBeCloseTo(10 - 30 * IN)
-    expect(s.footZ).toBeCloseTo(-2.5 + 66 / 12)
+describe('stairGeomMath (stair-geom form: the run is fixed, treads share it)', () => {
+  test('a 3 ft drop over a 5 ft run: 6 risers of 6 in and 10 in treads, flagged short', () => {
+    const s = stairGeomMath(36 * IN, 60 * IN)
+    expect(s.n).toBe(6)
+    expect(s.rise / IN).toBeCloseTo(6)
+    expect(s.tread / IN).toBeCloseTo(10)
+    expect(s.ok).toBe(false)
   })
-  test('settles the riser count on the ground at its own foot, on a slope', () => {
-    // ground 18 in below the floor edge, falling 3 in per foot outward
-    const ground = (z: number) => 5 - 18 * IN - Math.max(0, z + 2) * 3 * IN
-    const s = stairLayout({ widthFt: 4, nominalRunFt: 4, floor: 5, groundAt: ground })
-    expect(s.drop).toBeCloseTo(5 - ground(s.footZ), 2)
-    expect(s.math.risers).toBe(stairMath(s.drop).risers)
+  test('the same drop over a 6 ft run meets 7 in / 11 in', () => {
+    const s = stairGeomMath(36 * IN, 72 * IN)
+    expect(s.tread / IN).toBeCloseTo(12)
+    expect(s.ok).toBe(true)
   })
-  test('no drop, no steps', () => {
-    expect(stairLayout({ widthFt: 4, nominalRunFt: 4, floor: 5, groundAt: () => 5.2 }).steps).toEqual([])
+  test('a drop just over a whole number of risers takes one more', () => {
+    expect(stairGeomMath(14 * IN, 2).n).toBe(2)
+    expect(stairGeomMath(14.01 * IN, 2).n).toBe(3)
+  })
+  test('under half an inch needs no riser and the tread is the whole run', () => {
+    expect(stairGeomMath(0.2 * IN, 2)).toEqual({ n: 0, rise: 0, tread: 2, ok: true })
   })
 })
