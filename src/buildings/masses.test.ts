@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
-import { buildingBounds, buildingMasses, buildingToMass, massToBuilding, massBuildingPoly } from './masses'
+import { buildingBounds, buildingMasses, buildingToMass, edgeName, MAX_WINGS, massToBuilding, massBuildingPoly, partName, wingSlots } from './masses'
 
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
@@ -50,5 +50,45 @@ describe('mass frames', () => {
     const main = massBuildingPoly(buildingMasses(prow)[0])
     expect(b.minz).toBeLessThan(Math.min(...main.map((p) => p[1])) - 5)
     expect(b.maxx - b.minx).toBeGreaterThan(28)
+  })
+})
+
+describe('wing slots, names and new fields', () => {
+  test('mass n is the n-th well-formed wing, and both helpers stop at MAX_WINGS', () => {
+    const wings = [null, { w: 4, d: 4 }, 'x', ...Array.from({ length: 14 }, (_, i) => ({ w: 4, d: 4, dx: i }))]
+    const p = { w: 10, d: 10, h: 9, wings }
+    expect(wingSlots(p)).toHaveLength(MAX_WINGS)
+    expect(wingSlots(p).slice(0, 2)).toEqual([1, 3])
+    expect(buildingMasses(p)).toHaveLength(MAX_WINGS + 1)
+    expect(wingSlots({ w: 10 })).toEqual([])
+  })
+
+  test('the gathering prow names its parts as the old planner does', () => {
+    const masses = buildingMasses(prow)
+    expect(masses.map((m, i) => partName(m, i))).toEqual(['Main', 'Porch 1', 'Stair 2', 'Deck 3', 'Porch 4'])
+    expect(partName({ kind: 'porch', name: 'Cave hearth' }, 2)).toBe('Cave hearth')
+    expect(partName({ kind: 'wall', name: 'ignored on the main walls' }, 0)).toBe('Main')
+  })
+
+  test('rect edges are back, right, front, left; any other outline counts edges from 1', () => {
+    const rect = { shape: 'rect' }
+    expect([0, 1, 2, 3].map((i) => edgeName(rect, i))).toEqual(['back', 'right', 'front', 'left'])
+    expect(edgeName({ shape: 'oct' }, 0)).toBe('edge 1')
+    expect(edgeName({ shape: 'hex' }, 5)).toBe('edge 6')
+  })
+
+  test('per-edge rails are read from saved string keys and keys past the last edge are dropped', () => {
+    const [, wing] = buildingMasses({ w: 10, d: 10, wings: [{ kind: 'deck', w: 6, d: 6, rails: { '0': true, 2: false, '7': true, x: true, '1': 'yes' } }] })
+    expect(wing.rails).toEqual({ 0: true, 2: false })
+    const [, plain] = buildingMasses({ w: 10, d: 10, wings: [{ kind: 'deck', w: 6, d: 6, rail: 'sides' }] })
+    expect(plain.rails).toBeUndefined()
+    expect(plain.rail).toBe('sides')
+  })
+
+  test('name, footZ and clearTop pass through from the wing', () => {
+    const [main, wing] = buildingMasses({ w: 10, d: 10, name: 'Hall', wings: [{ kind: 'stair', w: 4, d: 6, name: 'Back steps', footZ: 3.2, clearTop: true }] })
+    expect(main.name).toBeUndefined()
+    expect(wing).toMatchObject({ name: 'Back steps', footZ: 3.2, clearTop: true })
+    expect(buildingMasses({ w: 10, d: 10, wings: [{ w: 4, d: 4, footZ: 'x', clearTop: 1 }] })[1]).toMatchObject({ footZ: undefined, clearTop: undefined })
   })
 })

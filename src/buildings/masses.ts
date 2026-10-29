@@ -46,21 +46,54 @@ export interface Mass {
   readonly slab: boolean
   /** false: never railed; true: always railed; 'sides': a deck railed along its sides, ends open; undefined: the default rule (rails.ts guardRule). */
   readonly rail?: boolean | 'sides'
+  /**
+   * Per-edge rail overrides (legacy rail-edit): true on, false off, a missing
+   * edge auto. Undefined when the wing has no map, so it keeps the whole-wing
+   * rule above. Keys past the outline's last edge are dropped.
+   */
+  readonly rails?: Readonly<Record<number, boolean>>
+  /** The part's own name, if the scheme gives it one ("Cave hearth"). */
+  readonly name?: string
+  /** Stair or ramp foot elevation, metres NAVD88, when it is pinned. */
+  readonly footZ?: number
+  /** Stair handrails start back from a door at the top: true, false, or undefined to decide from the doors. */
+  readonly clearTop?: boolean
 }
 
 const KINDS: readonly MassKind[] = ['wall', 'porch', 'deck', 'stair', 'ramp']
-const MAX_WINGS = 12
+/** A cabin draws at most this many wings; later ones are ignored. */
+export const MAX_WINGS = 12
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/**
+ * Index into params.wings of each wing mass: mass n is wings[wingSlots(p)[n - 1]].
+ * Malformed entries are skipped and the list stops at MAX_WINGS, so every
+ * mass index in the app (scene, openings, parts, rails) means the same wing.
+ */
+export function wingSlots(p: Record<string, unknown>): number[] {
+  const wings = Array.isArray(p.wings) ? p.wings : []
+  return wings.flatMap((w, i) => (isRecord(w) ? [i] : [])).slice(0, MAX_WINGS)
+}
 
 /** The main mass plus each valid wing, from a cabin's legacy params. */
 export function buildingMasses(p: Record<string, unknown>): Mass[] {
   const main = toMass(p, true)
-  const wings = Array.isArray(p.wings) ? p.wings.filter(isRecord).slice(0, MAX_WINGS) : []
+  const wings = wingSlots(p).map((i) => (p.wings as Record<string, unknown>[])[i])
   return [main, ...wings.map((w) => toMass(w, false, main))]
 }
 
+/** One raw wing parsed on its own (for edge counts and names; its height falls back to 9 ft, not the host's). */
+export function wingMass(w: Record<string, unknown>): Mass {
+  return toMass(w, false)
+}
+
 function toMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mass {
+  const m = baseMass(p, isMain, host)
+  return isRecord(p.rails) ? { ...m, rails: railMap(p.rails, massPoly(m).length) } : m
+}
+
+function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mass {
   const kind = isMain ? 'wall' : KINDS.includes(p.kind as MassKind) ? (p.kind as MassKind) : p.open ? 'porch' : 'wall'
   const access = kind === 'stair' || kind === 'ramp'
   return {
@@ -90,7 +123,33 @@ function toMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mass 
     steps: deckSteps(p.steps),
     slab: p.slab !== false,
     rail: typeof p.rail === 'boolean' || p.rail === 'sides' ? p.rail : undefined,
+    name: !isMain && typeof p.name === 'string' && p.name ? p.name : undefined,
+    footZ: typeof p.footZ === 'number' && Number.isFinite(p.footZ) ? p.footZ : undefined,
+    clearTop: typeof p.clearTop === 'boolean' ? p.clearTop : undefined,
   }
+}
+
+/** A stored per-edge map (keys are edge numbers, as strings once saved) → edges 0..n-1 with a boolean. */
+function railMap(r: Record<string, unknown>, edgeCount: number): Record<number, boolean> {
+  const out: Record<number, boolean> = {}
+  for (const [k, v] of Object.entries(r)) {
+    const i = Number(k)
+    if (Number.isInteger(i) && i >= 0 && i < edgeCount && typeof v === 'boolean') out[i] = v
+  }
+  return out
+}
+
+const PART_WORDS: Record<MassKind, string> = { wall: 'Wing', porch: 'Porch', deck: 'Deck', stair: 'Stair', ramp: 'Ramp' }
+
+/** "Main", "Stair 2", "Deck 3", or the part's own name: legacy partName, numbered by mass index. */
+export function partName(m: Pick<Mass, 'kind' | 'name'>, massIndex: number): string {
+  if (massIndex === 0) return 'Main'
+  return m.name ?? `${PART_WORDS[m.kind]} ${massIndex}`
+}
+
+/** "back", "right", "front", "left" for a rect part's edges 0-3 (its own axes), else "edge N" counting from 1 (legacy edgeName). */
+export function edgeName(m: Pick<Mass, 'shape'>, edge: number): string {
+  return m.shape === 'rect' && edge >= 0 && edge < 4 ? (['back', 'right', 'front', 'left'] as const)[edge] : `edge ${edge + 1}`
 }
 
 function deckSteps(v: unknown): DeckSteps | undefined {

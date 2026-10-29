@@ -1,5 +1,5 @@
 import { pointInPolygon } from './foundation'
-import { buildingMasses, massBuildingPoly, massPoly, massToBuilding, type Mass } from './masses'
+import { buildingMasses, massBuildingPoly, massPoly, massToBuilding, wingSlots, type Mass } from './masses'
 import { layoutOpenings, type CutData, type FitNote } from './openingLayout'
 import type { LocalPoint } from './footprint'
 
@@ -11,13 +11,6 @@ import type { LocalPoint } from './footprint'
  */
 
 type Params = Record<string, unknown>
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
-
-/** Index into params.wings of each wing mass (mass n is wings[wingSlots[n - 1]]). */
-function wingSlots(p: Params): number[] {
-  const wings = Array.isArray(p.wings) ? p.wings : []
-  return wings.flatMap((w, i) => (isRecord(w) ? [i] : []))
-}
 
 export function massCuts(p: Params, massIndex: number): CutData[] {
   const m = buildingMasses(p)[massIndex]

@@ -8,3 +8,9 @@ export const ftToM = (ft: number): number => ft * M_PER_FT
 export const mToFt = (m: number): number => m * FT_PER_M
 export const sqMToSqFt = (m2: number): number => m2 * SQFT_PER_SQM
 export const sqFtToAcres = (sqft: number): number => sqft / SQFT_PER_ACRE
+
+/** Degrees normalised to (-180, 180], the way every rotation in the plan is stored. */
+export function normalizeDeg(deg: number): number {
+  const d = ((deg % 360) + 360) % 360
+  return d > 180 ? d - 360 : d
+}
