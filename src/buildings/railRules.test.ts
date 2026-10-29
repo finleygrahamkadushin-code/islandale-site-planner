@@ -97,24 +97,34 @@ describe('resolveEdges', () => {
       ])
       expect(resolveEdges(house({ kind: 'deck', rails: {} }), 1, site(0.3))!.some((x) => x.drawn)).toBe(false)
     })
-    test('on and off override auto; a covered edge stays bare even when on', () => {
+    test('on and off override auto; an explicit on draws a covered edge too', () => {
       const e = resolveEdges(house({ kind: 'deck', rails: { 0: true, 1: false, 2: true } }), 1, site(0.3))!
       expect(e.map((x) => x.state)).toEqual(['on', 'off', 'on', 'auto'])
-      expect(e.map((x) => x.drawn)).toEqual([false, false, true, false])
+      expect(e[0].free).toBe(false)
+      expect(e.map((x) => x.drawn)).toEqual([true, false, true, false])
       expect(e[1].required).toBe(false)
     })
     test('an off edge past 30 in is required but not drawn (the panel warns)', () => {
       const e = resolveEdges(house({ kind: 'deck', rails: { 2: false } }), 1, site(1))!
       expect(e[2]).toMatchObject({ state: 'off', required: true, drawn: false })
     })
-    test('materialising the whole-wing rule then reading it per edge draws the same edges', () => {
+    test('materialising the whole-wing rule then reading it per edge keeps every edge\'s runs', () => {
       const raw = { w: 12, d: 8, dz: 14, open: true, kind: 'deck', rail: 'sides' }
       const before = resolveEdges(buildingMasses({ w: 20, d: 20, wings: [raw] }), 1, site(0.2))!
       const mapped = materialise(raw, 4, before)
       const after = resolveEdges(buildingMasses({ w: 20, d: 20, wings: [mapped] }), 1, site(0.2))!
-      // the edge against the house is covered either way; every free edge keeps what it drew
-      expect(after.filter((x) => x.free).map((x) => x.drawn)).toEqual(before.filter((x) => x.free).map((x) => x.drawn))
+      expect(after.map((x) => x.runs)).toEqual(before.map((x) => x.runs))
+      expect(after.map((x) => x.drawn)).toEqual(before.map((x) => x.drawn))
       expect(mapped.rail).toBeUndefined()
+    })
+    test('an explicit on draws a covered edge; auto and off leave it bare', () => {
+      const deck = (rails: Record<string, boolean>) => resolveEdges(buildingMasses({ w: 20, d: 20, wings: [{ w: 12, d: 8, dz: 14, open: true, kind: 'deck', rails }] }), 1, site(0.2))!
+      const covered = deck({}).findIndex((x) => !x.free)
+      expect(covered).toBeGreaterThanOrEqual(0)
+      expect(deck({ [covered]: true })[covered].drawn).toBe(true)
+      expect(deck({ [covered]: true })[covered].runs.length).toBeGreaterThan(0)
+      expect(deck({})[covered].drawn).toBe(false)
+      expect(deck({ [covered]: false })[covered].drawn).toBe(false)
     })
   })
 

@@ -15,7 +15,9 @@ import { DROP_PROBE_M, GUARD_DROP_M, guardRule, SLAB_M, wingDropM } from './rail
  *   planner's 3D draws today (rails.ts guardRule, or the standalone deck's
  *   whole-deck drop), so the schemes look as they did;
  * - once a map exists every edge follows the per-edge rule:
- *   drawn = !step && free && (on || (auto && drop > 30 in)).
+ *   drawn = !step && (on || (free && auto && drop > 30 in)); an explicit on
+ *   draws a covered edge too, so materialising keeps the runs the whole-wing
+ *   rule drew there.
  */
 
 const FT = 0.3048
@@ -180,7 +182,8 @@ export function resolveEdges(masses: readonly Mass[], mi: number, site: RailMass
     const dropM = edgeDropM(poly, i, site.floor, site.groundAt, deck ? 0 : SLAB_M)
     const required = !step && free && dropM > GUARD_DROP_M
     const state: RailState = mapped ? stateOf(m.rails, m.rail, i, n) : 'auto'
-    const perEdge = !step && free && (state === 'on' || (state === 'auto' && required))
+    // an explicit on draws a covered edge too, so the first per-edge write keeps the runs the whole-wing rule drew there
+    const perEdge = !step && (state === 'on' || (free && state === 'auto' && required))
     const drawn = mapped ? perEdge : legacy[i]
     const { intervals, names } = site.openings?.(i) ?? NO_OPENINGS
     let runs: Interval[] = []

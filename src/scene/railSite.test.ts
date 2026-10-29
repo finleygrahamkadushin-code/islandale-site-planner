@@ -89,6 +89,39 @@ describe('the store keeps what is drawn on the first per-edge write', () => {
     })
   }
 
+  test("A-0's deck keeps the runs past the house on its covered edge 0 when another edge is switched off", () => {
+    store().loadScheme('A')
+    store().lockAll(false)
+    const before = runsOf('A-0', 1)
+    expect(before[0].length).toBeGreaterThan(0)
+    const edge = objectRails(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['A-0'])[1]!.findIndex((e) => e.free && e.runs.length > 0)
+    store().setRail('A-0', 1, edge, 'off')
+    const after = runsOf('A-0', 1)
+    expect(after[edge]).toEqual([])
+    expect(after.filter((_, i) => i !== edge)).toEqual(before.filter((_, i) => i !== edge))
+  })
+
+  test('in every scheme the first per-edge write leaves every other edge as drawn, covered edges included', () => {
+    for (const scheme of loadSchemes()) {
+      store().loadScheme(scheme.id)
+      store().lockAll(false)
+      const start = store().plan
+      for (const id of start.order) {
+        const o = start.objects[id]
+        if (o.type !== 'house' && o.type !== 'deck') continue
+        objectRails(planRailWorld(objectsOf(start), terrain), o).forEach((edges, mi) => {
+          const edge = edges?.findIndex((e) => e.free && e.runs.length > 0) ?? -1
+          if (edge < 0) return
+          const before = runsOf(id, mi)
+          store().setRail(id, mi, edge, 'off')
+          const after = runsOf(id, mi)
+          expect(after.filter((_, i) => i !== edge), `${id} mass ${mi}`).toEqual(before.filter((_, i) => i !== edge))
+          usePlanStore.temporal.getState().undo()
+        })
+      }
+    }
+  })
+
   test('the resolver answers for a deck or porch and not for a stair', () => {
     const q = { plan: store().plan, site: store().site, id: 'C-0' }
     expect(resolveRailDraws({ ...q, mass: 3 })).toHaveLength(33)
