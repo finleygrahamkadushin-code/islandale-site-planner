@@ -158,6 +158,13 @@ describe('planStair: a ramp', () => {
     // the skirts go down to the ground under the run
     expect(box(of(items, 'skirt')[0].mesh).min[1]).toBeLessThan(-0.4)
   })
+
+  test('a ramp has handrails on any drop, but none with its rail off or style none', () => {
+    const ramp = { kind: 'ramp', w: 1.2, run: 4, drop: 0.05 } as const
+    expect(planStair(ramp).info.rails).toHaveLength(2)
+    expect(planStair({ ...ramp, rail: false }).info.rails).toEqual([])
+    expect(of(planStair({ ...ramp, style: 'none' }).items, 'rail')).toHaveLength(0)
+  })
 })
 
 describe('stair wings', () => {

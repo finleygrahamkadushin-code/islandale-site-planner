@@ -7,9 +7,8 @@ import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
-/** Legacy colours: steel and cable handrails dark grey, stair posts the post colour. */
+/** Legacy colour of steel and cable handrails; posts take the shared wood surface (PLAN.md). */
 const METAL = '#3b3f44'
-const POST = '#6e5a44'
 
 interface Piece {
   readonly key: string
@@ -68,7 +67,7 @@ export function AccessMass({ masses, mi, look, site, handlers }: { readonly mass
             ) : p.mat === 'trim' ? (
               <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} glow={glow} />
             ) : p.mat === 'post' ? (
-              <Surface kind="wood" style={display} color={POST} glow={glow} />
+              <Surface kind="wood" style={display} glow={glow} />
             ) : (
               <Surface kind="concrete" style={display} texture="concrete" glow={glow} />
             )}

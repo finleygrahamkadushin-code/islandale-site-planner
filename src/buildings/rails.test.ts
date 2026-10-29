@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
 import { buildingMasses, type Mass } from './masses'
-import { GUARD_DROP_M, guardRule, joinEdgeRuns, stairHasHandrails, wingDropM } from './rails'
+import { GUARD_DROP_M, guardRule, joinEdgeRuns, wingDropM } from './rails'
 import type { LocalPoint } from './footprint'
 import type { Interval } from './railOpenings'
 
@@ -73,22 +73,6 @@ describe('guardRule (legacy wing rails)', () => {
   test('rail false means no rail at all', () => {
     expect(guardRule(wing({ kind: 'deck', rail: false }), 4, 9)).toBeNull()
     expect(guardRule(wing({ kind: 'porch', rail: false }), 4, 9)).toBeNull()
-  })
-})
-
-describe('stairHasHandrails', () => {
-  const access = (kind: 'stair' | 'ramp', rail?: boolean): Mass => buildingMasses({ w: 20, d: 20, wings: [{ kind, open: true, w: 4, d: 4, rail }] })[1]
-  test('a stair has handrails with more than one riser, unless its rail is off or the style is none', () => {
-    expect(stairHasHandrails(access('stair'), 3)).toBe(true)
-    expect(stairHasHandrails(access('stair'), 1)).toBe(false)
-    expect(stairHasHandrails(access('stair', false), 3)).toBe(false)
-    expect(stairHasHandrails(access('stair'), 3, 'none')).toBe(false)
-    expect(stairHasHandrails(access('stair'), 3, 'cable')).toBe(true)
-  })
-  test('a ramp always has handrails unless its rail is off or the style is none', () => {
-    expect(stairHasHandrails(access('ramp'), 0)).toBe(true)
-    expect(stairHasHandrails(access('ramp', false), 0)).toBe(false)
-    expect(stairHasHandrails(access('ramp'), 0, 'none')).toBe(false)
   })
 })
 
