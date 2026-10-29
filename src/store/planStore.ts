@@ -9,7 +9,8 @@ import { editCuts, massWalls, nextCutId, refitAll, withCutIds, type EditResult }
 import type { CutData, FitNote } from '../buildings/openingLayout'
 import type { ViewId } from '../scene/views'
 import { normalizeDeg } from '../site/units'
-import { partActions, partExists, type RailState, type RailStyle } from './partActions'
+import { partActions, watchPickedPart, type PartActions } from './partActions'
+import { isObjectLocked } from './selectors'
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_LAYERS,
@@ -17,7 +18,6 @@ import {
   TIDE_RANGE_FT,
   type DisplayStyle,
   type Environment,
-  layerOf,
   type LabelMode,
   type LayerId,
   type LayerState,
@@ -49,7 +49,7 @@ export interface Toast {
   readonly text: string
 }
 
-export interface PlanState {
+export interface PlanState extends PartActions {
   readonly site: Site
   readonly schemes: readonly Scheme[]
   readonly plan: Plan
@@ -99,17 +99,6 @@ export interface PlanState {
   readonly alignHeads: (id: ObjectId, massIndex: number, cutId: number) => void
   /** Fit every opening on a cabin by the rules (for saved schemes that break them). */
   readonly fitAllOpenings: (id: ObjectId) => void
-  // parts: mass n (n >= 1) is the n-th wing; each is one undo step, refused when locked
-  readonly updateWing: (id: ObjectId, massIndex: number, patch: Record<string, unknown>) => void
-  /** Add a wing at the end; returns its mass index, or null when refused (locked, or the cabin is full). */
-  readonly addWing: (id: ObjectId, wing: Record<string, unknown>) => number | null
-  /** Remove a wing; later wings (and their exterior paint) move down one mass index. */
-  readonly removeWing: (id: ObjectId, massIndex: number) => void
-  /** One edge's rail, or every edge's ('all'). A standalone deck is mass 0 and keeps its rails on its own params. */
-  readonly setRail: (id: ObjectId, massIndex: number, edge: number | 'all', state: RailState) => void
-  /** The building's rail style (wood, steel, cable, glass, none). */
-  readonly setRailStyle: (id: ObjectId, style: RailStyle) => void
-
   // --- view state: not undo steps -------------------------------------
   readonly select: (ids: readonly ObjectId[]) => void
   readonly toggleSelect: (id: ObjectId) => void
@@ -126,8 +115,6 @@ export interface PlanState {
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
   readonly setOpeningFocus: (focus: OpeningFocus | null) => void
-  /** Pick a part (its building becomes the selection), or null to go back to the whole building. */
-  readonly pickPart: (part: PickedPart | null) => void
   readonly showToast: (text: string) => void
   readonly hydrate: (saved: {
     plan: Plan
@@ -181,15 +168,18 @@ export const usePlanStore = create<PlanState>()(
         set({ plan: { ...s.plan, objects: { ...s.plan.objects, [id]: patch(o) } } })
       }
 
-      /** Change a cabin's params and re-fit its openings, as one edit. */
-      const editRefit = (id: ObjectId, change: (p: Record<string, unknown>) => Record<string, unknown>) => {
+      /** Change a cabin (where it stands too) and re-fit its openings, as one edit. */
+      const refitObject = (id: ObjectId, change: (o: PlanObject) => PlanObject) => {
         let result: EditResult | null = null
         edit(id, (o) => {
-          result = refitAll(withCutIds(change(o.params)))
-          return { ...o, params: result.params }
+          const next = change(o)
+          result = refitAll(withCutIds(next.params))
+          return { ...next, params: result.params }
         })
         if (result) reportFit((result as EditResult).notes)
       }
+      const editRefit = (id: ObjectId, change: (p: Record<string, unknown>) => Record<string, unknown>) =>
+        refitObject(id, (o) => ({ ...o, params: change(o.params) }))
       /** Change one mass's cuts; the fitted numbers are what is stored. */
       const editOpenings = (id: ObjectId, mi: number, change: (cuts: CutData[], p: Record<string, unknown>) => CutData[]) => {
         let result: EditResult | null = null
@@ -314,7 +304,7 @@ export const usePlanStore = create<PlanState>()(
             })
           }),
         fitAllOpenings: (id) => editRefit(id, (p) => p),
-        ...partActions({ get, set, editable, edit, editRefit }),
+        ...partActions({ get, set, editable, edit, editRefit, refitObject }),
 
         // the picked part survives only a selection of exactly its own building
         select: (ids) =>
@@ -368,41 +358,10 @@ export const usePlanStore = create<PlanState>()(
 
 export const useTemporalStore = usePlanStore.temporal
 
-// Undo, redo or an outside edit can take away the picked part's mass; drop it then (not an undo step).
-usePlanStore.subscribe((s, prev) => {
-  if (s.plan !== prev.plan && s.pickedPart && !partExists(s.plan, s.pickedPart)) usePlanStore.setState({ pickedPart: null })
-})
+watchPickedPart(usePlanStore)
 
-export { normalizeDeg }
 export { pickedPartOf } from './partActions'
-
-/** Locked by its own padlock or by its layer's padlock. */
-export function isObjectLocked(s: Pick<PlanState, 'plan' | 'layers'>, id: ObjectId): boolean {
-  const o = s.plan.objects[id]
-  if (!o) return false
-  return o.locked || s.layers[layerOf(o)].locked
-}
-
-/** Hidden by itself or by its layer. */
-export function isObjectVisible(s: Pick<PlanState, 'plan' | 'layers'>, id: ObjectId): boolean {
-  const o = s.plan.objects[id]
-  if (!o) return false
-  return !o.hidden && s.layers[layerOf(o)].visible
-}
-
-/** Whether a label should show for this object under the current label mode. */
-/** Whether contour lines show: the explicit setting, else on in every style but Realistic. */
-export function contoursShown(s: Pick<PlanState, 'contours' | 'displayStyle'>): boolean {
-  return s.contours ?? s.displayStyle !== 'realistic'
-}
-
-export function isLabelShown(s: Pick<PlanState, 'plan' | 'layers' | 'labelMode' | 'selection'>, id: ObjectId): boolean {
-  const o = s.plan.objects[id]
-  if (!o || !o.labelVisible || !s.layers.labels.visible || !isObjectVisible(s, id)) return false
-  if (s.labelMode === 'none') return false
-  if (s.labelMode === 'selected') return s.selection.includes(id)
-  return true
-}
+export { contoursShown, isLabelShown, isObjectLocked, isObjectVisible } from './selectors'
 
 function withObject(plan: Plan, id: ObjectId, patch: Partial<PlanObject>): Plan {
   const existing = plan.objects[id]

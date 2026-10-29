@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { buildingMasses } from './masses'
-import { tidyWing, wingAt, withAddedWing, withoutWing, withWing } from './wingEdits'
+import { localToSite } from './footprint'
+import { MIN_PART_FT, tidyWing, wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing } from './wingEdits'
 
 const cabin = () => ({
   w: 20,
@@ -43,6 +44,10 @@ describe('withWing', () => {
     expect(tidyWing(poly, { ...poly, pts: [[0, 0], [6, 0], [6, 6], [0, 6]] }).rails).toBeUndefined()
     expect(tidyWing(poly, { ...poly, pts: [[0, 0], [6, 0], [6, 6]] }).rails).toEqual({ 0: false })
   })
+
+  test("writing shape 'rect' onto a wing with no shape is no outline change", () => {
+    expect(wingAt(withWing(cabin(), 3, (w) => ({ ...w, shape: 'rect' })), 3).rails).toEqual({ 1: true })
+  })
 })
 
 describe('withAddedWing', () => {
@@ -79,5 +84,43 @@ describe('withoutWing', () => {
       walls: { '0:1': 'x', '2:2': 'z' },
     })
     expect(p.ext.masses['3']).toEqual({ wall: 'd' })
+  })
+})
+
+describe('withMainEdgeResized (legacy applyMainResize)', () => {
+  const placed = () => ({ position: { x: 100, n: 50 }, rotation: 30, params: cabin() })
+  const site = (o: ReturnType<typeof placed>, p: readonly [number, number]) => localToSite(o.position, o.rotation, p)
+  const near = (a: readonly number[], b: readonly number[]) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], 6))
+
+  test('the dragged edge moves, the opposite edge and every wing stay put on the ground', () => {
+    const o = placed()
+    const next = withMainEdgeResized(o, 1, 4) // right edge 4 ft out
+    expect(next.params).toMatchObject({ w: 24, d: 16 })
+    near(site(next, [-12, 0]), site(o, [-10, 0])) // the left edge
+    near(site(next, [12, 0]), site(o, [14, 0])) // the right edge, 4 ft further out
+    const wings = (w: unknown) => (w as Record<string, unknown>[]).map((x, i) => [x, i] as const).filter(([x]) => x)
+    for (const [w, i] of wings(next.params.wings)) {
+      const was = o.params.wings[i]!
+      near(site(next, [Number(w.dx ?? 0), Number(w.dz ?? 0)]), site(o, [Number(was.dx ?? 0), Number(was.dz ?? 0)]))
+    }
+    expect((next.params.wings as unknown[])[1]).toBeNull() // malformed entries stay as they are
+    expect(o.params.w).toBe(20) // the input is untouched
+  })
+
+  test('the back edge pulled in changes d, down to the minimum', () => {
+    const o = placed()
+    const next = withMainEdgeResized(o, 0, -4)
+    expect(next.params).toMatchObject({ w: 20, d: 12 })
+    near(site(next, [0, 6]), site(o, [0, 8])) // the front edge stays
+    expect(withMainEdgeResized(o, 2, -40).params.d).toBe(MIN_PART_FT)
+  })
+
+  test('no change gives the same object; a non-rect main mass or a bad edge is refused', () => {
+    const o = placed()
+    expect(withMainEdgeResized(o, 1, 0)).toBe(o)
+    const small = { ...o, params: { ...o.params, d: MIN_PART_FT } }
+    expect(withMainEdgeResized(small, 0, -2)).toBe(small)
+    expect(() => withMainEdgeResized({ ...o, params: { ...o.params, shape: 'hex' } }, 0, 1)).toThrow(/rect/)
+    expect(() => withMainEdgeResized(o, 4, 1)).toThrow(/no edge 4/)
   })
 })

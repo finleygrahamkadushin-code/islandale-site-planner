@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest'
-import { isLabelShown, isObjectLocked, isObjectVisible, normalizeDeg, usePlanStore } from './planStore'
+import { normalizeDeg } from '../site/units'
+import { isLabelShown, isObjectLocked, isObjectVisible, usePlanStore } from './planStore'
 
 const store = () => usePlanStore.getState()
 const history = () => usePlanStore.temporal.getState()

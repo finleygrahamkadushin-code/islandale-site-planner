@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { buildingMasses, MAX_WINGS } from '../buildings/masses'
+import { localToSite } from '../buildings/footprint'
+import { buildingMasses, massPoly, MAX_WINGS } from '../buildings/masses'
+import type { EdgeDraw } from '../buildings/railEdits'
 import { wingAt } from '../buildings/wingEdits'
 import { MAIN_STAYS_TEXT, MAX_PARTS_TEXT } from './partActions'
 import { pickedPartOf, usePlanStore } from './planStore'
@@ -10,8 +12,12 @@ const store = () => usePlanStore.getState()
 const history = () => usePlanStore.temporal.getState()
 const PROW = 'C-0' // main, Porch 1, Stair 2, Deck 3, Porch 4
 const WEDGE = 'C-3' // main, Porch 1, Porch 2, Deck 3 (rail 'sides')
+const POD = 'C-2' // a rect main mass turned -22°, with three wings
 const params = (id: string) => store().plan.objects[id].params
 const masses = (id: string) => buildingMasses(params(id))
+/** A stand-in for the scene's rail rule: every edge free, drawn the same in both regimes. */
+const sameDraws = (q: { id: string; mass: number }): EdgeDraw[] =>
+  massPoly(buildingMasses(store().plan.objects[q.id].params)[q.mass]).map(() => ({ legacy: true, auto: true, free: true }))
 
 describe('part actions', () => {
   beforeEach(() => {
@@ -57,6 +63,7 @@ describe('part actions', () => {
     })
 
     test('setRail on one edge, and on all edges', () => {
+      setRailDrawResolver(sameDraws)
       oneStep(() => store().setRail(WEDGE, 3, 0, 'off'))
       expect(wingAt(params(WEDGE), 3).rails).toMatchObject({ 0: false })
       history().clear()
@@ -158,9 +165,21 @@ describe('part actions', () => {
       expect(wingAt(params(WEDGE), 3).rails).toEqual({ 0: true, 1: true, 2: true })
     })
 
-    test('without it the old flag is frozen, as the old planner does', () => {
-      store().setRail(WEDGE, 3, 0, 'auto')
-      expect(wingAt(params(WEDGE), 3).rails).toEqual({ 2: true, 1: false, 3: false })
+    test('without it the write is refused, rather than freezing the old flag as the old planner does', () => {
+      const before = store().plan
+      expect(() => store().setRail(WEDGE, 3, 0, 'auto')).toThrow(/setRailDrawResolver/)
+      expect(store().plan).toBe(before)
+      setRailDrawResolver(() => [{ legacy: true, auto: true, free: true }]) // the wrong number of edges
+      expect(() => store().setRail(WEDGE, 3, 0, 'on')).toThrow(/setRailDrawResolver/)
+    })
+
+    test('once a map exists one edge can be set without it, but "all" still needs it to skip covered edges', () => {
+      setRailDrawResolver(sameDraws)
+      store().setRail(WEDGE, 3, 0, 'off')
+      setRailDrawResolver(null)
+      store().setRail(WEDGE, 3, 1, 'on')
+      expect(wingAt(params(WEDGE), 3).rails).toEqual({ 0: false, 1: true })
+      expect(() => store().setRail(WEDGE, 3, 'all', 'on')).toThrow(/setRailDrawResolver/)
     })
   })
 
@@ -179,9 +198,58 @@ describe('part actions', () => {
     const plan = store().plan
     store().replacePlan({ ...plan, objects: { ...plan.objects, [deck.id]: deck }, order: [...plan.order, deck.id] })
     history().clear()
+    // the whole-deck rule rails every edge; per-edge auto would leave these low edges bare
+    setRailDrawResolver(() => [0, 1, 2, 3].map(() => ({ legacy: true, auto: false, free: true })))
     oneStep(() => store().setRail(deck.id, 0, 2, 'off'))
     expect(params(deck.id)).toEqual({ w: 12, d: 12, h: 3, rails: { 0: true, 1: true, 2: false, 3: true } })
     expect(() => store().setRail(deck.id, 1, 0, 'on')).toThrow()
+  })
+
+  describe('resizeMainEdge', () => {
+    const o = () => store().plan.objects[POD]
+    const siteOf = (x: PlanObject, p: readonly [number, number]) => localToSite(x.position, x.rotation, p)
+
+    test('one undo step that moves the cabin, sizes the main walls and keeps every wing on the ground', () => {
+      const before = o()
+      expect(before.params.shape ?? 'rect').toBe('rect')
+      const w = Number(before.params.w)
+      oneStep(() => store().resizeMainEdge(POD, 3, 3)) // the left edge 3 ft out
+      const after = o()
+      expect(after.params.w).toBeCloseTo(w + 3, 4)
+      const right = (x: PlanObject) => siteOf(x, [Number(x.params.w) / 2, 0])
+      right(after).forEach((v, i) => expect(v).toBeCloseTo(right(before)[i], 4))
+      const was = buildingMasses(before.params)
+      buildingMasses(after.params).slice(1).forEach((m, k) => {
+        const i = k + 1
+        siteOf(after, [m.dx, m.dz]).forEach((v, j) => expect(v).toBeCloseTo(siteOf(before, [was[i].dx, was[i].dz])[j], 3))
+      })
+    })
+
+    test('a drag that changes nothing is no undo step', () => {
+      const before = store().plan
+      store().resizeMainEdge(POD, 0, 0)
+      expect(store().plan).toBe(before)
+      store().resizeMainEdge(POD, 0, -1000)
+      history().clear()
+      store().resizeMainEdge(POD, 0, -1)
+      expect(history().pastStates).toHaveLength(0)
+      expect(store().plan).not.toBe(before)
+    })
+
+    test('a locked cabin refuses it with the toast; a main mass that is not rect has no edges to drag', () => {
+      store().setLocked(POD, true)
+      history().clear()
+      store().resizeMainEdge(POD, 1, 2)
+      expect(history().pastStates).toHaveLength(0)
+      expect(store().toast?.text).toBe(`${o().name} is locked`)
+      store().setLocked(POD, false)
+      store().setLayer('buildings', { locked: true })
+      history().clear()
+      store().resizeMainEdge(POD, 1, 2)
+      expect(history().pastStates).toHaveLength(0)
+      store().setLayer('buildings', { locked: false })
+      expect(() => store().resizeMainEdge(PROW, 1, 2)).toThrow(/rect/)
+    })
   })
 
   test('removing a wing shifts exterior paint keyed by mass index in the same step', () => {

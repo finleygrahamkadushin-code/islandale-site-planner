@@ -1,4 +1,5 @@
 import { normalizeDeg } from '../site/units'
+import { localToSite, num } from './footprint'
 import { massPoly, wingMass, wingSlots } from './masses'
 
 /**
@@ -39,7 +40,7 @@ export function tidyWing(before: Params, after: Params): Params {
 }
 
 function outlineChanged(a: Params, b: Params): boolean {
-  if (a.shape !== b.shape) return true
+  if ((a.shape ?? 'rect') !== (b.shape ?? 'rect')) return true
   if (a.pts !== b.pts && JSON.stringify(a.pts) !== JSON.stringify(b.pts)) return true
   return massPoly(wingMass(a)).length !== massPoly(wingMass(b)).length
 }
@@ -56,6 +57,50 @@ export function withAddedWing(p: Params, wing: Params): Params {
   const wings = Array.isArray(p.wings) ? p.wings : []
   const tidy = typeof wing.rot === 'number' ? { ...wing, rot: normalizeDeg(wing.rot) } : wing
   return { ...p, wings: [...wings, tidy] }
+}
+
+/** Edge i of a rect part, in its own axes: 0 back (-z) and 2 front change d, 1 right and 3 left change w. */
+const RECT_EDGES = [
+  [0, -1, 'd'],
+  [1, 0, 'w'],
+  [0, 1, 'd'],
+  [-1, 0, 'w'],
+] as const
+/** The smallest a dragged edge leaves a part, feet (legacy resizeWingEdge). */
+export const MIN_PART_FT = 3
+const round4 = (v: number) => Math.round(v * 1e4) / 1e4
+
+interface Placed {
+  readonly position: { readonly x: number; readonly n: number }
+  readonly rotation: number
+  readonly params: Params
+}
+
+/**
+ * Move edge `edge` of a rect main mass out by `deltaFt` (in when negative),
+ * the opposite edge staying put, at least MIN_PART_FT (legacy
+ * applyMainResize). The building centre moves by half the change, and every
+ * wing's dx/dz moves back by the same amount, so the wings stay where they
+ * are on the ground. Returns `o` itself when the size does not change.
+ */
+export function withMainEdgeResized<T extends Placed>(o: T, edge: number, deltaFt: number): T {
+  const p = o.params
+  if (p.shape !== undefined && p.shape !== 'rect') throw new Error('only a rect main mass has edges to drag')
+  if (!Number.isInteger(edge) || edge < 0 || edge > 3) throw new Error(`no edge ${edge} of 4`)
+  const [nx, nz, key] = RECT_EDGES[edge]
+  const old = Number(p[key])
+  if (!Number.isFinite(old) || !Number.isFinite(deltaFt)) throw new Error('the main mass needs a size and the drag a number')
+  const size = round4(Math.max(MIN_PART_FT, old + deltaFt))
+  const applied = size - old
+  if (applied === 0) return o
+  const sx = (nx * applied) / 2
+  const sz = (nz * applied) / 2
+  const [x, n] = localToSite(o.position, o.rotation, [sx, sz])
+  const resized = { ...p, [key]: size }
+  const params = Array.isArray(p.wings)
+    ? { ...resized, wings: p.wings.map((w) => (isRecord(w) ? { ...w, dx: round4(num(w.dx, 0) - sx), dz: round4(num(w.dz, 0) - sz) } : w)) }
+    : resized
+  return { ...o, position: { x, n }, params }
 }
 
 /**
