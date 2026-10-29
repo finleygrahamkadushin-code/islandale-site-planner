@@ -1,9 +1,15 @@
 /**
  * Lengths typed the way a builder writes them: 2' 9", 2'9, 33in, 33", 2.75,
- * 2 ft 9 in, 2-9. A bare number is feet. Returns feet, or an error message.
+ * 2 ft 9 in, 2-9, and an offset with a leading minus (-2' 6"). A bare number
+ * is feet. Returns feet, or an error message.
  */
 export function parseFeetInches(text: string): { readonly ft: number } | { readonly error: string } {
-  const t = text.trim().toLowerCase().replace(/[’′]/g, "'").replace(/[”″]/g, '"').replace(/\s+/g, ' ')
+  const trimmed = text.trim()
+  if (/^[-−]\s*[^-−\s]/.test(trimmed)) {
+    const r = parseFeetInches(trimmed.replace(/^[-−]\s*/, ''))
+    return 'ft' in r ? { ft: -r.ft } : r
+  }
+  const t = trimmed.toLowerCase().replace(/[’′]/g, "'").replace(/[”″]/g, '"').replace(/\s+/g, ' ')
   if (!t) return { error: 'Enter a length, such as 2\' 9" or 33 in' }
   const n = '(\\d+(?:\\.\\d+)?|\\.\\d+)'
   const patterns: [RegExp, (m: RegExpMatchArray) => number][] = [

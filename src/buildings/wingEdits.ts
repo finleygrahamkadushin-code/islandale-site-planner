@@ -60,7 +60,7 @@ export function withAddedWing(p: Params, wing: Params): Params {
 }
 
 /** Edge i of a rect part, in its own axes: 0 back (-z) and 2 front change d, 1 right and 3 left change w. */
-const RECT_EDGES = [
+export const RECT_EDGES = [
   [0, -1, 'd'],
   [1, 0, 'w'],
   [0, 1, 'd'],

@@ -13,6 +13,8 @@ describe('feet and inches', () => {
     ['2-9', 2.75],
     ['  7 FT ', 7],
     [`6’ 8”`, 6 + 8 / 12],
+    [`-2' 6"`, -2.5],
+    ['-18 in', -1.5],
   ])('%s is %d ft', (text, ft) => {
     const r = parseFeetInches(text)
     expect('ft' in r && r.ft).toBeCloseTo(ft, 9)
