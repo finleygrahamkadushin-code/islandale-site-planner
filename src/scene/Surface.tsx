@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Edges } from '@react-three/drei'
-import type { Texture } from 'three'
+import { DoubleSide, type Texture } from 'three'
 import type { DisplayStyle } from '../store/types'
 import {
   battenSiding,
@@ -18,7 +18,7 @@ import {
 } from './textures'
 
 /** What a surface is made of; each display style decides how that looks. */
-export type SurfaceKind = 'wall' | 'roof' | 'trim' | 'glass' | 'frame' | 'door' | 'concrete' | 'wood' | 'pad' | 'canopy' | 'trunk' | 'deck'
+export type SurfaceKind = 'wall' | 'roof' | 'trim' | 'glass' | 'railGlass' | 'frame' | 'door' | 'concrete' | 'wood' | 'pad' | 'canopy' | 'trunk' | 'deck'
 
 export type TextureName = 'batten' | 'lap' | 'shingle' | 'seam' | 'shake' | 'sod' | 'gravel' | 'deck' | 'concrete'
 
@@ -47,6 +47,11 @@ export function textureFor(name: TextureName, unit: 'ft' | 'm'): Texture {
 
 const WHITE = '#f3f2ee'
 const SKETCH_LINE = '#2a2a2a'
+/** Legacy glass rail panes, #a9d6e2 at 30% opacity. */
+const RAIL_GLASS = '#a9d6e2'
+
+/** Glass in the white model, sketch and diagram styles. */
+const nonRealisticGlass = (style: DisplayStyle): string => (style === 'diagram' ? '#9fb6c2' : '#c9d2d6')
 
 interface SurfaceProps {
   readonly kind: SurfaceKind
@@ -78,7 +83,19 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     }
     return (
       <>
-        <meshStandardMaterial {...lift} color={style === 'diagram' ? '#9fb6c2' : '#c9d2d6'} roughness={0.3} />
+        <meshStandardMaterial {...lift} color={nonRealisticGlass(style)} roughness={0.3} />
+        {style === 'sketch' && <Edges color={SKETCH_LINE} />}
+      </>
+    )
+  }
+
+  if (kind === 'railGlass') {
+    // see-through guard panes: the legacy tint in realistic, the window-glass tones elsewhere
+    const see = { transparent: true, opacity: 0.3, side: DoubleSide, depthWrite: false } as const
+    if (style === 'realistic') return <meshStandardMaterial {...lift} {...see} color={RAIL_GLASS} roughness={0.1} />
+    return (
+      <>
+        <meshStandardMaterial {...lift} {...see} color={nonRealisticGlass(style)} roughness={0.3} />
         {style === 'sketch' && <Edges color={SKETCH_LINE} />}
       </>
     )

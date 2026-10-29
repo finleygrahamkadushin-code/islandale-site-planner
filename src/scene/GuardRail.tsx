@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react'
-import { DoubleSide } from 'three'
 import type { LocalPoint } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
 import { joinEdgeRuns } from '../buildings/rails'
@@ -11,7 +10,6 @@ import { Surface } from './Surface'
 /** Legacy rail colours: steel and cable dark grey, wood deck rails the post colour; porch rails take the trim colour. */
 const METAL = '#3b3f44'
 const DECK_POST = '#6e5a44'
-const GLASS = '#a9d6e2'
 
 /**
  * A guard round the open edges of a deck or porch floor, drawn from the
@@ -55,7 +53,7 @@ export function GuardRail({ m, poly, site, look }: { readonly m: Mass; readonly 
       </mesh>
       {rail.glass && (
         <mesh name="rail-glass" geometry={rail.glass}>
-          <meshStandardMaterial color={GLASS} transparent opacity={0.3} roughness={0.1} side={DoubleSide} depthWrite={false} />
+          <Surface kind="railGlass" style={look.style} />
         </mesh>
       )}
     </>
