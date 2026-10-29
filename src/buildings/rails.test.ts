@@ -1,31 +1,34 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
 import { buildingMasses, type Mass } from './masses'
-import { buildRail, GUARD_DROP_M, guardRule, railRuns, stairHasHandrails, wingDropM } from './rails'
+import { GUARD_DROP_M, guardRule, joinEdgeRuns, stairHasHandrails, wingDropM } from './rails'
 import type { LocalPoint } from './footprint'
+import type { Interval } from './railOpenings'
 
 const deck: LocalPoint[] = [[0, 0], [20, 0], [20, 10], [0, 10]]
-const keepAll = { skipEdge: () => false, blocked: () => false }
+const FT = 0.3048
+const len = (i: number) => Math.hypot(deck[(i + 1) % 4][0] - deck[i][0], deck[(i + 1) % 4][1] - deck[i][1]) * FT
+const whole = (i: number): Interval[] => [[0, len(i)]]
 
-describe('railRuns', () => {
-  test('an open outline gets one continuous rail round every edge', () => {
-    const runs = railRuns(deck, keepAll)
+describe('joinEdgeRuns', () => {
+  test('a guard on every whole edge is one closed ring', () => {
+    const runs = joinEdgeRuns(deck, [0, 1, 2, 3].map(whole))
     expect(runs).toHaveLength(1)
-    expect(runs[0][0]).toEqual(runs[0][runs[0].length - 1])
+    expect(runs[0]).toHaveLength(5)
+    expect(runs[0][0]).toEqual(runs[0][4])
   })
-  test('edges with steps stay open', () => {
-    const runs = railRuns(deck, { ...keepAll, skipEdge: (i) => i === 1 })
+  test('an edge left open splits the ring into one run that wraps round vertex 0', () => {
+    const runs = joinEdgeRuns(deck, [whole(0), [], whole(2), whole(3)])
     expect(runs).toHaveLength(1)
-    expect(runs[0].some(([x, z]) => x === 20 && z > 1 && z < 9)).toBe(false)
+    expect(runs[0][0]).toEqual([20, 10])
+    expect(runs[0][runs[0].length - 1]).toEqual([20, 0])
   })
-  test('pieces against a wall are left out, leaving one open run', () => {
-    // the far edge (z = 10) runs along a wall
-    const runs = railRuns(deck, { ...keepAll, blocked: ([, z]) => z > 9.5 })
+  test('an opening in the middle of an edge ends one run and starts the next there', () => {
+    const runs = joinEdgeRuns(deck, [[[0, 2], [4, len(0)]], whole(1), whole(2), whole(3)])
     expect(runs).toHaveLength(1)
     const run = runs[0]
-    expect(run[0]).not.toEqual(run[run.length - 1])
-    const onWall = run.slice(0, -1).map((p, i) => [(p[0] + run[i + 1][0]) / 2, (p[1] + run[i + 1][1]) / 2]).filter(([, z]) => z > 9.5)
-    expect(onWall).toEqual([])
+    expect(run[0][0]).toBeCloseTo(4 / FT)
+    expect(run[run.length - 1][0]).toBeCloseTo(2 / FT)
   })
 })
 
@@ -38,15 +41,6 @@ describe('wingDropM (legacy surfaceDropFt)', () => {
     const drop = wingDropM(deck, 0, (x) => -0.1 * x)
     expect(drop).toBeGreaterThan(2.0 + 0.15)
     expect(drop).toBeLessThan(2.4 + 0.15)
-  })
-})
-
-describe('buildRail', () => {
-  test('the top rail sits at 36 in above the floor', () => {
-    const m = buildRail([[[0, 0], [10, 0]]])
-    let top = -Infinity
-    for (let i = 1; i < m.positions.length; i += 3) top = Math.max(top, m.positions[i])
-    expect(top).toBeCloseTo(36 * 0.0254, 2)
   })
 })
 

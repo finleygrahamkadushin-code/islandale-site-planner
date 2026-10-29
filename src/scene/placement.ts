@@ -2,9 +2,9 @@ import { elevationAt } from '../site/terrain'
 import type { Terrain } from '../site/types'
 import { ftToM } from '../site/units'
 import { localToSite, num, siteFootprint, type LocalPoint } from '../buildings/footprint'
-import { buildingBounds, buildingMasses } from '../buildings/masses'
+import { buildingBounds, buildingMasses, massBuildingPoly } from '../buildings/masses'
 import type { SitePoint } from '../site/types'
-import type { Ground } from '../site/earthworks'
+import type { Cut, Ground } from '../site/earthworks'
 import type { PlanObject } from '../store/types'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */
@@ -34,6 +34,18 @@ export function sinkFt(o: PlanObject): number {
 }
 
 const BUILDING_TYPES = new Set(['house', 'shop', 'shed'])
+
+/** The cuts made by buildings set into the slope: each sunk building's enclosed outlines at its floor. */
+export function sunkCuts(objects: readonly PlanObject[], t: Terrain): Cut[] {
+  return objects
+    .filter((o) => sinkFt(o) > 0)
+    .map((o) => ({
+      polys: buildingMasses(o.params)
+        .filter((m) => !m.open)
+        .map((m) => massBuildingPoly(m).map((p) => localToSite(o.position, o.rotation, p))),
+      floor: baseElevation(t, o),
+    }))
+}
 
 /** Corners of the box round a cabin and all its wings, site metres (legacy corners(o) via bbox(o)). */
 function boundsCorners(o: PlanObject): SitePoint[] {

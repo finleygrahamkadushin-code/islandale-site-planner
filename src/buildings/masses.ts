@@ -83,6 +83,15 @@ export function buildingMasses(p: Record<string, unknown>): Mass[] {
   return [main, ...wings.map((w) => toMass(w, false, main))]
 }
 
+/**
+ * A standalone deck (type 'deck') as one deck mass, mass 0, so the rail
+ * rules read it like a deck wing; its rails and rail flag are its own params.
+ */
+export function deckObjectMass(p: Record<string, unknown>): Mass {
+  const m = toMass({ ...p, wings: [] }, true)
+  return { ...m, main: false, kind: 'deck', open: true, h: 0, roof: 'none', cuts: [] }
+}
+
 /** One raw wing parsed on its own (for edge counts and names; its height falls back to 9 ft, not the host's). */
 export function wingMass(w: Record<string, unknown>): Mass {
   return toMass(w, false)

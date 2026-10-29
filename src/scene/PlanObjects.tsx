@@ -5,6 +5,7 @@ import { ObjectMesh } from './ObjectMesh'
 import { BuildingMesh } from './BuildingMesh'
 import { TreeMesh } from './TreeMesh'
 import { BridgeMesh } from './BridgeMesh'
+import { StandaloneDeckMesh } from './StandaloneDeck'
 import type { DragState } from './editing'
 
 export function PlanObjects({ drag }: { readonly drag: DragState | null }) {
@@ -25,5 +26,6 @@ function PlanObjectView({ id, drag }: { readonly id: string; readonly drag: Drag
   if (o.type === 'tree') return <TreeMesh o={o} />
   if (o.type === 'bridge') return <BridgeMesh o={o} />
   if (o.type === 'house') return <BuildingMesh o={o} />
+  if (o.type === 'deck') return <StandaloneDeckMesh o={o} />
   return <ObjectMesh o={o} />
 }

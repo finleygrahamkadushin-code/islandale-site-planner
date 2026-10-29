@@ -1,5 +1,7 @@
 import { CatmullRomCurve3, LineCurve3, Vector3 } from 'three'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
+import { ftToM } from '../site/units'
+import type { PlanObject } from '../store/types'
 
 /** One point along a boardwalk: site metres, deck-top elevation, and the unit vector to its left. */
 export interface WalkSample {
@@ -172,4 +174,15 @@ const add = (p: V3, o: readonly number[]): V3 => [p[0] + o[0], p[1] + o[1], p[2]
 const norm = (p: readonly number[]): number[] => {
   const l = Math.hypot(p[0], p[1], p[2]) || 1
   return [p[0] / l, p[1] / l, p[2] / l]
+}
+
+/** Route points in the site frame: position + relative route, rotated with the object; elevations in metres. */
+export function routePoints(o: PlanObject): readonly (readonly [number, number, number])[] {
+  const route = Array.isArray(o.params.route) ? (o.params.route as (readonly number[])[]) : []
+  const a = (o.rotation * Math.PI) / 180
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+  return route
+    .filter((p) => p.length >= 3)
+    .map(([dx, dn, elevFt]) => [o.position.x + dx * c - dn * s, o.position.n + dx * s + dn * c, ftToM(elevFt)] as const)
 }

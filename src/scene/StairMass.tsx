@@ -18,7 +18,8 @@ export function StairMass({ m, look, site, handlers }: { readonly m: Mass; reado
     () => stairLayout({ widthFt: m.w, nominalRunFt: m.d, floor: site.floor, groundAt: (z) => site.groundAt(0, z) }),
     [m.w, m.d, site],
   )
-  const rails = stairHasHandrails(m)
+  // style 'none' hides stair handrails too (legacy: m.rail !== false && style !== 'none')
+  const rails = stairHasHandrails(m) && site.railStyle !== 'none'
   if (!layout.steps.length && !rails) return null
   const w = ftToM(m.w)
   const { style, glow } = look
@@ -47,7 +48,8 @@ export function StairMass({ m, look, site, handlers }: { readonly m: Mass; reado
           const top: [number, number, number] = [x, HANDRAIL_M, ftToM(z0)]
           const foot: [number, number, number] = [x, footTop + HANDRAIL_M, ftToM(footZ)]
           return (
-            <group key={side} name="rail">
+            // side +1 runs along edge 1 (+x), side -1 along edge 3 (-x)
+            <group key={side} name="rail" userData={{ edges: [side > 0 ? 1 : 3] }}>
               <Segment a={top} b={foot} size={RAIL_M}>
                 <Surface kind="wood" style={style} />
               </Segment>

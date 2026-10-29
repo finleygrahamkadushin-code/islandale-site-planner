@@ -1,5 +1,7 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import type { LocalPoint } from '../buildings/footprint'
+import type { RailStyle } from '../buildings/railEdits'
+import type { EdgeRail } from '../buildings/railRules'
 import type { DisplayStyle, PlanObject } from '../store/types'
 import { diagramColourFor, type TextureName } from './Surface'
 
@@ -31,6 +33,12 @@ export interface MassSite {
   readonly insideWalls: (p: LocalPoint) => boolean
   /** Whether a mass-local point lies inside any other mass of the building (walls, porches, decks, stairs). */
   readonly insideOther: (p: LocalPoint) => boolean
+  /** A deck's or porch's rail on each edge (railSite.objectRails); null or missing for masses without one. */
+  readonly rails?: readonly EdgeRail[] | null
+  /** The mass's rail style (its own exterior setting, else the building's). */
+  readonly railStyle?: RailStyle
+  /** Whether a mass-local point (feet) stands in front of a door of another mass, so a porch post there is left out. */
+  readonly inDoorway?: (p: LocalPoint) => boolean
 }
 
 export function buildingLook(o: PlanObject, style: DisplayStyle, glow: number): BuildingLook {

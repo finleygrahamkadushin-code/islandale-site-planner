@@ -7,6 +7,8 @@ import { activeAutosave, startAutosave } from './store/autosave'
 import { CHANNEL_NAME, startTabLock } from './store/tabLock'
 import { defaultHome, type PlanHome } from './store/planHome'
 import { artifactDbHome, findArtifactDb, findArtifactDbLikely } from './store/artifactHome'
+import { setRailDrawResolver } from './store/railResolver'
+import { resolveRailDraws } from './scene/railSite'
 
 // For end-to-end tests and debugging in the console.
 declare global {
@@ -15,6 +17,9 @@ declare global {
   }
 }
 window.islandale = { store: usePlanStore }
+
+// setRail's first per-edge write keeps what the scene draws, by the scene's own rail rules
+setRailDrawResolver(resolveRailDraws)
 
 // One editing tab at a time; decide that before autosave reads the plan.
 const tabLock =

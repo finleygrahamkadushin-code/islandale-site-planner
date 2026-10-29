@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { DoubleSide } from 'three'
 import { useShallow } from 'zustand/react/shallow'
-import { boardwalkColumns, boardwalkPath, buildBoardwalk } from '../buildings/boardwalk'
+import { boardwalkColumns, boardwalkPath, buildBoardwalk, routePoints } from '../buildings/boardwalk'
 import { localToSite, num } from '../buildings/footprint'
 import { pointInPolygon } from '../buildings/foundation'
 import { buildingMasses, massBuildingPoly } from '../buildings/masses'
@@ -67,13 +67,4 @@ export function BridgeMesh({ o }: { readonly o: PlanObject }) {
   )
 }
 
-/** Route points in the site frame: position + relative route, rotated with the object; elevations in metres. */
-export function routePoints(o: PlanObject): readonly (readonly [number, number, number])[] {
-  const route = Array.isArray(o.params.route) ? (o.params.route as (readonly number[])[]) : []
-  const a = (o.rotation * Math.PI) / 180
-  const c = Math.cos(a)
-  const s = Math.sin(a)
-  return route
-    .filter((p) => p.length >= 3)
-    .map(([dx, dn, elevFt]) => [o.position.x + dx * c - dn * s, o.position.n + dx * s + dn * c, ftToM(elevFt)] as const)
-}
+export { routePoints }

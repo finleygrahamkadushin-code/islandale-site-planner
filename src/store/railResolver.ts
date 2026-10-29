@@ -12,8 +12,7 @@ import type { ObjectId, Plan } from './types'
  * than freezing the legacy flag as the old planner did, which takes the
  * rails off low deck edges.
  *
- * TODO(5A stage 2): register the per-edge rule (legacy guardRule vs per-edge
- * auto, edgeFree) with setRailDrawResolver before any UI calls setRail.
+ * The app registers scene/railSite.resolveRailDraws at start-up (main.tsx).
  */
 export interface RailDrawQuery {
   readonly plan: Plan

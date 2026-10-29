@@ -84,6 +84,25 @@ export function CameraRig() {
       })
       return out
     }
+    // which edges of each wing carry a rail ({ objectId: { mass: edges } }), from the rail meshes' userData.edges
+    w.islandale.railedEdges = () => {
+      const out: Record<string, Record<number, number[]>> = {}
+      scene.traverseVisible((o) => {
+        const edges = o.userData.edges
+        if (o.name !== 'rail' || !Array.isArray(edges)) return
+        let mass: number | undefined
+        for (let p: Object3D | null = o; p; p = p.parent) {
+          if (mass === undefined && typeof p.userData.mass === 'number') mass = p.userData.mass
+          const id = p.userData.objectId
+          if (typeof id === 'string' && mass !== undefined) {
+            const byMass = (out[id] ??= {})
+            byMass[mass] = [...new Set([...(byMass[mass] ?? []), ...(edges as number[])])].sort((a, b) => a - b)
+            break
+          }
+        }
+      })
+      return out
+    }
     w.islandale.look = (position: [number, number, number], target: [number, number, number], fov?: number) => {
       if (!controls) return
       flight.current = null
