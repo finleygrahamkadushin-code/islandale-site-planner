@@ -7,11 +7,13 @@ import type { ObjectId, Plan } from './types'
  * the store's first per-edge rail write (railEdits.materialise). The answer
  * comes from the rail rules (drop to the ground, covered edges, steps), so
  * it is registered here rather than imported, keeping the store free of
- * terrain sampling. With no resolver, or a null answer, the store freezes
- * the legacy flag alone, as the old planner did.
+ * terrain sampling. With no resolver, a null answer or one of the wrong
+ * length, setRail refuses (throws) a first per-edge write and "all", rather
+ * than freezing the legacy flag as the old planner did, which takes the
+ * rails off low deck edges.
  *
  * TODO(5A stage 2): register the per-edge rule (legacy guardRule vs per-edge
- * auto, edgeFree) with setRailDrawResolver.
+ * auto, edgeFree) with setRailDrawResolver before any UI calls setRail.
  */
 export interface RailDrawQuery {
   readonly plan: Plan

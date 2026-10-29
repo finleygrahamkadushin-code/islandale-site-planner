@@ -51,8 +51,13 @@ export function stateOf(rails: unknown, legacy: unknown, i: number, n: number): 
   return 'auto'
 }
 
-/** Every edge's state for a wing or deck with n edges. */
+/**
+ * Every edge's state for a wing or deck with n edges, as the panel and chips
+ * show it. A wing with no map is all auto: what it draws comes from the
+ * whole-wing rule, and its first write keeps exactly that (materialise).
+ */
 export function railStates(src: Params, n: number): RailState[] {
+  if (!hasRailMap(src)) return Array.from({ length: n }, () => 'auto')
   return Array.from({ length: n }, (_, i) => stateOf(src.rails, src.rail, i, n))
 }
 
@@ -71,21 +76,17 @@ function withMap(src: Params, rails: Record<string, boolean>): Params {
  * The first per-edge write turns the whole-wing rule into a map that draws
  * exactly what is drawn now: an edge whose legacy rail differs from what
  * auto would draw is stored on or off, every other edge stays auto, and the
- * legacy flag goes. Without `draws` (the scene's rules are not known), the
- * flag alone is frozen, as legacy materialize does. A wing that already has
- * a map is returned as it is.
+ * legacy flag goes. Legacy materialize froze the flag alone, which takes
+ * the rails off low deck edges, so without `draws` for every edge this
+ * refuses. A wing that already has a map is returned as it is.
  */
 export function materialise(src: Params, n: number, draws: readonly EdgeDraw[] | null): Params {
   if (hasRailMap(src)) return src
+  if (!draws || draws.length !== n) throw new Error(`the first per-edge rail write needs what each of the ${n} edges draws`)
   const rails: Record<string, boolean> = {}
-  for (let i = 0; i < n; i++) {
-    if (draws?.[i]) {
-      if (draws[i].legacy !== draws[i].auto) rails[i] = draws[i].legacy
-      continue
-    }
-    const s = stateOf(undefined, src.rail, i, n)
-    if (s !== 'auto') rails[i] = s === 'on'
-  }
+  draws.forEach((d, i) => {
+    if (d.legacy !== d.auto) rails[i] = d.legacy
+  })
   return withMap(src, rails)
 }
 

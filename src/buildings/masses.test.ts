@@ -80,6 +80,9 @@ describe('wing slots, names and new fields', () => {
   test('per-edge rails are read from saved string keys and keys past the last edge are dropped', () => {
     const [, wing] = buildingMasses({ w: 10, d: 10, wings: [{ kind: 'deck', w: 6, d: 6, rails: { '0': true, 2: false, '7': true, x: true, '1': 'yes' } }] })
     expect(wing.rails).toEqual({ 0: true, 2: false })
+    // only the edge's own key counts, as railEdits reads it
+    const [, odd] = buildingMasses({ w: 10, d: 10, wings: [{ kind: 'deck', w: 6, d: 6, rails: { '01': true, ' 2': true, '3.0': false, '0x1': true } }] })
+    expect(odd.rails).toEqual({})
     const [, plain] = buildingMasses({ w: 10, d: 10, wings: [{ kind: 'deck', w: 6, d: 6, rail: 'sides' }] })
     expect(plain.rails).toBeUndefined()
     expect(plain.rail).toBe('sides')

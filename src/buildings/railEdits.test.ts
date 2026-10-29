@@ -35,6 +35,13 @@ describe('stateOf (legacy railEdit.stateOf)', () => {
   })
 })
 
+test('a wing with no map shows every edge as auto, whatever its old flag', () => {
+  // the whole-wing rule draws it; the chip starts at auto, so a click goes to on
+  expect(railStates({ rail: 'sides' }, 4)).toEqual(['auto', 'auto', 'auto', 'auto'])
+  expect(railStates({ rail: false }, 3)).toEqual(['auto', 'auto', 'auto'])
+  expect(cycle(railStates({ rail: 'sides' }, 4)[0])).toBe('on')
+})
+
 describe('materialise', () => {
   test('keeps what is drawn: only edges where the legacy rule and auto disagree are stored', () => {
     const src = { kind: 'deck', w: 10, d: 6, rail: 'sides' }
@@ -44,9 +51,10 @@ describe('materialise', () => {
     expect(src.rail).toBe('sides') // the input is untouched
   })
 
-  test('without the scene rules the flag alone is frozen, as legacy materialize does', () => {
-    expect(materialise({ rail: 'sides' }, 4, null)).toEqual({ rails: { 0: true, 1: false, 2: true, 3: false } })
-    expect(materialise({ w: 4 }, 4, null)).toEqual({ w: 4, rails: {} })
+  test('without what every edge draws it refuses, rather than freezing the flag as legacy materialize does', () => {
+    expect(() => materialise({ rail: 'sides' }, 4, null)).toThrow(/needs what each of the 4 edges draws/)
+    expect(() => materialise({ rail: true }, 4, [draw(true, true)])).toThrow()
+    expect(() => writeEdge({ kind: 'deck' }, 0, 'on', 4, null)).toThrow()
   })
 
   test('a wing that already has a map is left alone', () => {
@@ -73,7 +81,7 @@ describe('writeEdge and writeAll', () => {
     const on = writeEdge({ rails: { '2': false } }, 2, 'on', 4, null)
     expect(on.rails).toEqual({ 2: true })
     expect(writeEdge(on, 2, 'auto', 4, null).rails).toEqual({})
-    expect(() => writeEdge({}, 4, 'on', 4, null)).toThrow(/no edge/)
+    expect(() => writeEdge({ rails: {} }, 4, 'on', 4, null)).toThrow(/no edge/)
   })
 
   test('all on or off covers every free edge; all auto empties the map; the flag goes', () => {

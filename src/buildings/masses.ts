@@ -129,12 +129,12 @@ function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mas
   }
 }
 
-/** A stored per-edge map (keys are edge numbers, as strings once saved) → edges 0..n-1 with a boolean. */
+/** A stored per-edge map → edges 0..n-1 with a boolean, read as R[i] ?? R["i"] like railEdits (so "01" or "1.0" is not edge 1). */
 function railMap(r: Record<string, unknown>, edgeCount: number): Record<number, boolean> {
   const out: Record<number, boolean> = {}
-  for (const [k, v] of Object.entries(r)) {
-    const i = Number(k)
-    if (Number.isInteger(i) && i >= 0 && i < edgeCount && typeof v === 'boolean') out[i] = v
+  for (let i = 0; i < edgeCount; i++) {
+    const v = r[i] ?? r[String(i)]
+    if (typeof v === 'boolean') out[i] = v
   }
   return out
 }
