@@ -31,6 +31,10 @@ export function AddChips({ o, frame, picked }: Props) {
     return chipEdges(frame.masses, mi).map((i) => ({ mi, e: E[i], key: `${mi}:${i}` }))
   })
   const shown = open && chips.some((c) => c.key === open) ? open : null
+  // a menu whose chip went (undo, another pick) is closed for good, not just hidden until a chip with its key comes back (legacy syncChips)
+  useEffect(() => {
+    if (open && !shown) setOpen(null)
+  }, [open, shown])
 
   useEffect(() => {
     if (!shown) return
