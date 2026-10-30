@@ -119,7 +119,8 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
   )
 }
 
-function realisticColour(kind: SurfaceKind, color?: string): string {
+/** A surface's realistic colour: each kind's own, or the colour it is given where a kind takes one. */
+export function realisticColour(kind: SurfaceKind, color?: string): string {
   switch (kind) {
     case 'frame':
       return '#2d3033'
@@ -128,7 +129,8 @@ function realisticColour(kind: SurfaceKind, color?: string): string {
     case 'concrete':
       return '#9d9a93'
     case 'wood':
-      return '#6e5236'
+      // posts and rims the shared wood; deck rails the legacy post colour they are given
+      return color ?? '#6e5236'
     case 'trunk':
       return color ?? '#5b4433'
     case 'deck':
