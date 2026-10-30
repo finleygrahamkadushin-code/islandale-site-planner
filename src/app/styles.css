@@ -182,7 +182,8 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .aa-chip:hover, .aa-chip.on { background: var(--accent); color: var(--panel); border-color: var(--accent); }
 .aa-pop {
-  position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+  /* left and top are set every frame (AddChips placeMenu): beside the chip, flipped and kept inside the open view */
+  position: absolute; left: calc(100% + 8px); top: 0;
   display: flex; flex-direction: column; gap: 4px; min-width: 120px; padding: 6px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
 }

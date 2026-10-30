@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ATTACH_KINDS, chipEdges, kindLabel, partEdges, type AttachKind } from '../buildings/attach'
 import { edgeName, partName } from '../buildings/masses'
 import type { PlanObject } from '../store/types'
 import { addPartAt } from './addPart'
+import { openArea, placeMenu } from './menuPlace'
 import { inGroup, type PartFrame } from './partFrame'
 import { LAYER, ScreenChip, STOP_EVENTS } from './ScreenChip'
 
@@ -70,8 +71,7 @@ export function AddChips({ o, frame, picked }: Props) {
                 +
               </button>
               {shown === key && (
-                <div className="aa-pop" role="menu" aria-label={`Add to ${label}`}>
-                  <div className="aa-pop-h">{label}</div>
+                <AddMenu label={label}>
                   {kinds.map((k) => (
                     <button
                       key={k}
@@ -86,12 +86,43 @@ export function AddChips({ o, frame, picked }: Props) {
                       {kindLabel(k)}
                     </button>
                   ))}
-                </div>
+                </AddMenu>
               )}
             </div>
           </ScreenChip>
         )
       })}
     </>
+  )
+}
+
+/**
+ * The open menu, placed every frame as the old planner's placePop does:
+ * right of its chip, or left of it when the side panel or the window edge
+ * is in the way, and never above or below the open view.
+ */
+function AddMenu({ label, children }: { readonly label: string; readonly children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    let raf = 0
+    const place = () => {
+      const el = ref.current
+      const wrap = el?.parentElement
+      if (el && wrap) {
+        const chip = wrap.getBoundingClientRect()
+        const at = placeMenu(chip.left + chip.width / 2, chip.top + chip.height / 2, el.offsetWidth, el.offsetHeight, openArea(wrap))
+        el.style.left = `${at.left - chip.left}px`
+        el.style.top = `${at.top - chip.top}px`
+      }
+      raf = requestAnimationFrame(place)
+    }
+    place()
+    return () => cancelAnimationFrame(raf)
+  }, [])
+  return (
+    <div className="aa-pop" ref={ref} role="menu" aria-label={`Add to ${label}`}>
+      <div className="aa-pop-h">{label}</div>
+      {children}
+    </div>
   )
 }
