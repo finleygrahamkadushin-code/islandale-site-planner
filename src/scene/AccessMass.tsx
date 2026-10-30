@@ -22,7 +22,8 @@ interface Piece {
  * nosed treads, closed risers, housed stringers, posts and a foot plate,
  * or a ramp's surface, curbs and skirts, with handrails by the building's
  * rail style. Each handrail mesh is named "rail" and lists its side's edge
- * (1 right, 3 left) in userData.edges.
+ * (1 right, 3 left) in userData.edges. Every mesh, handrails included,
+ * carries the cabin's handlers, so any of it selects the cabin or picks the part.
  */
 export function AccessMass({ masses, mi, look, site, handlers }: { readonly masses: readonly Mass[]; readonly mi: number; readonly look: BuildingLook; readonly site: MassSite; readonly handlers: MeshHandlers }) {
   const plan = useMemo(() => planWingStair(masses, mi, site), [masses, mi, site])
@@ -50,13 +51,13 @@ export function AccessMass({ masses, mi, look, site, handlers }: { readonly mass
       {pieces.map((p) => {
         if (p.mat === 'rail')
           return (
-            <mesh key={p.key} name="rail" geometry={p.geometry} userData={{ edges: [p.side && p.side > 0 ? 1 : 3] }} castShadow>
+            <mesh key={p.key} name="rail" geometry={p.geometry} userData={{ edges: [p.side && p.side > 0 ? 1 : 3] }} castShadow {...handlers}>
               {metal ? <Surface kind="trim" style={display} color={METAL} /> : <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} />}
             </mesh>
           )
         if (p.mat === 'glass')
           return (
-            <mesh key={p.key} name="rail-glass" geometry={p.geometry}>
+            <mesh key={p.key} name="rail-glass" geometry={p.geometry} {...handlers}>
               <Surface kind="railGlass" style={display} />
             </mesh>
           )

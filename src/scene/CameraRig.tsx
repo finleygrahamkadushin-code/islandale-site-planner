@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Box3, Vector3, type Mesh, type Object3D } from 'three'
+import { Box3, Raycaster, Vector2, Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
 
@@ -101,6 +101,35 @@ export function CameraRig() {
           }
         }
       })
+      return out
+    }
+    // screen points (client px, on a grid) where the nearest drawn mesh is a rail of one mass of one object, for click checks
+    w.islandale.railPointsOf = (id: string, mass: number, grid = 40) => {
+      const shown = (o: Object3D) => {
+        for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) return false
+        return true
+      }
+      const owner = (o: Object3D) => {
+        let mi: number | undefined
+        for (let p: Object3D | null = o; p; p = p.parent) {
+          if (mi === undefined && typeof p.userData.mass === 'number') mi = p.userData.mass
+          if (typeof p.userData.objectId === 'string') return { id: p.userData.objectId as string, mass: mi }
+        }
+        return null
+      }
+      const r = gl.domElement.getBoundingClientRect()
+      const ray = new Raycaster()
+      const out: { x: number; y: number }[] = []
+      for (let i = 1; i < grid; i++)
+        for (let j = 1; j < grid; j++) {
+          const x = r.left + (r.width * i) / grid
+          const y = r.top + (r.height * j) / grid
+          if (document.elementFromPoint(x, y) !== gl.domElement) continue
+          ray.setFromCamera(new Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1), camera)
+          const hit = ray.intersectObject(scene, true).find((h) => (h.object as Mesh).isMesh && shown(h.object))
+          const who = hit && owner(hit.object)
+          if (hit && hit.object.name === 'rail' && who?.id === id && who.mass === mass) out.push({ x, y })
+        }
       return out
     }
     w.islandale.look = (position: [number, number, number], target: [number, number, number], fov?: number) => {

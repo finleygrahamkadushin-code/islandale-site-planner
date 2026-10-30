@@ -182,3 +182,27 @@ test('the picked part HUD sits below the top bar however many rows the bar wraps
       .toBeGreaterThanOrEqual(0)
   }
 })
+
+test('a click on the rail of a selected cabin picks the deck it rails, plain or with Alt', async ({ page }) => {
+  test.setTimeout(120_000)
+  await load(page, 'C')
+  const id = 'C-0'
+  await expect.poll(async () => (await railedEdges(page))[id]?.[3], { timeout: 30_000 }).toBeTruthy()
+  await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 9), id)
+  await store(page, 'select', [id])
+  const spots: { x: number; y: number }[] = await page.evaluate((id) => (window as any).islandale.railPointsOf(id, 3), id)
+  expect(spots.length, 'rail points of Deck 3 on screen').toBeGreaterThan(0)
+  const state = () =>
+    page.evaluate(() => {
+      const s = (window as any).islandale.store.getState()
+      return { selection: [...s.selection], picked: s.pickedPart ? { ...s.pickedPart } : null }
+    })
+  for (const [k, p] of spots.slice(0, 6).entries()) {
+    const alt = k % 2 === 1
+    await store(page, 'select', [id])
+    if (alt) await page.keyboard.down('Alt')
+    await page.mouse.click(p.x, p.y)
+    if (alt) await page.keyboard.up('Alt')
+    await expect.poll(state, { message: `${alt ? 'Alt+' : ''}click at ${Math.round(p.x)}, ${Math.round(p.y)}` }).toEqual({ selection: [id], picked: { objectId: id, mass: 3 } })
+  }
+})

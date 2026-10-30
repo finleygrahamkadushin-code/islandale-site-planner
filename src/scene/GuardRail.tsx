@@ -3,7 +3,7 @@ import type { LocalPoint } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
 import { joinEdgeRuns } from '../buildings/rails'
 import { buildRail } from '../buildings/railStyles'
-import type { BuildingLook, MassSite } from './buildingLook'
+import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
@@ -16,9 +16,10 @@ const DECK_POST = '#6e5a44'
  * mass's per-edge rails (railRules.resolveEdges): only where each edge
  * keeps a run once stairs, paths, doors and walls have opened it, in the
  * building's rail style. The mesh is named "rail" and lists the edges that
- * kept any piece in userData.edges.
+ * kept any piece in userData.edges. It carries the cabin's handlers, so a
+ * click on a rail selects the cabin or picks its part, as the floor does.
  */
-export function GuardRail({ m, poly, site, look }: { readonly m: Mass; readonly poly: readonly LocalPoint[]; readonly site: MassSite; readonly look: BuildingLook }) {
+export function GuardRail({ m, poly, site, look, handlers }: { readonly m: Mass; readonly poly: readonly LocalPoint[]; readonly site: MassSite; readonly look: BuildingLook; readonly handlers: MeshHandlers }) {
   const edges = site.rails
   const style = site.railStyle ?? 'wood'
   const rail = useMemo(() => {
@@ -42,7 +43,7 @@ export function GuardRail({ m, poly, site, look }: { readonly m: Mass; readonly 
   const metal = style === 'steel' || style === 'cable'
   return (
     <>
-      <mesh name="rail" geometry={rail.frame} userData={{ edges: rail.edges }} castShadow>
+      <mesh name="rail" geometry={rail.frame} userData={{ edges: rail.edges }} castShadow {...handlers}>
         {metal ? (
           <Surface kind="trim" style={look.style} color={METAL} />
         ) : m.kind === 'deck' ? (
@@ -52,7 +53,7 @@ export function GuardRail({ m, poly, site, look }: { readonly m: Mass; readonly 
         )}
       </mesh>
       {rail.glass && (
-        <mesh name="rail-glass" geometry={rail.glass}>
+        <mesh name="rail-glass" geometry={rail.glass} {...handlers}>
           <Surface kind="railGlass" style={look.style} />
         </mesh>
       )}

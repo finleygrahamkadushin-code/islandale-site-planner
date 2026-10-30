@@ -4,7 +4,7 @@ import { postPositions, supportType } from '../buildings/foundation'
 import { buildWalls } from '../buildings/walls'
 import { ftToM } from '../site/units'
 import type { DisplayStyle } from '../store/types'
-import type { MassSite } from './buildingLook'
+import type { MassSite, MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
@@ -18,10 +18,11 @@ interface FoundationProps {
   readonly spacingFt: number
   readonly postIn: number
   readonly style: DisplayStyle
+  readonly handlers: MeshHandlers
 }
 
 /** Posts or a concrete skirt from an enclosed mass's floor down into the ground, following the real slope under each point. */
-export function Foundation({ poly, site, support, spacingFt, postIn, style }: FoundationProps) {
+export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers }: FoundationProps) {
   const minGround = Math.min(...poly.map(([x, z]) => site.groundAt(x, z)))
   const drop = site.floor - minGround
   const type = supportType(support, drop)
@@ -35,16 +36,16 @@ export function Foundation({ poly, site, support, spacingFt, postIn, style }: Fo
   return (
     <group>
       {skirt && (
-        <mesh geometry={skirt} position={[0, -(drop + EMBED_M), 0]} castShadow receiveShadow>
+        <mesh geometry={skirt} position={[0, -(drop + EMBED_M), 0]} castShadow receiveShadow {...handlers}>
           <Surface kind="concrete" style={style} texture="concrete" />
         </mesh>
       )}
       {rim && (
-        <mesh geometry={rim} position={[0, -RIM_M, 0]} castShadow receiveShadow>
+        <mesh geometry={rim} position={[0, -RIM_M, 0]} castShadow receiveShadow {...handlers}>
           <Surface kind="wood" style={style} />
         </mesh>
       )}
-      <Posts points={posts} top={-RIM_M} site={site} sizeM={Math.max(0.1, postIn * 0.0254)} style={style} />
+      <Posts points={posts} top={-RIM_M} site={site} sizeM={Math.max(0.1, postIn * 0.0254)} style={style} handlers={handlers} />
     </group>
   )
 }
@@ -56,17 +57,19 @@ interface PostsProps {
   readonly site: MassSite
   readonly sizeM: number
   readonly style: DisplayStyle
+  /** The cabin's handlers, so a click on a post selects it or picks its part. */
+  readonly handlers: MeshHandlers
 }
 
 /** Square posts from `top` down to the ground under each point, buried a little. Points closer than a post to the ground get none. */
-export function Posts({ points, top, site, sizeM, style }: PostsProps) {
+export function Posts({ points, top, site, sizeM, style, handlers }: PostsProps) {
   return (
     <>
       {points.map(([x, z], i) => {
         const len = site.floor + top - site.groundAt(x, z) + EMBED_M
         if (len < EMBED_M + 0.05) return null
         return (
-          <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} castShadow>
+          <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} castShadow {...handlers}>
             <boxGeometry args={[sizeM, len, sizeM]} />
             <Surface kind="wood" style={style} />
           </mesh>

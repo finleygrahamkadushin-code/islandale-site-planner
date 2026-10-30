@@ -48,7 +48,7 @@ export function WallMass({
       {openings.map((op) => (
         <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} />
       ))}
-      <Foundation poly={poly} site={site} support={supports.support} spacingFt={supports.spacingFt} postIn={supports.postIn} style={look.style} />
+      <Foundation poly={poly} site={site} support={supports.support} spacingFt={supports.spacingFt} postIn={supports.postIn} style={look.style} handlers={handlers} />
     </>
   )
 }

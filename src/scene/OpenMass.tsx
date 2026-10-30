@@ -46,12 +46,12 @@ export function DeckMass({ m, look, site, handlers, wells }: OpenMassProps & { r
       <mesh geometry={floor} castShadow receiveShadow {...handlers}>
         <Surface kind="deck" style={look.style} texture="deck" glow={look.glow} />
       </mesh>
-      <mesh geometry={rim} position={[0, -DECK_M - BEAM_M, 0]} castShadow receiveShadow>
+      <mesh geometry={rim} position={[0, -DECK_M - BEAM_M, 0]} castShadow receiveShadow {...handlers}>
         <Surface kind="wood" style={look.style} />
       </mesh>
-      <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} />
+      <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} handlers={handlers} />
       {m.steps && <DeckStepsMesh poly={poly} steps={m.steps} wells={wells} look={look} site={site} handlers={handlers} />}
-      <GuardRail m={m} poly={poly} site={site} look={look} />
+      <GuardRail m={m} poly={poly} site={site} look={look} handlers={handlers} />
     </>
   )
 }
@@ -83,8 +83,8 @@ export function PorchMass({ m, look, site, handlers }: OpenMassProps) {
           <Surface kind="wood" style={style} glow={glow} />
         </mesh>
       ))}
-      {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} />}
-      {m.slab && <GuardRail m={m} poly={poly} site={site} look={look} />}
+      {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} handlers={handlers} />}
+      {m.slab && <GuardRail m={m} poly={poly} site={site} look={look} handlers={handlers} />}
       <RoofMesh m={m} poly={poly} look={look} handlers={handlers} />
     </>
   )
