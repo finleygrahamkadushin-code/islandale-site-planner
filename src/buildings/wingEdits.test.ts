@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { buildingMasses } from './masses'
 import { localToSite } from './footprint'
-import { MIN_PART_FT, tidyWing, wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing } from './wingEdits'
+import { MIN_PART_FT, tidyWing, wingAt, withAddedWing, withMainEdgeResized, withoutWing, withSize, withWing, withWingPatch } from './wingEdits'
 
 const cabin = () => ({
   w: 20,
@@ -122,5 +122,32 @@ describe('withMainEdgeResized (legacy applyMainResize)', () => {
     expect(withMainEdgeResized(small, 0, -2)).toBe(small)
     expect(() => withMainEdgeResized({ ...o, params: { ...o.params, shape: 'hex' } }, 0, 1)).toThrow(/rect/)
     expect(() => withMainEdgeResized(o, 4, 1)).toThrow(/no edge 4/)
+  })
+})
+
+describe('withSize and withWingPatch (legacy orgScale)', () => {
+  const deck = { kind: 'deck', shape: 'poly', w: 10, d: 4, pts: [[-5, -2], [5, -2], [5, 2], [-5, 2]], dx: 3 }
+
+  test('a poly or blob scales its points about its origin by new/old size, to 0.01 ft', () => {
+    expect(withSize(deck, 15, 6)).toEqual({ ...deck, w: 15, d: 6, pts: [[-7.5, -3], [7.5, -3], [7.5, 3], [-7.5, 3]] })
+    expect(withSize({ ...deck, shape: 'blob', pts: [[1, 1]] }, 30, 4).pts).toEqual([[3, 1]])
+    expect(withSize({ ...deck, pts: [[1, 1]] }, 3, 4).pts).toEqual([[0.3, 1]])
+    expect(deck.pts[0]).toEqual([-5, -2]) // the input is untouched
+  })
+
+  test('other shapes, a poly without points or without a size, and no change keep their points', () => {
+    expect(withSize({ ...deck, shape: 'rect' }, 15, 6).pts).toBe(deck.pts)
+    expect(withSize({ ...deck, pts: undefined }, 15, 6)).toMatchObject({ w: 15, d: 6, pts: undefined })
+    expect(withSize({ ...deck, w: 0 }, 15, 6).pts).toBe(deck.pts)
+    expect(withSize(deck, 10, 4).pts).toBe(deck.pts)
+  })
+
+  test('a patch with a new w or d scales the points; one with its own outline, or no size, does not', () => {
+    expect(withWingPatch(deck, { w: 20 })).toMatchObject({ w: 20, d: 4, dx: 3, pts: [[-10, -2], [10, -2], [10, 2], [-10, 2]] })
+    expect(withWingPatch(deck, { d: 8, dx: 1 })).toMatchObject({ w: 10, d: 8, dx: 1, pts: [[-5, -4], [5, -4], [5, 4], [-5, 4]] })
+    expect(withWingPatch(deck, { dx: 1 }).pts).toBe(deck.pts)
+    const pts = [[0, 0], [1, 0], [0, 1]]
+    expect(withWingPatch(deck, { w: 20, pts }).pts).toBe(pts)
+    expect(withWingPatch(deck, { w: 20, shape: 'rect' }).pts).toBe(deck.pts)
   })
 })

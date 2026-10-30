@@ -48,6 +48,23 @@ describe('part actions', () => {
       expect([0, 1, 3].map((i) => now[i])).toEqual([0, 1, 3].map((i) => was[i]))
     })
 
+    test('a new width or depth scales the outline of a poly part: Deck 3 and the main walls of C-0', () => {
+      const deck = wingAt(params(PROW), 3)
+      expect(deck.shape).toBe('poly')
+      const xs = () => massPoly(masses(PROW)[3]).map((p) => p[0])
+      const span = () => Math.max(...xs()) - Math.min(...xs())
+      const before = span()
+      oneStep(() => store().updateWing(PROW, 3, { w: (deck.w as number) * 2 }))
+      expect(span()).toBeCloseTo(before * 2, 1)
+      history().clear()
+      const main = params(PROW)
+      expect(main.shape).toBe('poly')
+      oneStep(() => store().resizeObject(PROW, { w: 60, d: main.d as number }))
+      const mxs = massPoly(masses(PROW)[0]).map((p) => p[0])
+      expect(Math.max(...mxs) - Math.min(...mxs)).toBeGreaterThan(55)
+      expect(params(PROW).pts).not.toEqual(main.pts)
+    })
+
     test('addWing appends a wing and returns its mass index', () => {
       let mi: number | null = null
       oneStep(() => {

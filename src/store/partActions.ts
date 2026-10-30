@@ -1,7 +1,7 @@
 import { buildingMasses, MAX_WINGS, massPoly, wingSlots } from '../buildings/masses'
 import { isRailable } from '../buildings/railRules'
 import { buildingRailStyle, hasRailMap, withRailStyle, writeAll, writeEdge, type RailState, type RailStyle } from '../buildings/railEdits'
-import { wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing } from '../buildings/wingEdits'
+import { wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing, withWingPatch } from '../buildings/wingEdits'
 import { railDraws } from './railResolver'
 import type { PickedPart, PlanState } from './planStore'
 import type { ObjectId, Plan, PlanObject } from './types'
@@ -75,8 +75,9 @@ export function watchPickedPart(store: WatchedStore): () => void {
 
 export function partActions({ get, set, editable, edit, editRefit, refitObject }: PartContext): PartActions {
   return {
-    // moves, sizes and shapes go through editRefit, so wall openings a wing now covers are re-fitted
-    updateWing: (id, mi, patch) => editRefit(id, (p) => withWing(p, mi, (w) => ({ ...w, ...patch }))),
+    // moves, sizes and shapes go through editRefit, so wall openings a wing now covers are re-fitted;
+    // a new size scales a poly or blob wing's points, which are all it is drawn from
+    updateWing: (id, mi, patch) => editRefit(id, (p) => withWing(p, mi, (w) => withWingPatch(w, patch))),
 
     addWing: (id, wing) => {
       const o = editable(id)

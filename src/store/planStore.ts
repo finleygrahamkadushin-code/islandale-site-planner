@@ -6,6 +6,7 @@ import type { Site } from '../site/types'
 import type { Scheme } from '../site/schemes'
 import { planFromScheme } from './fromLegacy'
 import { editCuts, massWalls, nextCutId, refitAll, withCutIds, type EditResult } from '../buildings/openingEdits'
+import { withSize } from '../buildings/wingEdits'
 import type { CutData, FitNote } from '../buildings/openingLayout'
 import type { ViewId } from '../scene/views'
 import { normalizeDeg } from '../site/units'
@@ -242,8 +243,8 @@ export const usePlanStore = create<PlanState>()(
           }
           set({ plan: { ...s.plan, objects } })
         },
-        // a new size or shape re-fits the cabin's openings in the same undo step
-        resizeObject: (id, { w, d }) => editRefit(id, (p) => ({ ...p, w: Math.max(1, w), d: Math.max(1, d) })),
+        // a new size or shape re-fits the cabin's openings in the same undo step; a poly or blob's points scale with it
+        resizeObject: (id, { w, d }) => editRefit(id, (p) => withSize(p, Math.max(1, w), Math.max(1, d))),
         setObjectParams: (id, patch) =>
           SHAPE_KEYS.some((k) => k in patch) ? editRefit(id, (p) => ({ ...p, ...patch })) : edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),
         renameObject: (id, name) => edit(id, (o) => ({ ...o, name })),

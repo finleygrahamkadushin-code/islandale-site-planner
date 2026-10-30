@@ -52,6 +52,35 @@ export function withWing(p: Params, mi: number, f: (w: Params) => Params): Param
   return { ...p, wings }
 }
 
+/** Shapes drawn from their own points alone, so a new width or depth has to scale the points. */
+const POINT_SHAPES = new Set(['poly', 'blob'])
+const round2 = (v: number) => Math.round(v * 100) / 100
+
+/**
+ * A part's params (a wing, or a cabin's main walls) at a new width and
+ * depth. A poly or blob is drawn from its points, so they scale about the
+ * part's origin by new/old size, to 0.01 ft (legacy orgScale); every other
+ * shape is drawn from w and d and just takes the numbers.
+ */
+export function withSize(p: Params, w: number, d: number): Params {
+  const ow = Number(p.w)
+  const od = Number(p.d)
+  const sized = { ...p, w, d }
+  if (!POINT_SHAPES.has(String(p.shape)) || !Array.isArray(p.pts) || !(ow > 0) || !(od > 0)) return sized
+  const sx = w / ow
+  const sz = d / od
+  if (sx === 1 && sz === 1) return sized
+  const pts = p.pts.map((q) => (Array.isArray(q) ? [round2(num(q[0], 0) * sx), round2(num(q[1], 0) * sz)] : q))
+  return { ...sized, pts }
+}
+
+/** A wing with `patch` applied; a new w or d scales a poly or blob's points too, unless the patch gives its own outline. */
+export function withWingPatch(w: Params, patch: Params): Params {
+  const next = { ...w, ...patch }
+  if (!('w' in patch || 'd' in patch) || 'pts' in patch || 'shape' in patch) return next
+  return withSize({ ...next, w: w.w, d: w.d }, num(next.w, num(w.w, 0)), num(next.d, num(w.d, 0)))
+}
+
 /** A new wing at the end of the list; it becomes the last mass. */
 export function withAddedWing(p: Params, wing: Params): Params {
   const wings = Array.isArray(p.wings) ? p.wings : []
