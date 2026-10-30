@@ -22,6 +22,8 @@ export function NumField({ label, unit, value, disabled, min, onCommit }: { labe
   const [draft, setDraft] = useState(shown)
   useEffect(() => setDraft(shown), [shown])
   const commit = () => {
+    // nothing typed: the shown text may be rounded, so it is no new value
+    if (draft === shown) return
     const v = Number(draft)
     if (Number.isFinite(v) && v !== value && (min === undefined || v >= min)) onCommit(v)
     else setDraft(shown)

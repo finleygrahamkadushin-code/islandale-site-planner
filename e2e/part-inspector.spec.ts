@@ -15,7 +15,15 @@ const store = (page: Page, fn: string, ...args: unknown[]) =>
   page.evaluate(([fn, args]) => (window as any).islandale.store.getState()[fn as string](...(args as unknown[])), [fn, args] as const)
 const steps = (page: Page) => page.evaluate(() => (window as any).islandale.store.temporal.getState().pastStates.length)
 const bounds = (page: Page, id: string) => page.evaluate((id) => (window as any).islandale.boundsOf(id), id)
-const field = (page: Page, label: string) => page.getByTestId('part-inspector').getByLabel(label, { exact: true })
+/** A field by its caption (an error joins the label's accessible name, so getByLabel would miss a field in error). */
+const field = (page: Page, label: string) =>
+  page
+    .getByTestId('part-inspector')
+    .locator('label.field')
+    .filter({ has: page.locator('span.muted', { hasText: new RegExp(`^${label}$`) }) })
+    .locator('input, select')
+const wing = (page: Page, id: string, mi: number) =>
+  page.evaluate(([id, mi]) => structuredClone((window as any).islandale.store.getState().plan.objects[id as string].params.wings[(mi as number) - 1]), [id, mi] as const)
 
 async function pick(page: Page, id: string, mass: number) {
   await store(page, 'loadScheme', 'C')
@@ -39,4 +47,18 @@ test('a new Width on a poly deck or the poly main walls redraws the outline at t
   const main0 = await bounds(page, id)
   await type(page, 'Width', `60'`)
   await expect.poll(() => bounds(page, id), { timeout: 10_000 }).not.toEqual(main0)
+})
+
+test('focusing and leaving the Angle field without typing keeps a fractional angle and adds no undo step', async ({ page }) => {
+  const id = 'C-0'
+  await pick(page, id, 4)
+  await store(page, 'updateWing', id, 4, { rot: 37.482 })
+  await expect(field(page, 'Angle °')).toHaveValue('37.5')
+  const rot = (await wing(page, id, 4)).rot
+  expect(rot).toBeCloseTo(37.482, 6)
+  const before = await steps(page)
+  await field(page, 'Angle °').click()
+  await page.getByTestId('part-inspector').locator('strong').first().click()
+  expect((await wing(page, id, 4)).rot).toBe(rot)
+  expect(await steps(page)).toBe(before)
 })
