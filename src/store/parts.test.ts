@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { localToSite } from '../buildings/footprint'
 import { buildingMasses, massPoly, MAX_WINGS } from '../buildings/masses'
+import { kindPatch } from '../buildings/partFields'
 import type { EdgeDraw } from '../buildings/railEdits'
 import { wingAt } from '../buildings/wingEdits'
 import { MAIN_STAYS_TEXT, MAX_PARTS_TEXT } from './partActions'
@@ -63,6 +64,14 @@ describe('part actions', () => {
       const mxs = massPoly(masses(PROW)[0]).map((p) => p[0])
       expect(Math.max(...mxs) - Math.min(...mxs)).toBeGreaterThan(55)
       expect(params(PROW).pts).not.toEqual(main.pts)
+    })
+
+    test('setting Deck 3 of C-0 (poly) to Stair through the Kind field keeps its outline', () => {
+      const deck = wingAt(params(PROW), 3)
+      oneStep(() => store().updateWing(PROW, 3, kindPatch(deck, 'stair', 9)))
+      const now = wingAt(params(PROW), 3)
+      expect(now).toMatchObject({ kind: 'stair', w: 8 })
+      expect(now.pts).toEqual(deck.pts)
     })
 
     test('addWing appends a wing and returns its mass index', () => {

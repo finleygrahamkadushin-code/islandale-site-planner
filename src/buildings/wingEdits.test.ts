@@ -150,4 +150,12 @@ describe('withSize and withWingPatch (legacy orgScale)', () => {
     expect(withWingPatch(deck, { w: 20, pts }).pts).toBe(pts)
     expect(withWingPatch(deck, { w: 20, shape: 'rect' }).pts).toBe(deck.pts)
   })
+
+  test('a Kind change keeps the points and any rails map though it clamps w (legacy kind change runs no orgScale)', () => {
+    const wide = { ...deck, w: 45.5, pts: [[-22.75, -2], [22.75, -2], [22.75, 2], [-22.75, 2]], rails: { 0: true } }
+    const stair = withWingPatch(wide, { kind: 'stair', open: true, roof: 'none', h: 0, w: 8, d: 4 })
+    expect(stair).toMatchObject({ kind: 'stair', w: 8, d: 4 })
+    expect(stair.pts).toBe(wide.pts)
+    expect(tidyWing(wide, stair).rails).toEqual({ 0: true })
+  })
 })

@@ -74,10 +74,15 @@ export function withSize(p: Params, w: number, d: number): Params {
   return { ...sized, pts }
 }
 
-/** A wing with `patch` applied; a new w or d scales a poly or blob's points too, unless the patch gives its own outline. */
+/**
+ * A wing with `patch` applied; a new w or d scales a poly or blob's points
+ * too, unless the patch gives its own outline or changes the kind (a Kind
+ * change clamps w and d but leaves the points, as legacy orgScale runs only
+ * for an edited W or D).
+ */
 export function withWingPatch(w: Params, patch: Params): Params {
   const next = { ...w, ...patch }
-  if (!('w' in patch || 'd' in patch) || 'pts' in patch || 'shape' in patch) return next
+  if (!('w' in patch || 'd' in patch) || 'pts' in patch || 'shape' in patch || 'kind' in patch) return next
   return withSize({ ...next, w: w.w, d: w.d }, num(next.w, num(w.w, 0)), num(next.d, num(w.d, 0)))
 }
 
