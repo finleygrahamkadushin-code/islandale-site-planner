@@ -151,6 +151,14 @@ describe('withSize and withWingPatch (legacy orgScale)', () => {
     expect(withWingPatch(deck, { w: 20, shape: 'rect' }).pts).toBe(deck.pts)
   })
 
+  test('a size patch on a wing with no stored d or w leaves the missing side as drawn, not 0', () => {
+    expect(withWingPatch({ kind: 'deck', w: 10 }, { w: 20 })).toEqual({ kind: 'deck', w: 20 })
+    expect(withWingPatch({ kind: 'deck', d: 6 }, { d: 8 })).toEqual({ kind: 'deck', d: 8 })
+    const poly = { kind: 'deck', shape: 'poly', w: 10, pts: [[-5, -5], [5, 5]] }
+    expect(withWingPatch(poly, { w: 20 })).toEqual({ ...poly, w: 20, d: 10, pts: [[-10, -5], [10, 5]] })
+    expect(withWingPatch({ ...poly, w: undefined }, { d: 20 })).toMatchObject({ w: 10, d: 20, pts: [[-5, -10], [5, 10]] })
+  })
+
   test('a Kind change keeps the points and any rails map though it clamps w (legacy kind change runs no orgScale)', () => {
     const wide = { ...deck, w: 45.5, pts: [[-22.75, -2], [22.75, -2], [22.75, 2], [-22.75, 2]], rails: { 0: true } }
     const stair = withWingPatch(wide, { kind: 'stair', open: true, roof: 'none', h: 0, w: 8, d: 4 })

@@ -83,7 +83,10 @@ export function withSize(p: Params, w: number, d: number): Params {
 export function withWingPatch(w: Params, patch: Params): Params {
   const next = { ...w, ...patch }
   if (!('w' in patch || 'd' in patch) || 'pts' in patch || 'shape' in patch || 'kind' in patch) return next
-  return withSize({ ...next, w: w.w, d: w.d }, num(next.w, num(w.w, 0)), num(next.d, num(w.d, 0)))
+  if (!POINT_SHAPES.has(String(w.shape))) return next
+  // a side with no stored size is drawn at wingMass's default, so it scales from and keeps that
+  const drawn = wingMass(w)
+  return withSize({ ...next, w: drawn.w, d: drawn.d }, num(next.w, drawn.w), num(next.d, drawn.d))
 }
 
 /** A new wing at the end of the list; it becomes the last mass. */
