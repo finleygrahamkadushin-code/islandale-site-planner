@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatFeetInches, parseFeetInches, snapInch } from './feetInches'
+import { formatFeetInches, parseFeetInches, readLength, snapInch } from './feetInches'
 
 describe('feet and inches', () => {
   test.each([
@@ -31,5 +31,19 @@ describe('feet and inches', () => {
     expect(formatFeetInches(0.5)).toBe(`6"`)
     expect(formatFeetInches(3.5 / 12)).toBe(`3.5"`)
     expect(snapInch(2.76)).toBeCloseTo(2.75, 9)
+  })
+})
+
+describe('readLength', () => {
+  test('checks min and max on the length snapped to the inch', () => {
+    expect(readLength(`30' 0.4"`, 0, 30)).toEqual({ ft: 30 })
+    expect(readLength(`2' 11.6"`, 3, 30)).toEqual({ ft: 3 })
+    expect(readLength(`30' 1"`, 0, 30)).toEqual({ error: "At most 30'" })
+    expect(readLength(`2' 11"`, 3, 30)).toEqual({ error: "At least 3'" })
+    expect(readLength('12.3', 0, Infinity)).toEqual({ ft: snapInch(12.3) })
+  })
+
+  test('passes a parse error through', () => {
+    expect(readLength('abc', 0, 30)).toEqual(parseFeetInches('abc'))
   })
 })

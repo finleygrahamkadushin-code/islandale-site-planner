@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatFeetInches, parseFeetInches, snapInch } from './feetInches'
+import { formatFeetInches, readLength } from './feetInches'
 
 interface Props {
   readonly label: string
@@ -26,21 +26,13 @@ export function FeetInchesField({ label, value, disabled, min = 0, max = Infinit
       setError(null)
       return
     }
-    const r = parseFeetInches(draft)
+    const r = readLength(draft, min, max)
     if ('error' in r) {
       setError(r.error)
       return
     }
-    if (r.ft < min) {
-      setError(`At least ${formatFeetInches(min)}`)
-      return
-    }
-    if (r.ft > max) {
-      setError(`At most ${formatFeetInches(max)}`)
-      return
-    }
     setError(null)
-    const ft = snapInch(r.ft)
+    const ft = r.ft
     if (Math.abs(ft - value) > 1e-6) onCommit(ft)
     else setDraft(shown)
   }

@@ -39,3 +39,16 @@ export function formatFeetInches(ft: number): string {
 
 /** Snap feet to the nearest inch, the opening editor's step. */
 export const snapInch = (ft: number): number => Math.round(ft * 12) / 12
+
+/**
+ * A typed length snapped to the inch and checked against min and max (feet),
+ * so 30' 0.4" counts as the 30' it becomes. Returns feet or an error message.
+ */
+export function readLength(text: string, min: number, max: number): { readonly ft: number } | { readonly error: string } {
+  const r = parseFeetInches(text)
+  if ('error' in r) return r
+  const ft = snapInch(r.ft)
+  if (ft < min - 1e-9) return { error: `At least ${formatFeetInches(min)}` }
+  if (ft > max + 1e-9) return { error: `At most ${formatFeetInches(max)}` }
+  return { ft }
+}
