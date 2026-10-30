@@ -223,8 +223,12 @@ test('hiding a cabin with a part picked takes its chips, grip and knob away with
   await store(page, 'setHidden', id, false)
   await store(page, 'pickPart', { objectId: id, mass: 3 })
   await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
+  // hiding its layer drops the pick and the selection too, so keys and the inspector cannot edit it
   await store(page, 'setLayer', 'buildings', { visible: false })
   await expect(overlay).toHaveCount(0)
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().pickedPart)).toBeNull()
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().selection)).toEqual([])
   await store(page, 'setLayer', 'buildings', { visible: true })
+  await store(page, 'pickPart', { objectId: id, mass: 3 })
   await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
 })
