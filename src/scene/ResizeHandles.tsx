@@ -6,7 +6,7 @@ import { ftToM } from '../site/units'
 import { isObjectLocked, usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { baseElevation } from './placement'
-import type { DragState } from './editing'
+import { resizeDrag, type DragState } from './editing'
 
 const MIN_FT = 2
 const HANDLE_M = 0.45
@@ -42,7 +42,7 @@ export function ResizeHandles({ o, setDrag }: { readonly o: PlanObject; readonly
       const [lx, lz] = siteToLocal(o.position, o.rotation, [hit.x, -hit.z])
       const size = { w: Math.max(MIN_FT, Math.abs(lx) * 2), d: Math.max(MIN_FT, Math.abs(lz) * 2) }
       live.current = size
-      setDrag({ id: o.id, patch: (obj) => ({ params: { ...obj.params, w: size.w, d: size.d } }) })
+      setDrag(resizeDrag(o.id, size))
     },
     [o.id, o.position, o.rotation, plane, hit, setDrag],
   )
