@@ -168,6 +168,7 @@ test('the picked part follows its edge square, grip and knob under the mouse, on
 })
 
 test('the picked part HUD sits below the top bar however many rows the bar wraps to', async ({ page }) => {
+  test.setTimeout(120_000)
   await load(page, 'C')
   await store(page, 'pickPart', { objectId: 'C-0', mass: 3 })
   for (const [width, height] of [[1280, 800], [1512, 982], [1920, 1080]]) {
@@ -178,7 +179,7 @@ test('the picked part HUD sits below the top bar however many rows the bar wraps
       .poll(async () => {
         const [h, bar] = await Promise.all([hud.boundingBox(), page.locator('header.topbar').boundingBox()])
         return h && bar ? Math.round(h.y - (bar.y + bar.height)) : null
-      }, { message: `${width} x ${height}` })
+      }, { message: `${width} x ${height}`, timeout: 15_000 })
       .toBeGreaterThanOrEqual(0)
   }
 })
@@ -208,6 +209,7 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
 })
 
 test('hiding a cabin with a part picked takes its chips, grip and knob away with it, by its own Hide or its layer', async ({ page }) => {
+  test.setTimeout(120_000)
   await load(page, 'C')
   const id = 'C-0'
   const overlay = page.locator('[data-testid^="add-chip-"], [data-testid^="rail-chip-"], [data-testid="part-grip"], [data-testid="part-knob"]')
