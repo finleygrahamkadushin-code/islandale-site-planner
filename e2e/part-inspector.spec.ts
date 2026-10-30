@@ -75,3 +75,13 @@ test('a Level over 30 ft is refused with a message and no undo step, and the fie
   expect((await wing(page, id, 4)).lvl).toBe(30)
   expect(await steps(page)).toBe(before)
 })
+
+test('a field in error is valid again once its shown value is typed back', async ({ page }) => {
+  await pick(page, 'C-0', 4)
+  const shown = await field(page, 'Depth').inputValue()
+  await type(page, 'Depth', 'abc')
+  await expect(field(page, 'Depth')).toHaveAttribute('aria-invalid', 'true')
+  await type(page, 'Depth', shown)
+  await expect(field(page, 'Depth')).toHaveAttribute('aria-invalid', 'false')
+  await expect(page.getByTestId('part-inspector').locator('em.err')).toHaveCount(0)
+})

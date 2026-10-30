@@ -21,7 +21,11 @@ export function FeetInchesField({ label, value, disabled, min = 0, max = Infinit
   }, [shown])
 
   const commit = () => {
-    if (draft.trim() === shown) return
+    // the shown value typed back clears any error from an earlier try
+    if (draft.trim() === shown) {
+      setError(null)
+      return
+    }
     const r = parseFeetInches(draft)
     if ('error' in r) {
       setError(r.error)
