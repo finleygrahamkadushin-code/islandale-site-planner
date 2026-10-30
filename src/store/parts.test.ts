@@ -312,6 +312,16 @@ describe('the picked part', () => {
     expect(store().plan.objects[PROW].hidden).toBe(false)
   })
 
+  test('hiding its layer drops the picked part and the selection; hiding another layer leaves them', () => {
+    store().pickPart({ objectId: PROW, mass: 3 })
+    store().setLayer('trees', { visible: false })
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 3 })
+    store().setLayer('buildings', { visible: false })
+    expect(store().pickedPart).toBeNull()
+    expect(store().selection).toEqual([])
+    store().showAll()
+  })
+
   test('picking a part selects its building and is no undo step; a bad pick is ignored', () => {
     store().pickPart({ objectId: PROW, mass: 2 })
     expect(store().pickedPart).toEqual({ objectId: PROW, mass: 2 })

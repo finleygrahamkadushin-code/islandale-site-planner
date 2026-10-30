@@ -26,6 +26,7 @@ import {
   type ObjectId,
   type Plan,
   type PlanObject,
+  layerOf,
 } from './types'
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'loading'
@@ -327,8 +328,21 @@ export const usePlanStore = create<PlanState>()(
         setHovered: (hovered) => set({ hovered }),
         setSiteLocked: (siteLocked) => set({ siteLocked }),
         setLabelMode: (labelMode) => set({ labelMode }),
+        // as with setHidden, objects on a layer that goes hidden leave the selection and drop their picked part
         setLayer: (layer, patch) =>
-          set((s) => ({ layers: { ...s.layers, [layer]: { ...s.layers[layer], ...patch } } })),
+          set((s) => {
+            const layers = { ...s.layers, [layer]: { ...s.layers[layer], ...patch } }
+            if (patch.visible !== false) return { layers }
+            const shown = (id: ObjectId) => {
+              const o = s.plan.objects[id]
+              return !o || layerOf(o) !== layer
+            }
+            return {
+              layers,
+              selection: s.selection.filter(shown),
+              pickedPart: s.pickedPart && !shown(s.pickedPart.objectId) ? null : s.pickedPart,
+            }
+          }),
         lockAll: (locked) =>
           set((s) => ({
             layers: mapLayers(s.layers, (l) => ({ ...l, locked })),
