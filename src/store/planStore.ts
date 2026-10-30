@@ -267,8 +267,14 @@ export const usePlanStore = create<PlanState>()(
         setLocked: (id, locked) => {
           if (writable()) set((s) => ({ plan: withObject(s.plan, id, { locked }) }))
         },
+        // a hidden object is gone from the view, so it leaves the selection and drops its picked part
         setHidden: (id, hidden) => {
-          if (writable()) set((s) => ({ plan: withObject(s.plan, id, { hidden }) }))
+          if (!writable()) return
+          set((s) => ({
+            plan: withObject(s.plan, id, { hidden }),
+            selection: hidden ? s.selection.filter((x) => x !== id) : s.selection,
+            pickedPart: hidden && s.pickedPart?.objectId === id ? null : s.pickedPart,
+          }))
         },
         setLabelVisible: (id, labelVisible) => {
           if (writable()) set((s) => ({ plan: withObject(s.plan, id, { labelVisible }) }))

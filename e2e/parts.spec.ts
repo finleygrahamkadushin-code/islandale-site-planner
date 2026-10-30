@@ -206,3 +206,23 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
     await expect.poll(state, { message: `${alt ? 'Alt+' : ''}click at ${Math.round(p.x)}, ${Math.round(p.y)}` }).toEqual({ selection: [id], picked: { objectId: id, mass: 3 } })
   }
 })
+
+test('hiding a cabin with a part picked takes its chips, grip and knob away with it, by its own Hide or its layer', async ({ page }) => {
+  await load(page, 'C')
+  const id = 'C-0'
+  const overlay = page.locator('[data-testid^="add-chip-"], [data-testid^="rail-chip-"], [data-testid="part-grip"], [data-testid="part-knob"]')
+  await store(page, 'pickPart', { objectId: id, mass: 3 })
+  await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 10), id)
+  await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
+  await page.locator('section.inspector').getByRole('button', { name: 'Hide', exact: true }).click()
+  await expect(overlay).toHaveCount(0)
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().pickedPart)).toBeNull()
+
+  await store(page, 'setHidden', id, false)
+  await store(page, 'pickPart', { objectId: id, mass: 3 })
+  await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
+  await store(page, 'setLayer', 'buildings', { visible: false })
+  await expect(overlay).toHaveCount(0)
+  await store(page, 'setLayer', 'buildings', { visible: true })
+  await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
+})

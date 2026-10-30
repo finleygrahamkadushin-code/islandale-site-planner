@@ -291,6 +291,18 @@ describe('the picked part', () => {
     history().clear()
   })
 
+  test('hiding the building drops its picked part and its selection; hiding another leaves them', () => {
+    store().pickPart({ objectId: PROW, mass: 3 })
+    store().setHidden(WEDGE, true)
+    expect(store().pickedPart).toEqual({ objectId: PROW, mass: 3 })
+    expect(store().selection).toEqual([PROW])
+    store().setHidden(PROW, true)
+    expect(store().pickedPart).toBeNull()
+    expect(store().selection).toEqual([])
+    store().setHidden(PROW, false)
+    expect(store().plan.objects[PROW].hidden).toBe(false)
+  })
+
   test('picking a part selects its building and is no undo step; a bad pick is ignored', () => {
     store().pickPart({ objectId: PROW, mass: 2 })
     expect(store().pickedPart).toEqual({ objectId: PROW, mass: 2 })
