@@ -62,3 +62,16 @@ test('focusing and leaving the Angle field without typing keeps a fractional ang
   expect((await wing(page, id, 4)).rot).toBe(rot)
   expect(await steps(page)).toBe(before)
 })
+
+test('a Level over 30 ft is refused with a message and no undo step, and the field keeps 30 ft', async ({ page }) => {
+  const id = 'C-0'
+  await pick(page, id, 4)
+  await type(page, 'Level', '30')
+  await expect(field(page, 'Level')).toHaveValue(`30'`)
+  const before = await steps(page)
+  await type(page, 'Level', '45')
+  await expect(field(page, 'Level')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByTestId('part-inspector')).toContainText(`At most 30'`)
+  expect((await wing(page, id, 4)).lvl).toBe(30)
+  expect(await steps(page)).toBe(before)
+})

@@ -6,11 +6,12 @@ interface Props {
   readonly value: number
   readonly disabled?: boolean
   readonly min?: number
+  readonly max?: number
   readonly onCommit: (ft: number) => void
 }
 
 /** A length typed in feet and inches (2' 9", 33 in or 2.75), snapped to the inch, committed on blur or Enter. */
-export function FeetInchesField({ label, value, disabled, min = 0, onCommit }: Props) {
+export function FeetInchesField({ label, value, disabled, min = 0, max = Infinity, onCommit }: Props) {
   const shown = formatFeetInches(value)
   const [draft, setDraft] = useState(shown)
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +29,10 @@ export function FeetInchesField({ label, value, disabled, min = 0, onCommit }: P
     }
     if (r.ft < min) {
       setError(`At least ${formatFeetInches(min)}`)
+      return
+    }
+    if (r.ft > max) {
+      setError(`At most ${formatFeetInches(max)}`)
       return
     }
     setError(null)

@@ -97,7 +97,7 @@ function WingFields({ o, m, mass, locked, set }: WingProps) {
       <FeetInchesField label="Width" value={m.w} min={min} disabled={locked} onCommit={(w) => set({ w })} />
       <FeetInchesField label={access ? 'Run' : 'Depth'} value={m.d} min={min} disabled={locked} onCommit={(d) => set({ d })} />
       {!access && <FeetInchesField label="Wall height" value={m.h} min={m.kind === 'deck' ? 0 : 1} disabled={locked} onCommit={(h) => set({ h })} />}
-      <FeetInchesField label="Level" value={m.lvl} min={0} disabled={locked} onCommit={(lvl) => set({ lvl: Math.min(MAX_LEVEL_FT, lvl) })} />
+      <FeetInchesField label="Level" value={m.lvl} min={0} max={MAX_LEVEL_FT} disabled={locked} onCommit={(lvl) => set({ lvl })} />
       <FeetInchesField label="Offset →" value={m.dx} min={OFFSET_LIMIT_FT} disabled={locked} onCommit={(dx) => set({ dx })} />
       <FeetInchesField label="Offset front" value={m.dz} min={OFFSET_LIMIT_FT} disabled={locked} onCommit={(dz) => set({ dz })} />
       <NumField label="Angle" unit="°" value={m.rot} disabled={locked} onCommit={(rot) => set({ rot })} />
