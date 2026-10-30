@@ -155,7 +155,8 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 
 /* Building parts (Phase 5A): picked-part HUD, handles, + chips and rail chips over the view */
 .part-hud {
-  position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  /* just under the top bar, which wraps to more rows on a narrow window (TopBar sets --topbar-bottom) */
+  position: absolute; left: 50%; top: calc(var(--topbar-bottom, 56px) + 8px); transform: translateX(-50%); z-index: 2; pointer-events: none;
   max-width: calc(100% - 340px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-size: 12px; padding: 4px 10px; border-radius: 999px;
   background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--accent); color: var(--fg);

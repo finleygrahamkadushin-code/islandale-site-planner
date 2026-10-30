@@ -166,3 +166,19 @@ test('the picked part follows its edge square, grip and knob under the mouse, on
   expect(await wings(page, id)).toEqual(start)
   expect(errors).toEqual([])
 })
+
+test('the picked part HUD sits below the top bar however many rows the bar wraps to', async ({ page }) => {
+  await load(page, 'C')
+  await store(page, 'pickPart', { objectId: 'C-0', mass: 3 })
+  for (const [width, height] of [[1280, 800], [1512, 982], [1920, 1080]]) {
+    await page.setViewportSize({ width, height })
+    const hud = page.getByTestId('part-hud')
+    await expect(hud).toContainText('Deck 3')
+    await expect
+      .poll(async () => {
+        const [h, bar] = await Promise.all([hud.boundingBox(), page.locator('header.topbar').boundingBox()])
+        return h && bar ? Math.round(h.y - (bar.y + bar.height)) : null
+      }, { message: `${width} x ${height}` })
+      .toBeGreaterThanOrEqual(0)
+  }
+})

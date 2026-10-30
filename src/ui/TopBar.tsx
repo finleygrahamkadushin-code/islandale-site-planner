@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef, type RefObject } from 'react'
 import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
@@ -36,6 +36,8 @@ export function TopBar() {
   const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
   const canRedo = useStore(usePlanStore.temporal, (s) => s.futureStates.length > 0)
   const fileInput = useRef<HTMLInputElement>(null)
+  const bar = useRef<HTMLElement>(null)
+  useTopBarBottom(bar)
 
   const byId = (id: string) => schemes.find((s) => s.id === id)
   const onReset = () => {
@@ -43,7 +45,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="topbar">
+    <header className="topbar" ref={bar}>
       <h1>Islandale</h1>
       <label className="field">
         <span className="muted">Scheme</span>
@@ -149,4 +151,25 @@ export function TopBar() {
       </span>
     </header>
   )
+}
+
+/**
+ * The bar wraps to two rows or more on a narrow window; chips under it (the
+ * part HUD) read its bottom edge from --topbar-bottom on the app, so they
+ * sit below it whatever its height.
+ */
+function useTopBarBottom(bar: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = bar.current
+    const app = el?.parentElement
+    if (!el || !app) return
+    const update = () => app.style.setProperty('--topbar-bottom', `${el.offsetTop + el.offsetHeight}px`)
+    update()
+    const watch = new ResizeObserver(update)
+    watch.observe(el)
+    return () => {
+      watch.disconnect()
+      app.style.removeProperty('--topbar-bottom')
+    }
+  }, [bar])
 }
