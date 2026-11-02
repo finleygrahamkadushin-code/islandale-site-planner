@@ -5,6 +5,7 @@ import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
+import { DrawingSheets } from './DrawingSheets'
 import { LegacyPlanner } from './LegacyPlanner'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
@@ -24,6 +25,7 @@ const READ_ONLY_TEXT = {
 
 export function TopBar() {
   const [legacyOpen, setLegacyOpen] = useState(false)
+  const [sheetsOpen, setSheetsOpen] = useState(false)
   const plan = usePlanStore((s) => s.plan)
   const schemes = usePlanStore((s) => s.schemes)
   const labelMode = usePlanStore((s) => s.labelMode)
@@ -123,6 +125,9 @@ export function TopBar() {
         <button onClick={onReset} title="Back to Scheme C as saved in the old planner">
           Reset
         </button>
+        <button onClick={() => setSheetsOpen(true)} title="Floor plans and elevations to scale, with every dimension, for drawing by hand">
+          Sheets
+        </button>
       </div>
 
       <HistoryMenu />
@@ -134,6 +139,7 @@ export function TopBar() {
         </button>
       )}
       {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
+      {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} />}
 
       {readOnly && (
         <span className="readonly" data-testid="read-only">

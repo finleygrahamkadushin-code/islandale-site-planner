@@ -208,3 +208,68 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .rail-row { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .rail-row.warn { color: var(--danger); font-weight: 600; }
 .rail-row .seg button { font-size: 11px; padding: 2px 8px; }
+
+/* Drawing sheets: true-size printable plans, elevations and measurements, light paper only */
+.drawing-sheets {
+  position: fixed; inset: 0; z-index: 60; overflow: auto;
+  background: #e7e7e4; color: #000; color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.drawing-sheets button, .drawing-sheets select, .drawing-sheets input { color: #000; background: #fff; border-color: #b9b9b4; }
+.drawing-sheets button:hover:not(:disabled) { border-color: #555; }
+.sheets-bar {
+  position: sticky; top: 0; left: 0; z-index: 1;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 8px 16px; background: #f7f7f5; border-bottom: 1px solid #c9c9c4;
+}
+.sheets-bar label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.sheets-show { display: inline-flex; gap: 10px; align-items: center; border: 0; margin: 0; padding: 0; }
+.sheets-show legend { float: left; margin-right: 4px; padding: 0; font-size: 13px; color: #555; }
+.sheets-check input { margin: 0; }
+.sheets-hint { flex-basis: 100%; margin: 0; font-size: 12px; color: #444; }
+/* pages centre with auto margins, so one wider than the window still scrolls to its left edge */
+.sheets-pages { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; padding: 24px 16px 48px; }
+.sheets-pages > .sheets-empty, .sheets-building > .sheet-page { margin-inline: auto; }
+.sheets-building { display: contents; }
+.sheets-empty { font-size: 14px; color: #444; }
+.sheet-page {
+  box-sizing: border-box; flex: none; display: flex; flex-direction: column;
+  background: #fff; color: #000; box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+  break-after: page; page-break-after: always; overflow: hidden;
+}
+.sheet-page.flow { overflow: visible; }
+.sheet-draw { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.sheet-draw.tiled { align-items: flex-start; justify-content: flex-start; }
+.sheet-page.flow .sheet-draw { align-items: flex-start; justify-content: flex-start; overflow: visible; }
+.sheet-svg { display: block; flex: none; max-width: none; }
+.sheet-title {
+  flex: none; box-sizing: border-box; display: flex; align-items: stretch; gap: 0.2in;
+  border-top: 1.5pt solid #000; padding-top: 0.06in; font-size: 8pt; line-height: 1.25;
+}
+.sheet-title-names { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.sheet-plan { color: #333; }
+.sheet-building { font-size: 10pt; }
+.sheet-name { font-size: 12pt; font-weight: 600; }
+.sheet-title-facts { display: flex; flex-direction: column; justify-content: flex-start; }
+.sheet-title-checks { display: flex; flex-direction: column; justify-content: flex-start; gap: 0.04in; }
+.sheet-inch { display: flex; align-items: center; gap: 0.06in; }
+.sheet-inch-bar { display: block; flex: none; height: 0.08in; box-sizing: border-box; border: 0.75pt solid #000; border-top: 0; }
+.sheet-scalebar, .sheet-north { display: block; flex: none; }
+.sheet-tables { display: flex; flex-direction: column; gap: 0.12in; width: 100%; }
+.sheet-table { border-collapse: collapse; font-size: 8pt; line-height: 1.2; width: auto; min-width: 60%; max-width: 100%; }
+.sheet-table caption { text-align: left; font-weight: 600; font-size: 9pt; padding-bottom: 0.03in; }
+.sheet-table-note { display: block; font-weight: 400; font-size: 7.5pt; color: #222; max-width: 7.5in; }
+.sheet-table thead { display: table-header-group; }
+.sheet-table tr { break-inside: avoid; page-break-inside: avoid; }
+.sheet-table th, .sheet-table td { border: 0.5pt solid #888; padding: 0.015in 0.05in; text-align: left; vertical-align: top; }
+.sheet-table th { background: #eee; font-weight: 600; }
+@media print {
+  html:has(> body > .drawing-sheets), body:has(> .drawing-sheets) { height: auto; background: #fff; }
+  body:has(> .drawing-sheets) > :not(.drawing-sheets), .app, .sheets-bar { display: none !important; }
+  .drawing-sheets { position: static; overflow: visible; background: none; }
+  .sheets-pages { display: block; padding: 0; gap: 0; }
+  .sheets-building > .sheet-page { box-shadow: none; margin: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .sheets-building:last-child > .sheet-page:last-child { break-after: auto; page-break-after: auto; }
+  .drawing-sheets svg { max-width: none; }
+  .sheet-retry { display: none; }
+}

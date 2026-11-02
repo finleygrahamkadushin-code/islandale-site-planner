@@ -12,6 +12,7 @@ import { EditGizmos } from './EditGizmos'
 import { SceneEnvironment } from './SceneEnvironment'
 import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
+import { SheetCapture } from './ElevationCapture'
 import { PartHud } from '../ui/PartHud'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
@@ -41,6 +42,7 @@ export function Scene() {
       <EditGizmos drag={drag} setDrag={setDrag} />
       <Effects />
       <CameraRig />
+      <SheetCapture />
       <OrbitControls makeDefault target={target} maxPolarAngle={Math.PI / 2 - 0.02} enableDamping />
     </Canvas>
     </div>
