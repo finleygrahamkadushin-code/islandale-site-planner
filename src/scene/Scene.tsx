@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { usePlanStore } from '../store/planStore'
 import { Terrain } from './Terrain'
+import { RetainingWalls } from './RetainingWalls'
 import { ParcelLine } from './ParcelLine'
 import { SiteMarks } from './SiteMarks'
 import { PlanObjects } from './PlanObjects'
@@ -41,6 +42,7 @@ export function Scene() {
     >
       <SceneEnvironment />
       <Terrain terrain={site.terrain} />
+      <RetainingWalls />
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />

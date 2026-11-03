@@ -1,7 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import type { BufferGeometry } from 'three'
-import { cutCells } from '../site/earthworks'
 import type { Terrain as TerrainData } from '../site/types'
 import { usePlanStore } from '../store/planStore'
 import { buildPatchGeometry, buildTerrainGeometry, colourTerrain } from './terrainGeometry'
@@ -9,14 +8,14 @@ import { grass, perMetre } from './textures'
 import { useEarthworks } from './useEarthworks'
 import { STYLE_GROUND, useDisplayStyle } from './useDisplayStyle'
 
-/** The ground: the survey grid, with a fine patch wherever a building is set into the slope. */
+/** The ground: the survey grid, with a fine patch wherever buildings and ponds reshape it (cuts, fills, berms, bowls). */
 export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   const style = useDisplayStyle()
   const tideFt = usePlanStore((s) => s.environment.tideFt)
-  const { cuts, ground } = useEarthworks()
-  const rects = useMemo(() => cuts.map((c) => cutCells(terrain, c)), [cuts, terrain])
+  const { works } = useEarthworks()
+  const rects = useMemo(() => works.fields.map((f) => f.rect), [works])
   const geometry = useMemo(() => buildTerrainGeometry(terrain, rects), [terrain, rects])
-  const patches = useMemo(() => rects.map((r) => buildPatchGeometry(terrain, r, ground)), [terrain, rects, ground])
+  const patches = useMemo(() => works.fields.map(buildPatchGeometry), [works])
   const grassMap = useMemo(() => perMetre(grass()), [])
   useEffect(() => [geometry, ...patches].forEach((g) => colourTerrain(g, tideFt)), [geometry, patches, tideFt])
   useEffect(() => () => geometry.dispose(), [geometry])

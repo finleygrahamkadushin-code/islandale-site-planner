@@ -4,7 +4,7 @@ import { ftToM } from '../site/units'
 import { localToSite, num, siteFootprint, type LocalPoint } from '../buildings/footprint'
 import { buildingBounds, buildingMasses, massBuildingPoly } from '../buildings/masses'
 import type { SitePoint } from '../site/types'
-import type { Cut, Ground } from '../site/earthworks'
+import { earthSpec, opReach, pondDepthM, pondLevelOf, type Cut, type EarthOp, type Ground } from '../site/earthworks'
 import type { PlanObject } from '../store/types'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */
@@ -35,17 +35,46 @@ export function sinkFt(o: PlanObject): number {
 
 const BUILDING_TYPES = new Set(['house', 'shop', 'shed'])
 
-/** The cuts made by buildings set into the slope: each sunk building's enclosed outlines at its floor. */
-export function sunkCuts(objects: readonly PlanObject[], t: Terrain): Cut[] {
-  return objects
-    .filter((o) => sinkFt(o) > 0)
-    .map((o) => ({
-      polys: buildingMasses(o.params)
-        .filter((m) => !m.open)
-        .map((m) => massBuildingPoly(m).map((p) => localToSite(o.position, o.rotation, p))),
-      floor: baseElevation(t, o),
-    }))
+/** Whether an object reshapes the ground: a building with a berm, a sink or an earth support, or a pond (legacy earthOps). */
+export function shapesGround(o: PlanObject): boolean {
+  return o.type === 'pond' || earthSpec(o.type, o.params) !== null
 }
+
+/** What each earthworks object asks of the ground, in plan order (legacy earthOps). */
+export function earthOps(objects: readonly PlanObject[], t: Terrain): EarthOp[] {
+  return objects.flatMap((o): EarthOp[] => {
+    if (o.type === 'pond') return [{ kind: 'pond', id: o.id, poly: siteFootprint(o), depth: pondDepthM(o.params) }]
+    const spec = earthSpec(o.type, o.params)
+    if (!spec) return []
+    const masses = buildingMasses(o.params)
+    const corners = boundsCorners(o).map(([x, n]) => elevationAt(t, x, n))
+    return [{
+      kind: 'building',
+      id: o.id,
+      spec,
+      polys: masses.filter((m) => m.kind !== 'stair' && m.kind !== 'ramp').map((m) => massBuildingPoly(m).map((p) => localToSite(o.position, o.rotation, p))),
+      main: { outline: massBuildingPoly(masses[0]), position: o.position, rotation: o.rotation },
+      floor: baseElevation(t, o),
+      gradeLow: Math.min(...corners),
+    }]
+  })
+}
+
+/**
+ * The ground each earthworks object reshapes, as cuts carrying their
+ * object, so groundWithCuts gives the ground the scene draws: sunk floors,
+ * fill benches, berms, courts and ponds.
+ */
+export function earthCuts(objects: readonly PlanObject[], t: Terrain): Cut[] {
+  return earthOps(objects, t).map((op) =>
+    op.kind === 'pond'
+      ? { polys: [op.poly], floor: pondLevelOf(op.poly, (x, n) => elevationAt(t, x, n)), op, reach: opReach(t, op) }
+      : { polys: op.polys, floor: op.floor, op, reach: opReach(t, op) },
+  )
+}
+
+/** The older name for earthCuts, from when only sunk floors cut the ground. */
+export const sunkCuts = earthCuts
 
 /** Corners of the box round a cabin and all its wings, site metres (legacy corners(o) via bbox(o)). */
 function boundsCorners(o: PlanObject): SitePoint[] {
