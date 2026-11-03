@@ -27,8 +27,12 @@ describe('footprint shapes (port of the legacy massPoly)', () => {
     expect(poly).toHaveLength(4)
   })
 
-  test('curved shapes fall back to the box for now', () => {
-    expect(localFootprint({ w: 12, d: 8, shape: 'blob', pts: [[0, 0], [1, 1], [2, 0]] })).toHaveLength(4)
+  test('curved shapes come back as smooth outlines wound like the rest', () => {
+    for (const shape of ['ellipse', 'kidney', 'teardrop', 'blob', 'ribbon']) {
+      const poly = localFootprint({ w: 24, d: 16, shape })
+      expect(poly.length).toBeGreaterThanOrEqual(32)
+      expect(signedArea(poly)).toBeGreaterThan(0)
+    }
   })
 })
 
