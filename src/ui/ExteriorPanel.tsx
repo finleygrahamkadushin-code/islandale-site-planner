@@ -125,7 +125,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
           </label>
         )}
       </div>
-      <div className="chips" role="group" aria-label="Apply to">
+      <div className="ext-chips" role="group" aria-label="Apply to">
         {EXT_SCOPES.map((sc) => (
           <button key={sc} type="button" className={`small ${scope === sc ? 'on' : ''}`} data-testid={`ext-scope-${sc}`} onClick={() => setPaintScope(sc)}>
             {SCOPE_LABELS[sc]}
@@ -154,7 +154,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
           </span>
         </label>
       </div>
-      <div className="chips">
+      <div className="ext-chips">
         {EXT_PRESETS.filter((p) => parts.includes(p.part)).map((p) => (
           <button
             key={p.id}

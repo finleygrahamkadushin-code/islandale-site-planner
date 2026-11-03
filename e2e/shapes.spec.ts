@@ -25,13 +25,13 @@ test('change a cabin to a kidney and its bend, one undo step each', async ({ pag
   await select(page, CABIN)
   const steps0 = await pastSteps(page)
   await page.getByTestId('shape-select').selectOption('kidney')
-  await expect.poll(async () => (await params(page, CABIN)).shape).toBe('kidney')
+  await expect.poll(async () => (await params(page, CABIN)).shape, { timeout: 20_000 }).toBe('kidney')
   expect(await pastSteps(page)).toBe(steps0 + 1)
 
   const bend = page.getByTestId('shape-fields').getByLabel(/Bend/)
   await bend.fill('0.6')
   await bend.press('Enter')
-  await expect.poll(async () => (await params(page, CABIN)).bend).toBe(0.6)
+  await expect.poll(async () => (await params(page, CABIN)).bend, { timeout: 20_000 }).toBe(0.6)
   expect(await pastSteps(page)).toBe(steps0 + 2)
 
   // the walls follow the curve: far more vertices than the old box

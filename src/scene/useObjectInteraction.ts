@@ -3,7 +3,7 @@ import { useCallback } from 'react'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { massOf } from './partFrame'
-import { isPaintable, paintHitOf } from './paintHit'
+import { firstPaintHit, isPaintable } from './paintHit'
 import { usePaintHover } from './paintHover'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
@@ -29,7 +29,7 @@ export function useObjectInteraction(o: PlanObject) {
       if (s.painting) {
         if (e.delta >= PICK_SLOP_PX) return
         if (!isPaintable(o)) return s.showToast('Paint works on buildings and decks')
-        const hit = paintHitOf(o, e.object, e.point)
+        const hit = firstPaintHit(o, e.intersections)
         if (!hit) return s.showToast('That part has no exterior finish')
         if (s.selection.length !== 1 || s.selection[0] !== o.id) select([o.id])
         s.setPaintFocus(hit.focus)
@@ -58,7 +58,7 @@ export function useObjectInteraction(o: PlanObject) {
     (e: ThreeEvent<PointerEvent>) => {
       if (!usePlanStore.getState().painting) return
       e.stopPropagation()
-      const hit = isPaintable(o) ? paintHitOf(o, e.object, e.point) : null
+      const hit = isPaintable(o) ? firstPaintHit(o, e.intersections) : null
       usePaintHover.getState().setLabel(hit ? hit.label : null)
     },
     [o],

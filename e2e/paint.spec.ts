@@ -24,6 +24,7 @@ const pastSteps = (page: Page) => page.evaluate(() => (window as any).islandale.
 const undo = (page: Page) => page.evaluate(() => (window as any).islandale.store.temporal.getState().undo())
 
 test('paint one wall, the roof and the rails; each is one undo step', async ({ page }) => {
+  test.setTimeout(120_000)
   const panel = page.getByTestId('ext-panel')
   const steps0 = await pastSteps(page)
 
@@ -57,11 +58,13 @@ test('paint one wall, the roof and the rails; each is one undo step', async ({ p
 })
 
 test('a preset paints the whole house and Reset exterior takes it all back in one step', async ({ page }) => {
+  // each new finish compiles its shaders, slow under software rendering
+  test.setTimeout(120_000)
   const panel = page.getByTestId('ext-panel')
   await panel.getByTestId('ext-scope-house').click()
   await panel.getByTestId('ext-preset-charcoal').click()
   await panel.getByTestId('ext-preset-metal').click()
-  await expect.poll(async () => Object.keys((await ext(page))?.parts ?? {}).sort()).toEqual(['roof', 'wall'])
+  await expect.poll(async () => Object.keys((await ext(page))?.parts ?? {}).sort(), { timeout: 30_000 }).toEqual(['roof', 'wall'])
   const steps = await pastSteps(page)
   await panel.getByTestId('ext-reset').click()
   await expect.poll(() => ext(page)).toBeNull()
@@ -78,16 +81,20 @@ test('a locked building refuses paint', async ({ page }) => {
 })
 
 test('P turns Paint mode on with its chip, and Escape leaves it', async ({ page }) => {
+  test.setTimeout(120_000)
   await page.locator('canvas').first().hover()
   await page.keyboard.press('p')
   await expect(page.getByTestId('paint-hud')).toBeVisible()
   await expect(page.getByTestId('paint-mode')).toHaveClass(/on/)
-  // a click on the cabin picks the element under the pointer for the panel
-  await page.evaluate((id) => (window as any).islandale.focus(id, 180, 18, 3), PROW)
+  // a click on the cabin picks the element under the pointer for the panel (names off, so no label is in the way)
+  await page.evaluate((id) => {
+    ;(window as any).islandale.store.getState().setLabelMode('none')
+    ;(window as any).islandale.focus(id, 180, 18, 3)
+  }, PROW)
   await page.waitForTimeout(1200)
   const box = (await page.locator('canvas').first().boundingBox())!
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-  await expect.poll(() => page.evaluate(() => (window as any).islandale.store.getState().paintFocus?.objectId)).toBe(PROW)
+  await expect.poll(() => page.evaluate(() => (window as any).islandale.store.getState().paintFocus?.objectId), { timeout: 20_000 }).toBe(PROW)
   await expect(page.getByTestId('ext-target')).not.toHaveText('')
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('paint-hud')).toHaveCount(0)

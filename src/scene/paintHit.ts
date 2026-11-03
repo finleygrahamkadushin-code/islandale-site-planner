@@ -52,3 +52,28 @@ export function paintHitOf(o: PlanObject, hit: Object3D, point: Vector3): PaintH
   }
   return { focus: { objectId: o.id, part, mass, edge }, label: elementLabel(partName(m, mass), part, curved ? null : edge) }
 }
+
+/** A ray hit as three.js reports it. */
+interface RayHit {
+  readonly object: Object3D
+  readonly point: Vector3
+}
+
+/**
+ * The nearest element of this object along the pointer's ray that has an
+ * exterior finish (legacy hitElement walks the hits the same way), so
+ * furniture seen through a window, handles and other untagged meshes are
+ * passed over, as are overlays that belong to no object. A hit on another
+ * object in front ends the search.
+ */
+export function firstPaintHit(o: PlanObject, hits: readonly RayHit[]): PaintHit | null {
+  for (const h of hits) {
+    const group = objectGroupOf(h.object)
+    // overlays (outlines, handles) belong to no object: look past them; another object in front ends the search
+    if (!group) continue
+    if (group.userData.objectId !== o.id) return null
+    const hit = paintHitOf(o, h.object, h.point)
+    if (hit) return hit
+  }
+  return null
+}

@@ -28,10 +28,15 @@ test.beforeEach(async ({ page }) => {
 })
 
 for (const id of SCHEMES) {
-  test(`Scheme ${id} draws its curved cabins, roofs and site objects, and every saved view is captured`, async ({ page }, info) => {
-    test.setTimeout(120_000)
+  test(`Scheme ${id} draws its curved cabins, roofs and site objects, and every saved view is captured`, async ({ page }) => {
+    // software rendering in CI draws these schemes at a few frames a second
+    test.setTimeout(300_000)
     const errors = collectErrors(page)
-    await page.evaluate((s) => (window as any).islandale.store.getState().loadScheme(s), id)
+    await page.evaluate((s) => {
+      const st = (window as any).islandale.store.getState()
+      st.loadScheme(s)
+      st.setLabelMode('none')
+    }, id)
     await page.waitForTimeout(1500)
     const stats = await page.evaluate(() => (window as any).islandale.sceneStats() as { meshes: number; triangles: number })
     expect(stats.meshes).toBeGreaterThan(200)
@@ -40,8 +45,7 @@ for (const id of SCHEMES) {
     for (const view of VIEWS) {
       await strip.getByRole('button', { name: view, exact: true }).click()
       await page.waitForTimeout(1400)
-      const path = info.outputPath(`../old-designs/${id}-${view.replace(/\W+/g, '-').toLowerCase()}.png`)
-      await page.screenshot({ path })
+      await page.screenshot({ path: `test-results/old-designs/${id}-${view.replace(/\W+/g, '-').toLowerCase()}.png` })
     }
     expect(errors).toEqual([])
   })
