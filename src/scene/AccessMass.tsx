@@ -51,18 +51,18 @@ export function AccessMass({ masses, mi, look, site, handlers }: { readonly mass
       {pieces.map((p) => {
         if (p.mat === 'rail')
           return (
-            <mesh key={p.key} name="rail" geometry={p.geometry} userData={{ edges: [p.side && p.side > 0 ? 1 : 3] }} castShadow {...handlers}>
+            <mesh key={p.key} name="rail" geometry={p.geometry} userData={{ edges: [p.side && p.side > 0 ? 1 : 3], part: 'rail' }} castShadow {...handlers}>
               {metal ? <Surface kind="trim" style={display} color={METAL} /> : <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} />}
             </mesh>
           )
         if (p.mat === 'glass')
           return (
-            <mesh key={p.key} name="rail-glass" geometry={p.geometry} {...handlers}>
+            <mesh key={p.key} name="rail-glass" geometry={p.geometry} userData={{ part: 'rail' }} {...handlers}>
               <Surface kind="railGlass" style={display} />
             </mesh>
           )
         return (
-          <mesh key={p.key} geometry={p.geometry} castShadow receiveShadow {...handlers}>
+          <mesh key={p.key} geometry={p.geometry} userData={{ part: 'stair' }} castShadow receiveShadow {...handlers}>
             {p.mat === 'stair' ? (
               <Surface kind="deck" style={display} texture="deck" glow={glow} />
             ) : p.mat === 'trim' ? (

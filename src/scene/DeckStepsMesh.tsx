@@ -44,7 +44,7 @@ export function DeckStepsMesh({ poly, steps, wells, look, site, handlers }: Prop
   const { style, glow } = look
   return (
     <>
-      <mesh geometry={treads} castShadow receiveShadow {...handlers}>
+      <mesh geometry={treads} userData={{ part: 'deck' }} castShadow receiveShadow {...handlers}>
         <Surface kind="deck" style={style} texture="deck" glow={glow} />
       </mesh>
       {plan.wells.map(({ well, top }, i) => {

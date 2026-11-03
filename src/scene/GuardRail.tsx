@@ -43,7 +43,7 @@ export function GuardRail({ m, poly, site, look, handlers }: { readonly m: Mass;
   const metal = style === 'steel' || style === 'cable'
   return (
     <>
-      <mesh name="rail" geometry={rail.frame} userData={{ edges: rail.edges }} castShadow {...handlers}>
+      <mesh name="rail" geometry={rail.frame} userData={{ edges: rail.edges, part: 'rail' }} castShadow {...handlers}>
         {metal ? (
           <Surface kind="trim" style={look.style} color={METAL} />
         ) : m.kind === 'deck' ? (
@@ -53,7 +53,7 @@ export function GuardRail({ m, poly, site, look, handlers }: { readonly m: Mass;
         )}
       </mesh>
       {rail.glass && (
-        <mesh name="rail-glass" geometry={rail.glass} {...handlers}>
+        <mesh name="rail-glass" geometry={rail.glass} userData={{ part: 'rail' }} {...handlers}>
           <Surface kind="railGlass" style={look.style} />
         </mesh>
       )}
