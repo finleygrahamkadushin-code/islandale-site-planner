@@ -12,6 +12,7 @@ import { isObjectLocked, usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { FeetInchesField } from './FeetInchesField'
 import { NumField, TextField } from './fields'
+import { RoofFields, ShapeFields } from './ShapeFields'
 
 const KINDS: readonly { readonly id: MassKind; readonly label: string }[] = [
   { id: 'wall', label: 'Walls' },
@@ -101,6 +102,12 @@ function WingFields({ o, m, mass, locked, set }: WingProps) {
       <FeetInchesField label="Offset →" value={m.dx} min={OFFSET_LIMIT_FT} disabled={locked} onCommit={(dx) => set({ dx })} />
       <FeetInchesField label="Offset front" value={m.dz} min={OFFSET_LIMIT_FT} disabled={locked} onCommit={(dz) => set({ dz })} />
       <NumField label="Angle" unit="°" value={m.rot} disabled={locked} onCommit={(rot) => set({ rot })} />
+      {!access && (
+        <div className="span2">
+          <ShapeFields p={raw} pad={false} disabled={locked} set={set} />
+          {(m.kind === 'wall' || m.kind === 'porch') && <RoofFields m={m} disabled={locked} set={set} />}
+        </div>
+      )}
     </div>
   )
 }

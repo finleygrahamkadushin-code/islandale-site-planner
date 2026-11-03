@@ -143,7 +143,7 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
 }
 
 /** Params whose change can move a cabin's walls, so its openings are re-fitted. */
-const SHAPE_KEYS = ['w', 'd', 'shape', 'pts', 'taper', 'skew', 'wings'] as const
+const SHAPE_KEYS = ['w', 'd', 'shape', 'pts', 'taper', 'skew', 'bend', 'point', 'wings'] as const
 
 const READ_ONLY_TEXT: Record<Exclude<ReadOnlyReason, null>, string> = {
   opening: 'The saved plan is still opening; try again in a moment',

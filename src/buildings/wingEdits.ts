@@ -59,13 +59,19 @@ const round2 = (v: number) => Math.round(v * 100) / 100
 /**
  * A part's params (a wing, or a cabin's main walls) at a new width and
  * depth. A poly or blob is drawn from its points, so they scale about the
- * part's origin by new/old size, to 0.01 ft (legacy orgScale); every other
- * shape is drawn from w and d and just takes the numbers.
+ * part's origin by new/old size, to 0.01 ft (legacy orgScale); a ribbon's
+ * centreline scales with its width; every other shape is drawn from w and d
+ * and just takes the numbers.
  */
 export function withSize(p: Params, w: number, d: number): Params {
   const ow = Number(p.w)
   const od = Number(p.d)
   const sized = { ...p, w, d }
+  if (p.shape === 'ribbon' && Array.isArray(p.pts) && ow > 0 && w !== ow) {
+    // a ribbon's width is its centreline length: the centreline scales, its path width (d) is just the number
+    const k = w / ow
+    return { ...sized, pts: p.pts.map((q) => (Array.isArray(q) ? [round2(num(q[0], 0) * k), round2(num(q[1], 0) * k)] : q)) }
+  }
   if (!POINT_SHAPES.has(String(p.shape)) || !Array.isArray(p.pts) || !(ow > 0) || !(od > 0)) return sized
   const sx = w / ow
   const sz = d / od

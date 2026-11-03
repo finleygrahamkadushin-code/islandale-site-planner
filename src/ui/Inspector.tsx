@@ -10,6 +10,9 @@ import { RailingsPanel } from './RailingsPanel'
 import { useInteriorView } from './interior/interiorView'
 import { PathPiecePanel } from './PathPanels'
 import { LevelsPanel } from './LevelsPanel'
+import { RoofFields, ShapeFields } from './ShapeFields'
+import { PAD_TYPES } from '../buildings/shapeEdits'
+import { buildingMasses } from '../buildings/masses'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -57,6 +60,15 @@ function SingleInspector({ id }: { readonly id: string }) {
           {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
           {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
         </div>
+      )}
+      {picked === null && o.type === 'house' && (
+        <>
+          <ShapeFields p={o.params} pad={false} disabled={dis} set={(patch) => a.params(id, patch)} />
+          <RoofFields m={buildingMasses(o.params)[0]} disabled={dis} set={(patch) => a.params(id, patch)} />
+        </>
+      )}
+      {picked === null && PAD_TYPES.has(o.type) && typeof o.params.kind !== 'string' && (
+        <ShapeFields p={o.params} pad cars={o.type === 'pad'} disabled={dis} set={(patch) => a.params(id, patch)} />
       )}
       {picked === null && (
         <label className="row">
