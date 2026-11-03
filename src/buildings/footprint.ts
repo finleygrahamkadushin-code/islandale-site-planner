@@ -1,8 +1,9 @@
 import { ftToM } from '../site/units'
 import type { PlanObject } from '../store/types'
 import type { SitePoint } from '../site/types'
+import { organicOutline, ribbonOutline } from './organic'
 
-/** Footprint shapes the legacy planner knows. Curved ones fall back to a box in Phase 2. */
+/** Footprint shapes the legacy planner knows. */
 export const BOX_SHAPES = ['rect', 'hex', 'oct', 'tri', 'trap', 'para', 'half', 'poly'] as const
 export const CURVED_SHAPES = ['ellipse', 'kidney', 'teardrop', 'blob', 'ribbon'] as const
 
@@ -16,6 +17,10 @@ export interface FootprintParams {
   readonly taper?: number
   readonly skew?: number
   readonly pts?: readonly (readonly number[])[]
+  /** Kidney bite, 0–1. */
+  readonly bend?: number
+  /** Teardrop point, 0–1. */
+  readonly point?: number
 }
 
 /** Port of the legacy `massPoly`: the footprint polygon in local feet. */
@@ -23,6 +28,8 @@ export function localFootprint(p: FootprintParams): readonly LocalPoint[] {
   const { w, d } = p
   const shape = p.shape ?? 'rect'
   if (shape === 'poly') return outlinePolygon(p)
+  if (shape === 'ribbon') return ribbonOutline(p)
+  if (shape === 'ellipse' || shape === 'kidney' || shape === 'teardrop' || shape === 'blob') return organicOutline({ ...p, shape })
   if (shape === 'hex') {
     return [0, 60, 120, 180, 240, 300].map((a) => {
       const r = (a * Math.PI) / 180
@@ -48,7 +55,6 @@ export function localFootprint(p: FootprintParams): readonly LocalPoint[] {
   if (shape === 'half') {
     return [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 6], [w / 4, d / 2], [-w / 4, d / 2], [-w / 2, d / 6]]
   }
-  // rect, and every curved shape until Phase 5 draws them properly
   return rectangle(w, d)
 }
 
@@ -109,6 +115,8 @@ export function footprintParams(o: PlanObject): FootprintParams {
     taper: typeof p.taper === 'number' ? p.taper : undefined,
     skew: typeof p.skew === 'number' ? p.skew : undefined,
     pts: Array.isArray(p.pts) ? (p.pts as number[][]) : undefined,
+    bend: typeof p.bend === 'number' ? p.bend : undefined,
+    point: typeof p.point === 'number' ? p.point : undefined,
   }
 }
 

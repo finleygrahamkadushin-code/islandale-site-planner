@@ -31,7 +31,18 @@ export interface Mass {
   readonly taper?: number
   readonly skew?: number
   readonly pts?: readonly (readonly number[])[]
+  /** Kidney bite and teardrop point, 0–1. */
+  readonly bend?: number
+  readonly point?: number
   readonly roof: string
+  /** Roof finish: glass, copper, metal or sod (legacy roofMat). */
+  readonly roofMat?: string
+  /** Shell roof curl, 0–1. */
+  readonly curl?: number
+  /** Wall kind: glass, cedar, board, timber or stone. */
+  readonly walls?: string
+  /** The part's own colour, '#rrggbb'. */
+  readonly color?: string
   readonly pitch: number
   readonly ridge: 'x' | 'z'
   readonly overhang: number
@@ -120,6 +131,12 @@ function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mas
     taper: typeof p.taper === 'number' ? p.taper : undefined,
     skew: typeof p.skew === 'number' ? p.skew : undefined,
     pts: Array.isArray(p.pts) ? (p.pts as number[][]) : undefined,
+    bend: typeof p.bend === 'number' ? p.bend : undefined,
+    point: typeof p.point === 'number' ? p.point : undefined,
+    roofMat: typeof p.roofMat === 'string' ? p.roofMat : undefined,
+    curl: typeof p.curl === 'number' ? p.curl : undefined,
+    walls: typeof p.walls === 'string' ? p.walls : undefined,
+    color: typeof p.color === 'string' ? p.color : undefined,
     roof: access ? 'none' : typeof p.roof === 'string' ? p.roof : 'none',
     pitch: num(p.pitch, 6),
     ridge: p.ridge === 'z' ? 'z' : 'x',

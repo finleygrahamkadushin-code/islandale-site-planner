@@ -20,7 +20,22 @@ import {
 /** What a surface is made of; each display style decides how that looks. */
 export type SurfaceKind = 'wall' | 'roof' | 'trim' | 'glass' | 'railGlass' | 'frame' | 'door' | 'concrete' | 'wood' | 'pad' | 'canopy' | 'trunk' | 'deck'
 
-export type TextureName = 'batten' | 'lap' | 'shingle' | 'seam' | 'shake' | 'sod' | 'gravel' | 'deck' | 'concrete'
+export type TextureName =
+  | 'batten'
+  | 'lap'
+  | 'shingle'
+  | 'seam'
+  | 'shake'
+  | 'sod'
+  | 'gravel'
+  | 'deck'
+  | 'concrete'
+  | 'copper'
+  | 'metal'
+  | 'cedar'
+  | 'board'
+  | 'timber'
+  | 'stone'
 
 const SOURCES: Readonly<Record<TextureName, () => TileTexture>> = {
   batten: battenSiding,
@@ -32,6 +47,12 @@ const SOURCES: Readonly<Record<TextureName, () => TileTexture>> = {
   gravel,
   deck: deckBoards,
   concrete,
+  copper: standingSeam,
+  metal: standingSeam,
+  cedar: shingleSiding,
+  board: battenSiding,
+  timber: lapSiding,
+  stone: concrete,
 }
 
 const scaled = new Map<string, Texture>()
