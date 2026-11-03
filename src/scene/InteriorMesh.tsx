@@ -29,7 +29,7 @@ export function InteriorMesh({ params, style, handlers }: { readonly params: Rec
             <BarMesh key={`b${k}`} b={b} style={style} />
           ))}
           {c.cylinders.map((y, k) => (
-            <mesh key={`c${k}`} position={y.p as [number, number, number]} castShadow>
+            <mesh key={`c${k}`} position={y.p as [number, number, number]} castShadow userData={{ interiorPart: 'stair' }}>
               <cylinderGeometry args={[y.r, y.r, y.h, 12]} />
               <Surface kind="trim" style={style} color={y.color} />
             </mesh>
@@ -46,7 +46,7 @@ export function InteriorMesh({ params, style, handlers }: { readonly params: Rec
 function BoxMesh({ b, style }: { readonly b: Box3; readonly style: DisplayStyle }) {
   const wall = b.part === 'wall' || b.part === 'header' || b.part === 'sill'
   return (
-    <mesh position={b.p as [number, number, number]} rotation={[b.rx ?? 0, b.ry ?? 0, 0]} castShadow receiveShadow>
+    <mesh position={b.p as [number, number, number]} rotation={[b.rx ?? 0, b.ry ?? 0, 0]} castShadow receiveShadow userData={{ interiorPart: b.part }}>
       <boxGeometry args={b.size as [number, number, number]} />
       <Surface kind={wall ? 'wall' : 'trim'} style={style} color={b.color} />
     </mesh>
@@ -63,7 +63,7 @@ function BarMesh({ b, style }: { readonly b: Bar3; readonly style: DisplayStyle 
     return { mid: a.clone().addScaledVector(d, 0.5), q: new Quaternion().setFromUnitVectors(Z, d.clone().normalize()), len: d.length() }
   }, [b])
   return (
-    <mesh position={mid} quaternion={q}>
+    <mesh position={mid} quaternion={q} userData={{ interiorPart: 'rail' }}>
       <boxGeometry args={[b.t, b.t, len]} />
       <Surface kind="trim" style={style} color={b.color} />
     </mesh>
@@ -87,7 +87,7 @@ function WedgeMesh({ w, style }: { readonly w: Wedge3; readonly style: DisplaySt
   }, [w])
   useEffect(() => () => geo.dispose(), [geo])
   return (
-    <mesh geometry={geo} castShadow receiveShadow>
+    <mesh geometry={geo} castShadow receiveShadow userData={{ interiorPart: 'stair' }}>
       <Surface kind="trim" style={style} color={w.color} />
     </mesh>
   )
@@ -105,7 +105,7 @@ function SlabMesh({ slab, style }: { readonly slab: Slab; readonly style: Displa
   }, [slab])
   useEffect(() => () => geo.dispose(), [geo])
   return (
-    <mesh geometry={geo} castShadow receiveShadow>
+    <mesh geometry={geo} castShadow receiveShadow userData={{ interiorPart: 'slab' }}>
       <Surface kind="trim" style={style} color="#e8e2d6" />
     </mesh>
   )

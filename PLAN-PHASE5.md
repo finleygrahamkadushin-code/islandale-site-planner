@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved Nov 2 2026 and in progress; plans for 5C and 5D drafted, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); plans for 5C and 5D drafted, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 

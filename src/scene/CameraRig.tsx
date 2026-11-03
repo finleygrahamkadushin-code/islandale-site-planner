@@ -67,6 +67,18 @@ export function CameraRig() {
       })
       return box.isEmpty() ? null : { min: box.min.toArray(), max: box.max.toArray() }
     }
+    // a cabin's interior meshes as drawn (visible ones only), counted by part: walls, slab, stair, rail, furniture
+    w.islandale.interiorStats = (id: string) => {
+      const out: Record<string, number> = {}
+      scene.traverseVisible((o) => {
+        const part = (o as Mesh).isMesh ? o.userData.interiorPart : undefined
+        if (!part) return
+        let p: typeof o | null = o
+        while (p && p.userData.objectId === undefined) p = p.parent
+        if (p?.userData.objectId === id) out[part] = (out[part] ?? 0) + 1
+      })
+      return out
+    }
     // which wings (mass indexes) of each building draw a rail, for checks against the old planner
     w.islandale.railedMasses = () => {
       const out: Record<string, number[]> = {}
