@@ -17,6 +17,7 @@ import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
 import { ConnectLayer } from './ConnectLayer'
 import { JunctionLayer } from './JunctionLayer'
+import { RouteChips } from './RouteChips'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -44,6 +45,7 @@ export function Scene() {
       <PlaceGhost />
       <ConnectLayer />
       <JunctionLayer />
+      <RouteChips />
       <LabelProjector drag={drag} />
       <EditGizmos drag={drag} setDrag={setDrag} />
       <Effects />

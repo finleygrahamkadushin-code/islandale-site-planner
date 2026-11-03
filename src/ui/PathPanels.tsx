@@ -5,6 +5,7 @@ import { elevationAt } from '../site/terrain'
 import { isObjectLocked, usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { FeetInchesField } from './FeetInchesField'
+import { PieceCheck } from './RoutePanels'
 
 const M_TO_FT = 1 / 0.3048
 const fmtFt = (m: number) => `${(m * M_TO_FT).toFixed(2)} ft`
@@ -122,6 +123,7 @@ export function PathPiecePanel({ o }: { readonly o: PlanObject }) {
       </dl>
       {st && !st.ok && <p className="small fixture-note bad">Too short for 11 in treads: make it at least {st.minRunFt.toFixed(1)} ft long.</p>}
       {kind === 'ramp' && slope > 1 / 12 + 1e-6 && <p className="small fixture-note bad">Steeper than 1:12: lengthen it or add a landing.</p>}
+      <PieceCheck o={o} />
       {!ribbon && (
         <div className="row">
           <button disabled={locked} data-testid="continue-a" onClick={() => a.cont(o.id, 'A')}>
