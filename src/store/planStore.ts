@@ -66,6 +66,8 @@ export interface PlanState extends PartActions, InteriorActions {
   readonly displayStyle: DisplayStyle
   /** Contour lines: on, off, or null to follow the display style (off in Realistic). */
   readonly contours: boolean | null
+  /** Hide every roof so the rooms inside can be seen (old Roofs off). View state, not saved. */
+  readonly roofsOff: boolean
   readonly saveStatus: SaveStatus
   readonly readOnly: ReadOnlyReason
   /** The opening picked in the Openings panel, outlined in 3D. */
@@ -114,6 +116,7 @@ export interface PlanState extends PartActions, InteriorActions {
   readonly setEnvironment: (patch: Partial<Environment>) => void
   readonly setDisplayStyle: (style: DisplayStyle) => void
   readonly setContours: (contours: boolean | null) => void
+  readonly setRoofsOff: (roofsOff: boolean) => void
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
@@ -211,6 +214,7 @@ export const usePlanStore = create<PlanState>()(
         environment: DEFAULT_ENVIRONMENT,
         displayStyle: 'realistic',
         contours: null,
+        roofsOff: false,
         saveStatus: 'loading',
         readOnly: null,
         openingFocus: null,
@@ -353,6 +357,7 @@ export const usePlanStore = create<PlanState>()(
         setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setContours: (contours) => set({ contours }),
+        setRoofsOff: (roofsOff) => set({ roofsOff }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),

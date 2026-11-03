@@ -8,9 +8,10 @@ const FT = 0.3048
  * Exterior walls of a footprint (local feet, +z front) from the floor (y 0)
  * to the eave (`heightFt`), in local metres. UVs run in feet along the
  * perimeter and up the wall, so siding boards are true size and continuous
- * round corners. A ceiling cap closes the top for roofless or flat-roofed cabins.
+ * round corners. A ceiling cap closes the top for roofless or flat-roofed
+ * cabins, unless `cap` is false (Roofs off, so the rooms show).
  */
-export function buildWalls(poly: readonly LocalPoint[], heightFt: number): MeshData {
+export function buildWalls(poly: readonly LocalPoint[], heightFt: number, cap = true): MeshData {
   const mesh = emptyMesh()
   const h = heightFt * FT
   let along = 0
@@ -34,7 +35,7 @@ export function buildWalls(poly: readonly LocalPoint[], heightFt: number): MeshD
     }
     along += len
   })
-  addCap(mesh, poly, h, 1)
+  if (cap) addCap(mesh, poly, h, 1)
   return mesh
 }
 

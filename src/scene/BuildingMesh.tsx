@@ -18,6 +18,7 @@ import { useObjectInteraction } from './useObjectInteraction'
 import { useEarthworks } from './useEarthworks'
 import { useRailWorld } from './useRailWorld'
 import { WallMass } from './WallMass'
+import { InteriorMesh } from './InteriorMesh'
 import { useShallow } from 'zustand/react/shallow'
 
 const NO_WELLS: readonly TreeWell[] = []
@@ -91,6 +92,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
           {(m.kind === 'stair' || m.kind === 'ramp') && <AccessMass masses={masses} mi={i} look={look} site={sites[i]} handlers={handlers} />}
         </group>
       ))}
+      <InteriorMesh params={o.params} style={look.style} handlers={handlers} />
     </group>
   )
 }
