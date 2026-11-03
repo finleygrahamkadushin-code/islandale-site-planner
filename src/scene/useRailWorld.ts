@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
-import { sinkFt } from './placement'
+import { shapesGround } from './placement'
 import { opensRails, type RailWorld } from './railWorld'
 import { planRailWorld } from './railSite'
 
@@ -17,7 +17,7 @@ const sameObjects = (a: readonly PlanObject[], b: readonly PlanObject[]) => a.le
  */
 export function useRailWorld(): RailWorld {
   const terrain = usePlanStore((s) => s.site.terrain)
-  const objects = usePlanStore(useShallow((s) => s.plan.order.map((id) => s.plan.objects[id]).filter((o): o is PlanObject => !!o && (opensRails(o) || (!o.hidden && sinkFt(o) > 0)))))
+  const objects = usePlanStore(useShallow((s) => s.plan.order.map((id) => s.plan.objects[id]).filter((o): o is PlanObject => !!o && (opensRails(o) || (!o.hidden && shapesGround(o))))))
   return useMemo(() => {
     if (last && last.world.terrain === terrain && sameObjects(last.objects, objects)) return last.world
     last = { objects, world: planRailWorld(objects, terrain) }

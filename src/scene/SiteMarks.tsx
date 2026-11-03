@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { BufferGeometry, Float32BufferAttribute } from 'three'
 import { SHORE_BUFFER_FT, shoreBufferLine } from '../site/buffer'
 import { contourLevels, isoSegments, terrainContours, type IsoSegment } from '../site/contours'
-import { cutCells, PATCH_SPACING_M, type CellRect } from '../site/earthworks'
+import { PATCH_SPACING_M, type CellRect } from '../site/earthworks'
 import { terrainBounds } from '../site/terrain'
 import { elevationAt } from '../site/terrain'
 import type { Parcel, Terrain } from '../site/types'
@@ -23,10 +23,11 @@ const BUFFER = '#c4b97b'
 export function SiteMarks({ terrain, parcel }: { readonly terrain: Terrain; readonly parcel: Parcel }) {
   const style = useDisplayStyle()
   const showContours = usePlanStore(contoursShown)
-  const { cuts, ground } = useEarthworks()
+  const { works, ground } = useEarthworks()
   const contours = useMemo(() => {
     const step = ftToM(CONTOUR_STEP_FT)
-    const rects = cuts.map((c) => cutCells(terrain, c))
+    // one rect per earthworks patch (objects whose reach overlaps share one), so no contour is drawn twice
+    const rects = works.fields.map((f) => f.rect)
     // survey contours outside the cuts, and contours of the cut ground inside them
     const inCut = ([x1, n1, x2, n2]: IsoSegment) => rects.some((r) => inside(terrain, r, (x1 + x2) / 2, (n1 + n2) / 2))
     const lines = terrainContours(terrain, step).map((l) => ({ ...l, segments: l.segments.filter((g) => !inCut(g)) }))
@@ -43,7 +44,7 @@ export function SiteMarks({ terrain, parcel }: { readonly terrain: Terrain; read
       minor: lineGeometry(lines.filter((l) => !l.index).flatMap((l) => atLevel(l.segments, l.z))),
       index: lineGeometry(lines.filter((l) => l.index).flatMap((l) => atLevel(l.segments, l.z))),
     }
-  }, [terrain, cuts, ground])
+  }, [terrain, works, ground])
   const buffer = useMemo(
     () => lineGeometry(shoreBufferLine(parcel, ftToM(SHORE_BUFFER_FT)).flatMap(([x1, n1, x2, n2]) => [...toScene(x1, n1, elevationAt(terrain, x1, n1) + 0.12), ...toScene(x2, n2, elevationAt(terrain, x2, n2) + 0.12)])),
     [parcel, terrain],
