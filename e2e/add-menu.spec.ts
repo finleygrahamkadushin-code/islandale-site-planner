@@ -50,7 +50,8 @@ test('a + chip just left of the side panel opens its menu to the left, and every
   await page.mouse.click(chip.x, chip.y)
   const menu = page.locator('.aa-pop')
   await expect(menu).toBeVisible()
-  await expect.poll(async () => (await menu.boundingBox())!.x + (await menu.boundingBox())!.width).toBeLessThanOrEqual(side.x)
+  // the menu is placed each frame; under software rendering a frame can take seconds
+  await expect.poll(async () => (await menu.boundingBox())!.x + (await menu.boundingBox())!.width, { timeout: 20_000 }).toBeLessThanOrEqual(side.x)
   for (const k of ['deck', 'porch', 'stair', 'ramp', 'door']) expect(await topAt(page, `add-${k}`), k).toBe(`add-${k}`)
   const before = await steps(page)
   await page.getByTestId('add-deck').click()
