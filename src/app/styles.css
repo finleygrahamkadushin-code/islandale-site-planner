@@ -38,6 +38,9 @@ input:disabled { opacity: 0.5; }
 .app canvas { display: block; }
 .viewport { position: absolute; inset: 0; z-index: 0; } /* its own stack, so scene chips stay under the panels */
 .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+/* part chips over the labels (ChipLayer); each anchor is moved every frame by its ScreenChip */
+.chips { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.chip-anchor { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
 .label {
   position: absolute; left: 0; top: 0; will-change: transform;
   font-size: 11px; line-height: 1; white-space: nowrap;

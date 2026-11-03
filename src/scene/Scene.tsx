@@ -13,6 +13,7 @@ import { SceneEnvironment } from './SceneEnvironment'
 import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
 import { PartHud } from '../ui/PartHud'
+import { ChipLayer } from './ChipLayer'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -43,6 +44,7 @@ export function Scene() {
       <CameraRig />
       <OrbitControls makeDefault target={target} maxPolarAngle={Math.PI / 2 - 0.02} enableDamping />
     </Canvas>
+    <ChipLayer />
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { useMemo, type ReactNode, type SyntheticEvent } from 'react'
-import { Html } from '@react-three/drei'
-import { Vector3, type Camera, type Object3D } from 'three'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { Vector3, type Camera, type Group, type Object3D } from 'three'
 import type { LocalPoint } from '../buildings/footprint'
+import { chipElements, dropChip, newChipId, putChip } from './chipRegistry'
 
 /** Chips past this in normalised device coordinates are hidden (legacy). */
 const NDC_LIMIT = 1.05
@@ -52,16 +53,31 @@ interface Props {
   readonly children: ReactNode
 }
 
-/** A DOM chip pinned to a point in the scene (drei Html), offset on screen like the old planner's chips. */
+/**
+ * A DOM chip pinned to a point in the scene, offset on screen like the old
+ * planner's chips. The chip itself is drawn by `ChipLayer` over the canvas;
+ * this places it every frame, as `LabelProjector` places labels.
+ */
 export function ScreenChip({ position, normal, px = 0, layer, children }: Props) {
   const nx = normal?.[0]
   const nz = normal?.[1]
-  const calculatePosition = useMemo(() => chipPosition(nx === undefined || nz === undefined ? undefined : [nx, nz], px), [nx, nz, px])
-  return (
-    <Html position={position as [number, number, number]} center zIndexRange={[layer, layer]} calculatePosition={calculatePosition}>
-      {children}
-    </Html>
-  )
+  const place = useMemo(() => chipPosition(nx === undefined || nz === undefined ? undefined : [nx, nz], px), [nx, nz, px])
+  const [id] = useState(newChipId)
+  const anchor = useRef<Group>(null)
+  useLayoutEffect(() => putChip({ id, layer, node: children }))
+  useLayoutEffect(() => () => dropChip(id), [id])
+  useFrame(({ camera, size }) => {
+    const el = chipElements.get(id)
+    if (!el || !anchor.current) return
+    const [x, y] = place(anchor.current, camera, size)
+    if (x === OFF_SCREEN[0]) {
+      el.style.display = 'none'
+      return
+    }
+    el.style.display = ''
+    el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`
+  })
+  return <group ref={anchor} position={position as [number, number, number]} />
 }
 
 /** Keep a chip's pointer events from reaching the canvas, which would pick, select or clear behind it. */
