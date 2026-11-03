@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); plans for 5C and 5D drafted, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved Nov 2 2026 and in progress; the 5D plan is drafted, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -82,7 +82,7 @@ Branch: `phase-5b-interiors`, from `phase-5a-fixes` (5A with its last fixes). Th
 
 **Done when** (from the table): you can open any Scheme C cabin, see its floor plan from the data, change a room, add a door and a bed, go upstairs, and see all of it in 3D with the roof off.
 
-## 5C in detail (draft, waiting for an OK)
+## 5C in detail (approved)
 
 Branch: `phase-5c-paths`, from `phase-5b-interiors`.
 
