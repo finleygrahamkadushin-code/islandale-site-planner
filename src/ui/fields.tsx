@@ -17,15 +17,43 @@ export function TextField({ label, value, disabled, allowEmpty, onCommit }: { la
   )
 }
 
-export function NumField({ label, unit, value, disabled, min, onCommit }: { label: string; unit: string; value: number; disabled?: boolean; min?: number; onCommit: (v: number) => void }) {
-  const shown = Number.isInteger(value) ? String(value) : value.toFixed(1)
+export function NumField({
+  label,
+  unit,
+  value,
+  disabled,
+  min,
+  step = 0.5,
+  digits = 1,
+  onCommit,
+  onClear,
+}: {
+  label: string
+  unit: string
+  value: number
+  disabled?: boolean
+  min?: number
+  /** The spinner step. */
+  step?: number
+  /** Decimals shown for a value that is not whole. */
+  digits?: number
+  onCommit: (v: number) => void
+  /** Emptying the field: back to the default, when the field has one. */
+  onClear?: () => void
+}) {
+  const shown = Number.isInteger(value) ? String(value) : String(+value.toFixed(digits))
   const [draft, setDraft] = useState(shown)
   useEffect(() => setDraft(shown), [shown])
   const commit = () => {
     // nothing typed: the shown text may be rounded, so it is no new value
     if (draft === shown) return
+    if (draft.trim() === '' && onClear) {
+      setDraft(shown)
+      onClear()
+      return
+    }
     const v = Number(draft)
-    if (Number.isFinite(v) && v !== value && (min === undefined || v >= min)) onCommit(v)
+    if (draft.trim() !== '' && Number.isFinite(v) && v !== value && (min === undefined || v >= min)) onCommit(v)
     else setDraft(shown)
   }
   return (
@@ -33,7 +61,7 @@ export function NumField({ label, unit, value, disabled, min, onCommit }: { labe
       <span className="muted small">
         {label} <em>{unit}</em>
       </span>
-      <input type="number" step="0.5" value={draft} disabled={disabled} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+      <input type="number" step={step} value={draft} disabled={disabled} onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
     </label>
   )
 }

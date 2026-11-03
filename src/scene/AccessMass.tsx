@@ -3,7 +3,7 @@ import type { BufferGeometry } from 'three'
 import type { Mass } from '../buildings/masses'
 import type { StairMat } from '../buildings/stairPlan'
 import { planWingStair } from '../buildings/stairWing'
-import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
+import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
@@ -46,13 +46,22 @@ export function AccessMass({ masses, mi, look, site, handlers }: { readonly mass
   const style = site.railStyle ?? 'wood'
   const metal = style === 'steel' || style === 'cable'
   const { style: display, glow } = look
+  // stairs and ramps paint as the deck (legacy extPartKey); their rails as rails
+  const treadPaint = paintedColour(look, mi, 'stair')
+  const railPaint = paintedColour(look, mi, 'rail')
   return (
     <>
       {pieces.map((p) => {
         if (p.mat === 'rail')
           return (
             <mesh key={p.key} name="rail" geometry={p.geometry} userData={{ edges: [p.side && p.side > 0 ? 1 : 3], part: 'rail' }} castShadow {...handlers}>
-              {metal ? <Surface kind="trim" style={display} color={METAL} /> : <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} />}
+              {railPaint ? (
+                <Surface kind="trim" style={display} color={railPaint} diagramColor={look.diagram} />
+              ) : metal ? (
+                <Surface kind="trim" style={display} color={METAL} />
+              ) : (
+                <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} />
+              )}
             </mesh>
           )
         if (p.mat === 'glass')
@@ -64,7 +73,7 @@ export function AccessMass({ masses, mi, look, site, handlers }: { readonly mass
         return (
           <mesh key={p.key} geometry={p.geometry} userData={{ part: 'stair' }} castShadow receiveShadow {...handlers}>
             {p.mat === 'stair' ? (
-              <Surface kind="deck" style={display} texture="deck" glow={glow} />
+              <Surface kind="deck" style={display} texture="deck" color={treadPaint} glow={glow} />
             ) : p.mat === 'trim' ? (
               <Surface kind="trim" style={display} color={look.color} diagramColor={look.diagram} glow={glow} />
             ) : p.mat === 'post' ? (

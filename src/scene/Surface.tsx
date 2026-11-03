@@ -107,7 +107,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
 
   if (kind === 'glass') {
     if (style === 'realistic') {
-      return <meshPhysicalMaterial {...lift} color="#1d2a30" roughness={0.04} metalness={0} clearcoat={1} clearcoatRoughness={0.03} envMapIntensity={2.4} reflectivity={0.9} />
+      return <meshPhysicalMaterial {...lift} color={color ?? '#1d2a30'} roughness={0.04} metalness={0} clearcoat={1} clearcoatRoughness={0.03} envMapIntensity={2.4} reflectivity={0.9} />
     }
     return (
       <>
@@ -164,9 +164,10 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
 export function realisticColour(kind: SurfaceKind, color?: string): string {
   switch (kind) {
     case 'frame':
-      return '#2d3033'
+      // window frames and casings: dark unless painted
+      return color ?? '#2d3033'
     case 'door':
-      return '#5a4332'
+      return color ?? '#5a4332'
     case 'concrete':
       return '#9d9a93'
     case 'wood':

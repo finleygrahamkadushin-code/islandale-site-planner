@@ -45,7 +45,8 @@ export function paintHitOf(o: PlanObject, hit: Object3D, point: Vector3): PaintH
   // a curved mass is one unrolled wall
   const curved = (CURVED_SHAPES as readonly string[]).includes(m.shape)
   const group = objectGroupOf(hit)
-  if (part === 'wall' && group) {
+  // gable ends and dome cladding are the mass's walls as a whole
+  if (part === 'wall' && group && !hit.userData.massWide) {
     const local = group.worldToLocal(point.clone())
     edge = curved ? 0 : nearestEdge(m, [local.x / FT, local.z / FT])
   }

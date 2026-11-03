@@ -80,9 +80,10 @@ export function DeckMass({ m, look, site, handlers, wells, supports }: OpenMassP
           top={-DECK_M}
           style={look.style}
           handlers={handlers}
+          paint={(part) => paintedColour(look, site.mi, part)}
         />
       ) : (
-        <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} handlers={handlers} />
+        <Posts points={posts} top={-DECK_M - BEAM_M} site={site} sizeM={DECK_POST_M} style={look.style} handlers={handlers} color={paintedColour(look, site.mi, 'post')} />
       )}
       {m.steps && <DeckStepsMesh poly={poly} steps={m.steps} wells={wells} look={look} site={site} handlers={handlers} />}
       <GuardRail m={m} poly={poly} site={site} look={look} handlers={handlers} />
@@ -114,10 +115,10 @@ export function PorchMass({ m, look, site, handlers }: OpenMassProps) {
       {posts.map(([x, z], i) => (
         <mesh key={i} position={[ftToM(x), h / 2, ftToM(z)]} userData={{ part: 'post' }} castShadow {...handlers}>
           <boxGeometry args={[PORCH_POST_M, h, PORCH_POST_M]} />
-          <Surface kind="wood" style={style} glow={glow} />
+          <Surface kind="wood" style={style} color={paintedColour(look, site.mi, 'post')} glow={glow} />
         </mesh>
       ))}
-      {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} handlers={handlers} />}
+      {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} handlers={handlers} color={paintedColour(look, site.mi, 'post')} />}
       {m.slab && <GuardRail m={m} poly={poly} site={site} look={look} handlers={handlers} />}
       <RoofMesh m={m} mi={site.mi ?? 0} poly={poly} look={look} handlers={handlers} />
     </>

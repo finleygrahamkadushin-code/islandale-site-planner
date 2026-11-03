@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   applyPreset,
   BRUSH_FIELDS,
@@ -49,7 +49,14 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
   if (!o || (o.type !== 'house' && o.type !== 'deck')) return null
 
   const parts: readonly ExtPart[] = host === 'deck' ? DECK_PARTS : EXT_PARTS.filter((p) => p !== 'slab')
-  const focus: PaintFocus = stored?.objectId === id && masses[stored.mass] ? stored : { objectId: id, part: host === 'deck' ? 'deck' : 'wall', mass: 0, edge: null }
+  const kept = stored?.objectId === id && masses[stored.mass] ? stored : null
+  // a wall that is no longer there (the shape changed, or an undo) falls back to all the mass's walls
+  const focus: PaintFocus = !kept
+    ? { objectId: id, part: host === 'deck' ? 'deck' : 'wall', mass: 0, edge: null }
+    : kept.edge !== null && kept.edge >= massPoly(masses[kept.mass]).length
+      ? { ...kept, edge: null }
+      : kept
+  const focusKey = `${focus.part}|${focus.mass}|${focus.edge}`
   const part = (paintPartOf(focus.part) ?? 'wall') as ExtPart
   const m = masses[focus.mass]
   // a curved mass is one unrolled wall, as the old Walls editor and ext.walls keys have it
@@ -140,7 +147,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
             Colour {look.src.color && <em>({look.src.color})</em>}
           </span>
           <span className="row">
-            <input type="color" value={look.color} disabled={locked} data-testid="ext-color" aria-label="Element colour" onChange={(e) => write({ color: e.target.value })} />
+            <ColourInput key={`${look.color}|${focusKey}`} value={look.color} disabled={locked} onCommit={(color) => write({ color })} />
             <button type="button" className="small" disabled={locked} title="Drop this colour override" onClick={() => write({ color: null })}>
               ×
             </button>
@@ -202,4 +209,25 @@ function Choice<T extends string>({ label, value, options, name, disabled, testI
       </select>
     </label>
   )
+}
+
+/**
+ * A colour well that commits once, when the picker closes (the native change
+ * event, as the old panel listens), not on every shade dragged through: one
+ * paint, one undo step. Remounted (by its key) when the value changes elsewhere.
+ */
+function ColourInput({ value, disabled, onCommit }: { readonly value: string; readonly disabled: boolean; readonly onCommit: (color: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null)
+  const commit = useRef(onCommit)
+  useEffect(() => {
+    commit.current = onCommit
+  })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onChange = () => el.value.toLowerCase() !== value.toLowerCase() && commit.current(el.value)
+    el.addEventListener('change', onChange)
+    return () => el.removeEventListener('change', onChange)
+  }, [value])
+  return <input ref={ref} type="color" defaultValue={value} disabled={disabled} data-testid="ext-color" aria-label="Element colour" />
 }

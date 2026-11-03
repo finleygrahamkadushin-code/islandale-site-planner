@@ -282,3 +282,16 @@ describe('prow tip column', () => {
 })
 
 const ftToMetres = (ft: number) => ft * FT
+
+describe('box roofs face up (review fix)', () => {
+  test('every slope of a low gable, hip, gambrel and butterfly faces up', async () => {
+    const { buildRoof } = await import('./roof')
+    const rect = [[-10, -6], [10, -6], [10, 6], [-10, 6]] as const
+    for (const type of ['gable', 'hip', 'gambrel', 'butterfly', 'shed']) {
+      for (const pitch of [1, 2, 6]) {
+        const r = buildRoof(rect, { type, pitch, ridge: 'x', overhangFt: 1.5 })
+        for (let i = 1; i < r.roof.normals.length; i += 3) expect(r.roof.normals[i], `${type} ${pitch}`).toBeGreaterThan(0)
+      }
+    }
+  })
+})

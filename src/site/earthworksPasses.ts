@@ -165,7 +165,8 @@ export interface Distances {
 export function benchAndCut(R: Raster, p: PreparedBuilding): Distances {
   const e = p.op.spec
   const r = rangeOf(R, p.box)
-  const rw = r.I1 - r.I0 + 1
+  // a building off the survey grid can leave an empty range (I0 past I1)
+  const rw = Math.max(0, r.I1 - r.I0 + 1)
   const size = rw * Math.max(0, r.J1 - r.J0 + 1)
   const sdA = new Float32Array(size)
   const sdC = new Float32Array(size)

@@ -51,7 +51,7 @@ export function PoolMesh({ o }: { readonly o: PlanObject }) {
         <Surface kind="pad" style={style} color={POOL_FLOOR} />
       </mesh>
       <mesh geometry={parts.lining} receiveShadow>
-        <Surface kind="pad" style={style} color={LINING} />
+        <Surface kind="pad" style={style} color={LINING} layer={1} />
       </mesh>
       <mesh geometry={parts.water} receiveShadow renderOrder={2} {...handlers}>
         <Water style={style} color={water} opacity={0.8} />

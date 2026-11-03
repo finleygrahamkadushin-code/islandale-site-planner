@@ -99,7 +99,8 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   const S = wallS + 2 * o
   // (u along ridge, y, v across) → local (x, y, z)
   const P = (u: number, y: number, v: number): V3 => (along ? [cx + v, y, cz + u] : [cx + u, y, cz + v])
-  const centre = P(0, 0.5, 0)
+  // below the eave, so every slope faces up even where it is low (a butterfly's valley, a gambrel at low pitch)
+  const centre = P(0, -1, 0)
   const away = (pts: readonly V3[]): V3 => {
     const m = pts.reduce((a, q) => [a[0] + q[0], a[1] + q[1], a[2] + q[2]] as V3, [0, 0, 0] as V3)
     return [m[0] / pts.length - centre[0], m[1] / pts.length - centre[1], m[2] / pts.length - centre[2]]

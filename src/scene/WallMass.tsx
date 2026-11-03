@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react'
 import { isWallKind, WALL_KIND_TEXTURE, type WallKind } from '../buildings/finishes'
 import type { MeshData } from '../buildings/geom'
-import type { LocalPoint } from '../buildings/footprint'
+import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
 import { FIT, layoutOpenings } from '../buildings/openingLayout'
 import { buildWallShell, edgeMesh, GLASS_WALL_FT, joinByEdge, wallDecorByEdge, type EdgeMesh, type WallShell } from '../buildings/wallShell'
-import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
+import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
 import { toGeometry } from './meshData'
 import { OpeningMesh } from './OpeningMesh'
@@ -18,7 +18,7 @@ export interface SupportParams {
   readonly spacingFt: number
   /** Post size, inches; undefined for each support kind's own. */
   readonly postIn?: number
-  /** Cross-brace a high post grid (legacy o.bracing); main mass only. */
+  /** Cross-brace a high post grid (legacy o.bracing), under every rectangular enclosed mass. */
   readonly bracing?: boolean
   /** Where a mast stands, feet, building-local (legacy o.mastAt); main mass only. */
   readonly mastAt?: LocalPoint
@@ -77,6 +77,7 @@ export function WallMass({
     () => (glassKey.includes('g') ? wallDecorByEdge(poly, m.h, (e) => (glassKey[e] === 'g' ? 'glass' : null), openings, { thicknessFt: thickness }) : []),
     [poly, m.h, openings, glassKey, thickness],
   )
+  const openingPaint = { door: paintedColour(look, mi, 'door'), glass: paintedColour(look, mi, 'glass'), trim: paintedColour(look, mi, 'trim') }
   const groups = [...new Set(finishes.map(finishKey))].map((key) => {
     const edges = finishes.flatMap((f, e) => (finishKey(f) === key ? [e] : []))
     return { key, finish: finishes[edges[0]], edges: edges.join(',') }
@@ -86,10 +87,10 @@ export function WallMass({
       {groups.map((g) => (
         <WallPart key={g.key} shell={shell} decor={decor} edges={g.edges} finish={g.finish} look={look} handlers={handlers} />
       ))}
-      <CapMesh mesh={shell.cap} color={finishes[0]?.color ?? look.color} look={look} handlers={handlers} />
+      <CapMesh mesh={shell.cap} color={look.ext(mi, 'wall', (CURVED_SHAPES as readonly string[]).includes(m.shape) ? 0 : null).color} look={look} handlers={handlers} />
       <RoofMesh m={m} mi={mi} poly={poly} look={look} handlers={handlers} />
       {openings.map((op) => (
-        <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} thicknessFt={thickness} />
+        <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} thicknessFt={thickness} paint={openingPaint} handlers={handlers} />
       ))}
       <Foundation
         poly={poly}
@@ -97,10 +98,11 @@ export function WallMass({
         support={supports.support}
         spacingFt={supports.spacingFt}
         postIn={supports.postIn}
-        bracing={mi === 0 && supports.bracing}
+        bracing={supports.bracing}
         mastAt={mi === 0 ? supports.mastAt : undefined}
         style={look.style}
         handlers={handlers}
+        paint={(part) => paintedColour(look, mi, part)}
       />
     </>
   )

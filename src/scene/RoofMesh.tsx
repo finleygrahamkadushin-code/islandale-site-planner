@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Euler, Matrix4, OctahedronGeometry, Quaternion, Vector3, type InstancedMesh } from 'three'
 import { isRoofFinish, isWallKind, ROOF_FINISH_COLOUR, ROOF_FINISH_TEXTURE, WALL_KIND_TEXTURE, type RoofFinish } from '../buildings/finishes'
-import type { LocalPoint } from '../buildings/footprint'
+import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
 import type { V3 } from '../buildings/geom'
 import type { Mass } from '../buildings/masses'
 import { buildRoof, normaliseRoof, type TipPost } from '../buildings/roof'
@@ -54,11 +54,15 @@ export function roofFinish(look: BuildingLook, mi: number): RoofLook {
   return { finish, kind: 'roof', texture: look.roofMat === 'shake' ? 'shake' : 'seam', color: r.color }
 }
 
-/** Fascia and soffit: painted trim, else the roof's own colour (or `fallback`). */
+/** Fascia and soffit: trim painted as trim (not trim following painted walls), else `fallback`. */
 function trimColour(look: BuildingLook, mi: number, fallback: string | undefined): string | undefined {
   const t = look.ext(mi, 'trim')
-  return isPainted(t) ? t.color : fallback
+  return isPainted(t) && t.via !== 'wall' ? t.color : fallback
 }
+
+/** Gable ends and dome or sod cladding belong to the mass's walls as a whole: Paint picks the mass, not one wall. */
+const MASS_WALL = { part: 'wall', massWide: true } as const
+const isCurvedMass = (m: Mass) => (CURVED_SHAPES as readonly string[]).includes(m.shape)
 
 /** Gable ends and the cladding under a dome or sod roof are wall: the mass's own wall kind and colour, else the building's (as WallMass draws its walls). */
 interface WallInfillLook {
@@ -67,14 +71,15 @@ interface WallInfillLook {
   readonly texture: TextureName
 }
 
-function wallInfill(look: BuildingLook, mi: number): WallInfillLook {
-  const r = look.ext(mi, 'wall', 0)
+function wallInfill(look: BuildingLook, mi: number, m: Mass): WallInfillLook {
+  // the mass's walls, not one of them: a curved mass is one wall (0), a straight one reads its mass-wide finish
+  const r = look.ext(mi, 'wall', isCurvedMass(m) ? 0 : null)
   const kind = isWallKind(r.kind) ? r.kind : null
   return { glass: kind === 'glass', color: r.color, texture: kind && kind !== 'glass' ? WALL_KIND_TEXTURE[kind] : look.siding }
 }
 
-function WallInfillSurface({ mi, look }: { readonly mi: number; readonly look: BuildingLook }) {
-  const w = wallInfill(look, mi)
+function WallInfillSurface({ m, mi, look }: { readonly m: Mass; readonly mi: number; readonly look: BuildingLook }) {
+  const w = wallInfill(look, mi, m)
   if (w.glass) return <Surface kind="clearGlass" style={look.style} />
   return <Surface kind="wall" style={look.style} color={w.color} texture={w.texture} diagramColor={look.diagram} glow={look.glow} />
 }
@@ -126,8 +131,8 @@ function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
       <mesh geometry={geo.roof} castShadow={!glass} receiveShadow userData={{ part: 'roof' }} {...handlers}>
         <Surface kind={finish.kind} style={style} color={finish.color} texture={finish.texture} diagramColor={shade(diagram)} glow={glow} />
       </mesh>
-      <mesh geometry={geo.gables} castShadow receiveShadow userData={{ part: 'wall' }} {...handlers}>
-        <WallInfillSurface mi={mi} look={look} />
+      <mesh geometry={geo.gables} castShadow receiveShadow userData={MASS_WALL} {...handlers}>
+        <WallInfillSurface m={m} mi={mi} look={look} />
       </mesh>
       <mesh geometry={geo.trim} castShadow={!glass} receiveShadow userData={{ part: 'trim' }} {...handlers}>
         {/* a glass roof is glass right through, as the old planner swaps the whole roof's material */}
@@ -145,7 +150,7 @@ function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
 /** Dome, vault, shell, saddle and sod: the slab with its soffit and fascia, infill or struts below, linework, and grass on sod. */
 function SculptedRoofMesh({ m, mi, type, poly, look, finish, handlers }: PartProps & { readonly type: SculptedType }) {
   const r = useMemo(
-    () => sculptedRoof(poly, { roof: type, pitch: m.pitch, ridge: m.ridge, overhang: m.overhang, open: m.open, curl: m.curl, roofMat: finish.finish ?? undefined }),
+    () => sculptedRoof(poly, { roof: type, pitch: m.pitch, ridge: m.ridge, overhang: m.overhang, open: m.open, curl: m.curl, roofMat: finish.finish ?? '' }),
     [poly, type, m.pitch, m.ridge, m.overhang, m.open, m.curl, finish.finish],
   )
   const geo = useMemo(() => ({ slab: toGeometry(r.slab), soffit: toGeometry(r.soffit), fascia: toGeometry(r.fascia), infill: toGeometry(r.infill), struts: toGeometry(r.struts) }), [r])
@@ -175,8 +180,8 @@ function SculptedRoofMesh({ m, mi, type, poly, look, finish, handlers }: PartPro
           <Surface kind="clearGlass" style={style} />
         </mesh>
       ) : (
-        <mesh geometry={geo.infill} castShadow receiveShadow userData={{ part: 'wall' }} {...handlers}>
-          <WallInfillSurface mi={mi} look={look} />
+        <mesh geometry={geo.infill} castShadow receiveShadow userData={MASS_WALL} {...handlers}>
+          <WallInfillSurface m={m} mi={mi} look={look} />
         </mesh>
       )}
       <mesh geometry={geo.struts} castShadow userData={{ part: 'post' }} {...handlers}>

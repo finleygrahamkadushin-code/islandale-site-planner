@@ -156,6 +156,11 @@ describe('berms', () => {
     for (let x = -2.5; x <= 2.5; x += 0.25) for (let n = -2.5; n <= 2.5; n += 0.25) expect(all.ground(x, n)).toBeLessThanOrEqual(floorC + 1e-5)
     expect(all.ground(0, 3.05 + 0.3)).toBeCloseTo(10 + 8 * FT, 2)
   })
+
+  test('a bermed building moved off the survey does not break the ground (review fix)', () => {
+    const far = works(flat, [house({ support: 'earth', earth: { berm: 6, sides: 'all' } }, { x: 140, n: 0 })])
+    expect(far.ground(0, 0)).toBeCloseTo(10, 6)
+  })
 })
 
 describe('fill benches (earth support)', () => {

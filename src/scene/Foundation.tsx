@@ -28,6 +28,8 @@ interface FoundationProps {
   readonly mastAt?: LocalPoint
   /** Top of the supports relative to the mass floor, metres (minus the floor depth under a deck). */
   readonly top?: number
+  /** The painted colour of posts or foundation (exterior model), when painted. */
+  readonly paint?: (part: 'post' | 'foundation') => string | undefined
 }
 
 /**
@@ -37,7 +39,7 @@ interface FoundationProps {
  * it. Pieces carry their paint part: 'post' for anything standing,
  * 'foundation' for skirts, aprons and plates.
  */
-export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers, bracing = false, mastAt, top = 0 }: FoundationProps) {
+export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers, bracing = false, mastAt, top = 0, paint }: FoundationProps) {
   const pieces = useMemo(() => {
     const plan = supportPlan({ poly, support, spacingFt, postIn, bracing, mastAt, top, groundY: (x, z) => site.groundAt(x, z) - site.floor })
     return supportMeshes(plan, poly).map((p) => ({ ...p, geometry: toGeometry(p.mesh) }))
@@ -47,14 +49,15 @@ export function Foundation({ poly, site, support, spacingFt, postIn, style, hand
     <group name="supports">
       {pieces.map((p) => (
         <mesh key={`${p.part}-${p.material}`} geometry={p.geometry} userData={{ part: p.part }} castShadow receiveShadow {...handlers}>
-          <SupportSurface material={p.material} style={style} />
+          <SupportSurface material={p.material} style={style} painted={paint?.(p.part)} />
         </mesh>
       ))}
     </group>
   )
 }
 
-function SupportSurface({ material, style }: { readonly material: SupportMaterial; readonly style: DisplayStyle }) {
+function SupportSurface({ material, style, painted }: { readonly material: SupportMaterial; readonly style: DisplayStyle; readonly painted?: string }) {
+  if (painted) return <Surface kind="trim" style={style} color={painted} diagramColor={STILT_DIAGRAM} />
   if (material === 'wood') return <Surface kind="wood" style={style} />
   if (material === 'concrete') return <Surface kind="concrete" style={style} texture="concrete" />
   if (material === 'steel') return <Surface kind="frame" style={style} />
@@ -70,10 +73,12 @@ interface PostsProps {
   readonly style: DisplayStyle
   /** The cabin's handlers, so a click on a post selects it or picks its part. */
   readonly handlers: MeshHandlers
+  /** Painted post colour, when painted. */
+  readonly color?: string
 }
 
 /** Square posts from `top` down to the ground under each point, buried a little. Points closer than a post to the ground get none. */
-export function Posts({ points, top, site, sizeM, style, handlers }: PostsProps) {
+export function Posts({ points, top, site, sizeM, style, handlers, color }: PostsProps) {
   return (
     <>
       {points.map(([x, z], i) => {
@@ -82,7 +87,7 @@ export function Posts({ points, top, site, sizeM, style, handlers }: PostsProps)
         return (
           <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} userData={{ part: 'post' }} castShadow {...handlers}>
             <boxGeometry args={[sizeM, len, sizeM]} />
-            <Surface kind="wood" style={style} />
+            <Surface kind="wood" style={style} color={color} />
           </mesh>
         )
       })}

@@ -5,7 +5,7 @@ import { emptyMesh } from '../buildings/geom'
 import type { DeckSteps } from '../buildings/masses'
 import { buildSlab } from '../buildings/slab'
 import { ftToM } from '../site/units'
-import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
+import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Segment } from './Segment'
 import { Surface } from './Surface'
@@ -45,7 +45,7 @@ export function DeckStepsMesh({ poly, steps, wells, look, site, handlers }: Prop
   return (
     <>
       <mesh geometry={treads} userData={{ part: 'deck' }} castShadow receiveShadow {...handlers}>
-        <Surface kind="deck" style={style} texture="deck" glow={glow} />
+        <Surface kind="deck" style={style} texture="deck" color={paintedColour(look, site.mi, 'deck')} glow={glow} />
       </mesh>
       {plan.wells.map(({ well, top }, i) => {
         const g0 = rel(well.x, well.z) - 0.1

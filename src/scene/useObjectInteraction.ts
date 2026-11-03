@@ -44,7 +44,7 @@ export function useObjectInteraction(o: PlanObject) {
       }
       select([o.id])
     },
-    [o.id, o.type, select, toggleSelect],
+    [o, select, toggleSelect],
   )
   const onPointerOver = useCallback(
     (e: ThreeEvent<PointerEvent>) => {

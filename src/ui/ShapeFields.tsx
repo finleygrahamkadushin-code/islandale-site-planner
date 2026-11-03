@@ -31,8 +31,11 @@ export function ShapeFields({ p, pad, cars = false, disabled, set }: ShapeProps)
           unit={extra.unit}
           value={num(p[extra.key], extra.fallback(w))}
           min={extra.min}
+          step={extra.step}
+          digits={2}
           disabled={disabled}
           onCommit={(v) => put(extraPatch(shape, Math.min(extra.max, v)))}
+          onClear={() => put(extraPatch(shape, null))}
         />
       )}
       {cars && <NumField label="Cars drawn" unit="" value={num(p.cars, 0)} min={0} disabled={disabled} onCommit={(v) => put(carsPatch(v))} />}
@@ -57,7 +60,7 @@ export function RoofFields({ m, disabled, set }: { readonly m: Mass; readonly di
           <NumField label="Pitch" unit=":12" value={m.pitch} min={1} disabled={disabled} onCommit={(v) => put('pitch', String(v))} />
           <NumField label="Overhang" unit="ft" value={m.overhang} min={0} disabled={disabled} onCommit={(v) => put('overhang', String(v))} />
           <Select label="Finish" value={m.roofMat ?? ''} options={ROOF_FINISHES} disabled={disabled} onChange={(v) => put('roofMat', v)} testId="roof-finish" />
-          {curled && <NumField label="Shell curl" unit="0–1" value={m.curl ?? 0.5} min={0} disabled={disabled} onCommit={(v) => put('curl', String(v))} />}
+          {curled && <NumField label="Shell curl" unit="0–1" value={m.curl ?? 0.5} min={0} step={0.05} digits={2} disabled={disabled} onCommit={(v) => put('curl', String(v))} onClear={() => put('curl', '')} />}
         </>
       )}
     </div>

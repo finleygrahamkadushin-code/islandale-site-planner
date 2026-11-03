@@ -1,6 +1,7 @@
 import { FIT, type OpeningPiece, type PlacedOpening } from '../buildings/openingLayout'
 import { ftToM } from '../site/units'
 import type { DisplayStyle } from '../store/types'
+import type { MeshHandlers } from './buildingLook'
 import { Surface } from './Surface'
 
 /** How far the casing stands off the wall face: flush trim, not a box frame. */
@@ -26,6 +27,16 @@ interface Props {
   readonly highlight?: boolean
   /** The wall's thickness at each edge, feet (the shell's); FIT.wallFt by default. */
   readonly thicknessFt?: (edge: number) => number
+  /** Painted colours of the mass's doors, window glass and trim (exterior model), when painted. */
+  readonly paint?: OpeningPaint
+  /** The cabin's handlers, so Paint mode can pick a door, pane or casing. */
+  readonly handlers?: MeshHandlers
+}
+
+export interface OpeningPaint {
+  readonly door?: string
+  readonly glass?: string
+  readonly trim?: string
 }
 
 /**
@@ -37,12 +48,12 @@ interface Props {
  * casing. Along-cuts are drawn piece by piece with jambs only at their ends
  * and at sharp corners. Meshes carry their part (glass, door, trim) for Paint mode.
  */
-export function OpeningMesh({ op, style, highlight = false, thicknessFt }: Props) {
+export function OpeningMesh({ op, style, highlight = false, thicknessFt, paint, handlers }: Props) {
   if (op.hidden) return null
   return (
     <>
       {op.pieces.map((p, i) => (
-        <PieceMesh key={i} op={op} p={p} style={style} highlight={highlight} wallM={ftToM(thicknessFt ? thicknessFt(p.edge) : FIT.wallFt)} />
+        <PieceMesh key={i} op={op} p={p} style={style} highlight={highlight} wallM={ftToM(thicknessFt ? thicknessFt(p.edge) : FIT.wallFt)} paint={paint} handlers={handlers} />
       ))}
     </>
   )
@@ -54,15 +65,17 @@ interface PieceProps {
   readonly style: DisplayStyle
   readonly highlight: boolean
   readonly wallM: number
+  readonly paint?: OpeningPaint
+  readonly handlers?: MeshHandlers
 }
 
-function PieceMesh({ op, p, style, highlight, wallM }: PieceProps) {
+function PieceMesh({ op, p, style, highlight, wallM, paint, handlers }: PieceProps) {
   const w = ftToM(p.w)
   const h = ftToM(op.h)
   const trim = Math.max(MIN_FRAME_M, ftToM(op.trim))
   const pos: [number, number, number] = [ftToM(p.centre[0]), ftToM(p.centre[1]), ftToM(p.centre[2])]
   const yaw = Math.atan2(p.normal[0], p.normal[1])
-  const frameColour = op.conflict ? CONFLICT_COLOUR : undefined
+  const frameColour = op.conflict ? CONFLICT_COLOUR : paint?.trim
   const glow = highlight ? 1 : 0
   // the group sits on the outer face with +z out, so the middle of the wall is -t/2
   const mid = -wallM / 2
@@ -87,22 +100,22 @@ function PieceMesh({ op, p, style, highlight, wallM }: PieceProps) {
   for (let k = 1; k <= op.mullH; k++) mullions.push(bar(0, -h / 2 + (h * k) / (op.mullH + 1), w, MULLION_M, `mh${k}`, MULLION_M, mid))
 
   return (
-    <group position={pos} rotation={[0, yaw, 0]}>
+    <group position={pos} rotation={[0, yaw, 0]} {...handlers}>
       {op.kind === 'door' ? (
         <>
           <mesh position={[0, 0, mid]} castShadow userData={DOOR}>
             <boxGeometry args={[w, h, DOOR_M]} />
-            <Surface kind="door" style={style} />
+            <Surface kind="door" style={style} color={paint?.door} />
           </mesh>
           <mesh position={[0, h * 0.18, mid + DOOR_M / 2 + DOOR_LITE_M]} userData={GLASS}>
             <planeGeometry args={[w * 0.32, h * 0.45]} />
-            <Surface kind="glass" style={style} layer={1} />
+            <Surface kind="glass" style={style} color={paint?.glass} layer={1} />
           </mesh>
         </>
       ) : op.kind === 'cutout' ? null : (
         <mesh position={[0, 0, mid]} userData={GLASS}>
           <boxGeometry args={[w, h, GLASS_M]} />
-          <Surface kind="glass" style={style} />
+          <Surface kind="glass" style={style} color={paint?.glass} />
         </mesh>
       )}
       {bar(midX, h / 2 + trim / 2, outerW, trim, 'head')}
