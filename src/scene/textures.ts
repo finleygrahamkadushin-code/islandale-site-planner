@@ -213,6 +213,118 @@ export function gravel(): TileTexture {
   })
 }
 
+const M_FT = 1 / 0.3048
+
+/** Cedar wall boards, vertical, seven to the metre with dark joints (legacy wallTex cedar), 1 m tile. */
+export function cedarBoards(): TileTexture {
+  return make('cedar', [256, 256], [M_FT, M_FT], (g, w, h) => {
+    const r = rng(71)
+    const n = 7
+    const bw = w / n
+    for (let i = 0; i < n; i++) {
+      const v = Math.round(255 * (0.78 + r() * 0.22))
+      g.fillStyle = `rgb(${v},${v},${v})`
+      g.fillRect(i * bw, 0, bw, h)
+      for (let k = 0; k < 6; k++) {
+        g.fillStyle = 'rgba(0,0,0,0.05)'
+        g.fillRect(i * bw + r() * bw, 0, 1.5, h)
+      }
+      g.fillStyle = 'rgb(107,107,107)'
+      g.fillRect(i * bw, 0, 2, h)
+    }
+  })
+}
+
+/** Wide boards with raised battens, three to 0.9 m (legacy wallTex board). */
+export function boardBatten(): TileTexture {
+  return make('board', [256, 256], [0.9 * M_FT, M_FT], (g, w, h) => {
+    const r = rng(72)
+    const n = 3
+    const bw = w / n
+    for (let i = 0; i < n; i++) {
+      const v = Math.round(255 * (0.82 + r() * 0.12))
+      g.fillStyle = `rgb(${v},${v},${v})`
+      g.fillRect(i * bw, 0, bw, h)
+    }
+    for (let i = 0; i <= n; i++) {
+      const x = i * bw
+      g.fillStyle = 'rgb(128,128,128)'
+      g.fillRect(x - 7, 0, 3, h)
+      g.fillStyle = '#ffffff'
+      g.fillRect(x - 4, 0, 10, h)
+      g.fillStyle = 'rgb(158,158,158)'
+      g.fillRect(x + 6, 0, 2, h)
+    }
+  })
+}
+
+/** Squared timbers laid flat, five courses to the metre, shaded at each joint (legacy wallTex timber). */
+export function timberCourses(): TileTexture {
+  return make('timber', [256, 256], [M_FT, M_FT], (g, w, h) => {
+    const r = rng(73)
+    const n = 5
+    const ch = h / n
+    const tone = (v: number) => `rgb(${Math.round(255 * v)},${Math.round(255 * v)},${Math.round(255 * v)})`
+    for (let i = 0; i < n; i++) {
+      const b = 0.8 + r() * 0.15
+      const grad = g.createLinearGradient(0, i * ch, 0, (i + 1) * ch)
+      grad.addColorStop(0, tone(b - 0.25))
+      grad.addColorStop(0.15, tone(b))
+      grad.addColorStop(1, tone(b - 0.06))
+      g.fillStyle = grad
+      g.fillRect(0, i * ch, w, ch)
+    }
+    speckle(g, w, h, 74, 1500, 0.05)
+  })
+}
+
+/** Coursed rubble stone with mortar joints, 1.6 m tile (legacy wallTex stone). */
+export function coursedStone(): TileTexture {
+  return make('stone', [256, 256], [1.6 * M_FT, 1.6 * M_FT], (g, w, h) => {
+    const r = rng(75)
+    g.fillStyle = 'rgb(140,140,140)'
+    g.fillRect(0, 0, w, h)
+    let y = 0
+    while (y < h) {
+      const rh = Math.min(h - y, 28 + r() * 36)
+      let x = -r() * 40
+      while (x < w) {
+        const bw = 40 + r() * 70
+        const v = Math.round(255 * (0.68 + r() * 0.3))
+        g.fillStyle = `rgb(${v},${v},${v})`
+        g.fillRect(x + 2, y + 2, bw - 4, rh - 4)
+        g.fillStyle = 'rgba(255,255,255,0.08)'
+        g.fillRect(x + 2, y + 2, bw - 4, 3)
+        x += bw
+      }
+      y += rh
+    }
+  })
+}
+
+/** Copper roofing: standing seams 16 in apart with a mottled patina, 8 ft tile. */
+export function copperRoof(): TileTexture {
+  return make('copper', [256, 256], [8, 8], (g, w, h) => {
+    g.fillStyle = '#e2e2e2'
+    g.fillRect(0, 0, w, h)
+    const r = rng(76)
+    for (let i = 0; i < 260; i++) {
+      const v = 175 + Math.floor(r() * 80)
+      g.fillStyle = `rgba(${v},${v},${v},0.35)`
+      g.beginPath()
+      g.ellipse(r() * w, r() * h, 6 + r() * 22, 3 + r() * 10, 0, 0, Math.PI * 2)
+      g.fill()
+    }
+    const pitch = w / 6
+    for (let i = 0; i < 6; i++) {
+      g.fillStyle = 'rgba(255,255,255,0.45)'
+      g.fillRect(i * pitch, 0, 2, h)
+      g.fillStyle = 'rgba(0,0,0,0.3)'
+      g.fillRect(i * pitch + 2, 0, 2, h)
+    }
+  })
+}
+
 /** A copy of a tile texture repeated so one unit of UV is one foot. */
 export function perFoot(tile: TileTexture): Texture {
   const t = tile.texture.clone()

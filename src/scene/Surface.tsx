@@ -4,7 +4,11 @@ import { DoubleSide, type Texture } from 'three'
 import type { DisplayStyle } from '../store/types'
 import {
   battenSiding,
+  boardBatten,
+  cedarBoards,
   concrete,
+  copperRoof,
+  coursedStone,
   deckBoards,
   grass,
   gravel,
@@ -14,11 +18,12 @@ import {
   shakeRoof,
   shingleSiding,
   standingSeam,
+  timberCourses,
   type TileTexture,
 } from './textures'
 
 /** What a surface is made of; each display style decides how that looks. */
-export type SurfaceKind = 'wall' | 'roof' | 'trim' | 'glass' | 'railGlass' | 'frame' | 'door' | 'concrete' | 'wood' | 'pad' | 'canopy' | 'trunk' | 'deck'
+export type SurfaceKind = 'wall' | 'roof' | 'trim' | 'glass' | 'clearGlass' | 'railGlass' | 'frame' | 'door' | 'concrete' | 'wood' | 'pad' | 'canopy' | 'trunk' | 'deck'
 
 export type TextureName =
   | 'batten'
@@ -47,12 +52,12 @@ const SOURCES: Readonly<Record<TextureName, () => TileTexture>> = {
   gravel,
   deck: deckBoards,
   concrete,
-  copper: standingSeam,
+  copper: copperRoof,
   metal: standingSeam,
-  cedar: shingleSiding,
-  board: battenSiding,
-  timber: lapSiding,
-  stone: concrete,
+  cedar: cedarBoards,
+  board: boardBatten,
+  timber: timberCourses,
+  stone: coursedStone,
 }
 
 const scaled = new Map<string, Texture>()
@@ -70,6 +75,8 @@ const WHITE = '#f3f2ee'
 const SKETCH_LINE = '#2a2a2a'
 /** Legacy glass rail panes, #a9d6e2 at 30% opacity. */
 const RAIL_GLASS = '#a9d6e2'
+/** Legacy glass roofs and curtain walls, #b4d3dc / #8fbccb. */
+const CLEAR_GLASS = '#a6c9d4'
 
 /** Glass in the white model, sketch and diagram styles. */
 const nonRealisticGlass = (style: DisplayStyle): string => (style === 'diagram' ? '#9fb6c2' : '#c9d2d6')
@@ -110,6 +117,18 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     )
   }
 
+  if (kind === 'clearGlass') {
+    // glass roofs and curtain walls: tinted and see-through (legacy roofGlassMat, specWallMat glass)
+    const see = { transparent: true, side: DoubleSide, depthWrite: false } as const
+    if (style === 'realistic') return <meshPhysicalMaterial {...lift} {...see} color={color ?? CLEAR_GLASS} opacity={0.36} roughness={0.05} clearcoat={1} envMapIntensity={1.6} />
+    return (
+      <>
+        <meshStandardMaterial {...lift} {...see} opacity={0.4} color={nonRealisticGlass(style)} roughness={0.3} />
+        {style === 'sketch' && <Edges color={SKETCH_LINE} />}
+      </>
+    )
+  }
+
   if (kind === 'railGlass') {
     // see-through guard panes: the legacy tint in realistic, the window-glass tones elsewhere
     const see = { transparent: true, opacity: 0.3, side: DoubleSide, depthWrite: false } as const
@@ -124,8 +143,9 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
 
   if (style === 'realistic') {
     const base = vertexColors ? '#ffffff' : realisticColour(kind, color)
-    const rough = kind === 'roof' ? (texture === 'seam' ? 0.45 : 0.95) : kind === 'frame' ? 0.6 : 0.9
-    const metal = kind === 'roof' && texture === 'seam' ? 0.35 : 0
+    const sheet = kind === 'roof' && (texture === 'seam' || texture === 'metal' || texture === 'copper')
+    const rough = sheet ? (texture === 'copper' ? 0.55 : 0.45) : kind === 'roof' ? 0.95 : kind === 'frame' ? 0.6 : 0.9
+    const metal = sheet ? (texture === 'copper' ? 0.25 : 0.35) : 0
     return <meshStandardMaterial {...lift} color={base} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={emissiveIntensity} vertexColors={vertexColors} />
   }
   if (style === 'diagram') {
