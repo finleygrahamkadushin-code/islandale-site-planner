@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). Plans for 5B, 5C and 5D drafted Nov 2 2026, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved Nov 2 2026 and in progress; plans for 5C and 5D drafted, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -67,7 +67,7 @@ Checked Nov 2 2026 on `phase-5a-parts-rails`:
 
 Once 5B is in, D–I's hand-drawn floor plans show in 5D too. Their walks stay ribbons, not path pieces, as the old planner draws them.
 
-## 5B in detail (draft, waiting for an OK)
+## 5B in detail (approved)
 
 Branch: `phase-5b-interiors`, from `phase-5a-fixes` (5A with its last fixes). The schemes already carry floor plans in each cabin's `params.floors` (rooms, openings, furniture), kept as the old planner stores them, so nothing has to be converted: C, C2–C4, D, E, G and H have polygon rooms; A and B have rectangle rooms, read as four-point polygons and written back that way only when edited.
 
