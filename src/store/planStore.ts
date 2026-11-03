@@ -15,6 +15,7 @@ import { partActions, watchPickedPart, type PartActions } from './partActions'
 import { interiorActions, type InteriorActions } from './interiorActions'
 import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
 import type { PathKind } from '../paths/pieces'
+import type { PaintFocus, PaintScope } from './paintTypes'
 import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
 import {
@@ -72,6 +73,11 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
   readonly contours: boolean | null
   /** Hide every roof so the rooms inside can be seen (old Roofs off). View state, not saved. */
   readonly roofsOff: boolean
+  /** Paint mode (P): a click in 3D picks the element the Exterior panel paints. */
+  readonly painting: boolean
+  /** The element the Exterior panel works on, and how far a change reaches. */
+  readonly paintFocus: PaintFocus | null
+  readonly paintScope: PaintScope
   /** A path piece being placed: its kind, turn, and where the ghost is (view state). */
   readonly placing: { readonly kind: PathKind; readonly rotation: number; readonly at: { readonly x: number; readonly n: number } | null } | null
   readonly saveStatus: SaveStatus
@@ -110,6 +116,8 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
   readonly alignHeads: (id: ObjectId, massIndex: number, cutId: number) => void
   /** Fit every opening on a cabin by the rules (for saved schemes that break them). */
   readonly fitAllOpenings: (id: ObjectId) => void
+  /** Change a building's or deck's exterior finishes (params.ext and the scheme finish fields) as one undo step, refused when locked. */
+  readonly editExterior: (id: ObjectId, change: (params: Record<string, unknown>) => Record<string, unknown>) => void
   // --- view state: not undo steps -------------------------------------
   readonly select: (ids: readonly ObjectId[]) => void
   readonly toggleSelect: (id: ObjectId) => void
@@ -123,6 +131,9 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
   readonly setDisplayStyle: (style: DisplayStyle) => void
   readonly setContours: (contours: boolean | null) => void
   readonly setRoofsOff: (roofsOff: boolean) => void
+  readonly setPainting: (painting: boolean) => void
+  readonly setPaintFocus: (focus: PaintFocus | null) => void
+  readonly setPaintScope: (scope: PaintScope) => void
   readonly setPlacing: (placing: PlanState['placing']) => void
   /** The Connect tool (C): the two ends picked so far and the width to build at (view state). */
   readonly connecting: { readonly A: SnapTarget | null; readonly B: SnapTarget | null; readonly widthFt: number } | null
@@ -236,6 +247,9 @@ export const usePlanStore = create<PlanState>()(
         displayStyle: 'realistic',
         contours: null,
         roofsOff: false,
+        painting: false,
+        paintFocus: null,
+        paintScope: 'element',
         placing: null,
         connecting: null,
         saveStatus: 'loading',
@@ -345,6 +359,11 @@ export const usePlanStore = create<PlanState>()(
               return { ...c, sill: Math.max(0, head - (c.h ?? 4)) }
             })
           }),
+        editExterior: (id, change) => {
+          const o = get().plan.objects[id]
+          // a change that changes nothing is no undo step
+          if (o && JSON.stringify(change(o.params)) !== JSON.stringify(o.params)) edit(id, (cur) => ({ ...cur, params: change(cur.params) }))
+        },
         fitAllOpenings: (id) => editRefit(id, (p) => p),
         ...partActions({ get, set, editable, edit, editRefit, refitObject }),
         ...interiorActions({ get, editable, edit }),
@@ -388,6 +407,9 @@ export const usePlanStore = create<PlanState>()(
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
+        setPainting: (painting) => set({ painting, placing: painting ? null : get().placing, connecting: painting ? null : get().connecting }),
+        setPaintFocus: (paintFocus) => set({ paintFocus }),
+        setPaintScope: (paintScope) => set({ paintScope }),
         setPlacing: (placing) => set({ placing, connecting: placing ? null : get().connecting }),
         setConnecting: (connecting) => set({ connecting, placing: connecting ? null : get().placing, selection: connecting ? [] : get().selection, pickedPart: connecting ? null : get().pickedPart }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
