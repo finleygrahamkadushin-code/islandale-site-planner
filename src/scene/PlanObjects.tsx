@@ -7,6 +7,10 @@ import { TreeMesh } from './TreeMesh'
 import { BridgeMesh } from './BridgeMesh'
 import { StandaloneDeckMesh } from './StandaloneDeck'
 import { PathPieceMesh } from './PathPieceMesh'
+import { MeadowMesh } from './MeadowMesh'
+import { BoulderMesh } from './BoulderMesh'
+import { PoolMesh } from './PoolMesh'
+import { ShedMesh } from './ShedMesh'
 import { pieceKind } from '../paths/pieces'
 import type { DragState } from './editing'
 
@@ -29,6 +33,10 @@ function PlanObjectView({ id, drag }: { readonly id: string; readonly drag: Drag
   if (o.type === 'bridge') return <BridgeMesh o={o} />
   if (o.type === 'house') return <BuildingMesh o={o} />
   if (o.type === 'deck') return <StandaloneDeckMesh o={o} />
+  if (o.type === 'shed' || o.type === 'shop') return <ShedMesh o={o} />
+  if (o.type === 'meadow') return <MeadowMesh o={o} />
+  if (o.type === 'boulder') return <BoulderMesh o={o} />
+  if (o.type === 'pool') return <PoolMesh o={o} />
   if (o.type === 'pad' && typeof o.params.kind === 'string' && pieceKind(o) !== 'walk') return <PathPieceMesh o={o} />
   return <ObjectMesh o={o} />
 }

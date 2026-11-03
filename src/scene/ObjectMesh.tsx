@@ -12,10 +12,12 @@ import { toGeometry } from './meshData'
 import { useObjectInteraction } from './useObjectInteraction'
 import { Surface } from './Surface'
 import { useDisplayStyle } from './useDisplayStyle'
+import { ParkedCars } from './ParkedCars'
 
 /**
- * A pad (path, lane, drive, patio) draped over the ground, or another flat
- * object as a prism of its footprint; gravel-textured in the Realistic style.
+ * A pad (path, lane, drive, patio) draped over the ground, with the cars
+ * parked on it, or another flat object as a prism of its footprint;
+ * gravel-textured in the Realistic style.
  */
 export function ObjectMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
@@ -32,21 +34,17 @@ export function ObjectMesh({ o }: { readonly o: PlanObject }) {
     const at = { x, n }
     return toGeometry(buildDrapedPad(localFootprint(fp), (p) => drawnGround(...localToSite(at, o.rotation, p)) - base, h))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drape, fp.w, fp.d, fp.shape, fp.taper, fp.skew, fp.pts, h, x, n, o.rotation, base, drawnGround])
+  }, [drape, fp.w, fp.d, fp.shape, fp.taper, fp.skew, fp.pts, fp.bend, fp.point, h, x, n, o.rotation, base, drawnGround])
   useEffect(() => () => geometry.dispose(), [geometry])
   const position = toScene(x, n, base)
   const color = typeof o.params.color === 'string' ? o.params.color : '#b8b0a0'
+  const glow = selected ? 1 : hovered ? 0.4 : 0
   return (
-    <mesh
-      geometry={geometry}
-      position={position}
-      rotation={[0, (o.rotation * Math.PI) / 180, 0]}
-      castShadow={!drape}
-      receiveShadow
-      userData={{ objectId: o.id }}
-      {...handlers}
-    >
-      <Surface kind="pad" style={style} color={color} texture="gravel" textureUnit="m" glow={selected ? 1 : hovered ? 0.4 : 0} />
-    </mesh>
+    <group position={position} rotation={[0, (o.rotation * Math.PI) / 180, 0]} userData={{ objectId: o.id }}>
+      <mesh geometry={geometry} castShadow={!drape} receiveShadow {...handlers}>
+        <Surface kind="pad" style={style} color={color} texture="gravel" textureUnit="m" glow={glow} />
+      </mesh>
+      {drape && <ParkedCars o={o} base={base} handlers={handlers} glow={glow} />}
+    </group>
   )
 }
