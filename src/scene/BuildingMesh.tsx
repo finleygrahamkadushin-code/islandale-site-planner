@@ -23,6 +23,11 @@ import { useShallow } from 'zustand/react/shallow'
 
 const NO_WELLS: readonly TreeWell[] = []
 
+/** A stored mast position (legacy o.mastAt, feet, building-local) when it is a pair of numbers. */
+function mastPoint(v: unknown): LocalPoint | undefined {
+  return Array.isArray(v) && v.length >= 2 && Number.isFinite(v[0]) && Number.isFinite(v[1]) ? [v[0], v[1]] : undefined
+}
+
 /** A cabin: its main walls plus every wing (porches, decks, stairs, ramps), each set at its offset, turn and level. */
 export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
@@ -38,7 +43,17 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
 
   const base = baseElevation(terrain, o)
   const look = buildingLook(o, style, selected ? 1 : hovered ? 0.4 : 0)
-  const supports = { support: o.params.support, spacingFt: num(o.params.postSpacing, 8), postIn: num(o.params.postSize, 6) }
+  // the main mass's supports (legacy supportsMesh): a size of its own, else each kind's own (piers and pilings 10 in)
+  const supports = useMemo(
+    () => ({
+      support: o.params.support,
+      spacingFt: num(o.params.postSpacing, 8),
+      postIn: typeof o.params.postSize === 'number' ? o.params.postSize : undefined,
+      bracing: o.params.bracing === true,
+      mastAt: mastPoint(o.params.mastAt),
+    }),
+    [o.params.support, o.params.postSpacing, o.params.postSize, o.params.bracing, o.params.mastAt],
+  )
   // rails per mass and edge, with the stairs, paths, bridges, doors and walls that open them
   const rails = useMemo(() => objectRailSite(railWorld, o), [railWorld, o])
   // one site per mass, rebuilt only when the cabin, the ground or what opens its rails changes
@@ -46,6 +61,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
     () =>
       masses.map(
         (m, index): MassSite => ({
+          mi: index,
           floor: base + ftToM(m.lvl),
           groundAt: (x, z) => {
             const [sx, sn] = localToSite(o.position, o.rotation, massToBuilding(m, [x, z]))

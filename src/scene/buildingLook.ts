@@ -1,5 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import type { LocalPoint } from '../buildings/footprint'
+import { extResolve, type ExtHost, type ExtResolved, type ExtTagPart } from '../buildings/exterior'
 import type { RailStyle } from '../buildings/railEdits'
 import type { EdgeRail } from '../buildings/railRules'
 import type { DisplayStyle, PlanObject } from '../store/types'
@@ -14,7 +15,11 @@ export interface BuildingLook {
   readonly roofMat?: string
   readonly diagram: string
   readonly glow: number
+  /** One element's finish (wall, roof, trim, rail…) through the exterior model (legacy extResolve), cached per building. */
+  readonly ext: ExtLookup
 }
+
+export type ExtLookup = (mi: number, part: ExtTagPart, edge?: number | null) => ExtResolved
 
 /** The pointer handlers every mesh of a cabin carries, so any part selects it. */
 export interface MeshHandlers {
@@ -26,6 +31,8 @@ export interface MeshHandlers {
 
 /** Ground and floor for one mass, in its own frame (feet in, metres out). */
 export interface MassSite {
+  /** The mass's index in the building (0 the main walls), for its exterior finishes. */
+  readonly mi?: number
   /** Absolute elevation of the mass floor, metres. */
   readonly floor: number
   /** Ground elevation under a mass-local point (feet), metres. */
@@ -54,12 +61,41 @@ export function buildingLook(o: PlanObject, style: DisplayStyle, glow: number): 
     roofMat: typeof p.roofMat === 'string' ? p.roofMat : undefined,
     diagram: diagramColourFor(o.id),
     glow,
+    ext: extLookup(o.params, o.type === 'deck' ? 'deck' : 'building'),
   }
 }
+
+const lookups = new WeakMap<object, ExtLookup>()
+
+/** A building's exterior resolver, the same function (and its answers) while its params are unchanged. */
+export function extLookup(params: Readonly<Record<string, unknown>>, host: ExtHost): ExtLookup {
+  const hit = lookups.get(params)
+  if (hit) return hit
+  const answers = new Map<string, ExtResolved>()
+  const fn: ExtLookup = (mi, part, edge = null) => {
+    const key = `${mi}|${part}|${edge}`
+    const known = answers.get(key)
+    if (known) return known
+    const r = extResolve(params, mi, part, edge, host)
+    answers.set(key, r)
+    return r
+  }
+  lookups.set(params, fn)
+  return fn
+}
+
+/** Whether a resolved colour was painted (an exterior override), not the scheme's own or a default. */
+export const isPainted = (r: ExtResolved): boolean => r.src.color === 'element' || r.src.color === 'mass' || r.src.color === 'house'
 
 /** A slightly darker shade of a hex colour, for roofs in the Diagram style. */
 export function shade(hex: string): string {
   const v = parseInt(hex.slice(1), 16)
   const f = (c: number) => Math.round(c * 0.78)
   return `#${[(v >> 16) & 255, (v >> 8) & 255, v & 255].map((c) => f(c).toString(16).padStart(2, '0')).join('')}`
+}
+
+/** A part's painted colour on mass `mi`, or undefined to keep how it is drawn unpainted. */
+export function paintedColour(look: BuildingLook, mi: number | undefined, part: ExtTagPart): string | undefined {
+  const r = look.ext(mi ?? 0, part)
+  return isPainted(r) ? r.color : undefined
 }

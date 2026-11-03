@@ -3,7 +3,7 @@ import type { LocalPoint } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
 import { joinEdgeRuns } from '../buildings/rails'
 import { buildRail } from '../buildings/railStyles'
-import type { BuildingLook, MassSite, MeshHandlers } from './buildingLook'
+import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
@@ -41,10 +41,13 @@ export function GuardRail({ m, poly, site, look, handlers }: { readonly m: Mass;
   )
   if (!rail) return null
   const metal = style === 'steel' || style === 'cable'
+  const painted = paintedColour(look, site.mi, 'rail')
   return (
     <>
       <mesh name="rail" geometry={rail.frame} userData={{ edges: rail.edges, part: 'rail' }} castShadow {...handlers}>
-        {metal ? (
+        {painted ? (
+          <Surface kind="trim" style={look.style} color={painted} diagramColor={look.diagram} />
+        ) : metal ? (
           <Surface kind="trim" style={look.style} color={METAL} />
         ) : m.kind === 'deck' ? (
           <Surface kind="wood" style={look.style} color={DECK_POST} />

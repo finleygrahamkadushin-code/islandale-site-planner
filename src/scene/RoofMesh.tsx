@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BufferAttribute, BufferGeometry, Color, ConeGeometry, DoubleSide, Euler, Matrix4, OctahedronGeometry, Quaternion, Vector3, type InstancedMesh } from 'three'
-import { isWallKind, ROOF_FINISH_COLOUR, ROOF_FINISH_TEXTURE, WALL_KIND_TEXTURE, type RoofFinish } from '../buildings/finishes'
+import { isRoofFinish, isWallKind, ROOF_FINISH_COLOUR, ROOF_FINISH_TEXTURE, WALL_KIND_TEXTURE, type RoofFinish } from '../buildings/finishes'
 import type { LocalPoint } from '../buildings/footprint'
 import type { V3 } from '../buildings/geom'
 import type { Mass } from '../buildings/masses'
 import { buildRoof, normaliseRoof, type TipPost } from '../buildings/roof'
-import { glassMullions, isSculpted, roofFinishOf, sculptedRoof, type RoofLineKind, type SculptedType, type TuftPlacement } from '../buildings/sculptRoof'
+import { glassMullions, isSculpted, sculptedRoof, type RoofLineKind, type SculptedType, type TuftPlacement } from '../buildings/sculptRoof'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
-import { shade, type BuildingLook, type MeshHandlers } from './buildingLook'
+import { isPainted, shade, type BuildingLook, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface, type SurfaceKind, type TextureName } from './Surface'
 
@@ -43,12 +43,21 @@ export interface RoofLook {
  * texture. The one place the finish is chosen, so the exterior resolver can
  * take it over.
  */
-export function roofFinish(m: Mass, look: BuildingLook): RoofLook {
-  const finish = roofFinishOf(m, look.roofMat)
+export function roofFinish(look: BuildingLook, mi: number): RoofLook {
+  const r = look.ext(mi, 'roof')
+  const finish = isRoofFinish(r.mat) ? r.mat : null
+  const painted = isPainted(r)
   if (finish === 'glass') return { finish, kind: 'clearGlass' }
-  if (finish === 'metal') return { finish, kind: 'roof', texture: ROOF_FINISH_TEXTURE.metal, color: look.roofColor || ROOF_FINISH_COLOUR.metal }
-  if (finish) return { finish, kind: 'roof', texture: ROOF_FINISH_TEXTURE[finish], color: ROOF_FINISH_COLOUR[finish] }
-  return { finish, kind: 'roof', texture: look.roofMat === 'shake' ? 'shake' : 'seam', color: look.roofColor }
+  // metal takes a roof colour of the scheme's or a painted one, else its own grey (legacy base || #8d949a)
+  if (finish === 'metal') return { finish, kind: 'roof', texture: ROOF_FINISH_TEXTURE.metal, color: painted || r.src.color === 'scheme' ? r.color : ROOF_FINISH_COLOUR.metal }
+  if (finish) return { finish, kind: 'roof', texture: ROOF_FINISH_TEXTURE[finish], color: painted ? r.color : ROOF_FINISH_COLOUR[finish] }
+  return { finish, kind: 'roof', texture: look.roofMat === 'shake' ? 'shake' : 'seam', color: r.color }
+}
+
+/** Fascia and soffit: painted trim, else the roof's own colour (or `fallback`). */
+function trimColour(look: BuildingLook, mi: number, fallback: string | undefined): string | undefined {
+  const t = look.ext(mi, 'trim')
+  return isPainted(t) ? t.color : fallback
 }
 
 /** Gable ends and the cladding under a dome or sod roof are wall: the mass's own wall kind and colour, else the building's (as WallMass draws its walls). */
@@ -58,36 +67,39 @@ interface WallInfillLook {
   readonly texture: TextureName
 }
 
-function wallInfill(m: Mass, look: BuildingLook): WallInfillLook {
-  const kind = isWallKind(m.walls) ? m.walls : null
-  return { glass: kind === 'glass', color: m.color ?? look.color, texture: kind && kind !== 'glass' ? WALL_KIND_TEXTURE[kind] : look.siding }
+function wallInfill(look: BuildingLook, mi: number): WallInfillLook {
+  const r = look.ext(mi, 'wall', 0)
+  const kind = isWallKind(r.kind) ? r.kind : null
+  return { glass: kind === 'glass', color: r.color, texture: kind && kind !== 'glass' ? WALL_KIND_TEXTURE[kind] : look.siding }
 }
 
-function WallInfillSurface({ m, look }: { readonly m: Mass; readonly look: BuildingLook }) {
-  const w = wallInfill(m, look)
+function WallInfillSurface({ mi, look }: { readonly mi: number; readonly look: BuildingLook }) {
+  const w = wallInfill(look, mi)
   if (w.glass) return <Surface kind="clearGlass" style={look.style} />
   return <Surface kind="wall" style={look.style} color={w.color} texture={w.texture} diagramColor={look.diagram} glow={look.glow} />
 }
 
 interface RoofMeshProps {
   readonly m: Mass
+  /** The mass's index in the building, for its exterior finishes. */
+  readonly mi: number
   readonly poly: readonly LocalPoint[]
   readonly look: BuildingLook
   readonly handlers: MeshHandlers
 }
 
 /** A mass's roof set on its wall top, classic or sculpted, in its finish; nothing while Roofs off is on. */
-export function RoofMesh({ m, poly, look, handlers }: RoofMeshProps) {
+export function RoofMesh({ m, mi, poly, look, handlers }: RoofMeshProps) {
   const roofsOff = usePlanStore((s) => s.roofsOff)
   const type = normaliseRoof(m.roof)
   if (type === 'none' || roofsOff) return null
-  const finish = roofFinish(m, look)
+  const finish = roofFinish(look, mi)
   return (
     <group position={[0, ftToM(m.h), 0]}>
       {isSculpted(type) ? (
-        <SculptedRoofMesh m={m} type={type} poly={poly} look={look} finish={finish} handlers={handlers} />
+        <SculptedRoofMesh m={m} mi={mi} type={type} poly={poly} look={look} finish={finish} handlers={handlers} />
       ) : (
-        <ClassicRoofMesh m={m} poly={poly} look={look} finish={finish} handlers={handlers} />
+        <ClassicRoofMesh m={m} mi={mi} poly={poly} look={look} finish={finish} handlers={handlers} />
       )}
     </group>
   )
@@ -98,7 +110,7 @@ interface PartProps extends RoofMeshProps {
 }
 
 /** Gable, hip, shed, gambrel, butterfly, pyramid, prow and flat: roof, gable infill in the siding, fascia and soffit, prow clerestory and tip column. */
-function ClassicRoofMesh({ m, poly, look, finish, handlers }: PartProps) {
+function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
   const built = useMemo(() => {
     const prow = { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip }
     return buildRoof(poly, { type: m.roof, pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow })
@@ -115,11 +127,11 @@ function ClassicRoofMesh({ m, poly, look, finish, handlers }: PartProps) {
         <Surface kind={finish.kind} style={style} color={finish.color} texture={finish.texture} diagramColor={shade(diagram)} glow={glow} />
       </mesh>
       <mesh geometry={geo.gables} castShadow receiveShadow userData={{ part: 'wall' }} {...handlers}>
-        <WallInfillSurface m={m} look={look} />
+        <WallInfillSurface mi={mi} look={look} />
       </mesh>
       <mesh geometry={geo.trim} castShadow={!glass} receiveShadow userData={{ part: 'trim' }} {...handlers}>
         {/* a glass roof is glass right through, as the old planner swaps the whole roof's material */}
-        {glass ? <Surface kind="clearGlass" style={style} /> : <Surface kind="trim" style={style} color={look.roofColor} diagramColor={shade(diagram)} glow={glow} />}
+        {glass ? <Surface kind="clearGlass" style={style} /> : <Surface kind="trim" style={style} color={trimColour(look, mi, finish.color ?? look.roofColor)} diagramColor={shade(diagram)} glow={glow} />}
       </mesh>
       <mesh geometry={geo.glass} userData={{ part: 'glass' }} {...handlers}>
         <Surface kind="glass" style={style} />
@@ -131,7 +143,7 @@ function ClassicRoofMesh({ m, poly, look, finish, handlers }: PartProps) {
 }
 
 /** Dome, vault, shell, saddle and sod: the slab with its soffit and fascia, infill or struts below, linework, and grass on sod. */
-function SculptedRoofMesh({ m, type, poly, look, finish, handlers }: PartProps & { readonly type: SculptedType }) {
+function SculptedRoofMesh({ m, mi, type, poly, look, finish, handlers }: PartProps & { readonly type: SculptedType }) {
   const r = useMemo(
     () => sculptedRoof(poly, { roof: type, pitch: m.pitch, ridge: m.ridge, overhang: m.overhang, open: m.open, curl: m.curl, roofMat: finish.finish ?? undefined }),
     [poly, type, m.pitch, m.ridge, m.overhang, m.open, m.curl, finish.finish],
@@ -142,14 +154,14 @@ function SculptedRoofMesh({ m, type, poly, look, finish, handlers }: PartProps &
   useEffect(() => () => lines.forEach((l) => l.geometry.dispose()), [lines])
   const { style, glow, diagram } = look
   const glass = finish.kind === 'clearGlass'
-  const fasciaColour = finish.finish ? FASCIA_COLOUR[finish.finish] : undefined
+  const fasciaColour = trimColour(look, mi, finish.finish ? FASCIA_COLOUR[finish.finish] : undefined)
   return (
     <>
       <mesh geometry={geo.slab} castShadow={!glass} receiveShadow userData={{ part: 'roof' }} {...handlers}>
         <Surface kind={finish.kind} style={style} color={finish.color} texture={finish.texture} diagramColor={shade(diagram)} glow={glow} />
       </mesh>
       <mesh geometry={geo.soffit} castShadow={!glass} receiveShadow userData={{ part: 'trim' }} {...handlers}>
-        {glass ? <Surface kind="clearGlass" style={style} /> : <Surface kind="trim" style={style} color={SOFFIT_TIMBER} diagramColor={shade(diagram)} glow={glow} />}
+        {glass ? <Surface kind="clearGlass" style={style} /> : <Surface kind="trim" style={style} color={trimColour(look, mi, SOFFIT_TIMBER)} diagramColor={shade(diagram)} glow={glow} />}
       </mesh>
       <mesh geometry={geo.fascia} castShadow={!glass} receiveShadow userData={{ part: 'trim' }} {...handlers}>
         {fasciaColour ? (
@@ -164,7 +176,7 @@ function SculptedRoofMesh({ m, type, poly, look, finish, handlers }: PartProps &
         </mesh>
       ) : (
         <mesh geometry={geo.infill} castShadow receiveShadow userData={{ part: 'wall' }} {...handlers}>
-          <WallInfillSurface m={m} look={look} />
+          <WallInfillSurface mi={mi} look={look} />
         </mesh>
       )}
       <mesh geometry={geo.struts} castShadow userData={{ part: 'post' }} {...handlers}>

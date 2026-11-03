@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { isWallKind, WALL_KIND_TEXTURE, type WallKind } from '../buildings/finishes'
 import type { MeshData } from '../buildings/geom'
+import type { LocalPoint } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
 import { FIT, layoutOpenings } from '../buildings/openingLayout'
 import { buildWallShell, edgeMesh, GLASS_WALL_FT, joinByEdge, wallDecorByEdge, type EdgeMesh, type WallShell } from '../buildings/wallShell'
@@ -15,7 +16,12 @@ import { Surface } from './Surface'
 export interface SupportParams {
   readonly support: unknown
   readonly spacingFt: number
-  readonly postIn: number
+  /** Post size, inches; undefined for each support kind's own. */
+  readonly postIn?: number
+  /** Cross-brace a high post grid (legacy o.bracing); main mass only. */
+  readonly bracing?: boolean
+  /** Where a mast stands, feet, building-local (legacy o.mastAt); main mass only. */
+  readonly mastAt?: LocalPoint
 }
 
 /** How one wall is finished: its kind (null keeps the building's siding), colour, and a glass wall's tint. */
@@ -26,12 +32,14 @@ interface WallFinish {
 }
 
 /**
- * The finish of wall `edge` of a mass (legacy specWallKind / specWallMat):
- * the mass's own wall kind and colour, else the building's colour and
- * siding. The one place the choice is made, for the exterior resolver to take over.
+ * The finish of wall `edge` of mass `mi` through the exterior model (legacy
+ * extResolve over specWallKind / specWallMat): a painted wall, mass or house
+ * first, then the mass's own wall kind and colour, then the building's;
+ * painted ('') keeps the building's siding.
  */
-function wallFinish(m: Mass, look: BuildingLook, _edge: number): WallFinish {
-  return { kind: isWallKind(m.walls) ? m.walls : null, color: m.color ?? look.color, tint: null }
+function wallFinish(look: BuildingLook, mi: number, edge: number): WallFinish {
+  const r = look.ext(mi, 'wall', edge)
+  return { kind: isWallKind(r.kind) ? r.kind : null, color: r.color, tint: r.tint }
 }
 
 const finishKey = (f: WallFinish) => `${f.kind ?? ''}|${f.color}|${f.tint ?? ''}`
@@ -60,7 +68,8 @@ export function WallMass({
     [poly, m.cuts, m.h, site.insideWalls],
   )
   // walls that share a finish draw as one mesh; glass walls are a thin curtain wall
-  const finishes = poly.map((_, e) => wallFinish(m, look, e))
+  const mi = site.mi ?? 0
+  const finishes = poly.map((_, e) => wallFinish(look, mi, e))
   const glassKey = finishes.map((f) => (f.kind === 'glass' ? 'g' : '-')).join('')
   const thickness = useMemo(() => (e: number) => (glassKey[e] === 'g' ? GLASS_WALL_FT : FIT.wallFt), [glassKey])
   const shell = useMemo(() => buildWallShell(poly, m.h, openings, { cap: !roofsOff, thicknessFt: thickness }), [poly, m.h, openings, roofsOff, thickness])
@@ -78,11 +87,21 @@ export function WallMass({
         <WallPart key={g.key} shell={shell} decor={decor} edges={g.edges} finish={g.finish} look={look} handlers={handlers} />
       ))}
       <CapMesh mesh={shell.cap} color={finishes[0]?.color ?? look.color} look={look} handlers={handlers} />
-      <RoofMesh m={m} poly={poly} look={look} handlers={handlers} />
+      <RoofMesh m={m} mi={mi} poly={poly} look={look} handlers={handlers} />
       {openings.map((op) => (
         <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} thicknessFt={thickness} />
       ))}
-      <Foundation poly={poly} site={site} support={supports.support} spacingFt={supports.spacingFt} postIn={supports.postIn} style={look.style} handlers={handlers} />
+      <Foundation
+        poly={poly}
+        site={site}
+        support={supports.support}
+        spacingFt={supports.spacingFt}
+        postIn={supports.postIn}
+        bracing={mi === 0 && supports.bracing}
+        mastAt={mi === 0 ? supports.mastAt : undefined}
+        style={look.style}
+        handlers={handlers}
+      />
     </>
   )
 }
