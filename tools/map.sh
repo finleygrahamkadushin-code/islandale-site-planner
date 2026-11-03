@@ -1,12 +1,12 @@
 #!/bin/sh
-# Quick lookups in index.html. Long lines (the terrain grid and parcel data run to 60k chars) are clipped.
+# Quick lookups in the old planner (legacy/islandale-planner.html). Long lines (the terrain grid and parcel data run to 60k chars) are clipped.
 #   tools/map.sh               outline: every section marker with its line number
 #   tools/map.sh def NAME      where a function / const / let / class NAME is defined
 #   tools/map.sh find PATTERN  regex search, lines clipped to 200 chars
 #   tools/map.sh at LINE [N]   print N lines (default 40) from LINE, clipped
 set -e
 root=$(cd "$(dirname "$0")/.." && pwd)
-f="$root/index.html"
+f="$root/legacy/islandale-planner.html"
 clip='--max-columns=200 --max-columns-preview'
 
 case "${1:-outline}" in
