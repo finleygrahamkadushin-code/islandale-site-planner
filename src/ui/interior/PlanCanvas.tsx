@@ -6,6 +6,7 @@ import { FURNITURE, makeFurniture, snapToWall, type SnapRoom } from '../../inter
 import * as G from '../../interiors/geom'
 import type { Pt } from '../../interiors/geom'
 import { readFloors } from '../../interiors/model'
+import { accessibleRoom, fixtureDefaults } from '../../interiors/fixtures'
 import { cabinTypeOf, checkProgram, PROGRAMS } from '../../interiors/program'
 import { newRoomName, roomInfo } from '../../interiors/rooms'
 import type { Floor, Furniture, Opening, OpeningKind, Room, RoomType } from '../../interiors/types'
@@ -214,7 +215,9 @@ export function PlanCanvas({ o }: { readonly o: PlanObject }) {
       return
     }
     if (tool === 'furniture') {
-      const base = makeFurniture(v.furnType, p[0], p[1], 0)
+      const room = floor.rooms.find((r) => G.pointInPoly(r.pts, p[0], p[1]))
+      const accessible = accessibleRoom(room?.name ?? '', cabinTypeOf(o.name, o.params, otherNames), o.name)
+      const base = { ...makeFurniture(v.furnType, p[0], p[1], 0), ...fixtureDefaults(v.furnType, accessible) }
       const at = placeFurn(base, p, e)
       commit((_p, f, next) => E.addFurniture(f, { ...base, ...at }, next))
       return

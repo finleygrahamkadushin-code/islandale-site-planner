@@ -2,9 +2,11 @@ import { useShallow } from 'zustand/react/shallow'
 import { useMemo } from 'react'
 import * as E from '../../interiors/edits'
 import { FURNITURE, FURNITURE_ORDER } from '../../interiors/furniture'
+import { FixtureFields } from './FixtureFields'
 import * as G from '../../interiors/geom'
 import { readFloors } from '../../interiors/model'
 import { cabinTypeOf, checkProgram, PROGRAMS } from '../../interiors/program'
+import { accessibleRoom } from '../../interiors/fixtures'
 import { floorStats } from '../../interiors/rooms'
 import { OPENING_KINDS, OPENING_LABELS, ROOM_COLORS, ROOM_TYPES, TYPE_LABELS, type Floor, type OpeningKind, type RoomType } from '../../interiors/types'
 import type { FloorEdit } from '../../store/interiorActions'
@@ -32,13 +34,14 @@ export function InteriorPanel({ o }: { readonly o: PlanObject }) {
     const sel = editFloor(o.id, fi, op)
     if (sel) v.select(sel)
   }
-  const program = PROGRAMS[cabinTypeOf(o.name, o.params, otherNames)]
+  const cabinType = cabinTypeOf(o.name, o.params, otherNames)
+  const program = PROGRAMS[cabinType]
   const checklist = checkProgram(program, floors)
   const stats = floorStats(o.params, fi, floor)
   return (
     <aside className="int-side" aria-label="Interior panel">
       {locked && <p className="muted small">Locked: unlock the cabin to change its rooms.</p>}
-      <Selected floor={floor} run={run} disabled={locked} />
+      <Selected floor={floor} run={run} disabled={locked} accessibleIn={(roomName) => accessibleRoom(roomName, cabinType, o.name)} />
       <section className="panel">
         <h3>Rooms</h3>
         <ul className="int-rooms">
@@ -96,7 +99,15 @@ export function InteriorPanel({ o }: { readonly o: PlanObject }) {
   )
 }
 
-function Selected({ floor, run, disabled }: { readonly floor: Floor; readonly run: (op: FloorEdit) => void; readonly disabled: boolean }) {
+interface SelectedProps {
+  readonly floor: Floor
+  readonly run: (op: FloorEdit) => void
+  readonly disabled: boolean
+  /** Is a room of this name an accessible one (the elders' cabin, or named for access)? */
+  readonly accessibleIn: (roomName: string) => boolean
+}
+
+function Selected({ floor, run, disabled, accessibleIn }: SelectedProps) {
   const sel = useInteriorView((s) => s.sel)
   const room = sel.room != null ? floor.rooms.find((r) => r.id === sel.room) : undefined
   const op = sel.opening != null ? floor.openings.find((x) => x.id === sel.opening) : undefined
@@ -180,6 +191,7 @@ function Selected({ floor, run, disabled }: { readonly floor: Floor; readonly ru
         <FeetInchesField label="Width" value={it.w} min={0.5} max={30} disabled={disabled || !t?.resizable} onCommit={(w) => run((_p, f, n) => E.updateFurniture(f, it.id, { w }, n))} />
         <FeetInchesField label="Depth" value={it.d} min={0.5} max={30} disabled={disabled || t?.resizable !== true} onCommit={(d) => run((_p, f, n) => E.updateFurniture(f, it.id, { d }, n))} />
         <NumField label="Turn" unit="°" value={it.rot} disabled={disabled} onCommit={(rot) => run((_p, f, n) => E.updateFurniture(f, it.id, { rot: ((rot % 360) + 360) % 360 }, n))} />
+        <FixtureFields it={it} roomName={roomOf(floor, it)?.name ?? ''} accessible={accessibleIn(roomOf(floor, it)?.name ?? '')} disabled={disabled} set={(next) => run((_p, f, n) => E.updateFurniture(f, it.id, next, n))} />
         <div className="row">
           <button disabled={disabled} onClick={() => run((_p, f, n) => E.updateFurniture(f, it.id, { mirror: !it.mirror }, n))}>
             Mirror
@@ -200,3 +212,5 @@ function Selected({ floor, run, disabled }: { readonly floor: Floor; readonly ru
     </section>
   )
 }
+
+const roomOf = (floor: Floor, it: { x: number; z: number }) => floor.rooms.find((r) => G.pointInPoly(r.pts, it.x, it.z))
