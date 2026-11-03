@@ -11,6 +11,7 @@ import type { CutData, FitNote } from '../buildings/openingLayout'
 import type { ViewId } from '../scene/views'
 import { normalizeDeg } from '../site/units'
 import { partActions, watchPickedPart, type PartActions } from './partActions'
+import { interiorActions, type InteriorActions } from './interiorActions'
 import { isObjectLocked } from './selectors'
 import {
   DEFAULT_ENVIRONMENT,
@@ -51,7 +52,7 @@ export interface Toast {
   readonly text: string
 }
 
-export interface PlanState extends PartActions {
+export interface PlanState extends PartActions, InteriorActions {
   readonly site: Site
   readonly schemes: readonly Scheme[]
   readonly plan: Plan
@@ -313,6 +314,7 @@ export const usePlanStore = create<PlanState>()(
           }),
         fitAllOpenings: (id) => editRefit(id, (p) => p),
         ...partActions({ get, set, editable, edit, editRefit, refitObject }),
+        ...interiorActions({ get, editable, edit }),
 
         // the picked part survives only a selection of exactly its own building
         select: (ids) =>
