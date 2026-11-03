@@ -1,6 +1,6 @@
 import * as G from './geom'
 import type { Pt } from './geom'
-import type { Furniture } from './types'
+import type { Furniture, FurnitureBase } from './types'
 import { WALL } from './types'
 
 /**
@@ -330,7 +330,7 @@ const normRot = (r: number): number => {
 }
 
 /** A new piece of `type` centred at x, z at its catalogue size. */
-export function makeFurniture(type: string, x: number, z: number, rot = 0): Omit<Furniture, 'id'> {
+export function makeFurniture(type: string, x: number, z: number, rot = 0): FurnitureBase {
   const t = FURNITURE[type]
   return { type, x: x || 0, z: z || 0, rot: normRot(rot), w: t?.w ?? 2, d: t?.d ?? 2, mirror: false }
 }

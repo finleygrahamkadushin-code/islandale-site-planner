@@ -7,6 +7,7 @@ import { NumField, TextField } from './fields'
 import { OpeningsPanel } from './OpeningsPanel'
 import { PartInspector } from './PartInspector'
 import { RailingsPanel } from './RailingsPanel'
+import { useInteriorView } from './interior/interiorView'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -76,6 +77,11 @@ function SingleInspector({ id }: { readonly id: string }) {
         </button>
       </div>
       {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
+      {o.type === 'house' && (
+        <button data-testid="open-interior" onClick={() => useInteriorView.getState().open(id)}>
+          Interior: rooms and furniture
+        </button>
+      )}
       {o.type === 'house' && <OpeningsPanel id={id} />}
       {(o.type === 'house' || o.type === 'deck') && <RailingsPanel id={id} />}
     </section>

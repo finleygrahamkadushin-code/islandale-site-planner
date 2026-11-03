@@ -58,8 +58,8 @@ export interface Opening {
   readonly out: boolean
 }
 
-export interface Furniture {
-  readonly id: number
+/** A piece of furniture before it has an id. */
+export interface FurnitureBase {
   readonly type: string
   /** Centre, feet. */
   readonly x: number
@@ -73,6 +73,10 @@ export interface Furniture {
   readonly h?: number
   /** Fixture options (shower curb, drain, door, bench and the like), kept as stored. */
   readonly [extra: string]: unknown
+}
+
+export interface Furniture extends FurnitureBase {
+  readonly id: number
 }
 
 export interface Floor {

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
 import { partKey } from './partKeys'
+import { useInteriorView } from './interior/interiorView'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
@@ -33,6 +34,8 @@ export function useKeyboardShortcuts(): void {
         usePlanStore.temporal.getState().redo()
         return
       }
+      // the interior editor takes every other key while it is open
+      if (useInteriorView.getState().objectId) return
       if (!mod && partKey(e, usePlanStore.getState)) {
         e.preventDefault()
         return

@@ -2,7 +2,7 @@ import * as G from './geom'
 import type { Poly, Pt } from './geom'
 import { cleanFloor } from './model'
 import { captureOpenings, fitRoom, newRoomName, reanchorOpenings, type OpeningPlace } from './rooms'
-import { OPENING_DEFAULTS, type Floor, type Furniture, type Opening, type OpeningKind, type Room, type RoomType } from './types'
+import { OPENING_DEFAULTS, type Floor, type Furniture, type FurnitureBase, type Opening, type OpeningKind, type Room, type RoomType } from './types'
 
 /**
  * Floor plan edits as pure functions, ported from the old interior
@@ -247,7 +247,7 @@ export function deleteOpening(floor: Floor, id: number, nextId: () => number): E
 
 // ---------- furniture
 
-export function addFurniture(floor: Floor, it: Omit<Furniture, 'id'>, nextId: () => number): EditResult {
+export function addFurniture(floor: Floor, it: FurnitureBase, nextId: () => number): EditResult {
   const id = nextId()
   return done({ ...floor, furniture: [...floor.furniture, { ...it, id } as Furniture] }, nextId, { furniture: id })
 }
