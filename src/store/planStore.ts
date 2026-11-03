@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { temporal } from 'zundo'
 import { loadIslandale } from '../site/islandale'
+import { elevationAt } from '../site/terrain'
 import { CURRENT_SCHEME_ID, loadSchemes, schemeById } from '../site/schemes'
 import type { Site } from '../site/types'
 import type { Scheme } from '../site/schemes'
@@ -12,6 +13,8 @@ import type { ViewId } from '../scene/views'
 import { normalizeDeg } from '../site/units'
 import { partActions, watchPickedPart, type PartActions } from './partActions'
 import { interiorActions, type InteriorActions } from './interiorActions'
+import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
+import type { PathKind } from '../paths/pieces'
 import { isObjectLocked } from './selectors'
 import {
   DEFAULT_ENVIRONMENT,
@@ -52,7 +55,7 @@ export interface Toast {
   readonly text: string
 }
 
-export interface PlanState extends PartActions, InteriorActions {
+export interface PlanState extends PartActions, InteriorActions, PathActions {
   readonly site: Site
   readonly schemes: readonly Scheme[]
   readonly plan: Plan
@@ -68,6 +71,8 @@ export interface PlanState extends PartActions, InteriorActions {
   readonly contours: boolean | null
   /** Hide every roof so the rooms inside can be seen (old Roofs off). View state, not saved. */
   readonly roofsOff: boolean
+  /** A path piece being placed: its kind, turn, and where the ghost is (view state). */
+  readonly placing: { readonly kind: PathKind; readonly rotation: number; readonly at: { readonly x: number; readonly n: number } | null } | null
   readonly saveStatus: SaveStatus
   readonly readOnly: ReadOnlyReason
   /** The opening picked in the Openings panel, outlined in 3D. */
@@ -117,6 +122,7 @@ export interface PlanState extends PartActions, InteriorActions {
   readonly setDisplayStyle: (style: DisplayStyle) => void
   readonly setContours: (contours: boolean | null) => void
   readonly setRoofsOff: (roofsOff: boolean) => void
+  readonly setPlacing: (placing: PlanState['placing']) => void
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
@@ -143,6 +149,8 @@ const READ_ONLY_TEXT: Record<Exclude<ReadOnlyReason, null>, string> = {
 }
 
 const site = loadIslandale()
+/** The surveyed ground, for snapping path pieces (the scene draws cuts on top of it). */
+const siteGround = (x: number, n: number) => elevationAt(site.terrain, x, n)
 const schemes = loadSchemes()
 let toastSeq = 0
 
@@ -172,6 +180,15 @@ export const usePlanStore = create<PlanState>()(
         if (!o) return
         const s = get()
         set({ plan: { ...s.plan, objects: { ...s.plan.objects, [id]: patch(o) } } })
+      }
+
+      /** A path piece after a hand move (snapped) or turn (its end levels settled); anything else as it is. */
+      const snapMoved = (o: PlanObject, moved: boolean): PlanObject => {
+        const plan = get().plan
+        if (!moved) return settledPiece(o, plan, site.terrain, siteGround)
+        const r = snappedPiece(o, plan, site.terrain, siteGround)
+        if (r.snap) get().showToast(`Snapped: ${r.snap.end} → ${r.snap.target.label}`)
+        return r.o
       }
 
       /** Change a cabin (where it stands too) and re-fit its openings, as one edit. */
@@ -215,6 +232,7 @@ export const usePlanStore = create<PlanState>()(
         displayStyle: 'realistic',
         contours: null,
         roofsOff: false,
+        placing: null,
         saveStatus: 'loading',
         readOnly: null,
         openingFocus: null,
@@ -228,14 +246,20 @@ export const usePlanStore = create<PlanState>()(
         replacePlan: (plan) => {
           if (writable()) set({ plan, selection: [], pickedPart: null })
         },
-        moveObject: (id, position) => edit(id, (o) => ({ ...o, position: { ...position } })),
-        rotateObject: (id, rotation) => edit(id, (o) => ({ ...o, rotation: normalizeDeg(rotation) })),
+        // a path piece moved by hand snaps to what it lands on; turned, its end levels follow what it touches
+        moveObject: (id, position) => edit(id, (o) => snapMoved({ ...o, position: { ...position } }, true)),
+        rotateObject: (id, rotation) => edit(id, (o) => snapMoved({ ...o, rotation: normalizeDeg(rotation) }, false)),
         transformObject: (id, t) =>
-          edit(id, (o) => ({
-            ...o,
-            position: t.position ? { ...t.position } : o.position,
-            rotation: t.rotation === undefined ? o.rotation : normalizeDeg(t.rotation),
-          })),
+          edit(id, (o) =>
+            snapMoved(
+              {
+                ...o,
+                position: t.position ? { ...t.position } : o.position,
+                rotation: t.rotation === undefined ? o.rotation : normalizeDeg(t.rotation),
+              },
+              !!t.position,
+            ),
+          ),
         nudgeObjects: (ids, dx, dn) => {
           if (!writable()) return
           const s = get()
@@ -245,7 +269,7 @@ export const usePlanStore = create<PlanState>()(
           const objects = { ...s.plan.objects }
           for (const id of movable) {
             const o = objects[id]
-            objects[id] = { ...o, position: { x: o.position.x + dx, n: o.position.n + dn } }
+            objects[id] = settledPiece({ ...o, position: { x: o.position.x + dx, n: o.position.n + dn } }, s.plan, site.terrain, siteGround)
           }
           set({ plan: { ...s.plan, objects } })
         },
@@ -319,6 +343,7 @@ export const usePlanStore = create<PlanState>()(
         fitAllOpenings: (id) => editRefit(id, (p) => p),
         ...partActions({ get, set, editable, edit, editRefit, refitObject }),
         ...interiorActions({ get, editable, edit }),
+        ...pathActions({ get, set, writable, editable, isLocked: (id) => isObjectLocked(get(), id), terrain: site.terrain, ground: siteGround }),
 
         // the picked part survives only a selection of exactly its own building
         select: (ids) =>
@@ -358,6 +383,7 @@ export const usePlanStore = create<PlanState>()(
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
+        setPlacing: (placing) => set({ placing }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),

@@ -36,6 +36,19 @@ export function useKeyboardShortcuts(): void {
       }
       // the interior editor takes every other key while it is open
       if (useInteriorView.getState().objectId) return
+      // placing a path piece: R turns it a quarter, Escape stops
+      if (s.placing && !mod) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          s.setPlacing(null)
+          return
+        }
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault()
+          s.setPlacing({ ...s.placing, rotation: (s.placing.rotation + (e.shiftKey ? 270 : 90)) % 360 })
+          return
+        }
+      }
       if (!mod && partKey(e, usePlanStore.getState)) {
         e.preventDefault()
         return

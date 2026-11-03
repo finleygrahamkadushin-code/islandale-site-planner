@@ -8,6 +8,7 @@ import { OpeningsPanel } from './OpeningsPanel'
 import { PartInspector } from './PartInspector'
 import { RailingsPanel } from './RailingsPanel'
 import { useInteriorView } from './interior/interiorView'
+import { PathPiecePanel } from './PathPanels'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -82,6 +83,7 @@ function SingleInspector({ id }: { readonly id: string }) {
           Interior: rooms and furniture
         </button>
       )}
+      {o.type === 'pad' && <PathPiecePanel o={o} />}
       {o.type === 'house' && <OpeningsPanel id={id} />}
       {(o.type === 'house' || o.type === 'deck') && <RailingsPanel id={id} />}
     </section>

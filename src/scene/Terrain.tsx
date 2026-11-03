@@ -1,3 +1,4 @@
+import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import type { BufferGeometry } from 'three'
 import { cutCells } from '../site/earthworks'
@@ -30,9 +31,24 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   )
 }
 
+/** While a path piece is being placed, its ghost follows the pointer on the ground and a click puts it down. */
+const placeMove = (e: ThreeEvent<PointerEvent>) => {
+  const s = usePlanStore.getState()
+  if (!s.placing) return
+  s.setPlacing({ ...s.placing, at: { x: e.point.x, n: -e.point.z } })
+}
+const placeClick = (e: ThreeEvent<MouseEvent>) => {
+  const s = usePlanStore.getState()
+  if (!s.placing) return
+  e.stopPropagation()
+  const { kind, rotation } = s.placing
+  s.setPlacing(null)
+  s.addPathPiece(kind, { x: e.point.x, n: -e.point.z }, rotation)
+}
+
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
   return (
-    <mesh geometry={geometry} receiveShadow name={name}>
+    <mesh geometry={geometry} receiveShadow name={name} onPointerMove={placeMove} onClick={placeClick}>
       {style === 'realistic' ? (
         <meshStandardMaterial key="real" vertexColors map={map} roughness={1} metalness={0} />
       ) : (

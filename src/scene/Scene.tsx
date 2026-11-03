@@ -14,6 +14,7 @@ import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
 import { PartHud } from '../ui/PartHud'
 import { ChipLayer } from './ChipLayer'
+import { PlaceGhost } from './PlaceGhost'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -38,6 +39,7 @@ export function Scene() {
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
+      <PlaceGhost />
       <LabelProjector drag={drag} />
       <EditGizmos drag={drag} setDrag={setDrag} />
       <Effects />
