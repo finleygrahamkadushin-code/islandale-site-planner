@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). Plans for 5B, 5C and 5D drafted Nov 2 2026, waiting for Finley's OK. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -57,9 +57,49 @@ Branch: `phase-5a-parts-rails`, from `paths-rails`.
 
 Any deliberate change from the old planner goes into PLAN.md as it comes up.
 
+### Where 5A–5C stand
+
+Checked Nov 2 2026 on `phase-5a-parts-rails`:
+
+- **5A**: 40 commits since `paths-rails`; typecheck and all 458 unit tests pass. The full e2e run passed 26 of 27; the one failure (`done-when.spec.ts`, ticking Locked) passed when run again on its own. The run logged React root errors from the part chips (`removeChild`, synchronous unmount). The chips now share one DOM layer (branch `phase-5a-fixes`); `e2e/chips.spec.ts` passes, and so do the parts, + menu and part inspector specs.
+- **5B (interiors)** has not started: no rooms, interior walls, furniture or indoor stairs in the app. Plan below.
+- **5C (paths and connections)** has not started: no path pieces, Connect tool or route check. Plan below.
+
+Once 5B is in, D–I's hand-drawn floor plans show in 5D too. Their walks stay ribbons, not path pieces, as the old planner draws them.
+
+## 5B in detail (draft, waiting for an OK)
+
+Branch: `phase-5b-interiors`, from `phase-5a-fixes` (5A with its last fixes). The schemes already carry floor plans in each cabin's `params.floors` (rooms, openings, furniture), kept as the old planner stores them, so nothing has to be converted: C, C2–C4, D, E, G and H have polygon rooms; A and B have rectangle rooms, read as four-point polygons and written back that way only when edited.
+
+1. **Store.** Interior actions on a cabin's floors: add, rename and remove a floor; add, reshape, move, split, merge and delete a room; set its name and type; add, move, resize and delete an opening (door, window, slider, cased opening) with its hinge side and swing; add, move, turn, resize, mirror, duplicate and delete furniture. Each is one undo step and is refused on a locked cabin or layer. Ids are kept unique within the cabin, as the old planner keeps them.
+2. **Plan geometry** (`src/interiors/`, pure, tested): the floor's envelope (main walls plus enclosed wings at that level, curved walls simplified to chords, as the old `envelope`); the old polygon tools (convex difference, union by cancelling shared edges, intersect and subtract with the envelope, split by a line) and `fitRoom`, so a drawn room is trimmed to the walls and to its neighbours; partition segments from shared room edges; net room sizes (inside the wall thickness) and label spots; openings anchored to a room edge and re-anchored when rooms change.
+3. **Interior editor.** An **Interior** button on a selected cabin opens its floor plan as a 2D view over the scene (SVG): grid, pan, zoom and fit (pinch too), 6 in snap, wall poché, rooms filled by type with name, size and area, door swing arcs and window, slider and cased-opening symbols, furniture and stair symbols, the floor below as a ghost, decks and stairs outside the walls, and a front marker. Tools: Select (V), Room (B, rectangle or any polygon), Split (S), Door (D), Window (W), Slider (L), Opening (O), pan (H or Space); corner and wall drags, double-click to add or remove a corner, arrow nudges, Delete, Escape, undo keys. Side panel: floor tabs with add and remove, the rooms list, the room, opening and furniture inspectors, floor stats (envelope, rooms, unassigned, circulation %) and the program checklist per cabin.
+4. **Furniture and bathrooms.** The old catalogue (beds, sofas, tables, kitchen, bath fixtures, stairs) with its plan symbols, wall snapping, per-item width, depth and height, mirror; shower, tub and vanity size presets and shower options (curb, drain, glass door, bench); the ICC A117.1 bathroom checks with the accessible-room defaults and Reset to standard.
+5. **Upper floors and indoor stairs.** An upper floor sits on a slab with a hole over each indoor stair; straight stairs (12 or more treads, stringers, handrails both sides) and spiral stairs (steel column, wedge treads, landing, helical handrail); guards round every stair hole, balusters at 0.6 ft as in the old planner, so the "railings inside" are there.
+6. **3D.** Partition walls with door and window gaps (heads at 6'-9" and 7', 3 ft sills), furniture as simple boxes, the upper slab, indoor stairs and their rails, all read from the same plan data. A **Roofs off** switch (from 5E, needed here) hides roofs so the inside can be seen.
+7. **Left for later**, as the 5B row does not list them: auto-fill rooms, auto doors and windows, auto-furnish, the walk check and Describe it. They keep their gap-list rows.
+8. **Checks.** Unit tests for the polygon tools, `fitRoom`, envelopes on angled and curved cabins, partitions, opening re-anchoring and each interior action (undo, locks). E2e: open C-0's floor plan and see its rooms from the data; reshape a room, add a door and a bed; add an upper floor and a stair and go upstairs; switch roofs off and see partitions, furniture, stair and rails in 3D.
+
+**Done when** (from the table): you can open any Scheme C cabin, see its floor plan from the data, change a room, add a door and a bed, go upstairs, and see all of it in 3D with the roof off.
+
+## 5C in detail (draft, waiting for an OK)
+
+Branch: `phase-5c-paths`, from `phase-5b-interiors`.
+
+1. **Path pieces.** A path piece is a `pad` with the old `kind` (walk, ramp, stair, landing, boardwalk), `surface` (gravel, concrete, pavers, boardwalk, grass), rail setting and end levels, as the old `ext:walk-model` stores them; existing walks without a kind keep drawing as they do now (the old `isWalkPiece` rule). The pure core ports `walkEndsWith`, `walkProfileWith`, `walkStairInfoWith` and `walkRailWith` with tests.
+2. **Drawing them.** Ramps (one slope, curbs, skirts), stairs (risers of 7 in or less, 11 in treads, built with 5A's stair pieces), landings and boardwalks on posts, each with automatic handrails (34 in) and guards (36 in) where the drop or the slope calls for them, in the building's rail styles.
+3. **Placing and editing.** A small Path pieces library on the toolbar places a piece with a ghost; the Path piece inspector (kind, surface, rail, length with end A anchored, width, lift) with its readouts (slope, rise, ratio, risers, end levels, rails); Continue from an end.
+4. **Snapping and levels.** Ends snap to other ends, doors, deck and porch edges, wing feet and the driveway's edge, on drag, arrow keys, placement and length edits, with a HUD chip and ring; each end's level follows what it touches. A placed piece that does not meet flush says so.
+5. **Connect tool (C).** Pick two ends (piece ends, doors, deck edges, stair tops); it offers a straight walk or ramp, or a straight or L-shaped stair with a landing, checks the chain and builds it as path pieces in one undo step.
+6. **Levels and junctions.** The level report per building and the Levels & junctions panel with Fix and Level everything; "6 in step" chips at uneven junctions; door threshold plates, filler strips between abutting decks and walk tabs where a path meets a building.
+7. **Accessible route.** The ADA 402–405 checks per piece (running and cross slope, width, landings, rails, edge protection) and per building (the route from parking), shown in the piece panel, as chips in 3D for failing pieces, and as code check rows; Fix piece; and Auto route from the parking pad to a building, with the old planner's route planner ported as a pure module with tests.
+8. **Checks.** Unit tests for the piece maths, rails, snapping, levels, the ADA rules and the route planner. E2e: from the parking pad, connect every Scheme C cabin with pieces that snap and meet flush; the route check names which pass and why; Fix one and undo it; a lock refuses an edit.
+
+**Done when** (from the table): you can connect the parking pad to every cabin with path pieces that snap and meet flush, and the route check says which ones pass and why.
+
 ## 5D in detail (draft, waiting for an OK)
 
-Branch: `phase-5d-shapes`, from `phase-5a-parts-rails`. 5B and 5C are not built yet, so this runs ahead of the agreed order (see "Before 5D" below). Schemes D–I already load from the scheme picker's **Old designs** group, so they can be checked against the old planner the whole way through; their interiors stay hidden until 5B.
+Branch: `phase-5d-shapes`, from `phase-5c-paths`, in the agreed order after 5B and 5C. Schemes D–I already load from the scheme picker's **Old designs** group, so they can be checked against the old planner the whole way through; their interiors stay hidden until 5B.
 
 Geometry stays in one place: every outline comes from `localFootprint` / `siteFootprint` and every roof from `src/buildings/`, so the scene, the rails, the openings, the earthworks and the drawing sheets (being built on `drawing-sheets`) all read the same curves. Nothing is drawn from a scene-only copy.
 
@@ -76,16 +116,6 @@ Geometry stays in one place: every outline comes from `localFootprint` / `siteFo
 Commits go in that order, each one leaving the app runnable. The app is checked in the browser after each step, and every deliberate change from the old planner goes into PLAN.md as it comes up.
 
 **Done when:** Schemes D–I look the way they do in the old planner from matching views (outside, roofs on), and any wall, roof or rail can be repainted, with undo and locks.
-
-### Before 5D
-
-Checked Nov 2 2026 on `phase-5a-parts-rails`:
-
-- **5A** looks finished: 40 commits since `paths-rails`; typecheck and all 458 unit tests pass. The e2e run is recorded below.
-- **5B (interiors)** has not started: no rooms, interior walls, furniture or indoor stairs in the app.
-- **5C (paths and connections)** has not started: no path pieces, Connect tool or route check.
-
-5D does not need 5B or 5C to reach its done-when, which looks at the outside of D–I. Two things wait for them: D–I's hand-drawn floor plans stay hidden until 5B, and D–I's walks are drawn as ribbons, not as path pieces, until 5C.
 
 ## Appendix: full gap list (audit of Oct 29 2026)
 
