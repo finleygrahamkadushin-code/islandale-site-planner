@@ -1,17 +1,22 @@
 import { ShapeUtils, Vector2 } from 'three'
-import type { LocalPoint } from './footprint'
+import { signedArea, type LocalPoint } from './footprint'
 import { addCap } from './walls'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
-import { polyRoof, prowRoof, type ProwOptions } from './fittedRoof'
+import { polyRoof, prowRoof, SHELL_M, type ProwOptions } from './fittedRoof'
+import { isSculpted, sculptedRoof } from './sculptRoof'
 
 const FT = 0.3048
 const FASCIA_M = 0.24
 const FLAT_M = 0.3
-const SOD_M = 0.45
+/** Gambrel: the ridge stands 1.3 times a gable's, the knuckle at a quarter span 0.72 of the way up (legacy roofGeometry). */
+const GAMBREL_RISE = 1.3
+const GAMBREL_KNUCKLE = 0.72
+/** The prow tip column stands this far in from the tip, from 0.3 m above the floor (legacy roofTipPost). */
+const TIP_POST_IN_M = 0.9
 
-export type RoofType = 'gable' | 'hip' | 'shed' | 'butterfly' | 'pyramid' | 'prow' | 'flat' | 'sod' | 'dome' | 'shell' | 'none'
+export type RoofType = 'gable' | 'hip' | 'shed' | 'gambrel' | 'butterfly' | 'pyramid' | 'prow' | 'flat' | 'sod' | 'dome' | 'vault' | 'shell' | 'saddle' | 'none'
 
-export const ROOF_TYPES: readonly RoofType[] = ['gable', 'hip', 'shed', 'butterfly', 'pyramid', 'prow', 'flat', 'sod', 'dome', 'shell', 'none']
+export const ROOF_TYPES: readonly RoofType[] = ['gable', 'hip', 'shed', 'gambrel', 'butterfly', 'pyramid', 'prow', 'flat', 'sod', 'dome', 'vault', 'shell', 'saddle', 'none']
 
 export interface RoofParams {
   readonly type: string
@@ -22,6 +27,19 @@ export interface RoofParams {
   readonly overhangFt: number
   /** Prow roof options (legacy roofPts, gable, vault, roofDip). */
   readonly prow?: ProwOptions
+  /** false: no column under a prow shell's tip (legacy roofTipPost). */
+  readonly tipPost?: boolean
+  /** Sculpted roofs: shell curl (0–1), finish, and whether the mass is an open porch (struts, no infill). */
+  readonly curl?: number
+  readonly roofMat?: string
+  readonly open?: boolean
+}
+
+/** The column under a prow shell's tip: plan position and the roof's underside above it, metres from the wall top. */
+export interface TipPost {
+  readonly x: number
+  readonly z: number
+  readonly top: number
 }
 
 /** Roof surfaces, gable-end infill and trim, in local metres with y 0 at the eave. */
@@ -35,22 +53,36 @@ export interface RoofMesh {
   readonly glass: MeshData
   /** Height of the highest point above the eave, metres. */
   readonly rise: number
+  /** A prow roof drawn to its own outline gets one slim column under its tip. */
+  readonly tip?: TipPost
 }
 
 /** Pitched roofs that follow the outline itself on plans that are not rectangles. */
-const FITTED: ReadonlySet<RoofType> = new Set(['gable', 'hip', 'shed', 'butterfly'])
+const FITTED: ReadonlySet<RoofType> = new Set(['gable', 'hip', 'shed', 'gambrel', 'butterfly'])
 
 /**
  * Roof over a footprint (local feet), dispatched as the legacy massMesh()
- * did: prow roofs are fitted to the outline; gable, hip, shed and
+ * did: prow roofs are fitted to the outline; gable, hip, shed, gambrel and
  * butterfly roofs are built over the box on rectangles and fitted to the
- * outline otherwise; pyramid, flat and sod follow the polygon itself.
+ * outline otherwise; pyramid and flat follow the polygon itself; dome,
+ * vault, shell, saddle and sod are sculpted (sculptRoof.ts), mapped here as
+ * slab top → roof, soffit, fascia and struts → trim, glass infill → glass
+ * and cladding infill → gables.
  */
 export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh {
   const type = normaliseRoof(p.type)
   const out: RoofMesh = { roof: emptyMesh(), gables: emptyMesh(), trim: emptyMesh(), glass: emptyMesh(), rise: 0 }
   if (type === 'none') return out
-  if (type === 'prow') return prowRoof(poly, p.pitch, p.ridge, p.overhangFt, p.prow)
+  if (type === 'prow') {
+    const r = prowRoof(poly, p.pitch, p.ridge, p.overhangFt, p.prow)
+    const tip = p.tipPost === false ? null : prowTipPost(r.roof, p.prow)
+    return tip ? { ...r, tip } : r
+  }
+  if (isSculpted(type)) {
+    const s = sculptedRoof(poly, { roof: type, pitch: p.pitch, ridge: p.ridge, overhang: p.overhangFt, open: p.open ?? false, curl: p.curl, roofMat: p.roofMat })
+    const glass = s.infillKind === 'glass'
+    return { roof: s.slab, gables: glass ? emptyMesh() : s.infill, trim: mergeMeshes(s.soffit, s.fascia, s.struts), glass: glass ? s.infill : emptyMesh(), rise: s.rise }
+  }
   if (FITTED.has(type) && !isRectangle(poly)) return polyRoof(poly, type, p.pitch, p.ridge, p.overhangFt)
   const slope = Math.max(0, p.pitch) / 12
   const o = Math.max(0, p.overhangFt) * FT
@@ -75,13 +107,12 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   const face = (mesh: MeshData, pts: readonly V3[]) => addPolygon(mesh, pts, away(pts))
   const eaveRect = [P(-L / 2, 0, -S / 2), P(L / 2, 0, -S / 2), P(L / 2, 0, S / 2), P(-L / 2, 0, S / 2)]
 
-  if (type === 'flat' || type === 'sod') {
-    const t = type === 'sod' ? SOD_M : FLAT_M
+  if (type === 'flat') {
     const ring = offsetPolygon(poly, p.overhangFt)
-    addCap(out.roof, ring, t, 1)
+    addCap(out.roof, ring, FLAT_M, 1)
     addCap(out.trim, ring, 0, -1)
-    addBand(out.trim, ring.map(([x, z]) => [x * FT, z * FT] as const), 0, t)
-    return { ...out, rise: t }
+    addBand(out.trim, ring.map(([x, z]) => [x * FT, z * FT] as const), 0, FLAT_M)
+    return { ...out, rise: FLAT_M }
   }
 
   if (type === 'pyramid') {
@@ -102,31 +133,14 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
     return { ...out, rise: H }
   }
 
-  if (type === 'dome' || type === 'shell') {
-    const H = Math.max(slope * S / 2, 1)
-    const ring = 24
-    const rows = 8
-    for (let j = 0; j < rows; j++) {
-      const a0 = (j / rows) * (Math.PI / 2)
-      const a1 = ((j + 1) / rows) * (Math.PI / 2)
-      for (let i = 0; i < ring; i++) {
-        const b0 = (i / ring) * Math.PI * 2
-        const b1 = ((i + 1) / ring) * Math.PI * 2
-        const q = (a: number, b: number): V3 => P((Math.cos(b) * Math.cos(a) * L) / 2, Math.sin(a) * H, (Math.sin(b) * Math.cos(a) * S) / 2)
-        const pts = j === rows - 1 ? [q(a0, b0), q(a0, b1), q(a1, b0)] : [q(a0, b0), q(a0, b1), q(a1, b1), q(a1, b0)]
-        face(out.roof, pts)
-      }
-    }
-    return { ...out, rise: H }
-  }
-
   const H = (slope * S) / 2
   let rise = H
-  if (type === 'gable' || type === 'shed' || type === 'butterfly') {
+  if (type === 'gable' || type === 'shed' || type === 'butterfly' || type === 'gambrel') {
     const prof: (readonly [number, number])[] =
       type === 'gable' ? [[-S / 2, 0], [0, H], [S / 2, 0]]
         : type === 'shed' ? [[-S / 2, slope * S], [S / 2, 0]]
-          : [[-S / 2, H], [0, 0], [S / 2, H]]
+          : type === 'gambrel' ? gambrelProfile(S, H)
+            : [[-S / 2, H], [0, 0], [S / 2, H]]
     rise = Math.max(...prof.map((q) => q[1]))
     for (let i = 0; i + 1 < prof.length; i++) {
       const [v1, y1] = prof[i]
@@ -165,6 +179,58 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   addCap(out.trim, eaveRect.map((q) => [q[0] / FT, q[2] / FT] as LocalPoint), 0, -1)
   addBand(out.trim, eaveRect.map((q) => [q[0], q[2]] as const), -FASCIA_M, 0)
   return { ...out, rise }
+}
+
+/** Legacy roofGeometry's gambrel: two pitches a side, steep below the quarter-span knuckle, shallow above it. */
+function gambrelProfile(S: number, H: number): (readonly [number, number])[] {
+  const Hg = H * GAMBREL_RISE
+  return [[-S / 2, 0], [-S / 4, Hg * GAMBREL_KNUCKLE], [0, Hg], [S / 4, Hg * GAMBREL_KNUCKLE], [S / 2, 0]]
+}
+
+/**
+ * The column under a prow shell's tip (legacy roofTipPost): only on a roof
+ * drawn to its own outline (roofPts), 0.9 m in from the outline point
+ * furthest forward, toward the outline's centre, up to the roof's underside.
+ */
+function prowTipPost(roof: MeshData, prow?: ProwOptions): TipPost | null {
+  const pts = (prow?.roofPts ?? []).filter((q) => q.length >= 2 && Number.isFinite(q[0]) && Number.isFinite(q[1]))
+  if (pts.length < 3) return null
+  const RO0 = pts.map(([x, z]) => [x * FT, z * FT] as const)
+  const RO = signedArea(RO0) < 0 ? [...RO0].reverse() : RO0
+  const c = [RO.reduce((s, q) => s + q[0], 0) / RO.length, RO.reduce((s, q) => s + q[1], 0) / RO.length]
+  const t = RO.reduce((a, q) => (q[1] > a[1] ? q : a), RO[0])
+  const l = Math.hypot(t[0] - c[0], t[1] - c[1]) || 1
+  const x = t[0] - ((t[0] - c[0]) / l) * TIP_POST_IN_M
+  const z = t[1] - ((t[1] - c[1]) / l) * TIP_POST_IN_M
+  const y = meshHeightAt(roof, x, z)
+  return y === null ? null : { x, z, top: y - (prow?.vault ? SHELL_M : 0) }
+}
+
+/** Highest point of a mesh straight above (x, z), or null when nothing is over it. */
+function meshHeightAt(mesh: MeshData, x: number, z: number): number | null {
+  const p = mesh.positions
+  let best: number | null = null
+  for (let i = 0; i < p.length; i += 9) {
+    const [ax, ay, az, bx, by, bz, cx, cy, cz] = p.slice(i, i + 9)
+    const det = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz)
+    if (Math.abs(det) < 1e-12) continue
+    const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / det
+    const l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / det
+    const l3 = 1 - l1 - l2
+    if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue
+    const y = l1 * ay + l2 * by + l3 * cy
+    if (best === null || y > best) best = y
+  }
+  return best
+}
+
+/** One MeshData holding all of the given ones, in order. */
+function mergeMeshes(...meshes: readonly MeshData[]): MeshData {
+  return {
+    positions: meshes.flatMap((m) => m.positions),
+    normals: meshes.flatMap((m) => m.normals),
+    uvs: meshes.flatMap((m) => m.uvs),
+  }
 }
 
 /** Height of a roof profile at v (metres across the span), measured from the eave line inward. */
@@ -212,7 +278,6 @@ export function isRectangle(poly: readonly LocalPoint[]): boolean {
 
 export function normaliseRoof(type: string): RoofType {
   if ((ROOF_TYPES as readonly string[]).includes(type)) return type as RoofType
-  if (type === 'gambrel') return 'gable'
   if (type === 'green') return 'sod'
   return type ? 'gable' : 'none'
 }
