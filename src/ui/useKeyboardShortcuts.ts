@@ -49,6 +49,17 @@ export function useKeyboardShortcuts(): void {
           return
         }
       }
+      // Paint mode: P toggles it, Escape leaves it
+      if (!mod && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault()
+        s.setPainting(!s.painting)
+        return
+      }
+      if (s.painting && e.key === 'Escape') {
+        e.preventDefault()
+        s.setPainting(false)
+        return
+      }
       // the Connect tool: C toggles it, Escape leaves it
       if (!mod && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault()

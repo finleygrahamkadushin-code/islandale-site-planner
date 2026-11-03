@@ -20,6 +20,7 @@ export interface BuildingLook {
 export interface MeshHandlers {
   readonly onClick: (e: ThreeEvent<MouseEvent>) => void
   readonly onPointerOver: (e: ThreeEvent<PointerEvent>) => void
+  readonly onPointerMove?: (e: ThreeEvent<PointerEvent>) => void
   readonly onPointerOut: () => void
 }
 

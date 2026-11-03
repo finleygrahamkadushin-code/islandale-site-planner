@@ -13,6 +13,7 @@ import { SceneEnvironment } from './SceneEnvironment'
 import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
 import { PartHud } from '../ui/PartHud'
+import { PaintHud } from '../ui/PaintHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
 import { ConnectLayer } from './ConnectLayer'
@@ -31,6 +32,7 @@ export function Scene() {
     <div className="viewport">
     <LabelLayer />
     <PartHud drag={drag} />
+    <PaintHud />
     <Canvas
       shadows="percentage"
       camera={{ position: [target[0] + 32, target[1] + 26, target[2] + 40], fov: 45, near: 0.5, far: 8000 }}
