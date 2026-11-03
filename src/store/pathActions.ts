@@ -37,6 +37,8 @@ export interface NewPiece {
   readonly ends?: { readonly zA?: number; readonly zB?: number }
   readonly surface?: string
   readonly rail?: boolean
+  /** Boardwalks: feet over the higher end of the ground. */
+  readonly lift?: number
 }
 
 /** A change to an existing object. */
@@ -125,6 +127,7 @@ export function pathActions({ get, set, writable, editable, isLocked, terrain, g
       surface: spec.surface ?? DEFAULT_SURFACE[spec.kind],
       ...(spec.rail !== undefined ? { rail: spec.rail } : {}),
       ...(spec.ends ? { ends: { ...spec.ends } } : {}),
+      ...(spec.lift !== undefined ? { lift: spec.lift } : {}),
     }
     return { id: freshId(plan), type: 'pad', name: freshName(plan, spec.name ?? lib.name), position: { ...spec.position }, rotation: spec.rotation, params, locked: false, hidden: false, labelVisible: true }
   }

@@ -235,3 +235,10 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .fixture-note { margin: 0; }
 .fixture-note.ok { color: #7cc48a; }
 .fixture-note.bad { color: #e0a458; }
+.connect-chip { width: 18px; height: 18px; padding: 0; border-radius: 50%; display: grid; place-items: center; font: 700 10px/1 ui-monospace, monospace; border: 1.5px solid #d1581e; background: color-mix(in srgb, var(--panel) 85%, transparent); color: #d1581e; }
+.connect-chip:hover, .connect-chip.on { background: #d1581e; color: #fff; }
+.connect-options { display: flex; flex-direction: column; gap: 4px; }
+.connect-options button { text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.connect-options button.ok b { color: #7cc48a; }
+.connect-options button.fail b { color: #e0a458; }
+.step-chip { font: 11px/1.2 ui-monospace, monospace; padding: 2px 7px; border-radius: 11px; white-space: nowrap; background: #e0a458; color: #1a1a1a; pointer-events: none; }

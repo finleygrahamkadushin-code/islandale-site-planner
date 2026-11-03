@@ -49,6 +49,17 @@ export function useKeyboardShortcuts(): void {
           return
         }
       }
+      // the Connect tool: C toggles it, Escape leaves it
+      if (!mod && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault()
+        s.setConnecting(s.connecting ? null : { A: null, B: null, widthFt: 4 })
+        return
+      }
+      if (s.connecting && e.key === 'Escape') {
+        e.preventDefault()
+        s.setConnecting(null)
+        return
+      }
       if (!mod && partKey(e, usePlanStore.getState)) {
         e.preventDefault()
         return

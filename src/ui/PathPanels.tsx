@@ -14,6 +14,8 @@ const ratio = (slope: number) => (slope > 1e-4 ? `1:${(1 / slope).toFixed(1)}` :
 export function PathLibrary() {
   const placing = usePlanStore((s) => s.placing)
   const setPlacing = usePlanStore((s) => s.setPlacing)
+  const connecting = usePlanStore((s) => s.connecting)
+  const setConnecting = usePlanStore((s) => s.setConnecting)
   return (
     <section className="panel" aria-label="Path pieces">
       <header>
@@ -25,6 +27,9 @@ export function PathLibrary() {
             {KIND_LABELS[k]}
           </button>
         ))}
+        <button className={connecting ? 'on' : ''} data-testid="connect-tool" title="Connect two ends with a walk, ramp, boardwalk or stair (C)" onClick={() => setConnecting(connecting ? null : { A: null, B: null, widthFt: 4 })}>
+          Connect…
+        </button>
       </div>
       {placing && <p className="muted small">Click the ground to place it · R turns it · Esc stops. It snaps to doors, decks, stairs and other pieces within 3 ft.</p>}
     </section>

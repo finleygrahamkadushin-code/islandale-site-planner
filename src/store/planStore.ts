@@ -15,6 +15,7 @@ import { partActions, watchPickedPart, type PartActions } from './partActions'
 import { interiorActions, type InteriorActions } from './interiorActions'
 import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
 import type { PathKind } from '../paths/pieces'
+import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
 import {
   DEFAULT_ENVIRONMENT,
@@ -123,6 +124,9 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
   readonly setContours: (contours: boolean | null) => void
   readonly setRoofsOff: (roofsOff: boolean) => void
   readonly setPlacing: (placing: PlanState['placing']) => void
+  /** The Connect tool (C): the two ends picked so far and the width to build at (view state). */
+  readonly connecting: { readonly A: SnapTarget | null; readonly B: SnapTarget | null; readonly widthFt: number } | null
+  readonly setConnecting: (connecting: PlanState['connecting']) => void
   readonly requestView: (id: ViewId) => void
   readonly setSaveStatus: (status: SaveStatus) => void
   readonly setReadOnly: (reason: ReadOnlyReason) => void
@@ -233,6 +237,7 @@ export const usePlanStore = create<PlanState>()(
         contours: null,
         roofsOff: false,
         placing: null,
+        connecting: null,
         saveStatus: 'loading',
         readOnly: null,
         openingFocus: null,
@@ -383,7 +388,8 @@ export const usePlanStore = create<PlanState>()(
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
-        setPlacing: (placing) => set({ placing }),
+        setPlacing: (placing) => set({ placing, connecting: placing ? null : get().connecting }),
+        setConnecting: (connecting) => set({ connecting, placing: connecting ? null : get().placing, selection: connecting ? [] : get().selection, pickedPart: connecting ? null : get().pickedPart }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),

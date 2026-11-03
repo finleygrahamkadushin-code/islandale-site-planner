@@ -15,6 +15,8 @@ import { CameraRig } from './CameraRig'
 import { PartHud } from '../ui/PartHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
+import { ConnectLayer } from './ConnectLayer'
+import { JunctionLayer } from './JunctionLayer'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import type { DragState } from './editing'
@@ -40,6 +42,8 @@ export function Scene() {
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
       <PlaceGhost />
+      <ConnectLayer />
+      <JunctionLayer />
       <LabelProjector drag={drag} />
       <EditGizmos drag={drag} setDrag={setDrag} />
       <Effects />
