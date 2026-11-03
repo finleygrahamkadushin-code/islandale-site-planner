@@ -8,7 +8,7 @@ import { buildingToMass, massPoly, type Mass } from './masses'
  */
 
 /** Parts the Exterior panel paints (legacy PARTS). */
-export const PAINT_PARTS = ['wall', 'roof', 'trim', 'deck', 'post', 'door', 'glass', 'foundation', 'rail'] as const
+export const PAINT_PARTS = ['wall', 'roof', 'trim', 'deck', 'post', 'door', 'glass', 'foundation', 'rail', 'slab'] as const
 export type PaintPart = (typeof PAINT_PARTS)[number]
 
 /** A tagged mesh's part → the exterior key it is painted under; stairs and ramps paint as decks (legacy extPartKey). */
@@ -48,6 +48,7 @@ const PART_LABELS: Readonly<Record<PaintPart, string>> = {
   glass: 'Glass',
   foundation: 'Foundation',
   rail: 'Rail',
+  slab: 'Floor slab',
 }
 
 /** "Main · Wall 3", "Deck 2 · Rail" (legacy elementLabel). */

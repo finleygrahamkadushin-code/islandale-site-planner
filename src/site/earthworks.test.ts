@@ -238,7 +238,7 @@ describe('ponds', () => {
 
   test('the water lies flat at the lowest rim point, less 0.06 m', () => {
     expect(water?.level).toBeCloseTo(10 + 0.1 * southRim - POND_FREEBOARD_M, 4)
-    expect(pondLevel(p, (x, n) => 10 + 0.1 * n)).toBeCloseTo(water?.level ?? NaN, 6)
+    expect(pondLevel(p, (_x, n) => 10 + 0.1 * n)).toBeCloseTo(water?.level ?? NaN, 6)
   })
   test('the bowl sits under the water, deepest in the middle', () => {
     const level = water?.level ?? NaN
