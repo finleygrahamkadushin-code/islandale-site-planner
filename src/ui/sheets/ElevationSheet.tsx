@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { formatArch } from '../../export/sheets/format'
 import { elevationView } from '../../export/sheets/model'
 import { SIDE_LABEL, SIDES } from '../../export/sheets/sides'
@@ -26,6 +26,8 @@ interface Props {
   readonly objects: readonly PlanObject[]
   readonly terrain: Terrain
   readonly info: Omit<SheetInfo, 'sheetTitle' | 'northDeg'>
+  /** Told true while any of the four images is still being drawn, false once all have finished or failed. */
+  readonly onBusy?: (busy: boolean) => void
 }
 
 interface Shot {
@@ -43,14 +45,20 @@ function queued<T>(job: () => Promise<T>): Promise<T> {
 }
 
 /** The four elevations of a building: a picture from the 3D scene with levels, grade and dimensions drawn over it. */
-export function ElevationSheet({ building: b, object, objects, terrain, info }: Props) {
-  const shots = useElevationImages(b, object, info.scale)
+export function ElevationSheet({ building: b, object, objects, terrain, info, onBusy }: Props) {
+  const { shots, retry } = useElevationImages(b, object, info.scale)
   const views = useMemo(() => SIDES.map((side) => elevationView(objects, terrain, b, side)), [objects, terrain, b])
+  const busy = SIDES.some((side) => {
+    const shot = shots[shotKey(b.id, side, info.scale)]
+    return !shot || (!shot.image && !shot.error)
+  })
+  useEffect(() => onBusy?.(busy), [busy, onBusy])
+  useEffect(() => () => onBusy?.(false), [onBusy])
   return (
     <>
       {views.map((view) => {
         const shot = shots[shotKey(b.id, view.side, info.scale)]
-        return <SideSheet key={view.side} building={b} view={view} shot={shot} info={info} />
+        return <SideSheet key={view.side} building={b} view={view} shot={shot} info={info} onRetry={() => retry(view.side)} />
       })}
     </>
   )
@@ -58,9 +66,16 @@ export function ElevationSheet({ building: b, object, objects, terrain, info }: 
 
 const shotKey = (id: string, side: ElevationSide, scale: Scale) => `${id}|${side}|${scale}`
 
-/** Images per side, captured once per (building, side, scale) and again whenever the building changes. */
-function useElevationImages(b: SheetBuilding, object: PlanObject, scale: Scale): Readonly<Record<string, Shot>> {
+/** Captures one elevation, and once more if the first try fails (the scene may still be settling). */
+function captureWithRetry(objectId: string, side: ElevationSide, pxPerFt: number, floorM: number): Promise<ElevationImage> {
+  const once = () => queued(() => captureElevation({ objectId, side, pxPerFt, floorM }))
+  return once().catch(once)
+}
+
+/** Images per side, captured once per (building, side, scale), again whenever the building changes, and again on `retry`. */
+function useElevationImages(b: SheetBuilding, object: PlanObject, scale: Scale): { shots: Readonly<Record<string, Shot>>; retry: (side: ElevationSide) => void } {
   const [shots, setShots] = useState<Readonly<Record<string, Shot>>>({})
+  const [tries, setTries] = useState(0)
   const asked = useRef(new Map<string, PlanObject>())
   const floorM = ftToM(b.levels.floorNavdFt)
   useEffect(() => {
@@ -68,18 +83,35 @@ function useElevationImages(b: SheetBuilding, object: PlanObject, scale: Scale):
       const key = shotKey(b.id, side, scale)
       if (asked.current.get(key) === object) continue
       asked.current.set(key, object)
-      setShots((s) => ({ ...s, [key]: { object } }))
-      const keep = (shot: Shot) => setShots((s) => (s[key]?.object === object ? { ...s, [key]: shot } : s))
-      queued(() => captureElevation({ objectId: b.id, side, pxPerFt: DPI * scale, floorM })).then(
+      // a fresh shot each time, so a late answer from an earlier try cannot overwrite this one
+      const pending: Shot = { object }
+      setShots((s) => ({ ...s, [key]: pending }))
+      const keep = (shot: Shot) => setShots((s) => (s[key] === pending ? { ...s, [key]: shot } : s))
+      captureWithRetry(b.id, side, DPI * scale, floorM).then(
         (image) => keep({ object, image }),
         (err: unknown) => keep({ object, error: err instanceof Error ? err.message : 'The elevation could not be drawn' }),
       )
     }
-  }, [b.id, object, scale, floorM])
-  return shots
+  }, [b.id, object, scale, floorM, tries])
+  const retry = useCallback(
+    (side: ElevationSide) => {
+      asked.current.delete(shotKey(b.id, side, scale))
+      setTries((n) => n + 1)
+    },
+    [b.id, scale],
+  )
+  return { shots, retry }
 }
 
-function SideSheet({ building: b, view, shot, info }: { readonly building: SheetBuilding; readonly view: ElevationView; readonly shot: Shot | undefined; readonly info: Props['info'] }) {
+interface SideProps {
+  readonly building: SheetBuilding
+  readonly view: ElevationView
+  readonly shot: Shot | undefined
+  readonly info: Props['info']
+  readonly onRetry: () => void
+}
+
+function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
   const pen = penSizes(info.scale)
   const image = shot?.image
   const layout = useMemo(() => elevationLayout(b, view, image, info.scale), [b, view, image, info.scale])
@@ -88,39 +120,46 @@ function SideSheet({ building: b, view, shot, info }: { readonly building: Sheet
   const grade = view.grade.map(([u, y]) => `${u},${-y}`).join(' ')
   const ground = view.grade.length > 1 ? `${grade} ${view.grade[view.grade.length - 1][0]},${layout.base + 1.5} ${view.grade[0][0]},${layout.base + 1.5}` : ''
   return (
-    <TiledDrawing info={{ ...info, sheetTitle: SIDE_LABEL[view.side], northDeg: null }} extent={layout.extent} label={`${SIDE_LABEL[view.side]} of ${b.name}`}>
-      <defs>
-        <pattern id={hatch} patternUnits="userSpaceOnUse" width={0.6} height={0.6} patternTransform="rotate(45)">
-          <line x1={0} y1={0} x2={0} y2={0.6} stroke="#000" strokeWidth={pen.hair} />
-        </pattern>
-      </defs>
-      {image && <image href={image.dataUrl} x={image.uMin} y={-image.yMax} width={image.uMax - image.uMin} height={image.yMax - image.yMin} preserveAspectRatio="none" />}
-      {status && (
-        <text x={(view.uMin + view.uMax) / 2} y={-(b.levels.topFt / 2)} fontSize={pen.text * 1.3} textAnchor="middle" fill="#555">
-          {status}
-        </text>
+    <>
+      {shot?.error && (
+        <button className="sheet-retry" onClick={onRetry}>
+          Try again: {SIDE_LABEL[view.side]} of {b.name}
+        </button>
       )}
-      {ground && <polygon points={ground} fill={`url(#${hatch})`} stroke="none" />}
-      {grade && <polyline points={grade} fill="none" stroke="#000" strokeWidth={pen.heavy} />}
-      {view.levels.map((l, i) => {
-        const end = view.uMax + LEVEL_RUN_FT
-        const at = -layout.labelYs[i]
-        return (
-          <g key={`${l.label}${l.yFt}`} stroke="#000" strokeWidth={pen.hair}>
-            <line x1={view.uMin - LEVEL_RUN_FT} y1={-l.yFt} x2={end} y2={-l.yFt} strokeDasharray={`${pen.text} ${pen.small * 0.5}`} />
-            <polyline points={`${end},${-l.yFt} ${end + pen.small},${at} ${end + pen.small * 1.6},${at}`} fill="none" />
-            <text x={end + pen.small * 1.9} y={at} fontSize={pen.small} dominantBaseline="central" fill="#000" stroke="none">
-              {levelText(l.label, l.yFt, b.levels.floorNavdFt)}
-            </text>
-          </g>
-        )
-      })}
-      <g stroke="#000" strokeWidth={pen.hair} fill="none">
-        {layout.dims.map((d, i) => (
-          <Dim key={i} dim={d} pen={pen} />
-        ))}
-      </g>
-    </TiledDrawing>
+      <TiledDrawing info={{ ...info, sheetTitle: SIDE_LABEL[view.side], northDeg: null }} extent={layout.extent} label={`${SIDE_LABEL[view.side]} of ${b.name}`}>
+        <defs>
+          <pattern id={hatch} patternUnits="userSpaceOnUse" width={0.6} height={0.6} patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={0.6} stroke="#000" strokeWidth={pen.hair} />
+          </pattern>
+        </defs>
+        {image && <image href={image.dataUrl} x={image.uMin} y={-image.yMax} width={image.uMax - image.uMin} height={image.yMax - image.yMin} preserveAspectRatio="none" />}
+        {status && (
+          <text x={(view.uMin + view.uMax) / 2} y={-(b.levels.topFt / 2)} fontSize={pen.text * 1.3} textAnchor="middle" fill="#555">
+            {status}
+          </text>
+        )}
+        {ground && <polygon points={ground} fill={`url(#${hatch})`} stroke="none" />}
+        {grade && <polyline points={grade} fill="none" stroke="#000" strokeWidth={pen.heavy} />}
+        {view.levels.map((l, i) => {
+          const end = view.uMax + LEVEL_RUN_FT
+          const at = -layout.labelYs[i]
+          return (
+            <g key={`${l.label}${l.yFt}`} stroke="#000" strokeWidth={pen.hair}>
+              <line x1={view.uMin - LEVEL_RUN_FT} y1={-l.yFt} x2={end} y2={-l.yFt} strokeDasharray={`${pen.text} ${pen.small * 0.5}`} />
+              <polyline points={`${end},${-l.yFt} ${end + pen.small},${at} ${end + pen.small * 1.6},${at}`} fill="none" />
+              <text x={end + pen.small * 1.9} y={at} fontSize={pen.small} dominantBaseline="central" fill="#000" stroke="none">
+                {levelText(l.label, l.yFt, b.levels.floorNavdFt)}
+              </text>
+            </g>
+          )
+        })}
+        <g stroke="#000" strokeWidth={pen.hair} fill="none">
+          {layout.dims.map((d, i) => (
+            <Dim key={i} dim={d} pen={pen} />
+          ))}
+        </g>
+      </TiledDrawing>
+    </>
   )
 }
 

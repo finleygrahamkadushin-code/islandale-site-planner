@@ -1,6 +1,6 @@
 # Drawing sheets: handoff plan
 
-Status: **work in progress, committed on branch `drawing-sheets`** (cut from `phase-5a-parts-rails`). Typecheck is clean and all 554 unit tests pass. Not merged; no e2e spec yet.
+Status: **done, pending Finley's choice of where to merge.** Built on `drawing-sheets` (cut from `phase-5a-parts-rails`) and finished on `claude/plan-drawing-sheets-6d562f`. Typecheck is clean, all 556 unit tests pass, and `e2e/sheets.spec.ts` passes (6 tests). Nothing has been pushed.
 
 Finley needs to draw each building by hand at 1/4" = 1'-0" for class. The **Sheets** button in the top bar opens a full-screen "Drawing sheets" view with:
 
@@ -30,36 +30,18 @@ Finley needs to draw each building by hand at 1/4" = 1'-0" for class. The **Shee
 
 The capture file is `ElevationCapture.tsx`, not `SheetCapture.tsx`. This disk ignores letter case, so that name would clash with `sheetCapture.ts`.
 
-## Still to do (in this order)
+## Finished (Nov 2 2026)
 
-1. **Scrolling:** wide pages are cut off on the left and can't be scrolled to. In `.sheets-pages`, use `align-items: safe center` (or `margin-inline: auto` with `flex-start`).
-2. **Focus trap:** while the overlay is open, set `inert` on `#root` and restore it on close. Add `aria-modal="true"`, focus "Back to the planner" on open, and return focus to the Sheets button on close.
-3. **CSV in Excel:** start the file with a `﻿` BOM and use `type: 'text/csv;charset=utf-8'`. Revoke the object URL on a later tick.
-4. **Checkbox labels:** the toolbar checkboxes are announced as "on". Label them Plan, Elevations, Measurements and Grid.
-5. **Paper-fit hint:** in the toolbar, show how many pages the plan and elevations take on the chosen paper. Also name the smallest paper that fits each plan on one page (`tileDrawing`/`pageFeet`). Scheme C's prow needs 2 Arch C pages because of the sitting steps.
-6. **Smaller fixes:**
-   - disable Print while elevations are still drawing
-   - retry a failed capture once, then show a "Try again" button
-   - DN or slope arrows for ramps and single-nosing stairs
-   - keep the capture under about 256 MB of GPU memory (drop MSAA or lower px/ft for huge images)
-   - Escape closes the overlay even when a toolbar select has focus
-7. **e2e spec** `e2e/sheets.spec.ts`. Read the conventions in `e2e/parts.spec.ts` and `e2e/fresh.ts`. The webServer runs on port 5174. Cover:
-   - the dialog opens, and on C-0 the plan SVG's width in inches equals its viewBox width × 0.25
-   - the "1 in" bar is 96 px wide
-   - Delete and the arrow keys don't change the plan while the sheets are open
-   - Escape closes the sheets and returns focus
-   - all four elevations finish with `data:image/png`, and `window.islandale.sceneStats()` is the same before and after
-   - in print media, `.app` and the toolbar are hidden
-   - the CSV starts with a BOM and contains "Gathering prow" and "W6"
-8. **Check it in the browser:**
-   - Scheme C on Tabloid and on Arch C
-   - one curved scheme (D) and one other (A)
-   - print preview at 100%
-   - measure the 1-inch bar
-9. **Docs:** add to `PLAN.md`:
-   - an order-change note, since drawing sheets are Phase 6 work brought forward at Finley's request, the way the Oct 29 change was recorded
-   - a "Deliberate changes from the legacy file" entry: the sheets replace the old planner's site-plan, floor-plan and elevation sheets with true-scale plans, rendered elevations and tables
-10. **Finish:** commit with a `feat(export): …` message in the repo's style, then merge or PR into the line of work Finley chooses. Nothing has been pushed.
+1. **Scrolling:** pages wider than the window scroll to their left edge (`margin-inline: auto` on a `flex-start` column; checked in the browser).
+2. **Modal:** `#root` is `inert` while the sheets are open, the dialog has `aria-modal="true"`, "Back to the planner" takes the focus on open, and the Sheets button gets it back on close.
+3. **CSV in Excel:** the file starts with a UTF-8 byte-order mark, its type is `text/csv;charset=utf-8`, and the object URL is revoked on a later tick.
+4. **Checkbox labels:** Plan, Elevations, Measurements and Grid are announced by name.
+5. **Paper fit:** the toolbar says how many pages the plan and elevations take on the chosen paper, and the smallest paper that fits each plan on one page (`smallestPaper` in `tiles.ts`). Scheme C's prow plan takes 2 Arch C pages and fits one Arch D.
+6. **Smaller fixes:** Print waits ("Drawing elevations…") until every elevation has finished or failed. A failed capture is retried once, then shows a "Try again" button (hidden in print). Escape closes from anywhere, a toolbar select included. The ramp and stair arrows and the 256 MB capture budget (`imagePlan`) were already in place.
+7. **e2e:** `e2e/sheets.spec.ts` covers true scale, the 96 px inch bar, the inert planner, Escape and focus, the four elevation PNGs with `sceneStats()` unchanged, print media, and the CSV.
+8. **Browser check:** Scheme C on Tabloid and Arch C, D and A on Tabloid. All elevations drew with no retries, and the 1 inch bar is 96 px. The print dialog itself can't be opened from the test browser, so **print preview at 100% and a ruler on the printed bar are still for Finley to check.**
+9. **Docs:** `PLAN.md` has the Nov 2 order change and a "Deliberate changes from the legacy file" entry.
+10. **Finish:** committed. Merging into `drawing-sheets` or `phase-5a-parts-rails`, or opening a PR, is Finley's call.
 
 Known limits:
 - Curved footprints (ellipse, kidney, teardrop, blob, ribbon) are still drawn as their box until Phase 5D. The model marks them `approximate`, and they'll come out right once 5D lands, because the sheets read the same geometry.
@@ -68,7 +50,7 @@ Known limits:
 ## How to run
 
 ```bash
-cd /Users/finleygraham-kadushin/islandale-site-planner/.claude/worktrees/running-the-project-068f5a
+cd /Users/finleygraham-kadushin/islandale-site-planner/.claude/worktrees/token-card-3d15bd
 npm run dev        # http://localhost:5173 (or set PORT); click Sheets in the top bar
 npm run typecheck && npx vitest run
 npx playwright test e2e/sheets.spec.ts

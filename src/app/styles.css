@@ -227,9 +227,11 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .sheets-show legend { float: left; margin-right: 4px; padding: 0; font-size: 13px; color: #555; }
 .sheets-check input { margin: 0; }
 .sheets-hint { flex-basis: 100%; margin: 0; font-size: 12px; color: #444; }
+.sheets-fit { flex-basis: 100%; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #222; }
 /* pages centre with auto margins, so one wider than the window still scrolls to its left edge */
 .sheets-pages { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; padding: 24px 16px 48px; }
-.sheets-pages > .sheets-empty, .sheets-building > .sheet-page { margin-inline: auto; }
+.sheets-pages > .sheets-empty, .sheets-building > .sheet-page, .sheets-building > .sheet-retry { margin-inline: auto; }
+.sheet-retry { font-size: 13px; padding: 4px 10px; }
 .sheets-building { display: contents; }
 .sheets-empty { font-size: 14px; color: #444; }
 .sheet-page {

@@ -41,3 +41,11 @@ export function tileDrawing(widthFt: number, heightFt: number, paper: PaperId, s
     return { row, col, label: `${rowLetters(row)}${col + 1}`, x, y, w, h }
   })
 }
+
+/** Papers smallest first. */
+const PAPERS_BY_SIZE = (Object.keys(PAPERS) as PaperId[]).sort((a, b) => PAPERS[a].w * PAPERS[a].h - PAPERS[b].w * PAPERS[b].h)
+
+/** The smallest paper that holds a drawing of width × height feet on one page at the scale, or null when none does. */
+export function smallestPaper(widthFt: number, heightFt: number, scale: Scale): PaperId | null {
+  return PAPERS_BY_SIZE.find((id) => tileDrawing(widthFt, heightFt, id, scale).length === 1) ?? null
+}

@@ -38,6 +38,7 @@ export function TopBar() {
   const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
   const canRedo = useStore(usePlanStore.temporal, (s) => s.futureStates.length > 0)
   const fileInput = useRef<HTMLInputElement>(null)
+  const sheetsButton = useRef<HTMLButtonElement>(null)
   const bar = useRef<HTMLElement>(null)
   useTopBarBottom(bar)
 
@@ -125,7 +126,7 @@ export function TopBar() {
         <button onClick={onReset} title="Back to Scheme C as saved in the old planner">
           Reset
         </button>
-        <button onClick={() => setSheetsOpen(true)} title="Floor plans and elevations to scale, with every dimension, for drawing by hand">
+        <button ref={sheetsButton} onClick={() => setSheetsOpen(true)} title="Floor plans and elevations to scale, with every dimension, for drawing by hand">
           Sheets
         </button>
       </div>
@@ -139,7 +140,7 @@ export function TopBar() {
         </button>
       )}
       {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
-      {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} />}
+      {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} opener={sheetsButton.current} />}
 
       {readOnly && (
         <span className="readonly" data-testid="read-only">

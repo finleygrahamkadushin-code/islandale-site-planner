@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { pageFeet, tileDrawing } from './tiles'
+import { pageFeet, smallestPaper, tileDrawing } from './tiles'
 import { MARGIN_IN, PAPERS, TITLE_IN, type PaperId, type Scale, type Tile } from './types'
 
 const area = (ts: readonly Tile[]) => ts.reduce((s, t) => s + t.w * t.h, 0)
@@ -47,5 +47,19 @@ describe('tileDrawing', () => {
     expect(tiles.map((t) => t.label)).toEqual(['A1', 'A2', 'A3', 'B1', 'B2', 'B3'])
     expect(tiles[4]).toMatchObject({ row: 1, col: 1, x: page.w, y: page.h })
     expect(tiles[5].w).toBeCloseTo(page.w / 2)
+  })
+})
+
+describe('smallestPaper', () => {
+  test('is the first paper, smallest first, that holds the drawing on one page', () => {
+    const tabloid = pageFeet('tabloid', 0.25)
+    expect(smallestPaper(tabloid.w - 1, tabloid.h - 1, 0.25)).toBe('tabloid')
+    expect(smallestPaper(tabloid.w + 1, tabloid.h - 1, 0.25)).toBe('archC')
+    expect(smallestPaper(1, 1, 0.25)).toBe('letter')
+  })
+
+  test('is null when even the largest paper needs more than one page', () => {
+    const d = pageFeet('archD', 0.5)
+    expect(smallestPaper(d.w + 1, 1, 0.5)).toBeNull()
   })
 })
