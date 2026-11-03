@@ -1,5 +1,4 @@
 import { CatmullRomCurve3, LineCurve3, Vector3 } from 'three'
-import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
 import { ftToM } from '../site/units'
 import type { PlanObject } from '../store/types'
 
@@ -66,21 +65,30 @@ function evenGrade(points: Vector3[], route: readonly (readonly [number, number,
   return points.map((v, i) => new Vector3(v.x, e0 + ((e1 - e0) * run[i]) / total, v.z))
 }
 
+/** Column options per bridge style (legacy bridgeLayout): spacing along the deck and the deck's depth, metres. */
+export interface ColumnOptions {
+  readonly spacingM?: number
+  readonly depthM?: number
+}
+
 /**
- * Sample indices for the boardwalk's columns (legacy bridgeLayout, ribbon
- * style): about every 7 m, just in from each end, wherever the deck
- * underside is more than 0.4 m above the ground and not inside a building.
+ * Sample indices for a bridge's columns (legacy bridgeLayout): one about
+ * every `spacingM` (7 m for the ribbon, 12 m for the truss), the end ones
+ * just in from each end, wherever the deck underside is more than 0.4 m
+ * above the ground and not inside a building.
  */
-export function boardwalkColumns(path: WalkPath, groundAt: (x: number, n: number) => number, inBuilding: (x: number, n: number) => boolean = () => false): number[] {
+export function boardwalkColumns(
+  path: WalkPath,
+  groundAt: (x: number, n: number) => number,
+  inBuilding: (x: number, n: number) => boolean = () => false,
+  { spacingM = COLUMN_SPACING_M, depthM = RIBBON_DEPTH_M }: ColumnOptions = {},
+): number[] {
   const { samples, length } = path
   const last = samples.length - 1
   const step = length / last
-  const segs = Math.max(1, Math.ceil(length / COLUMN_SPACING_M))
+  const segs = Math.max(1, Math.ceil(length / spacingM))
   const inset = Math.round(1 / step)
-  const ok = (i: number) => {
-    const s = samples[i]
-    return s.e - RIBBON_DEPTH_M - groundAt(s.x, s.n) > COLUMN_CLEARANCE_M && !inBuilding(s.x, s.n)
-  }
+  const ok = columnFits(path, groundAt, inBuilding, depthM)
   const out: number[] = []
   for (let k = 0; k <= segs; k++) {
     const i = k === 0 ? Math.min(last, inset) : k === segs ? Math.max(0, last - inset) : Math.round((k * last) / segs)
@@ -89,91 +97,17 @@ export function boardwalkColumns(path: WalkPath, groundAt: (x: number, n: number
   return out
 }
 
-export interface BoardwalkMesh {
-  readonly deck: MeshData
-  readonly body: MeshData
-  readonly glass: MeshData
-  readonly steel: MeshData
-}
-
-const GLASS_BASE_M = 0.05
-const HANDRAIL_M = 1.05
-const GLASS_INSET_M = 0.04
-
-/**
- * The legacy ribbon boardwalk in the scene frame (x, elevation, -n),
- * metres: a deck strip on a white body, glass balustrades with steel
- * handrails both sides, and Y columns forking up from the ground.
- */
-export function buildBoardwalk(path: WalkPath, widthM: number, columns: readonly number[], groundAt: (x: number, n: number) => number): BoardwalkMesh {
-  const hw = Math.max(0.6, widthM / 2)
-  const S = path.samples
-  const at = (i: number, k: number, dy: number): V3 => {
-    const s = S[i]
-    return [s.x + s.px * k, s.e + dy, -(s.n + s.pn * k)]
+/** Whether a column can stand under sample i: the deck underside well off the ground and not over a building. */
+export function columnFits(
+  path: WalkPath,
+  groundAt: (x: number, n: number) => number,
+  inBuilding: (x: number, n: number) => boolean,
+  depthM: number,
+): (i: number) => boolean {
+  return (i) => {
+    const s = path.samples[i]
+    return s.e - depthM - groundAt(s.x, s.n) > COLUMN_CLEARANCE_M && !inBuilding(s.x, s.n)
   }
-  const line = (k: number, dy: number) => S.map((_, i) => at(i, k, dy))
-  const out: BoardwalkMesh = { deck: emptyMesh(), body: emptyMesh(), glass: emptyMesh(), steel: emptyMesh() }
-  const TL = line(hw, 0)
-  const TR = line(-hw, 0)
-  const BL = line(hw, -RIBBON_DEPTH_M)
-  const BR = line(-hw, -RIBBON_DEPTH_M)
-  const G0 = line(hw - GLASS_INSET_M, GLASS_BASE_M)
-  const G1 = line(hw - GLASS_INSET_M, HANDRAIL_M)
-  const H0 = line(-hw + GLASS_INSET_M, GLASS_BASE_M)
-  const H1 = line(-hw + GLASS_INSET_M, HANDRAIL_M)
-  for (let i = 0; i + 1 < S.length; i++) {
-    const left: V3 = [S[i].px, 0, -S[i].pn]
-    const right: V3 = [-left[0], 0, -left[2]]
-    addPolygon(out.deck, [TL[i], TR[i], TR[i + 1], TL[i + 1]], [0, 1, 0])
-    addPolygon(out.body, [BL[i], BR[i], BR[i + 1], BL[i + 1]], [0, -1, 0])
-    addPolygon(out.body, [TL[i], BL[i], BL[i + 1], TL[i + 1]], left)
-    addPolygon(out.body, [TR[i], BR[i], BR[i + 1], TR[i + 1]], right)
-    addPolygon(out.glass, [G0[i], G1[i], G1[i + 1], G0[i + 1]], left)
-    addPolygon(out.glass, [H0[i], H1[i], H1[i + 1], H0[i + 1]], right)
-    for (const [a, b, r] of [[G1, G1, 0.035], [H1, H1, 0.035], [G0, G0, 0.03], [H0, H0, 0.03]] as const) addTube(out.steel, a[i], b[i + 1], r)
-  }
-  const last = S.length - 1
-  for (const [i, dir] of [[0, -1], [last, 1]] as const) {
-    const s = S[i]
-    const along: V3 = [s.pn * dir, 0, s.px * dir]
-    addPolygon(out.body, [TL[i], TR[i], BR[i], BL[i]], along)
-  }
-  for (const i of columns) {
-    const s = S[i]
-    const ground = groundAt(s.x, s.n)
-    const base: V3 = [s.x, ground - 0.3, -s.n]
-    const rise = s.e - RIBBON_DEPTH_M - ground
-    const fork = at(i, 0, -RIBBON_DEPTH_M - Math.min(1.4, rise * 0.35))
-    addTube(out.steel, base, fork, 0.15)
-    addTube(out.steel, fork, at(i, hw * 0.6, -RIBBON_DEPTH_M), 0.085)
-    addTube(out.steel, fork, at(i, -hw * 0.6, -RIBBON_DEPTH_M), 0.085)
-  }
-  return out
-}
-
-/** A square tube of half-width r from a to b, any direction (legacy prismGeo with four sides). */
-function addTube(mesh: MeshData, a: V3, b: V3, r: number): void {
-  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]
-  const L = Math.hypot(d[0], d[1], d[2])
-  if (L < 1e-4) return
-  const t = [d[0] / L, d[1] / L, d[2] / L]
-  const ref = Math.abs(t[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0]
-  const u = norm([t[1] * ref[2] - t[2] * ref[1], t[2] * ref[0] - t[0] * ref[2], t[0] * ref[1] - t[1] * ref[0]])
-  const v = norm([t[1] * u[2] - t[2] * u[1], t[2] * u[0] - t[0] * u[2], t[0] * u[1] - t[1] * u[0]])
-  const ring = [[1, 1], [-1, 1], [-1, -1], [1, -1]].map(([p, q]) => [u[0] * p * r + v[0] * q * r, u[1] * p * r + v[1] * q * r, u[2] * p * r + v[2] * q * r])
-  for (let k = 0; k < 4; k++) {
-    const o0 = ring[k]
-    const o1 = ring[(k + 1) % 4]
-    const out: V3 = [(o0[0] + o1[0]) / 2, (o0[1] + o1[1]) / 2, (o0[2] + o1[2]) / 2]
-    addPolygon(mesh, [add(a, o0), add(b, o0), add(b, o1), add(a, o1)], out)
-  }
-}
-
-const add = (p: V3, o: readonly number[]): V3 => [p[0] + o[0], p[1] + o[1], p[2] + o[2]]
-const norm = (p: readonly number[]): number[] => {
-  const l = Math.hypot(p[0], p[1], p[2]) || 1
-  return [p[0] / l, p[1] / l, p[2] / l]
 }
 
 /** Route points in the site frame: position + relative route, rotated with the object; elevations in metres. */

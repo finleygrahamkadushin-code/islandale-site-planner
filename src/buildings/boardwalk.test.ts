@@ -43,6 +43,12 @@ describe('boardwalkColumns', () => {
     expect(high.length).toBeGreaterThanOrEqual(5)
     expect(boardwalkColumns(p, () => 2.9)).toEqual([])
   })
+  test('take a wider spacing and a deeper deck when a style asks (legacy truss: 12 m, 0.32 m)', () => {
+    const p = boardwalkPath([[0, 0, 3], [30, 0, 3]])!
+    expect(boardwalkColumns(p, () => 0, undefined, { spacingM: 12 })).toHaveLength(4)
+    expect(boardwalkColumns(p, () => 2.35)).not.toEqual([])
+    expect(boardwalkColumns(p, () => 2.35, undefined, { depthM: 0.32 })).toEqual([])
+  })
 })
 
 describe('the Elders’ walk on the Islandale terrain (C and C2–C4)', () => {

@@ -1,53 +1,64 @@
 import { useEffect, useMemo } from 'react'
 import type { LocalPoint } from '../buildings/footprint'
-import { postPositions, supportType } from '../buildings/foundation'
-import { buildWalls } from '../buildings/walls'
+import { SUPPORT_EMBED_M, supportMeshes, supportPlan, type SupportMaterial } from '../buildings/supports'
 import { ftToM } from '../site/units'
 import type { DisplayStyle } from '../store/types'
 import type { MassSite, MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface } from './Surface'
 
-export const EMBED_M = 0.3
-const RIM_M = 0.3
+export const EMBED_M = SUPPORT_EMBED_M
+
+/** Legacy stilt white (#ecebe6) and plate (#d9d6cf). */
+const STILT_WHITE = '#ecebe6'
+const STILT_DIAGRAM = '#d9d6cf'
 
 interface FoundationProps {
   readonly poly: readonly LocalPoint[]
   readonly site: MassSite
   readonly support: unknown
   readonly spacingFt: number
-  readonly postIn: number
+  /** Post size, inches; missing means the legacy default for the kind (6 in posts, 10 in piers and pilings). */
+  readonly postIn?: number
   readonly style: DisplayStyle
   readonly handlers: MeshHandlers
+  /** Cross-brace a square post grid where the floor is high (legacy o.bracing). */
+  readonly bracing?: boolean
+  /** Where a mast stands, feet, mass-local (legacy o.mastAt). */
+  readonly mastAt?: LocalPoint
+  /** Top of the supports relative to the mass floor, metres (minus the floor depth under a deck). */
+  readonly top?: number
 }
 
-/** Posts or a concrete skirt from an enclosed mass's floor down into the ground, following the real slope under each point. */
-export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers }: FoundationProps) {
-  const minGround = Math.min(...poly.map(([x, z]) => site.groundAt(x, z)))
-  const drop = site.floor - minGround
-  const type = supportType(support, drop)
-  const posts = useMemo(() => (type === 'posts' ? postPositions(poly, spacingFt, postIn) : []), [type, poly, spacingFt, postIn])
-  const skirtDepthFt = (drop + EMBED_M) / 0.3048
-  const skirt = useMemo(() => (type === 'skirt' && drop > -0.05 ? toGeometry(buildWalls(poly, skirtDepthFt)) : null), [type, poly, skirtDepthFt, drop])
-  const rim = useMemo(() => (type === 'posts' ? toGeometry(buildWalls(poly, RIM_M / 0.3048)) : null), [type, poly])
-  useEffect(() => () => skirt?.dispose(), [skirt])
-  useEffect(() => () => rim?.dispose(), [rim])
-  if (type === 'none') return null
+/**
+ * What a mass stands on (legacy supportsMesh): a concrete skirt or slab,
+ * posts, piers or pilings on beams (braced when asked), a mast or stilts,
+ * or nothing on an earth bench, each running down to the real ground under
+ * it. Pieces carry their paint part: 'post' for anything standing,
+ * 'foundation' for skirts, aprons and plates.
+ */
+export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers, bracing = false, mastAt, top = 0 }: FoundationProps) {
+  const pieces = useMemo(() => {
+    const plan = supportPlan({ poly, support, spacingFt, postIn, bracing, mastAt, top, groundY: (x, z) => site.groundAt(x, z) - site.floor })
+    return supportMeshes(plan, poly).map((p) => ({ ...p, geometry: toGeometry(p.mesh) }))
+  }, [poly, support, spacingFt, postIn, bracing, mastAt, top, site])
+  useEffect(() => () => pieces.forEach((p) => p.geometry.dispose()), [pieces])
   return (
-    <group>
-      {skirt && (
-        <mesh geometry={skirt} position={[0, -(drop + EMBED_M), 0]} castShadow receiveShadow {...handlers}>
-          <Surface kind="concrete" style={style} texture="concrete" />
+    <group name="supports">
+      {pieces.map((p) => (
+        <mesh key={`${p.part}-${p.material}`} geometry={p.geometry} userData={{ part: p.part }} castShadow receiveShadow {...handlers}>
+          <SupportSurface material={p.material} style={style} />
         </mesh>
-      )}
-      {rim && (
-        <mesh geometry={rim} position={[0, -RIM_M, 0]} castShadow receiveShadow {...handlers}>
-          <Surface kind="wood" style={style} />
-        </mesh>
-      )}
-      <Posts points={posts} top={-RIM_M} site={site} sizeM={Math.max(0.1, postIn * 0.0254)} style={style} handlers={handlers} />
+      ))}
     </group>
   )
+}
+
+function SupportSurface({ material, style }: { readonly material: SupportMaterial; readonly style: DisplayStyle }) {
+  if (material === 'wood') return <Surface kind="wood" style={style} />
+  if (material === 'concrete') return <Surface kind="concrete" style={style} texture="concrete" />
+  if (material === 'steel') return <Surface kind="frame" style={style} />
+  return <Surface kind="trim" style={style} color={STILT_WHITE} diagramColor={STILT_DIAGRAM} />
 }
 
 interface PostsProps {
@@ -69,7 +80,7 @@ export function Posts({ points, top, site, sizeM, style, handlers }: PostsProps)
         const len = site.floor + top - site.groundAt(x, z) + EMBED_M
         if (len < EMBED_M + 0.05) return null
         return (
-          <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} castShadow {...handlers}>
+          <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} userData={{ part: 'post' }} castShadow {...handlers}>
             <boxGeometry args={[sizeM, len, sizeM]} />
             <Surface kind="wood" style={style} />
           </mesh>

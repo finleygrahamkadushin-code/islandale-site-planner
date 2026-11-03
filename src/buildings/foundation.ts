@@ -2,13 +2,28 @@ import type { LocalPoint } from './footprint'
 
 export type SupportType = 'posts' | 'skirt' | 'none'
 
-/** Legacy effectiveSupport(): posts for posts / stilts / pilings / mast, a skirt for slab, earth berm hides it, auto by drop. */
+/** Every support the legacy planner offers (SUPPORTS, less 'auto'). */
+export const SUPPORT_KINDS = ['slab', 'skirt', 'posts', 'piers', 'pilings', 'earth', 'mast', 'stilts'] as const
+export type SupportKind = (typeof SUPPORT_KINDS)[number]
+
+/** Auto supports turn from a skirt to posts once the floor is this far over the low ground, metres (legacy). */
+const AUTO_POSTS_DROP_M = 1.6
+
+/**
+ * Legacy effectiveSupport(): the support the plan names, or for 'auto' (or
+ * anything unknown) posts once the floor is more than 1.6 m over the low
+ * ground and a concrete skirt below that.
+ */
+export function effectiveSupport(support: unknown, dropM: number): SupportKind {
+  if (typeof support === 'string' && (SUPPORT_KINDS as readonly string[]).includes(support)) return support as SupportKind
+  return dropM > AUTO_POSTS_DROP_M ? 'posts' : 'skirt'
+}
+
+/** The support's family: something standing on the ground (posts, piers, pilings, mast, stilts), a skirt (slab, skirt), or nothing (earth). */
 export function supportType(support: unknown, dropM: number): SupportType {
-  const s = typeof support === 'string' ? support : 'auto'
-  if (s === 'earth') return 'none'
-  if (['posts', 'stilts', 'pilings', 'mast', 'piers'].includes(s)) return 'posts'
-  if (s === 'slab' || s === 'skirt') return 'skirt'
-  return dropM > 1.6 ? 'posts' : 'skirt'
+  const k = effectiveSupport(support, dropM)
+  if (k === 'earth') return 'none'
+  return k === 'slab' || k === 'skirt' ? 'skirt' : 'posts'
 }
 
 /**
