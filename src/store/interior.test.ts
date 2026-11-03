@@ -35,7 +35,7 @@ describe('interior actions', () => {
     const room = f0.rooms.find((r) => r.type === 'living') ?? f0.rooms[0]
     store().editFloor(PROW, 0, (_p, f, next) => addOpening(f, newOpening(room, 0, 0.5, 'door')!, next))
     const c = G.labelPoint(room.pts)!
-    store().editFloor(PROW, 0, (_p, f, next) => addFurniture(f, { type: 'bed-queen', x: c[0], z: c[1], rot: 0, w: 5, d: 6.67, mirror: false }, next))
+    store().editFloor(PROW, 0, (_p, f, next) => addFurniture(f, { type: 'queen', x: c[0], z: c[1], rot: 0, w: 5, d: 6.67, mirror: false }, next))
     const f1 = floors()[0]
     expect(f1.openings).toHaveLength(f0.openings.length + 1)
     expect(f1.furniture).toHaveLength(f0.furniture.length + 1)

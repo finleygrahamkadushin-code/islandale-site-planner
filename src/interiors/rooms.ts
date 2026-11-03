@@ -233,19 +233,22 @@ export function openingGeom(params: Params, fi: number, op: Opening, rooms: read
 
 export interface RoomInfo {
   readonly id: number
+  readonly pts: readonly Pt[]
   readonly area: number
   readonly obb: G.Obb | null
   readonly label: Pt | null
   /** The room inside its walls (half an interior wall, a whole exterior wall), or null if that folds. */
   readonly net: Poly | null
-  readonly edges: readonly { readonly exterior: boolean; readonly len: number }[]
+  /** Each edge, and whether it is an outside wall. */
+  readonly edges: readonly (G.Edge & { readonly exterior: boolean })[]
 }
 
 export function roomInfo(params: Params, fi: number, room: Room): RoomInfo {
   const env = envelopeOf(params, fi)
-  const edges = G.edges(room.pts).map((E) => ({ exterior: onBoundary(along(E.a, E.dir, E.len / 2), E.dir, env.edges), len: E.len }))
+  const edges = G.edges(room.pts).map((E) => ({ ...E, exterior: onBoundary(along(E.a, E.dir, E.len / 2), E.dir, env.edges) }))
   return {
     id: room.id,
+    pts: room.pts,
     area: G.area(room.pts),
     obb: G.obb(room.pts),
     label: G.labelPoint(room.pts),
