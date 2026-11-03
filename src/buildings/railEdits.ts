@@ -5,16 +5,19 @@
  *   { [edge]: true | false }, a missing edge meaning auto; the legacy
  *   whole-wing `rail` flag (true, false, 'sides') goes once a map exists;
  * - the rail style per building at params.ext.parts.rail.style ('wood' is
- *   the default and is never stored).
+ *   the default and is never stored), part of the exterior model in
+ *   exterior.ts, which reads it.
  * `src` below is the raw wing, or a standalone deck's own params.
  */
+
+import { extResolve, RAIL_STYLES, type RailStyle } from './exterior'
+
+export { RAIL_STYLES, type RailStyle } from './exterior'
 
 type Params = Record<string, unknown>
 const isRecord = (v: unknown): v is Params => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 export type RailState = 'auto' | 'on' | 'off'
-export const RAIL_STYLES = ['wood', 'steel', 'cable', 'glass', 'none'] as const
-export type RailStyle = (typeof RAIL_STYLES)[number]
 /** Outlines with more edges than this are curves, where 'sides' has no ends to leave open. */
 const CURVED_EDGES = 24
 
@@ -115,9 +118,7 @@ export function buildingRailStyle(params: Params): RailStyle {
 
 /** The rail style of mass mi: its own exterior setting, then the building's, then wood (legacy extResolve). */
 export function railStyleOf(params: Params, mi: number): RailStyle {
-  const ext = isRecord(params.ext) ? params.ext : {}
-  const masses = isRecord(ext.masses) ? ext.masses : {}
-  return railStyleIn(masses[String(mi)]) ?? buildingRailStyle(params)
+  return extResolve(params, mi, 'rail').style || 'wood'
 }
 
 /** The building's rail style (ext.parts.rail.style); wood removes it, and emptied objects go too. */

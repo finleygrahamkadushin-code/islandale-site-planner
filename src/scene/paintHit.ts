@@ -1,4 +1,5 @@
 import type { Object3D, Vector3 } from 'three'
+import { CURVED_SHAPES } from '../buildings/footprint'
 import { buildingMasses, deckObjectMass, partName, type Mass } from '../buildings/masses'
 import { elementLabel, nearestEdge, paintPartOf } from '../buildings/paintPick'
 import type { PaintFocus } from '../store/paintTypes'
@@ -41,10 +42,12 @@ export function paintHitOf(o: PlanObject, hit: Object3D, point: Vector3): PaintH
   const m = masses[mass]
   if (!m) return null
   let edge: number | null = null
+  // a curved mass is one unrolled wall
+  const curved = (CURVED_SHAPES as readonly string[]).includes(m.shape)
   const group = objectGroupOf(hit)
   if (part === 'wall' && group) {
     const local = group.worldToLocal(point.clone())
-    edge = nearestEdge(m, [local.x / FT, local.z / FT])
+    edge = curved ? 0 : nearestEdge(m, [local.x / FT, local.z / FT])
   }
-  return { focus: { objectId: o.id, part, mass, edge }, label: elementLabel(partName(m, mass), part, edge) }
+  return { focus: { objectId: o.id, part, mass, edge }, label: elementLabel(partName(m, mass), part, curved ? null : edge) }
 }

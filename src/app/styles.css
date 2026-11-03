@@ -126,9 +126,9 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 /* Openings panel (Phase 3C) */
-.openings, .railings { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-.openings > summary, .railings > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
-.openings[open] > summary, .railings[open] > summary { margin-bottom: 6px; }
+.openings, .railings, .exterior { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.openings > summary, .railings > summary, .exterior > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+.openings[open] > summary, .railings[open] > summary, .exterior[open] > summary { margin-bottom: 6px; }
 .openings .row.between { justify-content: space-between; }
 .opening-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .opening { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
@@ -242,3 +242,12 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .connect-options button.ok b { color: #7cc48a; }
 .connect-options button.fail b { color: #e0a458; }
 .step-chip { font: 11px/1.2 ui-monospace, monospace; padding: 2px 7px; border-radius: 11px; white-space: nowrap; background: #e0a458; color: #1a1a1a; pointer-events: none; }
+
+/* Exterior panel and Paint mode (Phase 5D) */
+.exterior .row.between { justify-content: space-between; gap: 6px; }
+.exterior .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.exterior .chips button.on, .exterior button.on { background: var(--fg); color: var(--panel); }
+.ext-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.ext-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: 12px; }
+.ext-list li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.exterior input[type='color'] { width: 44px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
