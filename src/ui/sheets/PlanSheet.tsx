@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { signedArea } from '../../buildings/footprint'
 import { formatArch, formatDeg } from '../../export/sheets/format'
 import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
+import { EarthLabels, EarthLines } from './EarthMarks'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
 import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
 import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
@@ -17,13 +18,14 @@ interface Props {
   readonly grid: boolean
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, and each roof's eave and linework dashed over it. */
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, and the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey. */
 export function PlanSheet({ building: b, info, grid }: Props) {
   const pen = penSizes(info.scale)
   const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
   return (
     <TiledDrawing info={{ ...info, sheetTitle: 'Floor plan', northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`Floor plan of ${b.name}`}>
       {grid && <Grid extent={layout.extent} pen={pen} />}
+      {b.earthworks && layout.earth && <EarthLines earth={b.earthworks} plan={layout.earth} pen={pen} />}
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
       ))}
@@ -48,6 +50,7 @@ export function PlanSheet({ building: b, info, grid }: Props) {
       {layout.thickness.map((m, i) => (
         <ThicknessDim key={i} mark={m} pen={pen} />
       ))}
+      {layout.earth && <EarthLabels plan={layout.earth} pen={pen} />}
       <CurveNotes notes={layout.notes} pen={pen} />
       {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
     </TiledDrawing>

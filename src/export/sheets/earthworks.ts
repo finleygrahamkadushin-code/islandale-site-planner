@@ -30,6 +30,8 @@ export function planEarth(visible: readonly PlanObject[], terrain: Terrain): Pla
 
 /** Fill or cut thinner than this is the survey, metres (about 1 in). */
 const LIMIT_M = 0.025
+/** Limit lines nearer the walls than this many raster samples are left out. */
+const CLEAR_SAMPLES = 2
 /** The toe is looked for this often out from the wall, feet. */
 const TOE_STEP_FT = 0.25
 /** A run of berm edges named one by one up to this many; longer runs, or runs round a curve, by their P points. */
@@ -192,12 +194,13 @@ function depthField(e: EarthField, b: Box): Field | null {
  * Where the earthworks meet the survey, outside the building, on the ground
  * this building shapes: each segment is kept where this building is the
  * nearest earthworks object, so a neighbour's fill or a pond is left to its
- * own sheet.
+ * own sheet, and clear of the walls by two raster samples, where the
+ * contour only traces the ground kept down inside the building.
  */
 function limitsOf(f: Frame, op: BuildingEarthOp, ops: readonly EarthOp[]): { fill: Seg[]; cut: Seg[] } {
-  const mine = (x: number, n: number) => {
+  const mine = (x: number, n: number, clear: number) => {
     const d = signedDistance(op.polys, x, n)
-    return d > 0 && ops.every((q) => q === op || signedDistance(opPolys(q), x, n) >= d)
+    return d > clear && ops.every((q) => q === op || signedDistance(opPolys(q), x, n) >= d)
   }
   const reach = opReach(f.terrain, op)
   const pts = op.polys.flat()
@@ -207,7 +210,7 @@ function limitsOf(f: Frame, op: BuildingEarthOp, ops: readonly EarthOp[]): { fil
   const fields = f.works.fields.flatMap((e) => depthField(e, box) ?? [])
   const at = (level: number) =>
     fields.flatMap((g) =>
-      isoSegments(g, level).flatMap(([x1, n1, x2, n2]): Seg[] => (mine((x1 + x2) / 2, (n1 + n2) / 2) ? [[local(f, [x1, n1]), local(f, [x2, n2])]] : [])),
+      isoSegments(g, level).flatMap(([x1, n1, x2, n2]): Seg[] => (mine((x1 + x2) / 2, (n1 + n2) / 2, CLEAR_SAMPLES * g.spacing) ? [[local(f, [x1, n1]), local(f, [x2, n2])]] : [])),
     )
   return { fill: at(LIMIT_M), cut: at(-LIMIT_M) }
 }

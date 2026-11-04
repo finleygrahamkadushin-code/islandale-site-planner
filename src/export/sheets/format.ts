@@ -24,6 +24,9 @@ export function formatArch(ft: number): string {
   return `${sign(ft, quarters)}${feet}'-${inchText(quarters - feet * 48, false)}"`
 }
 
+/** A level above (or below) the main floor with its sign: +2'-11", −0'-1 1/4". */
+export const formatLevel = (ft: number): string => `${ft >= 0 ? '+' : ''}${formatArch(ft)}`
+
 /** Inches as 7 1/4", 1/2", 11", to the nearest 1/4 inch. */
 export function formatInches(inches: number): string {
   if (!Number.isFinite(inches)) return '—'

@@ -1,4 +1,4 @@
-import { formatArch, formatArea } from './format'
+import { formatArch, formatArea, formatLevel } from './format'
 import type { SheetTable } from './table'
 import type { SheetBuilding } from './types'
 
@@ -9,8 +9,6 @@ import type { SheetBuilding } from './types'
  */
 
 const NONE = '—'
-/** Above the main floor with its sign: +2'-11", −0'-1 1/4". */
-export const formatLevel = (ft: number): string => `${ft >= 0 ? '+' : ''}${formatArch(ft)}`
 const navd = (b: SheetBuilding, ft: number) => formatArch(b.levels.floorNavdFt + ft)
 const range = (lo: number, hi: number, show: (v: number) => string) => (show(lo) === show(hi) ? show(lo) : `${show(lo)} to ${show(hi)}`)
 

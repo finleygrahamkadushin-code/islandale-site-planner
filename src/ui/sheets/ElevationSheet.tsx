@@ -8,7 +8,7 @@ import { ftToM } from '../../site/units'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
-import { Dim, penSizes } from './PlanSheet'
+import { Dim, penSizes, type Pen } from './PlanSheet'
 import { dimBounds, dimensionLine, sideOf, spanAlong, spreadApart, staggerLevel, textWidthFt, type DimLine, type Placed, type Pt } from './svgDims'
 
 /** Image resolution: 200 dots per paper inch. */
@@ -118,6 +118,7 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
   const hatch = `hatch-${useId().replace(/[^\w-]/g, '')}`
   const status = !shot || (!shot.image && !shot.error) ? 'Drawing elevation…' : shot.error ? `Could not draw the elevation: ${shot.error}` : null
   const grade = view.grade.map(([u, y]) => `${u},${-y}`).join(' ')
+  const survey = surveyDiffers(view)
   const ground = view.grade.length > 1 ? `${grade} ${view.grade[view.grade.length - 1][0]},${layout.base + 1.5} ${view.grade[0][0]},${layout.base + 1.5}` : ''
   return (
     <>
@@ -139,6 +140,7 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
           </text>
         )}
         {ground && <polygon points={ground} fill={`url(#${hatch})`} stroke="none" />}
+        {survey && <SurveyLine view={view} pen={pen} />}
         {grade && <polyline points={grade} fill="none" stroke="#000" strokeWidth={pen.heavy} />}
         {view.levels.map((l, i) => {
           const end = view.uMax + LEVEL_RUN_FT
@@ -163,6 +165,27 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
   )
 }
 
+/** The survey is drawn where it stands off the finished grade by more than this, feet (1 in). */
+const SURVEY_OFF_FT = 1 / 12
+
+/** Whether the earthworks move the ground along this view enough to draw the survey too. */
+export const surveyDiffers = (view: ElevationView): boolean => view.survey.some(([, y], i) => Math.abs(y - (view.grade[i]?.[1] ?? y)) > SURVEY_OFF_FT)
+
+/** The surveyed ground, dashed and grey, under (or over) the finished grade, named where it stands furthest off it. */
+function SurveyLine({ view, pen }: { readonly view: ElevationView; readonly pen: Pen }) {
+  const off = view.survey.map(([, y], i) => y - (view.grade[i]?.[1] ?? y))
+  const k = off.reduce((best, d, i) => (Math.abs(d) > Math.abs(off[best]) ? i : best), 0)
+  const [u, y] = view.survey[k]
+  return (
+    <g stroke="#555" fill="none">
+      <polyline points={view.survey.map(([su, sy]) => `${su},${-sy}`).join(' ')} strokeWidth={pen.thin} strokeDasharray={`${pen.text} ${pen.small * 0.6}`} />
+      <text x={u} y={-y + (off[k] > 0 ? -pen.small * 0.6 : pen.small * 1.2)} fontSize={pen.small} textAnchor="middle" fill="#555" stroke="none">
+        surveyed grade
+      </text>
+    </g>
+  )
+}
+
 const SEP = ' '
 export const levelText = (label: string, yFt: number, floorNavdFt: number) =>
   `${label}${SEP}${yFt >= 0 ? '+' : ''}${formatArch(yFt)}${SEP}(NAVD88 ${formatArch(floorNavdFt + yFt)})`
@@ -172,9 +195,9 @@ export function elevationLayout(b: SheetBuilding, view: ElevationView, image: El
   const pen = penSizes(scale)
   const opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
   const ys = view.levels.map((l) => l.yFt)
-  const gradeYs = view.grade.map(([, y]) => y)
+  const gradeYs = [...view.grade, ...view.survey].map(([, y]) => y)
   const low = Math.min(b.levels.gradeLowFt, ...gradeYs, ...ys)
-  const high = Math.max(b.levels.topFt, ...ys)
+  const high = Math.max(b.levels.topFt, ...ys, ...gradeYs)
   const left = view.uMin - LEVEL_RUN_FT
   const dims: DimLine[] = []
   let crowded = 0

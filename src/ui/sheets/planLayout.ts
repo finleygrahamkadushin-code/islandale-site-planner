@@ -8,6 +8,7 @@ import { boundsOf } from '../../export/sheets/model'
 import type { Scale, SheetBounds, SheetBuilding } from '../../export/sheets/types'
 import type { Extent } from './Page'
 import { arcPoints, openingStops, pointAlong } from './planDims'
+import { earthNotes, earthPlan, type EarthPlan } from './earthLayout'
 import { thicknessMarks, wallNotes, type ThicknessMark } from './planWalls'
 import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, type DimLine, type Placed, type Pt } from './svgDims'
 
@@ -72,6 +73,8 @@ export interface PlanLayout {
   readonly thickness: ThicknessMark[]
   /** The sheet's general notes (dimensions to the outside face, the walls, door swings), under the drawing; null when there are none. */
   readonly general: CurveOpeningNote | null
+  /** Retaining walls, berms, courts and the limits of the earthworks, with their labels; null when the building has none. */
+  readonly earth: EarthPlan | null
   readonly extent: Extent
 }
 
@@ -201,10 +204,13 @@ export function planLayout(b: SheetBuilding, scale: Scale): PlanLayout {
   const all = dimBounds(dims)
   const noteXs = notes.flatMap((n) => noteSpanX(n, pen.small))
   const noteYs = notes.flatMap((n) => noteSpanY(n, pen.small))
-  const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs]
-  const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs]
+  const earth = earthPlan(b, pen)
+  const earthXs = earth?.points.map((p) => p[0]) ?? []
+  const earthYs = earth?.points.map((p) => p[1]) ?? []
+  const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs, ...earthXs]
+  const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs, ...earthYs]
   // the general notes go under everything else, from its left edge
-  const lines = wallNotes(b)
+  const lines = [...wallNotes(b), ...earthNotes(b)]
   const general: CurveOpeningNote | null = lines.length ? { at: [Math.min(...xs), Math.max(...ys) + pen.text * NOTES_GAP_TEXT], anchor: 'start', lines } : null
   if (general) {
     xs.push(...noteSpanX(general, pen.small))
@@ -213,7 +219,7 @@ export function planLayout(b: SheetBuilding, scale: Scale): PlanLayout {
   const x0 = Math.floor(Math.min(...xs) - MARGIN_FT)
   const y0 = Math.floor(Math.min(...ys) - MARGIN_FT)
   const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(Math.max(...ys) + MARGIN_FT) - y0 }
-  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, extent }
+  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, earth, extent }
 }
 
 /** A note's reach across and down the drawing, at its text size. */
