@@ -7,10 +7,10 @@ import type { Mass } from '../buildings/masses'
 import { buildRoof, normaliseRoof, type TipPost } from '../buildings/roof'
 import { glassMullions, isSculpted, sculptedRoof, type RoofLineKind, type SculptedType, type TuftPlacement } from '../buildings/sculptRoof'
 import { ftToM } from '../site/units'
-import { usePlanStore } from '../store/planStore'
 import { isPainted, shade, type BuildingLook, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface, type SurfaceKind, type TextureName } from './Surface'
+import { useRoofsOff } from './useRoofsOff'
 
 /** Legacy sculptRoof timber soffit, porch struts and the dark frame round a glass roof. */
 const SOFFIT_TIMBER = '#a07c55'
@@ -95,7 +95,7 @@ interface RoofMeshProps {
 
 /** A mass's roof set on its wall top, classic or sculpted, in its finish; nothing while Roofs off is on. */
 export function RoofMesh({ m, mi, poly, look, handlers }: RoofMeshProps) {
-  const roofsOff = usePlanStore((s) => s.roofsOff)
+  const roofsOff = useRoofsOff()
   const type = normaliseRoof(m.roof)
   if (type === 'none' || roofsOff) return null
   const finish = roofFinish(look, mi)
@@ -242,6 +242,9 @@ function RoofTufts({ tufts, blooms, handlers }: { readonly tufts: readonly TuftP
   )
 }
 
+/** Tufts paint as the roof, and are dressing the elevation sheets leave out. */
+const TUFT_DATA = { part: 'roof', sheetSkip: true } as const
+
 function Instanced({ geometry, items, handlers }: { readonly geometry: BufferGeometry; readonly items: readonly TuftPlacement[]; readonly handlers: MeshHandlers }) {
   const ref = useRef<InstancedMesh>(null)
   useLayoutEffect(() => {
@@ -265,7 +268,7 @@ function Instanced({ geometry, items, handlers }: { readonly geometry: BufferGeo
   }, [items])
   if (!items.length) return null
   return (
-    <instancedMesh key={items.length} ref={ref} args={[geometry, undefined, items.length]} castShadow receiveShadow userData={{ part: 'roof' }} {...handlers}>
+    <instancedMesh key={items.length} ref={ref} args={[geometry, undefined, items.length]} castShadow receiveShadow userData={TUFT_DATA} {...handlers}>
       <meshStandardMaterial roughness={0.95} side={DoubleSide} />
     </instancedMesh>
   )

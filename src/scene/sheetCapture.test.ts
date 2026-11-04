@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { OrthographicCamera, Vector3 } from 'three'
 import { localToSite } from '../buildings/footprint'
 import { SIDES, sideDepth, sideFacing, sideU } from '../export/sheets/sides'
@@ -10,13 +10,17 @@ import {
   captureFrameMatrix,
   elevationCamera,
   elevationWindow,
+  holdRoofs,
   imagePlan,
   imageSize,
   MAX_IMAGE_PX,
   MAX_TARGET_BYTES,
   MSAA_SAMPLES,
   PAD_FT,
+  onRoofHold,
   registerElevationCapturer,
+  ROOF_HOLD_GRACE_MS,
+  roofsHeld,
   targetBytesPerPixel,
   type ElevationWindow,
 } from './sheetCapture'
@@ -182,5 +186,52 @@ describe('imagePlan', () => {
     expect(p.pxPerFt).toBeLessThan(100)
     expect(bytes(p)).toBeLessThanOrEqual(MAX_TARGET_BYTES)
     expect(p.width).toBe(Math.round(80 * p.pxPerFt))
+  })
+})
+
+describe('roof hold', () => {
+  afterEach(() => vi.useRealTimers())
+
+  test('roofs are held on from the first hold until a little after the last release', () => {
+    vi.useFakeTimers()
+    const seen: boolean[] = []
+    const stop = onRoofHold(() => seen.push(roofsHeld()))
+    expect(roofsHeld()).toBe(false)
+    const release = holdRoofs()
+    expect(roofsHeld()).toBe(true)
+    release()
+    expect(roofsHeld()).toBe(true)
+    vi.advanceTimersByTime(ROOF_HOLD_GRACE_MS)
+    expect(roofsHeld()).toBe(false)
+    expect(seen).toEqual([true, false])
+    stop()
+  })
+
+  test('the sides of a batch, captured one after another, keep the roofs on throughout', () => {
+    vi.useFakeTimers()
+    const seen: boolean[] = []
+    const stop = onRoofHold(() => seen.push(roofsHeld()))
+    for (let side = 0; side < 4; side++) {
+      const release = holdRoofs()
+      release()
+      // a second release of the same hold does nothing
+      release()
+      vi.advanceTimersByTime(ROOF_HOLD_GRACE_MS / 4)
+    }
+    expect(roofsHeld()).toBe(true)
+    vi.advanceTimersByTime(ROOF_HOLD_GRACE_MS)
+    expect(seen).toEqual([true, false])
+    stop()
+  })
+
+  test('overlapping holds release only when the last one does', () => {
+    vi.useFakeTimers()
+    const [a, b] = [holdRoofs(), holdRoofs()]
+    a()
+    vi.advanceTimersByTime(ROOF_HOLD_GRACE_MS * 2)
+    expect(roofsHeld()).toBe(true)
+    b()
+    vi.advanceTimersByTime(ROOF_HOLD_GRACE_MS)
+    expect(roofsHeld()).toBe(false)
   })
 })

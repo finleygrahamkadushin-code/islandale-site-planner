@@ -10,8 +10,8 @@ import { Foundation } from './Foundation'
 import { toGeometry } from './meshData'
 import { OpeningMesh } from './OpeningMesh'
 import { RoofMesh } from './RoofMesh'
-import { usePlanStore } from '../store/planStore'
 import { Surface } from './Surface'
+import { useRoofsOff } from './useRoofsOff'
 
 export interface SupportParams {
   readonly support: unknown
@@ -62,7 +62,7 @@ export function WallMass({
   readonly highlight?: number | null
 }) {
   const poly = useMemo(() => massPoly(m), [m])
-  const roofsOff = usePlanStore((s) => s.roofsOff)
+  const roofsOff = useRoofsOff()
   const openings = useMemo(
     () => layoutOpenings(poly, m.cuts, { wallHeightFt: m.h, buried: site.insideWalls }).openings,
     [poly, m.cuts, m.h, site.insideWalls],
