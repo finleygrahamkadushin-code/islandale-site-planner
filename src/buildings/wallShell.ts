@@ -1,4 +1,5 @@
 import { ShapeUtils, Vector2 } from 'three'
+import { extResolve, type ExtHost } from './exterior'
 import type { WallKind } from './finishes'
 import type { LocalPoint } from './footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
@@ -180,6 +181,64 @@ function wallPoint(r: Ring, i: number, u: number, k: number): Vec2 {
   const o = at(p)
   const t = r.thick[i] * k
   return [o[0] - r.fn[i][0] * t, o[1] - r.fn[i][1] * t]
+}
+
+/** A wall's thickness by its kind: a glass curtain wall is one glazed skin, every other kind the full wall (legacy wallMeshes). */
+export const wallThicknessFt = (kind: string | null | undefined): number => (kind === 'glass' ? GLASS_WALL_FT : FIT.wallFt)
+
+/** One wall's kind ('' painted, the building's siding) and the thickness that gives it. */
+export interface WallSpec {
+  readonly kind: WallKind | ''
+  readonly thicknessFt: number
+}
+
+/**
+ * Every wall (edge) of mass `mi`, its kind read through the exterior model
+ * (a painted wall, mass or house first, then the scheme's) and its
+ * thickness by wallThicknessFt: what the scene builds the shell with and
+ * the sheets draw.
+ */
+export function wallSpecsOf(params: Readonly<Record<string, unknown>>, mi: number, edges: number, host: ExtHost = 'building'): WallSpec[] {
+  return Array.from({ length: edges }, (_, e) => {
+    const { kind } = extResolve(params, mi, 'wall', e, host)
+    return { kind, thicknessFt: wallThicknessFt(kind) }
+  })
+}
+
+/** The band of walls in plan, feet, in the footprint's own frame: what the shell is built on, for drawing it. */
+export interface WallPlan {
+  /** The inside face's corners, vertex for vertex with the outline (the mitred corners the shell meets at). */
+  readonly inner: readonly LocalPoint[]
+  /** Each wall's thickness; a zero-length edge carries the wall's before it. */
+  readonly thicknessFt: readonly number[]
+  /** Whether each vertex is a sharp corner (creased), not a bend of a curve. */
+  readonly crease: readonly boolean[]
+  /** Each wall's outward unit normal. */
+  readonly outward: readonly LocalPoint[]
+  /**
+   * The point on wall `edge`, `alongFt` from its vertex `edge`, a fraction `k`
+   * of the way through the wall (0 outside, 1 inside): square across from the
+   * outside, except near the wall's ends, which run to the mitred corners.
+   * The shell's jambs and reveals run between k 0 and 1.
+   */
+  readonly across: (edge: number, alongFt: number, k: number) => LocalPoint
+}
+
+/** The walls of a footprint in plan, with the same ring, thickness and mitres buildWallShell builds them on. */
+export function wallPlan(poly: readonly LocalPoint[], thicknessFt?: Thickness): WallPlan {
+  const r = ringOf(poly, thicknessOf(thicknessFt))
+  const n = poly.length
+  return {
+    inner: r.inner,
+    thicknessFt: r.thick,
+    crease: r.crease,
+    outward: r.fn,
+    across: (edge, alongFt, k) => {
+      const i = ((Math.trunc(edge) % n) + n) % n
+      const [x, z] = wallPoint(r, i, r.cum[i] + clamp(alongFt, 0, r.len[i]), clamp(k, 0, 1))
+      return [x, z]
+    },
+  }
 }
 
 /** The outward shading normal on wall `i` at `u`: the vertex normals blended along a curve, the wall's own at a crease (legacy NRM). */

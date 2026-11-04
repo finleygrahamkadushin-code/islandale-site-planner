@@ -3,8 +3,8 @@ import { isWallKind, WALL_KIND_TEXTURE, type WallKind } from '../buildings/finis
 import type { MeshData } from '../buildings/geom'
 import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
-import { FIT, layoutOpenings } from '../buildings/openingLayout'
-import { buildWallShell, edgeMesh, GLASS_WALL_FT, joinByEdge, wallDecorByEdge, type EdgeMesh, type WallShell } from '../buildings/wallShell'
+import { layoutOpenings } from '../buildings/openingLayout'
+import { buildWallShell, edgeMesh, joinByEdge, wallDecorByEdge, wallThicknessFt, type EdgeMesh, type WallShell } from '../buildings/wallShell'
 import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
 import { toGeometry } from './meshData'
@@ -67,11 +67,11 @@ export function WallMass({
     () => layoutOpenings(poly, m.cuts, { wallHeightFt: m.h, buried: site.insideWalls }).openings,
     [poly, m.cuts, m.h, site.insideWalls],
   )
-  // walls that share a finish draw as one mesh; glass walls are a thin curtain wall
+  // walls that share a finish draw as one mesh; glass walls are a thin curtain wall (wallThicknessFt, as the sheets draw them)
   const mi = site.mi ?? 0
   const finishes = poly.map((_, e) => wallFinish(look, mi, e))
   const glassKey = finishes.map((f) => (f.kind === 'glass' ? 'g' : '-')).join('')
-  const thickness = useMemo(() => (e: number) => (glassKey[e] === 'g' ? GLASS_WALL_FT : FIT.wallFt), [glassKey])
+  const thickness = useMemo(() => (e: number) => wallThicknessFt(glassKey[e] === 'g' ? 'glass' : null), [glassKey])
   const shell = useMemo(() => buildWallShell(poly, m.h, openings, { cap: !roofsOff, thicknessFt: thickness }), [poly, m.h, openings, roofsOff, thickness])
   const decor = useMemo(
     () => (glassKey.includes('g') ? wallDecorByEdge(poly, m.h, (e) => (glassKey[e] === 'g' ? 'glass' : null), openings, { thicknessFt: thickness }) : []),
