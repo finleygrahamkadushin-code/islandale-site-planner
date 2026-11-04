@@ -1,9 +1,10 @@
 import { useEffect, useMemo } from 'react'
 import { isWallKind, WALL_KIND_TEXTURE, type WallKind } from '../buildings/finishes'
 import type { MeshData } from '../buildings/geom'
-import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
+import { CURVED_SHAPES } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
 import { layoutOpenings } from '../buildings/openingLayout'
+import type { SupportParams } from '../buildings/supportParams'
 import { buildWallShell, edgeMesh, joinByEdge, wallDecorByEdge, wallThicknessFt, type EdgeMesh, type WallShell } from '../buildings/wallShell'
 import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
@@ -13,16 +14,7 @@ import { RoofMesh } from './RoofMesh'
 import { usePlanStore } from '../store/planStore'
 import { Surface } from './Surface'
 
-export interface SupportParams {
-  readonly support: unknown
-  readonly spacingFt: number
-  /** Post size, inches; undefined for each support kind's own. */
-  readonly postIn?: number
-  /** Cross-brace a high post grid (legacy o.bracing), under every rectangular enclosed mass. */
-  readonly bracing?: boolean
-  /** Where a mast stands, feet, building-local (legacy o.mastAt); main mass only. */
-  readonly mastAt?: LocalPoint
-}
+export type { SupportParams } from '../buildings/supportParams'
 
 /** How one wall is finished: its kind (null keeps the building's siding), colour, and a glass wall's tint. */
 interface WallFinish {

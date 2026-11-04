@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import type { LocalPoint } from '../buildings/footprint'
 import { SUPPORT_EMBED_M, supportMeshes, supportPlan, type SupportMaterial } from '../buildings/supports'
+import { standingPosts } from '../buildings/wingPosts'
 import { ftToM } from '../site/units'
 import type { DisplayStyle } from '../store/types'
 import type { MassSite, MeshHandlers } from './buildingLook'
@@ -79,18 +80,15 @@ interface PostsProps {
 
 /** Square posts from `top` down to the ground under each point, buried a little. Points closer than a post to the ground get none. */
 export function Posts({ points, top, site, sizeM, style, handlers, color }: PostsProps) {
+  const posts = standingPosts(points, top, (x, z) => site.groundAt(x, z) - site.floor, EMBED_M)
   return (
     <>
-      {points.map(([x, z], i) => {
-        const len = site.floor + top - site.groundAt(x, z) + EMBED_M
-        if (len < EMBED_M + 0.05) return null
-        return (
-          <mesh key={i} position={[ftToM(x), top - len / 2, ftToM(z)]} userData={{ part: 'post' }} castShadow {...handlers}>
-            <boxGeometry args={[sizeM, len, sizeM]} />
-            <Surface kind="wood" style={style} color={color} />
-          </mesh>
-        )
-      })}
+      {posts.map(({ at: [x, z], y0, y1 }, i) => (
+        <mesh key={i} position={[ftToM(x), (y0 + y1) / 2, ftToM(z)]} userData={{ part: 'post' }} castShadow {...handlers}>
+          <boxGeometry args={[sizeM, y1 - y0, sizeM]} />
+          <Surface kind="wood" style={style} color={color} />
+        </mesh>
+      ))}
     </>
   )
 }

@@ -3,12 +3,13 @@ import type { TreeWell } from '../buildings/deckSteps'
 import { localToSite, num } from '../buildings/footprint'
 import { deckObjectMass } from '../buildings/masses'
 import { railStyleOf } from '../buildings/railEdits'
+import { deckSupports, type DeckSupports } from '../buildings/supportParams'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { buildingLook, type MassSite } from './buildingLook'
 import { toScene } from './frame'
-import { DeckMass, type DeckSupports } from './OpenMass'
+import { DeckMass } from './OpenMass'
 import { baseElevation } from './placement'
 import { objectRailSite } from './railSite'
 import { useDisplayStyle } from './useDisplayStyle'
@@ -18,8 +19,6 @@ import { useRailWorld } from './useRailWorld'
 
 const NO_WELLS: readonly TreeWell[] = []
 const never = () => false
-/** Legacy default post spacing for a standalone deck, feet. */
-const DECK_POST_SPACING_FT = 8
 
 /**
  * A standalone deck (type 'deck'): a board floor following its outline
@@ -62,11 +61,4 @@ export function StandaloneDeckMesh({ o }: { readonly o: PlanObject }) {
       </group>
     </group>
   )
-}
-
-/** A standalone deck's supports: 'auto' (or none) is posts, as the old planner drew decks. */
-function deckSupports(p: Readonly<Record<string, unknown>>): DeckSupports {
-  const support = typeof p.support === 'string' && p.support !== 'auto' ? p.support : 'posts'
-  const postIn = typeof p.postSize === 'number' && Number.isFinite(p.postSize) ? p.postSize : undefined
-  return { support, spacingFt: num(p.postSpacing, DECK_POST_SPACING_FT), postIn, bracing: p.bracing === true }
 }
