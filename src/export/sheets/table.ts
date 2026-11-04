@@ -1,4 +1,5 @@
 import { curveRuns, spanLabel, STATION_FT } from './curves'
+import { earthTables, gradeLevels } from './earthTables'
 import { formatArch, formatArea, formatDeg, formatInches } from './format'
 import { partLevels } from './levels'
 import type { SheetBuilding, SheetPart } from './types'
@@ -150,13 +151,16 @@ function stairsTable(b: SheetBuilding): SheetTable {
   }
 }
 
-/** Every level the drawings mark, above the main floor and in NAVD88. */
+/** Every level the drawings mark, above the main floor and in NAVD88: floors, wall tops, roof heights, then the finished and surveyed grade and the earthworks. */
 function levelsTable(b: SheetBuilding): SheetTable {
   const lines: [string, number][] = [['Main floor', 0]]
   for (const p of b.parts) lines.push(...partLevels(p).map((l): [string, number] => [l.label, l.yFt]))
-  lines.push(['Grade under the building, lowest', b.levels.gradeLowFt], ['Grade under the building, highest', b.levels.gradeHighFt], ['Top of roof', b.levels.topFt])
+  lines.push(['Top of roof', b.levels.topFt])
+  const grade = gradeLevels(b)
+  lines.push(...grade.lines)
   return {
     title: 'Levels',
+    note: grade.note,
     columns: ['Level', 'Height above floor', 'NAVD88'],
     rows: lines.map(([label, y]) => [label, formatArch(y), formatArch(b.levels.floorNavdFt + y)]),
   }
@@ -174,7 +178,7 @@ function cornersTable(b: SheetBuilding): SheetTable {
 
 /** Every measurement of a building, table by table, as printed beside its drawings. */
 export function sheetTables(b: SheetBuilding): SheetTable[] {
-  return [partsTable(b), edgesTable(b), curvesTable(b), ...ellipsesTable(b), openingsTable(b), stairsTable(b), levelsTable(b), cornersTable(b)]
+  return [partsTable(b), edgesTable(b), curvesTable(b), ...ellipsesTable(b), openingsTable(b), stairsTable(b), levelsTable(b), ...earthTables(b), cornersTable(b)]
 }
 
 const csvCell = (v: string) => (/[",\n\r]|^\s|\s$/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)

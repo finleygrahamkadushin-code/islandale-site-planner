@@ -245,11 +245,78 @@ export interface SheetPart {
 export interface SheetLevels {
   /** NAVD88 feet of the main floor. */
   readonly floorNavdFt: number
-  /** Lowest and highest grade under the building's outline, feet relative to the main floor. */
+  /** Lowest and highest finished grade (the ground as the earthworks leave it, as the 3D scene draws it) round the walls' outlines (every part's, on a building with no walls), feet relative to the main floor. */
   readonly gradeLowFt: number
   readonly gradeHighFt: number
+  /** Lowest and highest surveyed grade (before any earthworks) at the same points, feet relative to the main floor. */
+  readonly surveyLowFt: number
+  readonly surveyHighFt: number
   /** Highest point of any roof, feet relative to the main floor. */
   readonly topFt: number
+}
+
+/** One run of retaining wall holding back the bank of a sunk building's cut, building frame. */
+export interface SheetRetainingWall {
+  /** "RW1", "RW2" … per building. */
+  readonly tag: string
+  readonly material: 'stone' | 'concrete'
+  /** Its face on the cut side, and its back a wall thickness into the bank. */
+  readonly face: readonly LocalPoint[]
+  readonly back: readonly LocalPoint[]
+  /** Length along its face, feet. */
+  readonly lengthFt: number
+  readonly thicknessFt: number
+  /** Top of wall at its first and last point, and its lowest and highest, feet relative to the main floor. */
+  readonly topStartFt: number
+  readonly topEndFt: number
+  readonly topLowFt: number
+  readonly topHighFt: number
+  /** Bottom of wall, where the cut floor meets its face, and the underside of its footing, feet relative to the main floor. */
+  readonly bottomFt: number
+  readonly footFt: number
+}
+
+/** A berm against a run of the main walls, building frame. */
+export interface SheetBerm {
+  /** The walls it lies against: "back", "back, right", or "P3–P9" along a curve. */
+  readonly side: string
+  /** Main outline edge indices, in order along the run. */
+  readonly edges: readonly number[]
+  /** The wall line it lies against, and its crest's outer edge, a crest width out. */
+  readonly line: readonly LocalPoint[]
+  readonly crest: readonly LocalPoint[]
+  /** Length along the wall, feet. */
+  readonly lengthFt: number
+  /** Crest height above the main floor, feet. */
+  readonly crestFt: number
+  readonly crestWidthFt: number
+  /** Run per unit rise of its outer slope. */
+  readonly slope: number
+  /** How far out from the wall it meets the surveyed ground, least and most along the run, feet; null where it never does within its reach. */
+  readonly toeOutFt: { readonly min: number; readonly max: number } | null
+}
+
+/** A sunken court beyond a sunk building's court side, building frame. */
+export interface SheetCourt {
+  readonly side: string
+  readonly outline: readonly LocalPoint[]
+  /** Along the wall, and out from it, feet. */
+  readonly widthFt: number
+  readonly depthFt: number
+  /** The cut floor, feet relative to the main floor. */
+  readonly floorFt: number
+}
+
+/** How a building reshapes the ground round it, as the 3D scene builds it. */
+export interface SheetEarthworks {
+  /** How far the floor is set into the slope (earth.sink), feet; 0 when it is not sunk. */
+  readonly sinkFt: number
+  readonly walls: readonly SheetRetainingWall[]
+  readonly berms: readonly SheetBerm[]
+  readonly courts: readonly SheetCourt[]
+  /** Where fill runs out onto the surveyed ground (its toe) and where a cut leaves it (the top of its bank), as short segments, building frame; outside the building's outlines only. */
+  readonly fillLimit: readonly (readonly [LocalPoint, LocalPoint])[]
+  readonly cutLimit: readonly (readonly [LocalPoint, LocalPoint])[]
 }
 
 export interface SheetBounds {
@@ -278,6 +345,9 @@ export interface SheetBuilding {
   /** Bounds of the main walls' outline (part 0). */
   readonly mainBounds: SheetBounds
   readonly levels: SheetLevels
+  /** Null when the building leaves the ground as surveyed. */
+  readonly earthworks: SheetEarthworks | null
+  /** Floor inside the walls' outside face, and of decks and porches outside it, square feet; where parts overlap, counted once. */
   readonly totalAreaSqFt: { readonly enclosed: number; readonly decks: number }
 }
 
@@ -289,8 +359,10 @@ export interface ElevationView {
   /** Horizontal extent along the view, feet, left to right as seen. */
   readonly uMin: number
   readonly uMax: number
-  /** Grade along the nearest face, as (u, y) feet relative to the main floor. */
+  /** Finished grade along the nearest face, as (u, y) feet relative to the main floor. */
   readonly grade: readonly (readonly [number, number])[]
+  /** Surveyed grade at the same points, before the earthworks; equal to `grade` where they leave it. */
+  readonly survey: readonly (readonly [number, number])[]
   /** Labelled levels (Floor, Deck 3 floor, Eave, Ridge …) in feet relative to the main floor, sorted low to high, de-duplicated within 1 in. */
   readonly levels: readonly { readonly label: string; readonly yFt: number }[]
   /** Parts seen in this view with their horizontal extent, for the width chain. */

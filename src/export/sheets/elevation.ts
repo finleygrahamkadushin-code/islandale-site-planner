@@ -1,5 +1,6 @@
 import { localToSite, type LocalPoint } from '../../buildings/footprint'
 import { groundWithCuts, type Ground } from '../../site/earthworks'
+import { elevationAt } from '../../site/terrain'
 import type { Terrain } from '../../site/types'
 import { ftToM, mToFt } from '../../site/units'
 import { sunkCuts } from '../../scene/placement'
@@ -45,13 +46,15 @@ function sampleU(uMin: number, uMax: number): number[] {
   return Array.from({ length: n + 1 }, (_, k) => Math.min(uMax, uMin + k * GRADE_STEP_FT))
 }
 
-function gradeAlong(o: PlanObject, b: SheetBuilding, side: ElevationSide, ground: Ground, uMin: number, uMax: number): [number, number][] {
+/** The finished grade along the view's nearest faces, and the survey under it, as (u, y). */
+function gradeAlong(o: PlanObject, b: SheetBuilding, side: ElevationSide, terrain: Terrain, ground: Ground, uMin: number, uMax: number) {
   const floorM = ftToM(b.levels.floorNavdFt)
   const near = Math.max(...b.parts.flatMap((p) => p.outline.map((q) => sideDepth(side, q))))
-  return sampleU(uMin, uMax).map((u) => {
-    const [x, n] = localToSite(o.position, o.rotation, fromSide(side, u, nearestDepth(b, side, u, near)))
-    return [u, mToFt(ground(x, n) - floorM)]
-  })
+  const at = sampleU(uMin, uMax).map((u) => [u, localToSite(o.position, o.rotation, fromSide(side, u, nearestDepth(b, side, u, near)))] as const)
+  return {
+    grade: at.map(([u, [x, n]]): [number, number] => [u, mToFt(ground(x, n) - floorM)]),
+    survey: at.map(([u, [x, n]]): [number, number] => [u, mToFt(elevationAt(terrain, x, n) - floorM)]),
+  }
 }
 
 /** Floors, wall tops and roof heights of every part, with the lowest grade; sorted, and lines within 1 in merged. */
@@ -77,7 +80,7 @@ export function elevationView(objects: readonly PlanObject[], terrain: Terrain, 
   const o = objects.find((x) => x.id === b.id)
   const visible = objects.filter((x) => !x.hidden)
   const ground = groundWithCuts(terrain, sunkCuts(visible, terrain))
-  const grade = o && b.parts.length ? gradeAlong(o, b, side, ground, uMin, uMax) : []
+  const { grade, survey } = o && b.parts.length ? gradeAlong(o, b, side, terrain, ground, uMin, uMax) : { grade: [], survey: [] }
   const spans = b.parts.map((p) => {
     const pu = p.outline.map((q) => sideU(side, q))
     return { name: p.name, u0: Math.min(...pu), u1: Math.max(...pu) }
@@ -87,6 +90,7 @@ export function elevationView(objects: readonly PlanObject[], terrain: Terrain, 
     uMin,
     uMax,
     grade,
+    survey,
     levels: levelsOf(b, grade.length ? Math.min(...grade.map((g) => g[1])) : null),
     spans,
   }
