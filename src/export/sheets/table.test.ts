@@ -62,7 +62,7 @@ describe('tablesCsv', () => {
     const lines = csv.split('\n')
     expect(lines[0]).toBe('Gathering prow — Parts')
     expect(lines[1]).toContain('Width and depth')
-    expect(lines[2]).toBe('Part,Kind,Width,Depth,Level,Wall height,Wall,Area,Roof,Pitch,Overhang,Ridge above floor')
+    expect(lines[2]).toBe('Part,Kind,Width,Depth,Level,Wall height,Wall,Area,Roof,Finish,Slope,Overhang,Roof top above floor')
     expect(lines[3]).toContain(`"28'-0"""`)
     expect(csv.match(/^Gathering prow — /gm)).toHaveLength(7)
     expect(csv.endsWith('\n')).toBe(true)

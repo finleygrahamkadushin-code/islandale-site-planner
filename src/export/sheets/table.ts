@@ -1,5 +1,6 @@
 import { curveRuns, spanLabel, STATION_FT } from './curves'
 import { formatArch, formatArea, formatDeg, formatInches } from './format'
+import { partLevels } from './levels'
 import type { SheetBuilding, SheetPart } from './types'
 
 /** One table of the measurement sheet: every value already written as it is printed. */
@@ -13,7 +14,7 @@ export interface SheetTable {
 
 const NONE = '—'
 const IN_PER_FT = 12
-const ridgeOf = (p: SheetPart) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0)
+const roofTopOf = (p: SheetPart) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0)
 const hasCurve = (p: SheetPart) => p.edges.some((e) => e.curved)
 const orNone = (v: number | null) => (v === null ? NONE : formatArch(v))
 
@@ -33,8 +34,8 @@ function datumNote(b: SheetBuilding): string {
 function partsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Parts',
-    note: "Width and depth: the drawn outline's size along the part's own axes, to the outside face of its walls. Wall: thickness from the outside face in.",
-    columns: ['Part', 'Kind', 'Width', 'Depth', 'Level', 'Wall height', 'Wall', 'Area', 'Roof', 'Pitch', 'Overhang', 'Ridge above floor'],
+    note: "Width and depth: the drawn outline's size along the part's own axes, to the outside face of its walls. Wall: thickness from the outside face in. Slope: rise per 12 of each of the roof's slopes (a gambrel's below and above its break), or the pitch it was set at where its facets differ; Levels gives every roof height.",
+    columns: ['Part', 'Kind', 'Width', 'Depth', 'Level', 'Wall height', 'Wall', 'Area', 'Roof', 'Finish', 'Slope', 'Overhang', 'Roof top above floor'],
     rows: b.parts.map((p) => [
       p.name,
       p.curve ? `${p.kind}, ${p.curve}` : p.kind,
@@ -45,9 +46,10 @@ function partsTable(b: SheetBuilding): SheetTable {
       wallThickness(p),
       formatArea(p.areaSqFt),
       p.roof?.type ?? 'none',
-      p.roof ? `${p.roof.pitch}:12` : NONE,
+      p.roof?.finish ?? NONE,
+      p.roof?.slopes ?? NONE,
       p.roof ? formatArch(p.roof.overhangFt) : NONE,
-      p.roof ? formatArch(ridgeOf(p)) : NONE,
+      p.roof ? formatArch(roofTopOf(p)) : NONE,
     ]),
   }
 }
@@ -151,11 +153,7 @@ function stairsTable(b: SheetBuilding): SheetTable {
 /** Every level the drawings mark, above the main floor and in NAVD88. */
 function levelsTable(b: SheetBuilding): SheetTable {
   const lines: [string, number][] = [['Main floor', 0]]
-  for (const p of b.parts) {
-    if (p.levelFt !== 0) lines.push([`${p.name} floor`, p.levelFt])
-    if (p.kind === 'wall' || p.roof) lines.push([`${p.name} eave`, p.levelFt + p.wallFt])
-    if (p.roof) lines.push([`${p.name} ridge`, ridgeOf(p)])
-  }
+  for (const p of b.parts) lines.push(...partLevels(p).map((l): [string, number] => [l.label, l.yFt]))
   lines.push(['Grade under the building, lowest', b.levels.gradeLowFt], ['Grade under the building, highest', b.levels.gradeHighFt], ['Top of roof', b.levels.topFt])
   return {
     title: 'Levels',

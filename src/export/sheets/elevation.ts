@@ -4,6 +4,7 @@ import type { Terrain } from '../../site/types'
 import { ftToM, mToFt } from '../../site/units'
 import { sunkCuts } from '../../scene/placement'
 import type { PlanObject } from '../../store/types'
+import { partLevels } from './levels'
 import { partPoints } from './parts'
 import { sideDepth, sideU } from './sides'
 import type { ElevationSide, ElevationView, SheetBuilding } from './types'
@@ -53,14 +54,10 @@ function gradeAlong(o: PlanObject, b: SheetBuilding, side: ElevationSide, ground
   })
 }
 
-/** Floors, eaves and ridges of every part, with the lowest grade; sorted, and lines within 1 in merged. */
+/** Floors, wall tops and roof heights of every part, with the lowest grade; sorted, and lines within 1 in merged. */
 function levelsOf(b: SheetBuilding, gradeLow: number | null): ElevationView['levels'] {
   const raw: { label: string; yFt: number }[] = [{ label: 'Floor', yFt: 0 }]
-  for (const p of b.parts) {
-    if (p.levelFt !== 0) raw.push({ label: `${p.name} floor`, yFt: p.levelFt })
-    if (p.kind === 'wall' || p.roof) raw.push({ label: `${p.name} eave`, yFt: p.levelFt + p.wallFt })
-    if (p.roof) raw.push({ label: `${p.name} ridge`, yFt: p.levelFt + p.wallFt + p.roof.riseFt })
-  }
+  for (const p of b.parts) raw.push(...partLevels(p))
   if (gradeLow !== null) raw.push({ label: GRADE_LOW_LABEL, yFt: gradeLow })
   const sorted = [...raw].sort((a, c) => a.yFt - c.yFt)
   return sorted.reduce<{ label: string; yFt: number }[]>((out, l) => {

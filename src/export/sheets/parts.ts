@@ -1,8 +1,8 @@
 import { deckStepsPlan, TREE_WELL_FT, type TreeWell } from '../../buildings/deckSteps'
 import { localToSite, signedArea, siteToLocal, type LocalPoint } from '../../buildings/footprint'
+import { extResolve } from '../../buildings/exterior'
+import { isRoofFinish } from '../../buildings/finishes'
 import { buildingToMass, massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from '../../buildings/masses'
-import { offsetOutline } from '../../buildings/outline'
-import { buildRoof, normaliseRoof } from '../../buildings/roof'
 import { wallPlan, wallSpecsOf, type WallPlan, type WallSpec } from '../../buildings/wallShell'
 import { ftToM, mToFt } from '../../site/units'
 import type { RailWorld } from '../../scene/railWorld'
@@ -12,6 +12,7 @@ import { fitCurves, type Curves } from './arcs'
 import { aroundOf, curveKindOf, edgesOf, pointsOf } from './curves'
 import { ellipseOf, fourCentreArcs } from './ellipse'
 import { openingsOf, type UntaggedOpening } from './openings'
+import { sheetRoof } from './roofs'
 import type { FittedArc, SheetArc, SheetEdge, SheetEllipse, SheetPart, SheetRoof, SheetStair } from './types'
 
 /** What every part of one building is worked out from. */
@@ -111,19 +112,14 @@ function stairOf(site: PartSite, m: Mass, mi: number): SheetStair | null {
   }
 }
 
-/** The eave line: a prow roof's own outline when it has one, else the walls grown by the overhang. */
-function eaveOf(m: Mass, type: string): LocalPoint[] {
-  const custom = (m.roofPts ?? []).filter((p) => p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
-  const eave = type === 'prow' && custom.length >= 3 ? custom.map(([x, z]): LocalPoint => [x, z]) : offsetOutline(massPoly(m), m.overhang)
-  return eave.map((p) => massToBuilding(m, p))
+/** The roof's finish as the scene resolves it (RoofMesh's roofFinish): the exterior resolver's roof mat when it is a roof finish. */
+export function roofFinishAt(site: PartSite, mi: number): string | null {
+  const mat = extResolve(site.o.params, mi, 'roof', null, site.standalone ? 'deck' : 'building').mat
+  return isRoofFinish(mat) ? mat : null
 }
 
-function roofOf(m: Mass): SheetRoof | null {
-  const type = normaliseRoof(m.roof)
-  if (isAccess(m) || type === 'none') return null
-  const prow = { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip }
-  const rise = buildRoof(massPoly(m), { type: m.roof, pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow }).rise
-  return { type, pitch: m.pitch, overhangFt: m.overhang, eave: eaveOf(m, type), riseFt: mToFt(rise) }
+function roofOf(site: PartSite, m: Mass, mi: number): SheetRoof | null {
+  return isAccess(m) ? null : sheetRoof(m, roofFinishAt(site, mi))
 }
 
 /** Sitting steps' tread bands, building frame, top first: the ground relative to the deck floor exactly as DeckStepsMesh takes it. */
@@ -169,7 +165,7 @@ export function sheetPart(site: PartSite, mi: number): UntaggedPart {
     arcs,
     openings: site.standalone ? [] : openingsOf(site.o.params, m, mi, arcs, edges, around, walls?.plan ?? null),
     stair: stairOf(site, m, mi),
-    roof: roofOf(m),
+    roof: roofOf(site, m, mi),
     stepBands: stepBandsOf(site, m),
     curve: curveKindOf(m.shape),
     ellipse,

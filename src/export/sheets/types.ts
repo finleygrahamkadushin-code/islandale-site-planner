@@ -140,15 +140,45 @@ export interface SheetStair {
   readonly run: readonly [LocalPoint, LocalPoint]
 }
 
+/**
+ * Roof linework on the plan, building frame: ridges, hips, valleys and a
+ * gambrel's breaks where the 3D roof's faces meet; on a sculpted roof its
+ * contours, ribs and crown (as the 3D roof draws them), and a shell's high
+ * open lip along its eave.
+ */
+export type SheetRoofLineKind = 'ridge' | 'hip' | 'valley' | 'break' | 'contour' | 'rib' | 'crown' | 'lip'
+
+export interface SheetRoofLine {
+  readonly kind: SheetRoofLineKind
+  readonly pts: readonly LocalPoint[]
+}
+
+/** A named height of the roof ("ridge", "low eave", "lip, top" …), above this part's wall top (its eave line), feet; below it is negative. */
+export interface SheetRoofLevel {
+  readonly label: string
+  readonly riseFt: number
+}
+
 export interface SheetRoof {
   /** Normalised roof type ("gable", "prow" …); "none" has no roof. */
   readonly type: string
   readonly pitch: number
+  /** Its slopes as drawn: "7:12", both of a gambrel's ("14.98:12 / 5.82:12"), "flat", "curved"; "…, nominal" where the faceted roof's facets differ. */
+  readonly slopes: string
+  /** The roof finish (glass, copper, metal, sod), or null for the standard one. */
+  readonly finish: string | null
   readonly overhangFt: number
   /** Eave outline, building frame (the outline grown by the overhang, or roofPts). */
   readonly eave: readonly LocalPoint[]
-  /** Ridge height above this part's eave, feet. */
+  /** Height of the roof's highest point above this part's eave, feet. */
   readonly riseFt: number
+  /** Its named heights, low to high, the eave line (0) first where it has one. */
+  readonly levels: readonly SheetRoofLevel[]
+  readonly lines: readonly SheetRoofLine[]
+  /** On a roof of one sloping plane (a shed): an arrow down the slope, from its high side to its low side, building frame. */
+  readonly slope: { readonly high: LocalPoint; readonly low: LocalPoint } | null
+  /** The column under a prow shell's tip: where it stands, its diameter at the foot, and its top above the wall top, feet. */
+  readonly tip: { readonly at: LocalPoint; readonly diameterFt: number; readonly topFt: number } | null
 }
 
 /** A footprint whose outline is a curve: the shapes the app draws as many short chords. */
