@@ -1,0 +1,238 @@
+/**
+ * Drawing sheets: floor plans and elevations of each building at a true
+ * architectural scale (1/4" = 1'-0" by default), plus a table of every
+ * measurement, for drawing the design by hand.
+ *
+ * Frames. Everything here is in the BUILDING frame, in FEET: x to the
+ * building's right, z toward its front (+z is south at rotation 0), the
+ * frame `massBuildingPoly` returns. A plan sheet draws x right and z down,
+ * so building-frame feet are SVG user units directly. Elevations use a
+ * horizontal `u` (feet, left to right as seen from outside) and a vertical
+ * `y` (feet above the main floor; NAVD88 is given alongside).
+ */
+import type { LocalPoint } from '../../buildings/footprint'
+import type { MassKind } from '../../buildings/masses'
+import type { OpeningKind } from '../../buildings/openingLayout'
+
+/** Paper inches per foot of building: 1/4" = 1'-0" is 0.25. */
+export type Scale = 0.125 | 0.25 | 0.5
+export const SCALE_LABEL: Readonly<Record<Scale, string>> = { 0.125: '1/8" = 1\'-0"', 0.25: '1/4" = 1\'-0"', 0.5: '1/2" = 1\'-0"' }
+
+export type PaperId = 'letter' | 'tabloid' | 'archC' | 'archD'
+/** Landscape sheet sizes, inches. */
+export const PAPERS: Readonly<Record<PaperId, { readonly label: string; readonly w: number; readonly h: number }>> = {
+  letter: { label: 'Letter 11 × 8.5 in', w: 11, h: 8.5 },
+  tabloid: { label: 'Tabloid 17 × 11 in', w: 17, h: 11 },
+  archC: { label: 'Arch C 24 × 18 in', w: 24, h: 18 },
+  archD: { label: 'Arch D 36 × 24 in', w: 36, h: 24 },
+}
+/** Printer margin all round, and the title strip along the bottom, inches. */
+export const MARGIN_IN = 0.5
+export const TITLE_IN = 0.9
+
+/** One straight edge of a part's outline, building frame. */
+export interface SheetEdge {
+  /** Index in the part's own outline (edge i runs from vertex i to i+1). */
+  readonly index: number
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  readonly lengthFt: number
+  /** "back", "right", "edge 5" … as the part inspector names it. */
+  readonly name: string
+  /** Index into the part's `arcs` when this edge is one chord of a fitted curve; such edges are not dimensioned one by one. */
+  readonly arc: number | null
+}
+
+/** A run of short, evenly turning edges read as one circular arc. */
+export interface SheetArc {
+  /** First and last edge index of the run (inclusive). */
+  readonly fromEdge: number
+  readonly toEdge: number
+  readonly centre: LocalPoint
+  readonly radiusFt: number
+  /** Turn of the arc in degrees, always positive. */
+  readonly sweepDeg: number
+  /** Length along the curve (the sum of the chords). */
+  readonly lengthFt: number
+  /** Straight distance between its ends. */
+  readonly chordFt: number
+  /** Worst distance of any vertex from the fitted circle, feet. */
+  readonly fitErrorFt: number
+}
+
+/** One straight run of an opening on one edge of its part, building frame. */
+export interface SheetOpeningPiece {
+  /** Index of the edge in the part's outline. */
+  readonly edge: number
+  /** Ends on the wall line: a toward the edge's vertex a (the right end seen from outside), b toward its vertex b. */
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  /** From the edge's left end as seen from outside (its vertex b) to this piece's left end. */
+  readonly fromLeftFt: number
+}
+
+export interface SheetOpening {
+  /** "D1", "W3": doors and sliders D, windows W, cut-outs C, numbered per building. */
+  readonly tag: string
+  readonly kind: OpeningKind
+  /** Wall label, "Main · front 3", or "Main · curved wall, edges 7–14" along a fitted curve. */
+  readonly wall: string
+  /** Plan position of the opening's two ends on the wall line, building frame: a is its right end seen from outside. */
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  /** The opening's straight runs, one per edge it crosses, in outline order (right to left seen from outside). */
+  readonly pieces: readonly SheetOpeningPiece[]
+  /** Index into the part's `arcs` when every piece lies on that fitted curve. */
+  readonly arc: number | null
+  /** Width along the wall (along the curve on a curved wall). */
+  readonly widthFt: number
+  /**
+   * From the wall's left end as seen from outside. On a curve (arc not
+   * null), along the curve from the curve's left end; for an opening that
+   * turns a corner, on the first piece's edge.
+   */
+  readonly fromLeftFt: number
+  readonly sillFt: number
+  readonly headFt: number
+}
+
+export interface SheetStair {
+  readonly kind: 'stair' | 'ramp'
+  readonly risers: number
+  readonly riserIn: number
+  readonly treadIn: number
+  readonly widthFt: number
+  readonly runFt: number
+  readonly dropFt: number
+  /** Ramp slope as 1:n (n = run / drop); null for stairs. */
+  readonly slopeOneIn: number | null
+  readonly ok: boolean
+  /** Nosing lines across the stair, building frame, top first. */
+  readonly nosings: readonly (readonly [LocalPoint, LocalPoint])[]
+  /** Centre line from the top of the stair or ramp to its foot, building frame, for the DN arrow. */
+  readonly run: readonly [LocalPoint, LocalPoint]
+}
+
+export interface SheetRoof {
+  /** Normalised roof type ("gable", "prow" …); "none" has no roof. */
+  readonly type: string
+  readonly pitch: number
+  readonly overhangFt: number
+  /** Eave outline, building frame (the outline grown by the overhang, or roofPts). */
+  readonly eave: readonly LocalPoint[]
+  /** Ridge height above this part's eave, feet. */
+  readonly riseFt: number
+}
+
+export interface SheetPart {
+  readonly massIndex: number
+  readonly name: string
+  readonly kind: MassKind
+  /** Width and depth as stored (the part inspector's fields). */
+  readonly wFt: number
+  readonly dFt: number
+  /** Offset of the part's centre from the main walls' centre, and its turn. */
+  readonly dxFt: number
+  readonly dzFt: number
+  readonly rotDeg: number
+  /** Floor of the part above the main floor. */
+  readonly levelFt: number
+  /** Wall or post height above the part's floor (0 for stairs, ramps and decks). */
+  readonly wallFt: number
+  /** Outline, building frame, as drawn in 3D. */
+  readonly outline: readonly LocalPoint[]
+  readonly areaSqFt: number
+  readonly edges: readonly SheetEdge[]
+  readonly arcs: readonly SheetArc[]
+  readonly openings: readonly SheetOpening[]
+  readonly stair: SheetStair | null
+  readonly roof: SheetRoof | null
+  /** Curved sitting steps on a deck: each band's outline pieces, building frame, top band first. */
+  readonly stepBands: readonly (readonly (readonly LocalPoint[])[])[]
+  /** True for a curved footprint the app still draws as its box (until Phase 5D). */
+  readonly approximate: boolean
+}
+
+export interface SheetLevels {
+  /** NAVD88 feet of the main floor. */
+  readonly floorNavdFt: number
+  /** Lowest and highest grade under the building's outline, feet relative to the main floor. */
+  readonly gradeLowFt: number
+  readonly gradeHighFt: number
+  /** Highest point of any roof, feet relative to the main floor. */
+  readonly topFt: number
+}
+
+export interface SheetBounds {
+  readonly minx: number
+  readonly maxx: number
+  readonly minz: number
+  readonly maxz: number
+}
+
+/** Everything the sheets draw for one building, worked out from the plan alone. */
+export interface SheetBuilding {
+  readonly id: string
+  readonly name: string
+  readonly type: string
+  /** Building rotation as stored, degrees counter-clockwise; north on the plan sheet is drawn from it. */
+  readonly rotationDeg: number
+  readonly parts: readonly SheetPart[]
+  /** Bounds of every outline, eaves and steps included, building frame. */
+  readonly bounds: SheetBounds
+  /** Bounds of the parts' outlines alone (walls, decks, porches, stairs): the building's overall size. */
+  readonly outlineBounds: SheetBounds
+  /** The datum the coordinate tables measure from: the back-left corner (least x, least z) of the main walls' outline (part 0). */
+  readonly datum: LocalPoint
+  readonly levels: SheetLevels
+  readonly totalAreaSqFt: { readonly enclosed: number; readonly decks: number }
+}
+
+export type ElevationSide = 'front' | 'right' | 'back' | 'left'
+
+/** One elevation view of a building, from outside, looking at the given side. */
+export interface ElevationView {
+  readonly side: ElevationSide
+  /** Horizontal extent along the view, feet, left to right as seen. */
+  readonly uMin: number
+  readonly uMax: number
+  /** Grade along the nearest face, as (u, y) feet relative to the main floor. */
+  readonly grade: readonly (readonly [number, number])[]
+  /** Labelled levels (Floor, Deck 3 floor, Eave, Ridge …) in feet relative to the main floor, sorted low to high, de-duplicated within 1 in. */
+  readonly levels: readonly { readonly label: string; readonly yFt: number }[]
+  /** Parts seen in this view with their horizontal extent, for the width chain. */
+  readonly spans: readonly { readonly name: string; readonly u0: number; readonly u1: number }[]
+}
+
+/** A rendered elevation image from the live 3D scene, white model with black edges. */
+export interface ElevationImage {
+  readonly side: ElevationSide
+  readonly dataUrl: string
+  /** The orthographic window the image shows: horizontal u and vertical y in feet, same frames as ElevationView. */
+  readonly uMin: number
+  readonly uMax: number
+  readonly yMin: number
+  readonly yMax: number
+}
+
+/** Request to the scene for one elevation image. */
+export interface ElevationRequest {
+  readonly objectId: string
+  readonly side: ElevationSide
+  /** Image pixels per foot of building. */
+  readonly pxPerFt: number
+  /** Main floor NAVD88 metres, so the image's y can be expressed relative to it. */
+  readonly floorM: number
+}
+
+/** A rectangle of the drawing printed on one page, feet in the drawing's own frame. */
+export interface Tile {
+  readonly row: number
+  readonly col: number
+  /** "A1", "A2", "B1" … rows are letters, columns numbers. */
+  readonly label: string
+  readonly x: number
+  readonly y: number
+  readonly w: number
+  readonly h: number
+}

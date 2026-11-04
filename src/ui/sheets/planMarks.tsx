@@ -1,0 +1,166 @@
+import { signedArea } from '../../buildings/footprint'
+import type { SheetOpening, SheetPart } from '../../export/sheets/types'
+import { unitTo, type CurveOpeningNote, type Pen } from './planLayout'
+import { arrowHead, normalAwayFrom, outwardNormal, type Pt } from './svgDims'
+
+const WALL_HALF_FT = 0.25
+/** Length of the datum's x and z arrows, feet. */
+const DATUM_ARROW_FT = 2.5
+/** A stair or ramp's arrow stops this share of its run short of each end. */
+const ARROW_INSET = 0.15
+
+export const pts = (poly: readonly Pt[]) => poly.map(([x, z]) => `${x},${z}`).join(' ')
+const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+
+/** Nosing lines, and an arrow down the run labelled DN (or 1:n DN for a ramp). */
+export function StairMarks({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }) {
+  const s = part.stair
+  if (!s) return null
+  const from = lerp(s.run[0], s.run[1], ARROW_INSET)
+  const to = lerp(s.run[0], s.run[1], 1 - ARROW_INSET)
+  const label = s.kind === 'ramp' && s.slopeOneIn ? `1:${s.slopeOneIn.toFixed(1)} DN` : 'DN'
+  return (
+    <g stroke="#000" fill="none">
+      {s.nosings.map((n, i) => (
+        <line key={i} x1={n[0][0]} y1={n[0][1]} x2={n[1][0]} y2={n[1][1]} strokeWidth={pen.thin} />
+      ))}
+      <line x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} strokeWidth={pen.thin} />
+      <polygon points={pts(arrowHead(from, to, pen.text))} fill="#000" stroke="none" />
+      <Label at={from} along={[from, to]} size={pen.small} text={label} back={pen.text} />
+    </g>
+  )
+}
+
+/** Text set just behind the start of a line, along it. */
+function Label({ at, along, size, text, back }: { readonly at: Pt; readonly along: readonly [Pt, Pt]; readonly size: number; readonly text: string; readonly back: number }) {
+  const d = unitTo(along[0], along[1])
+  const x = at[0] - d[0] * back
+  const y = at[1] - d[1] * back
+  return (
+    <text x={x} y={y} fontSize={size} textAnchor="middle" dominantBaseline="central" fill="#000" stroke="none">
+      {text}
+    </text>
+  )
+}
+
+/** One opening, drawn piece by piece on the edges it crosses: the wall broken, jambs at its two ends, glazing or a door swing. */
+export function Opening({ opening: o, outline, pen, heavy }: { readonly opening: SheetOpening; readonly outline: readonly Pt[]; readonly pen: Pen; readonly heavy: number }) {
+  const dash = o.kind === 'cutout' ? `${pen.small * 0.5} ${pen.small * 0.4}` : undefined
+  const line = (p: Pt, q: Pt, w: number, d?: string, key?: string) => <line key={key} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#000" strokeWidth={w} strokeDasharray={d} />
+  const middle = o.pieces[Math.floor(o.pieces.length / 2)]
+  const tagN = middle ? normalAwayFrom(outline, middle.a, middle.b) : ([0, 0] as Pt)
+  const tagMid = middle ? mid(middle.a, middle.b) : mid(o.a, o.b)
+  const tagAt: Pt = [tagMid[0] - tagN[0] * (WALL_HALF_FT + pen.text * 1.4), tagMid[1] - tagN[1] * (WALL_HALF_FT + pen.text * 1.4)]
+  const last = o.pieces.length - 1
+  return (
+    <g>
+      {o.pieces.map((p, i) => {
+        const n = normalAwayFrom(outline, p.a, p.b)
+        const off = (q: Pt, k: number): Pt => [q[0] + n[0] * k, q[1] + n[1] * k]
+        return (
+          <g key={i}>
+            <line x1={p.a[0]} y1={p.a[1]} x2={p.b[0]} y2={p.b[1]} stroke="#fff" strokeWidth={heavy * 1.6} />
+            {line(off(p.a, WALL_HALF_FT), off(p.b, WALL_HALF_FT), pen.thin, dash)}
+            {line(off(p.a, -WALL_HALF_FT), off(p.b, -WALL_HALF_FT), pen.thin, dash)}
+            {i === 0 && line(off(p.a, -WALL_HALF_FT), off(p.a, WALL_HALF_FT), pen.thin)}
+            {i === last && line(off(p.b, -WALL_HALF_FT), off(p.b, WALL_HALF_FT), pen.thin)}
+            {(o.kind === 'window' || o.kind === 'slider') && line(p.a, p.b, pen.hair)}
+          </g>
+        )
+      })}
+      {o.kind === 'door' && o.pieces.length === 1 && <Swing opening={o} outline={outline} pen={pen} />}
+      <circle cx={tagAt[0]} cy={tagAt[1]} r={pen.text * 0.85} fill="#fff" stroke="#000" strokeWidth={pen.hair} />
+      <text x={tagAt[0]} y={tagAt[1]} fontSize={pen.small} textAnchor="middle" dominantBaseline="central">
+        {o.tag}
+      </text>
+    </g>
+  )
+}
+
+/** A hinged door's leaf and swing, outward from its hinge end. */
+function Swing({ opening: o, outline, pen }: { readonly opening: SheetOpening; readonly outline: readonly Pt[]; readonly pen: Pen }) {
+  const n = normalAwayFrom(outline, o.a, o.b)
+  const leaf: Pt = [o.a[0] + n[0] * o.widthFt, o.a[1] + n[1] * o.widthFt]
+  return (
+    <>
+      <line x1={o.a[0]} y1={o.a[1]} x2={leaf[0]} y2={leaf[1]} stroke="#000" strokeWidth={pen.thin} />
+      <path d={`M${o.b[0]} ${o.b[1]} A${o.widthFt} ${o.widthFt} 0 0 ${sweepFlag(o.a, o.b, leaf)} ${leaf[0]} ${leaf[1]}`} fill="none" stroke="#000" strokeWidth={pen.hair} />
+    </>
+  )
+}
+
+/** SVG's sweep flag for the arc from b round the hinge a to the open leaf's tip. */
+function sweepFlag(a: Pt, b: Pt, tip: Pt): 0 | 1 {
+  const cross = (b[0] - a[0]) * (tip[1] - a[1]) - (b[1] - a[1]) * (tip[0] - a[0])
+  return cross > 0 ? 1 : 0
+}
+
+/** The point the coordinate tables measure from: a cross in a circle, labelled, with short x and z arrows. */
+export function DatumMark({ at, pen }: { readonly at: Pt; readonly pen: Pen }) {
+  const r = pen.text * 0.7
+  const [x, z] = at
+  const ax: Pt = [x + DATUM_ARROW_FT, z]
+  const az: Pt = [x, z + DATUM_ARROW_FT]
+  return (
+    <g stroke="#000" strokeWidth={pen.thin} fill="none" aria-label="Datum 0,0">
+      <circle cx={x} cy={z} r={r} fill="#fff" />
+      <path d={`M${x - r * 1.4} ${z} L${x + r * 1.4} ${z} M${x} ${z - r * 1.4} L${x} ${z + r * 1.4}`} />
+      <line x1={x + r} y1={z} x2={ax[0]} y2={ax[1]} />
+      <line x1={x} y1={z + r} x2={az[0]} y2={az[1]} />
+      <polygon points={pts(arrowHead(at, ax, pen.small))} fill="#000" stroke="none" />
+      <polygon points={pts(arrowHead(at, az, pen.small))} fill="#000" stroke="none" />
+      <g fill="#000" stroke="none" fontSize={pen.small}>
+        <text x={ax[0] + pen.small * 0.4} y={ax[1]} dominantBaseline="central">
+          x
+        </text>
+        <text x={az[0]} y={az[1] + pen.small * 0.9} textAnchor="middle">
+          z
+        </text>
+        <text x={x - r * 1.6} y={z - r * 1.6} textAnchor="end" fontWeight={700}>
+          DATUM 0,0
+        </text>
+      </g>
+    </g>
+  )
+}
+
+/** P1, P2 … at each corner of a part, set just inside it, to tie the corner table to the drawing. */
+export function CornerLabels({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }) {
+  const poly = part.outline
+  if (poly.length < 3) return null
+  const area = signedArea(poly)
+  const back = pen.tiny * 1.3
+  return (
+    <g fontSize={pen.tiny} fill="#000" stroke="none" textAnchor="middle" dominantBaseline="central">
+      {poly.map((p, i) => {
+        const prev = poly[(i - 1 + poly.length) % poly.length]
+        const next = poly[(i + 1) % poly.length]
+        const n1 = outwardNormal(area, prev, p)
+        const n2 = outwardNormal(area, p, next)
+        const inward = unitTo([0, 0], [-(n1[0] + n2[0]), -(n1[1] + n2[1])])
+        return (
+          <text key={i} x={p[0] + inward[0] * back} y={p[1] + inward[1] * back}>
+            P{i + 1}
+          </text>
+        )
+      })}
+    </g>
+  )
+}
+
+export function CurveNotes({ notes, pen }: { readonly notes: readonly CurveOpeningNote[]; readonly pen: Pen }) {
+  return (
+    <g fill="#000" stroke="none" fontSize={pen.small}>
+      {notes.map((n, i) => (
+        <text key={i} x={n.at[0]} y={n.at[1]} textAnchor={n.anchor}>
+          {n.lines.map((l, k) => (
+            <tspan key={k} x={n.at[0]} dy={k === 0 ? 0 : pen.small * 1.2}>
+              {l}
+            </tspan>
+          ))}
+        </text>
+      ))}
+    </g>
+  )
+}
