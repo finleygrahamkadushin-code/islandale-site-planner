@@ -3,7 +3,7 @@ import { formatInches } from '../../export/sheets/format'
 import type { SheetOpening, SheetPart } from '../../export/sheets/types'
 import type { Pen } from './planLayout'
 import { pts } from './planMarks'
-import { wallRuns, type ThicknessMark, type WallRun } from './planWalls'
+import { openingTagAt, thicknessTextAt, wallRuns, type ThicknessMark, type WallRun } from './planWalls'
 import { normalAwayFrom, uprightAngle, type Pt } from './svgDims'
 
 /**
@@ -90,8 +90,7 @@ export function Opening({ opening: o, part, pen }: { readonly opening: SheetOpen
   const dash = `${pen.small * 0.5} ${pen.small * 0.4}`
   const middle = o.pieces[Math.floor(o.pieces.length / 2)]
   const tagN = middle ? normalAwayFrom(part.outline, middle.a, middle.b) : ([0, 0] as Pt)
-  const tagFrom = middle ? mid(middle.innerA, middle.innerB) : mid(o.a, o.b)
-  const tagAt = push(tagFrom, tagN, -pen.text * 1.4)
+  const tagAt = openingTagAt(o, part, pen.text)
   const last = o.pieces.length - 1
   return (
     <g>
@@ -128,8 +127,11 @@ export function Opening({ opening: o, part, pen }: { readonly opening: SheetOpen
 /** A hinged door's leaf open square into the room from the inside face, hinged at its right jamb seen from outside, and its swing dashed: assumed, as the plan stores none. */
 function Swing({ opening: o, inward, pen }: { readonly opening: SheetOpening; readonly inward: Pt; readonly pen: Pen }) {
   const p = o.pieces[0]
-  const hinge = p.innerA
-  const free = p.innerB
+  return <DoorSwing hinge={p.innerA} free={p.innerB} inward={inward} pen={pen} assumed />
+}
+
+/** A door's leaf drawn open square from its hinge, on the face it swings from, and the arc its free edge swings through (dashed where the swing is assumed). */
+export function DoorSwing({ hinge, free, inward, pen, assumed = false }: { readonly hinge: Pt; readonly free: Pt; readonly inward: Pt; readonly pen: Pen; readonly assumed?: boolean }) {
   const r = Math.hypot(free[0] - hinge[0], free[1] - hinge[1])
   const leaf = push(hinge, inward, r)
   return (
@@ -140,7 +142,7 @@ function Swing({ opening: o, inward, pen }: { readonly opening: SheetOpening; re
         fill="none"
         stroke="#000"
         strokeWidth={pen.hair}
-        strokeDasharray={`${pen.small * 0.5} ${pen.small * 0.3}`}
+        strokeDasharray={assumed ? `${pen.small * 0.5} ${pen.small * 0.3}` : undefined}
       />
     </>
   )
@@ -158,7 +160,7 @@ export function ThicknessDim({ mark: m, pen }: { readonly mark: ThicknessMark; r
   const from = push(m.outer, inward, -pen.overshoot)
   const to = push(m.inner, inward, pen.overshoot)
   const tick: Pt = [((inward[0] - inward[1]) / Math.SQRT2) * pen.tick, ((inward[0] + inward[1]) / Math.SQRT2) * pen.tick]
-  const text = push(m.inner, inward, pen.overshoot + pen.text * 0.9)
+  const text = thicknessTextAt(m, pen.text, pen.overshoot)
   const angle = uprightAngle((Math.atan2(m.along[1], m.along[0]) * 180) / Math.PI)
   return (
     <g stroke="#000" fill="none" aria-label={`Wall ${formatInches(m.thicknessFt * IN_PER_FT)} thick`}>

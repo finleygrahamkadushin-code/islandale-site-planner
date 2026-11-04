@@ -5,12 +5,12 @@
 import { signedArea } from '../../buildings/footprint'
 import { formatArch } from '../../export/sheets/format'
 import { boundsOf } from '../../export/sheets/model'
-import type { Scale, SheetBounds, SheetBuilding } from '../../export/sheets/types'
+import type { Scale, SheetBounds, SheetBuilding, SheetFloor } from '../../export/sheets/types'
 import type { Extent } from './Page'
 import { arcPoints, openingStops, pointAlong } from './planDims'
 import { earthNotes, earthPlan, type EarthPlan } from './earthLayout'
-import { thicknessMarks, wallNotes, type ThicknessMark } from './planWalls'
-import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, type DimLine, type Placed, type Pt } from './svgDims'
+import { thicknessMarks, thicknessText, wallNotes, type ThicknessMark } from './planWalls'
+import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, uprightAngle, type DimLine, type Placed, type Pt } from './svgDims'
 
 const FIRST_OFFSET_FT = 2.5
 const STAGGER_FT = 1.5
@@ -172,6 +172,17 @@ function arcNotes(b: SheetBuilding): ArcNote[] {
   )
 }
 
+/** An arc's radius is written this far in from the curve along its leader (or halfway, on a short one), feet, so the leaders of arcs swung from across a shape keep their words apart. */
+const ARC_TEXT_IN_FT = 4
+
+/** Where an arc's words are set along its leader, and their turn (upright), degrees. */
+export function arcTextAt(arc: ArcNote): { readonly at: Pt; readonly angleDeg: number } {
+  const [fx, fy] = arc.leaderFrom
+  const [mx, my] = arc.mid
+  const t = Math.min(0.5, ARC_TEXT_IN_FT / (Math.hypot(fx - mx, fy - my) || 1))
+  return { at: [mx + (fx - mx) * t, my + (fy - my) * t], angleDeg: uprightAngle((Math.atan2(my - fy, mx - fx) * 180) / Math.PI) }
+}
+
 /** A note just outside each opening on a curve, where a chain of straight dimensions cannot locate it. */
 function curveOpeningNotes(b: SheetBuilding): CurveOpeningNote[] {
   return b.parts.flatMap((part) =>
@@ -192,8 +203,19 @@ function curveOpeningNotes(b: SheetBuilding): CurveOpeningNote[] {
   )
 }
 
-/** Where every dimension, arc note and the drawing's edges go. */
-export function planLayout(b: SheetBuilding, scale: Scale): PlanLayout {
+/** The general notes for a floor's rooms, when the plan draws them. */
+function roomNotes(floor: SheetFloor | null): string[] {
+  if (!floor?.rooms.length) return []
+  const doors = floor.openings.some((o) => o.kind === 'door')
+  return [
+    "Rooms: name, then size and floor area inside the walls (to the partitions' faces and the walls' inside face).",
+    ...(floor.partitions.length ? [`Partitions ${thicknessText(floor.partitions[0].thicknessFt)} thick, from the interior plan.`] : []),
+    ...(doors ? ['Interior doors swing as the interior plan sets them (solid).'] : []),
+  ]
+}
+
+/** Where every dimension, arc note and the drawing's edges go; with a floor, the notes for its rooms too. */
+export function planLayout(b: SheetBuilding, scale: Scale, floor: SheetFloor | null = null): PlanLayout {
   const pen = penSizes(scale)
   const opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
   const edge = edgeDims(b, opts, [])
@@ -210,7 +232,7 @@ export function planLayout(b: SheetBuilding, scale: Scale): PlanLayout {
   const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs, ...earthXs]
   const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs, ...earthYs]
   // the general notes go under everything else, from its left edge
-  const lines = [...wallNotes(b), ...earthNotes(b)]
+  const lines = [...wallNotes(b), ...roomNotes(floor), ...earthNotes(b)]
   const general: CurveOpeningNote | null = lines.length ? { at: [Math.min(...xs), Math.max(...ys) + pen.text * NOTES_GAP_TEXT], anchor: 'start', lines } : null
   if (general) {
     xs.push(...noteSpanX(general, pen.small))

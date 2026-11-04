@@ -1,14 +1,16 @@
 import { useMemo } from 'react'
 import { signedArea } from '../../buildings/footprint'
 import { formatArch, formatDeg } from '../../export/sheets/format'
-import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
+import type { SheetBuilding, SheetFloor, SheetPart } from '../../export/sheets/types'
 import { EarthLabels, EarthLines } from './EarthMarks'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
-import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
+import { arcTextAt, penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
 import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
 import { RoofMarks } from './RoofMarks'
+import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
+import { planFigures } from './roomLayout'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
-import { arrowHead, centreMark, northOnSheetDeg, uprightAngle, type Pt, type Segment } from './svgDims'
+import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from './svgDims'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -16,23 +18,36 @@ interface Props {
   readonly building: SheetBuilding
   readonly info: Omit<SheetInfo, 'sheetTitle' | 'northDeg'>
   readonly grid: boolean
+  /** The floor whose rooms this plan draws (null for none), and whether to draw its rooms and its furniture. */
+  readonly floor: SheetFloor | null
+  readonly rooms: boolean
+  readonly furniture: boolean
+  /** "Floor plan", or the floor's own name on a cabin of several. */
+  readonly title?: string
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, and the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey. */
-export function PlanSheet({ building: b, info, grid }: Props) {
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, and the floor's rooms (partitions, interior doors, names and areas) and furniture inside it. */
+export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan' }: Props) {
   const pen = penSizes(info.scale)
-  const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
+  const shownFloor = rooms && floor?.rooms.length ? floor : null
+  const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
+  // the rooms name the space inside the walls, so the walls' own part name gives way to them
+  const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
   return (
-    <TiledDrawing info={{ ...info, sheetTitle: 'Floor plan', northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`Floor plan of ${b.name}`}>
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`${title} of ${b.name}`}>
       {grid && <Grid extent={layout.extent} pen={pen} />}
       {b.earthworks && layout.earth && <EarthLines earth={b.earthworks} plan={layout.earth} pen={pen} />}
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
       ))}
+      {furniture && floor && <FurnitureMarks floor={floor} pen={pen} />}
+      {shownFloor && <Partitions partitions={shownFloor.partitions} pen={pen} />}
+      {shownFloor && <InteriorOpenings openings={shownFloor.openings} pen={pen} />}
       {b.parts.map((p) => p.roof && <RoofMarks key={p.massIndex} roof={p.roof} pen={pen} />)}
-      {b.parts.map((p) => (
+      {b.parts.filter(named).map((p) => (
         <PartLabel key={p.massIndex} part={p} pen={pen} />
       ))}
+      {shownFloor && <RoomLabels floor={shownFloor} pen={pen} taken={planFigures(b, layout, pen)} />}
       {b.parts.map((p) => p.ellipse && <EllipseAxes key={p.massIndex} ellipse={p.ellipse} pen={pen} />)}
       {b.parts.map((p) => (
         <PointLabels key={p.massIndex} part={p} pen={pen} />
@@ -143,16 +158,11 @@ export function Dim({ dim, pen }: { readonly dim: LabelledDim; readonly pen: Pen
   )
 }
 
-/** An arc's radius is written this far in from the curve along its leader (or halfway, on a short one), feet, so the leaders of arcs swung from across a shape keep their words apart. */
-const ARC_TEXT_IN_FT = 4
-
 function ArcMarks({ arc, pen }: { readonly arc: ArcNote; readonly pen: Pen }) {
   const [fx, fy] = arc.leaderFrom
   const [mx, my] = arc.mid
-  const t = Math.min(0.5, ARC_TEXT_IN_FT / (Math.hypot(fx - mx, fy - my) || 1))
-  const lx = mx + (fx - mx) * t
-  const ly = my + (fy - my) * t
-  const angle = uprightAngle((Math.atan2(my - fy, mx - fx) * 180) / Math.PI)
+  const { at, angleDeg: angle } = arcTextAt(arc)
+  const [lx, ly] = at
   return (
     <g stroke="#000" strokeWidth={pen.hair} fill="none">
       {arc.showCentre && <path d={centreMark(arc.centre, pen.text * 0.6).map(seg).join(' ')} />}

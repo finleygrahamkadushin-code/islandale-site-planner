@@ -6,9 +6,9 @@
  */
 import { signedArea } from '../../buildings/footprint'
 import { formatInches } from '../../export/sheets/format'
-import type { SheetBuilding, SheetEdge, SheetPart } from '../../export/sheets/types'
+import type { SheetBuilding, SheetEdge, SheetOpening, SheetPart } from '../../export/sheets/types'
 import { openingStops, pointAlong } from './planDims'
-import { outwardNormal, type Pt } from './svgDims'
+import { normalAwayFrom, outwardNormal, type Pt } from './svgDims'
 
 const IN_PER_FT = 12
 /** A wall shorter than this is not picked for the thickness dimension, feet, unless nothing longer is left. */
@@ -82,7 +82,27 @@ export function thicknessMarks(part: SheetPart): ThicknessMark[] {
   })
 }
 
-const thicknessText = (ft: number) => formatInches(ft * IN_PER_FT)
+export const thicknessText = (ft: number) => formatInches(ft * IN_PER_FT)
+
+const unitOf = (a: Pt, b: Pt): Pt => {
+  const l = Math.hypot(b[0] - a[0], b[1] - a[1])
+  return l > 1e-9 ? [(b[0] - a[0]) / l, (b[1] - a[1]) / l] : [0, 0]
+}
+
+/** Where a thickness dimension's figure goes: just inside the wall's inside face, `textFt` the text height and `overshootFt` its line's run past the faces. */
+export function thicknessTextAt(m: ThicknessMark, textFt: number, overshootFt: number): Pt {
+  const inward = unitOf(m.outer, m.inner)
+  const k = overshootFt + textFt * 0.9
+  return [m.inner[0] + inward[0] * k, m.inner[1] + inward[1] * k]
+}
+
+/** Where an opening's tag circle goes: inside the wall's inside face at the opening's middle piece, `textFt` the text height. */
+export function openingTagAt(o: SheetOpening, part: SheetPart, textFt: number): Pt {
+  const middle = o.pieces[Math.floor(o.pieces.length / 2)]
+  const n: Pt = middle ? normalAwayFrom(part.outline, middle.a, middle.b) : [0, 0]
+  const from: Pt = middle ? [(middle.innerA[0] + middle.innerB[0]) / 2, (middle.innerA[1] + middle.innerB[1]) / 2] : [(o.a[0] + o.b[0]) / 2, (o.a[1] + o.b[1]) / 2]
+  return [from[0] - n[0] * textFt * 1.4, from[1] - n[1] * textFt * 1.4]
+}
 
 /** The plan's general notes, in short lines: what the dimensions are to, the walls drawn, and that door swings are assumed. */
 export function wallNotes(b: SheetBuilding): string[] {
