@@ -791,6 +791,23 @@ function tuftPlacements(surf: RoofSurface, seed: number): { tufts: TuftPlacement
 
 const emptyRoof = (finish: RoofFinish | null): SculptedRoof => ({ slab: emptyMesh(), soffit: emptyMesh(), fascia: emptyMesh(), infill: emptyMesh(), infillKind: 'clad', struts: emptyMesh(), lines: [], tufts: [], blooms: [], rise: 0, finish })
 
+/** A sculpted roof's height field as sculptedRoof builds it: the outline grown by the overhang (metres), the finish and the slab thickness it sets; null when the roof is not sculpted. */
+export interface SculptedSurface {
+  readonly type: SculptedType
+  readonly finish: RoofFinish | null
+  readonly outline: readonly P2[]
+  readonly surf: RoofSurface
+}
+
+export function sculptedSurface(poly: readonly LocalPoint[], m: SculptMass): SculptedSurface | null {
+  if (!isSculpted(m.roof) || poly.length < 3) return null
+  const type = m.roof
+  const finish = roofFinishOf(m)
+  const outline = toMetres(polyOffset(poly, Math.max(0, m.overhang)))
+  const th = finish === 'glass' ? GLASS_SLAB_M : finish === 'sod' && type !== 'sod' ? SOD_OVER_M : undefined
+  return { type, finish, outline, surf: roofSurface(outline, type, { pitch: m.pitch, ridge: m.ridge, curl: m.curl, th }) }
+}
+
 /**
  * A sculpted roof over a mass's walls (local feet), grown by its overhang
  * (legacy sculptRoof): the slab (top, soffit, fascia), infill or struts
@@ -799,13 +816,10 @@ const emptyRoof = (finish: RoofFinish | null): SculptedRoof => ({ slab: emptyMes
  * main mass. `seed` overrides the tuft seed taken from the outline.
  */
 export function sculptedRoof(poly: readonly LocalPoint[], m: SculptMass, seed?: number): SculptedRoof {
-  if (!isSculpted(m.roof) || poly.length < 3) return emptyRoof(null)
-  const type = m.roof
-  const finish = roofFinishOf(m)
+  const built = sculptedSurface(poly, m)
+  if (!built) return emptyRoof(null)
+  const { surf, finish, outline, type } = built
   const walls = clean(toMetres(poly))
-  const outline = toMetres(polyOffset(poly, Math.max(0, m.overhang)))
-  const th = finish === 'glass' ? GLASS_SLAB_M : finish === 'sod' && type !== 'sod' ? SOD_OVER_M : undefined
-  const surf = roofSurface(outline, type, { pitch: m.pitch, ridge: m.ridge, curl: m.curl, th })
   if (!surf.V.length) return emptyRoof(finish)
   const top = surf.V.map(([x, z], i): V3 => [x, surf.H[i] + surf.TH[i], z])
   const under = surf.V.map(([x, z], i): V3 => [x, surf.H[i], z])
