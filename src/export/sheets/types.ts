@@ -319,6 +319,85 @@ export interface SheetEarthworks {
   readonly cutLimit: readonly (readonly [LocalPoint, LocalPoint])[]
 }
 
+/** One room of a floor plan, building frame. */
+export interface SheetRoom {
+  readonly id: number
+  readonly name: string
+  /** Its type as the interior editor names it ("Bedroom", "Bath" …). */
+  readonly type: string
+  /** A porch room: outside the walls, under a porch roof. */
+  readonly porch: boolean
+  /** As drawn in the interior editor: to the partitions' centre lines and the walls' outside face. */
+  readonly outline: readonly LocalPoint[]
+  /** Inside its walls: half a partition in from a shared edge, a whole wall (as thick as the 3D shell's there) in from an outside one; empty when that folds away. */
+  readonly net: readonly LocalPoint[]
+  readonly netAreaSqFt: number
+  /** The net room's size square to its longest side, feet. */
+  readonly widthFt: number
+  readonly depthFt: number
+  /** Where its name goes: inside it, clear of its walls. */
+  readonly label: LocalPoint
+}
+
+/** An interior wall (partition) between rooms, building frame, stopping at the walls' inside face. */
+export interface SheetPartition {
+  /** Its centre line. */
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  readonly thicknessFt: number
+  /** Which ends stop at the walls' inside face (the others meet another partition or stand free). */
+  readonly aAtWall: boolean
+  readonly bAtWall: boolean
+}
+
+/** A door, window, slider or cased opening in a partition, building frame. */
+export interface SheetInteriorOpening {
+  readonly kind: 'door' | 'window' | 'slider' | 'open'
+  /** Its two ends on the partition's centre line; a door hinges at `hinge` (one of them) and closes onto `jamb`. */
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  readonly hinge: LocalPoint
+  readonly jamb: LocalPoint
+  /** Unit vector across the partition, the way a door swings. */
+  readonly swing: LocalPoint
+  readonly widthFt: number
+  readonly thicknessFt: number
+  /** The room it is drawn on, and the room on the other side (null when none). */
+  readonly room: string
+  readonly to: string | null
+  /** The room a door swings into. */
+  readonly swingsInto: string | null
+  /** It lies in one part's wall where that wall runs across another part's floor: the 3D model builds that wall solid, with no opening, so the plan draws the wall and the table flags it. */
+  readonly inPartWall: boolean
+}
+
+/** A piece of furniture or a fixture, building frame. */
+export interface SheetFurniture {
+  readonly type: string
+  readonly label: string
+  readonly at: LocalPoint
+  /** Degrees as stored (clockwise on the plan, as the interior editor turns it). */
+  readonly rotDeg: number
+  readonly widthFt: number
+  readonly depthFt: number
+  readonly mirror: boolean
+  readonly corners: readonly LocalPoint[]
+}
+
+/** One floor of a cabin's interior, as the interior editor lays it out. */
+export interface SheetFloor {
+  readonly index: number
+  readonly name: string
+  /** Floor level above the main floor, feet (a storey per floor). */
+  readonly levelFt: number
+  /** The parts (mass indices) whose walls enclose this floor. */
+  readonly enclosedParts: readonly number[]
+  readonly rooms: readonly SheetRoom[]
+  readonly partitions: readonly SheetPartition[]
+  readonly openings: readonly SheetInteriorOpening[]
+  readonly furniture: readonly SheetFurniture[]
+}
+
 export interface SheetBounds {
   readonly minx: number
   readonly maxx: number
@@ -347,6 +426,8 @@ export interface SheetBuilding {
   readonly levels: SheetLevels
   /** Null when the building leaves the ground as surveyed. */
   readonly earthworks: SheetEarthworks | null
+  /** The cabin's floors with their rooms, lowest first; empty when it has no rooms, partitions or furniture drawn in. */
+  readonly floors: readonly SheetFloor[]
   /** Floor inside the walls' outside face, and of decks and porches outside it, square feet; where parts overlap, counted once. */
   readonly totalAreaSqFt: { readonly enclosed: number; readonly decks: number }
 }

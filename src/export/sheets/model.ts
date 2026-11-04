@@ -9,6 +9,7 @@ import { planRailWorld } from '../../scene/railSite'
 import type { RailWorld } from '../../scene/railWorld'
 import type { PlanObject } from '../../store/types'
 import { planEarth, sheetEarthworks, type PlanEarth } from './earthworks'
+import { sheetFloors } from './interiors'
 import { partPoints, sheetPart, type PartSite, type UntaggedPart } from './parts'
 import type { SheetBuilding, SheetLevels, SheetOpening, SheetPart } from './types'
 
@@ -114,6 +115,7 @@ function sheetBuilding(o: PlanObject, world: RailWorld, earth: PlanEarth, trees:
     mainBounds: main,
     levels: levelsOf(o, world, floorM, parts),
     earthworks: sheetEarthworks(o, earth, world.terrain, floorM, parts[0]),
+    floors: sheetFloors(o.params, masses, parts, standalone),
     totalAreaSqFt: areasOf(parts, masses),
   }
 }
