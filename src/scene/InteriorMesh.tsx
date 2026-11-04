@@ -6,17 +6,20 @@ import { M_PER_FT } from '../site/units'
 import type { MeshHandlers } from './buildingLook'
 import { Surface } from './Surface'
 
+const SHEET_SKIP = { sheetSkip: true } as const
+
 /**
  * A cabin's rooms in 3D, drawn in the building's frame from its floor
  * plans (interior3d): partitions with door and window gaps, the upper
  * slab with its stair holes, indoor stairs with handrails and guards, and
- * furniture boxes. Seen with Roofs off, or through the windows.
+ * furniture boxes. Seen with Roofs off, or through the windows; left out
+ * of the elevation sheets (sheetSkip), which draw the outside only.
  */
 export function InteriorMesh({ params, style, handlers }: { readonly params: Record<string, unknown>; readonly style: DisplayStyle; readonly handlers: MeshHandlers }) {
   const model = useMemo(() => interior3d(params), [params])
   if (!model.clusters.length && !model.slabs.length) return null
   return (
-    <group scale={M_PER_FT} {...handlers}>
+    <group scale={M_PER_FT} userData={SHEET_SKIP} {...handlers}>
       {model.slabs.map((s, i) => (
         <SlabMesh key={`s${i}`} slab={s} style={style} />
       ))}

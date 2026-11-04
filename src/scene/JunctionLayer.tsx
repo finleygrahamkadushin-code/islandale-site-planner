@@ -42,7 +42,7 @@ export function JunctionLayer() {
   )
 }
 
-/** A thin slab over a four-corner outline in site metres, its top at topZ. */
+/** A thin slab over a four-corner outline in site metres, its top at topZ, drawn in its owner's elevations (sheetOwner). */
 function SlabMesh({ slab, style }: { readonly slab: JoinSlab; readonly style: ReturnType<typeof useDisplayStyle> }) {
   const geometry = useMemo(() => {
     const top = slab.outline.map(([x, n]) => toScene(x, n, slab.topZ))
@@ -62,7 +62,7 @@ function SlabMesh({ slab, style }: { readonly slab: JoinSlab; readonly style: Re
   }, [slab])
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
-    <mesh geometry={geometry} receiveShadow castShadow name={`join-${slab.kind}`}>
+    <mesh geometry={geometry} receiveShadow castShadow name={`join-${slab.kind}`} userData={{ sheetOwner: slab.ownerId }}>
       <Surface kind={slab.kind === 'tab' ? 'concrete' : 'deck'} style={style} texture={slab.kind === 'tab' ? 'concrete' : 'deck'} />
     </mesh>
   )
