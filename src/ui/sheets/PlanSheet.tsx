@@ -5,6 +5,7 @@ import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
 import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
 import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
+import { RoofMarks } from './RoofMarks'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
 import { arrowHead, centreMark, northOnSheetDeg, uprightAngle, type Pt, type Segment } from './svgDims'
 
@@ -16,7 +17,7 @@ interface Props {
   readonly grid: boolean
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, and every curve's stations marked. */
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, and each roof's eave and linework dashed over it. */
 export function PlanSheet({ building: b, info, grid }: Props) {
   const pen = penSizes(info.scale)
   const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
@@ -26,6 +27,7 @@ export function PlanSheet({ building: b, info, grid }: Props) {
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
       ))}
+      {b.parts.map((p) => p.roof && <RoofMarks key={p.massIndex} roof={p.roof} pen={pen} />)}
       {b.parts.map((p) => (
         <PartLabel key={p.massIndex} part={p} pen={pen} />
       ))}
