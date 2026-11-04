@@ -76,6 +76,22 @@ export interface BermLine {
   readonly id: string
   readonly top: number
   readonly edges: readonly (readonly [SitePoint, SitePoint])[]
+  /** Which edges of the main mass's outline those are, in the same order. */
+  readonly sides: readonly number[]
+  /** Flat crest width out from the wall, metres, and the berm's slope (run per unit rise). */
+  readonly crest: number
+  readonly slope: number
+}
+
+/** A sunken court beyond a sunk building's court side, cut down to its floor. */
+export interface CourtCut {
+  readonly id: string
+  /** Its outline, site metres: the wall edge, then out the court's depth. */
+  readonly poly: readonly SitePoint[]
+  /** The edge of the main mass's outline it lies against. */
+  readonly side: number
+  /** The cut floor, metres. */
+  readonly floor: number
 }
 
 export interface SiteEarthworks {
@@ -83,6 +99,7 @@ export interface SiteEarthworks {
   readonly ponds: ReadonlyMap<string, PondWater>
   readonly walls: readonly RetainingWall[]
   readonly berms: readonly BermLine[]
+  readonly courts: readonly CourtCut[]
   /** The reshaped raster at a point (bilinear, or as the patch mesh draws it), or null outside every patch. */
   readonly sample: (x: number, n: number, drawn?: boolean) => number | null
   /** Displayed ground: the survey (bilinear) with every patch. */

@@ -7,7 +7,7 @@ import { siteEarthworks } from './earthworksField'
 import type { CellRect, EarthOp, Ground } from './earthworksTypes'
 import { pondLevelOf } from './earthworksSpec'
 
-export type { BermLine, BuildingEarthOp, CellRect, EarthField, EarthOp, Ground, PondEarthOp, PondWater, SiteEarthworks } from './earthworksTypes'
+export type { BermLine, BuildingEarthOp, CellRect, CourtCut, EarthField, EarthOp, Ground, PondEarthOp, PondWater, SiteEarthworks } from './earthworksTypes'
 export { EARTH_CLASS } from './earthworksTypes'
 export { fieldHeight, opReach, siteEarthworks } from './earthworksField'
 export { sdPoly } from './earthworksPasses'

@@ -152,10 +152,10 @@ export function objectRails(world: RailWorld, o: PlanObject): readonly (EdgeRail
   return objectRailSite(world, o).rails
 }
 
-/** The rail world of a whole plan, with the displayed ground (sunk buildings' cuts included). */
-export function planRailWorld(objects: readonly PlanObject[], terrain: RailWorld['terrain']): RailWorld {
+/** The rail world of a whole plan, with the displayed ground (sunk buildings' cuts included), or the given one when it is already worked out. */
+export function planRailWorld(objects: readonly PlanObject[], terrain: RailWorld['terrain'], ground?: Ground): RailWorld {
   const visible = objects.filter((o) => !o.hidden)
-  return railWorld(visible.filter(opensRails), terrain, groundWithCuts(terrain, sunkCuts(visible, terrain)))
+  return railWorld(visible.filter(opensRails), terrain, ground ?? groundWithCuts(terrain, sunkCuts(visible, terrain)))
 }
 
 /** The store's rail resolver: per edge, what is drawn now and what auto would draw, for setRail's first write. */
