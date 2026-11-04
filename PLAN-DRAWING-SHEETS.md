@@ -60,6 +60,12 @@ On branch `sheets-5d`, the sheets were brought up to the 5B–5D buildings, area
   - When no main wall passes through the datum (a curved or turned main part), the datum note says it is the bounding box's corner, the box is drawn dashed and, where it is not the overall size, dimensioned as "Main box".
   - Parts table Width and Depth are the drawn outline's extent along the part's own axes.
   - Measurement pages: rows that wrap are counted, and a long narrow table runs on in up to three blocks side by side. On tabloid, D-0 went from 10 pages to 4, D-1 12 to 4, E-0 8 to 3, G-1 7 to 3, and C-0 4 to 3; no building takes more pages than before.
+- **Wall thickness.** The plan draws each wall as 5D builds it: the outline is its outside face (every dimension is to it, and a note under the plan says so), the inside face is drawn too, and the wall between is hatched (8"; a glass curtain wall, 2 1/4", is two thin lines with the glass between, unhatched).
+  - The geometry is the shell's own: `wallPlan` (`wallShell.ts`) gives the inside face, each wall's thickness and the point through the wall the jambs run to; `wallThicknessFt` / `wallSpecsOf` are the glass-or-full rule `WallMass` used inline, read through the exterior model, so the scene and the sheets can't drift. The sheet model carries `SheetPart.inner`, `SheetEdge.thicknessFt` and `glass`, each piece's `innerA`/`innerB` (jambs) and `midA`/`midB` (glass at mid-wall), and `SheetArc.innerRadiusFt`.
+  - Openings cut through the whole wall with square jambs; a window's glass at mid-wall between sill lines, a slider's two panes, a cut-out's faces dashed. A door's leaf opens into the room from the inside face, hinged at the right jamb seen from outside, its swing dashed and noted as assumed (the plan stores no swing).
+  - Each part gets one thickness dimension per wall kind, on its longest straight wall in the widest stretch clear of openings. Curved walls give the radius of both faces ("R 8'-8" outside", "R 8'-0 1/4" inside"); a deck arc on the same line as a wall's is not labelled twice. P labels and stations sit inside the inside face; station ticks cross the wall.
+  - Tables: Parts has a Wall column (8", or 8", glass 2 1/4"), Curves an Inside radius column, and the notes say measurements are to the outside face.
+  - Checked by tests against the 3D shell (every inside-face mesh vertex on the sheet's inside line, every jamb end a shell corner) on every footprint shape at three turns, glass walls and schemes C to C4, and in the browser on C-0 and C4-0 at Arch D.
 
 ## How to run
 
