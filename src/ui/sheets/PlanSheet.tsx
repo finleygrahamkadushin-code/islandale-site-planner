@@ -4,7 +4,8 @@ import { formatArch, formatDeg } from '../../export/sheets/format'
 import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
 import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
-import { CurveNotes, DatumMark, EllipseAxes, MainBox, Opening, PointLabels, pts, StairMarks } from './planMarks'
+import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
+import { Opening, ThicknessDim, WallBand } from './WallMarks'
 import { arrowHead, centreMark, northOnSheetDeg, uprightAngle, type Pt, type Segment } from './svgDims'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
@@ -15,7 +16,7 @@ interface Props {
   readonly grid: boolean
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned, and every curve's stations marked. */
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, and every curve's stations marked. */
 export function PlanSheet({ building: b, info, grid }: Props) {
   const pen = penSizes(info.scale)
   const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
@@ -42,7 +43,11 @@ export function PlanSheet({ building: b, info, grid }: Props) {
       {layout.arcs.map((a, i) => (
         <ArcMarks key={i} arc={a} pen={pen} />
       ))}
+      {layout.thickness.map((m, i) => (
+        <ThicknessDim key={i} mark={m} pen={pen} />
+      ))}
       <CurveNotes notes={layout.notes} pen={pen} />
+      {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
     </TiledDrawing>
   )
 }
@@ -76,13 +81,20 @@ function PartPlan({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }
   return (
     <g>
       {roof && <polygon points={pts(roof.eave)} fill="none" stroke="#000" strokeWidth={pen.thin} strokeDasharray={`${pen.text} ${pen.text * 0.5}`} />}
-      <polygon points={pts(part.outline)} fill={deckLike ? '#f1f1ef' : '#fff'} stroke="#000" strokeWidth={wall ? pen.heavy : pen.medium} strokeLinejoin="miter" />
+      {wall && part.inner.length ? (
+        <>
+          <polygon points={pts(part.outline)} fill="#fff" stroke="none" />
+          <WallBand part={part} pen={pen} />
+        </>
+      ) : (
+        <polygon points={pts(part.outline)} fill={deckLike ? '#f1f1ef' : '#fff'} stroke="#000" strokeWidth={wall ? pen.heavy : pen.medium} strokeLinejoin="miter" />
+      )}
       {part.stepBands.flatMap((band, i) =>
         band.map((piece, j) => <polyline key={`${i}-${j}`} points={pts(piece)} fill="none" stroke="#000" strokeWidth={pen.thin} />),
       )}
       {part.stair && <StairMarks part={part} pen={pen} />}
       {part.openings.map((o) => (
-        <Opening key={o.tag} opening={o} outline={part.outline} pen={pen} heavy={wall ? pen.heavy : pen.medium} />
+        <Opening key={o.tag} opening={o} part={part} pen={pen} />
       ))}
     </g>
   )
@@ -143,8 +155,14 @@ function ArcMarks({ arc, pen }: { readonly arc: ArcNote; readonly pen: Pen }) {
       <polygon points={pts(arrowHead(arc.leaderFrom, arc.mid, pen.text * 0.8))} fill="#000" stroke="none" />
       <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${-pen.text * 0.6})`} fontSize={pen.text} textAnchor="middle" fill="#000" stroke="none">
         R {formatArch(arc.radiusFt)}
+        {arc.innerRadiusFt !== null && ' outside'}
       </text>
-      <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * 1.3})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
+      {arc.innerRadiusFt !== null && (
+        <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * 1.3})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
+          R {formatArch(arc.innerRadiusFt)} inside
+        </text>
+      )}
+      <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * (arc.innerRadiusFt !== null ? 2.3 : 1.3)})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
         arc {formatArch(arc.lengthFt)}, {formatDeg(arc.sweepDeg)}
       </text>
     </g>

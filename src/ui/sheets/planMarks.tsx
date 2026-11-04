@@ -1,9 +1,10 @@
 import { signedArea } from '../../buildings/footprint'
-import type { SheetBounds, SheetEllipse, SheetOpening, SheetPart, SheetPoint } from '../../export/sheets/types'
+import type { SheetBounds, SheetEllipse, SheetPart, SheetPoint } from '../../export/sheets/types'
 import { unitTo, type CurveOpeningNote, type Pen } from './planLayout'
-import { arrowHead, normalAwayFrom, outwardNormal, type Pt } from './svgDims'
+import { arrowHead, outwardNormal, type Pt } from './svgDims'
 
-const WALL_HALF_FT = 0.25
+/** A station's tick runs this far past each face of the wall, feet. */
+const STATION_TICK_FT = 0.3
 /** Length of the datum's x and z arrows, feet. */
 const DATUM_ARROW_FT = 2.5
 /** A stair or ramp's arrow stops this share of its run short of each end. */
@@ -12,7 +13,6 @@ const ARROW_INSET = 0.15
 const AXIS_PAST_FT = 1
 
 export const pts = (poly: readonly Pt[]) => poly.map(([x, z]) => `${x},${z}`).join(' ')
-const mid = (a: Pt, b: Pt): Pt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
 const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 
 /** Nosing lines, and an arrow down the run labelled DN (or 1:n DN for a ramp). */
@@ -44,58 +44,6 @@ function Label({ at, along, size, text, back }: { readonly at: Pt; readonly alon
       {text}
     </text>
   )
-}
-
-/** One opening, drawn piece by piece on the edges it crosses: the wall broken, jambs at its two ends, glazing or a door swing. */
-export function Opening({ opening: o, outline, pen, heavy }: { readonly opening: SheetOpening; readonly outline: readonly Pt[]; readonly pen: Pen; readonly heavy: number }) {
-  const dash = o.kind === 'cutout' ? `${pen.small * 0.5} ${pen.small * 0.4}` : undefined
-  const line = (p: Pt, q: Pt, w: number, d?: string, key?: string) => <line key={key} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#000" strokeWidth={w} strokeDasharray={d} />
-  const middle = o.pieces[Math.floor(o.pieces.length / 2)]
-  const tagN = middle ? normalAwayFrom(outline, middle.a, middle.b) : ([0, 0] as Pt)
-  const tagMid = middle ? mid(middle.a, middle.b) : mid(o.a, o.b)
-  const tagAt: Pt = [tagMid[0] - tagN[0] * (WALL_HALF_FT + pen.text * 1.4), tagMid[1] - tagN[1] * (WALL_HALF_FT + pen.text * 1.4)]
-  const last = o.pieces.length - 1
-  return (
-    <g>
-      {o.pieces.map((p, i) => {
-        const n = normalAwayFrom(outline, p.a, p.b)
-        const off = (q: Pt, k: number): Pt => [q[0] + n[0] * k, q[1] + n[1] * k]
-        return (
-          <g key={i}>
-            <line x1={p.a[0]} y1={p.a[1]} x2={p.b[0]} y2={p.b[1]} stroke="#fff" strokeWidth={heavy * 1.6} />
-            {line(off(p.a, WALL_HALF_FT), off(p.b, WALL_HALF_FT), pen.thin, dash)}
-            {line(off(p.a, -WALL_HALF_FT), off(p.b, -WALL_HALF_FT), pen.thin, dash)}
-            {i === 0 && line(off(p.a, -WALL_HALF_FT), off(p.a, WALL_HALF_FT), pen.thin)}
-            {i === last && line(off(p.b, -WALL_HALF_FT), off(p.b, WALL_HALF_FT), pen.thin)}
-            {(o.kind === 'window' || o.kind === 'slider') && line(p.a, p.b, pen.hair)}
-          </g>
-        )
-      })}
-      {o.kind === 'door' && o.pieces.length === 1 && <Swing opening={o} outline={outline} pen={pen} />}
-      <circle cx={tagAt[0]} cy={tagAt[1]} r={pen.text * 0.85} fill="#fff" stroke="#000" strokeWidth={pen.hair} />
-      <text x={tagAt[0]} y={tagAt[1]} fontSize={pen.small} textAnchor="middle" dominantBaseline="central">
-        {o.tag}
-      </text>
-    </g>
-  )
-}
-
-/** A hinged door's leaf and swing, outward from its hinge end. */
-function Swing({ opening: o, outline, pen }: { readonly opening: SheetOpening; readonly outline: readonly Pt[]; readonly pen: Pen }) {
-  const n = normalAwayFrom(outline, o.a, o.b)
-  const leaf: Pt = [o.a[0] + n[0] * o.widthFt, o.a[1] + n[1] * o.widthFt]
-  return (
-    <>
-      <line x1={o.a[0]} y1={o.a[1]} x2={leaf[0]} y2={leaf[1]} stroke="#000" strokeWidth={pen.thin} />
-      <path d={`M${o.b[0]} ${o.b[1]} A${o.widthFt} ${o.widthFt} 0 0 ${sweepFlag(o.a, o.b, leaf)} ${leaf[0]} ${leaf[1]}`} fill="none" stroke="#000" strokeWidth={pen.hair} />
-    </>
-  )
-}
-
-/** SVG's sweep flag for the arc from b round the hinge a to the open leaf's tip. */
-function sweepFlag(a: Pt, b: Pt, tip: Pt): 0 | 1 {
-  const cross = (b[0] - a[0]) * (tip[1] - a[1]) - (b[1] - a[1]) * (tip[0] - a[0])
-  return cross > 0 ? 1 : 0
 }
 
 /** The point the coordinate tables measure from: a cross in a circle, labelled, with short x and z arrows. */
@@ -133,8 +81,9 @@ const P1_ARROW_FT = 2.5
 
 /**
  * The part's labelled points: P1, P2 … at its corners (on a curve, only
- * where its arcs meet), set just inside it, and S1, S2 … at the stations
- * round a curve, each with a tick across the wall. On a part with a curve,
+ * where its arcs meet), set just inside it (inside the wall's inside face),
+ * and S1, S2 … at the stations round a curve, each with a tick across the
+ * wall. On a part with a curve,
  * P1 is bold and an arrow outside the wall shows the way distances round
  * from P1 run.
  */
@@ -145,10 +94,11 @@ export function PointLabels({ part, pen }: { readonly part: SheetPart; readonly 
   const back = pen.tiny * 1.3
   const n = poly.length
   const around = part.edges.some((e) => e.curved)
+  const walled = part.inner.length === n
+  const edgeAt = (q: SheetPoint) => part.edges.find((x) => onSegment(x.a, x.b, q.at)) ?? part.edges[0]
   const inwardAt = (q: SheetPoint): Pt => {
     if (q.vertex === null) {
-      const e = part.edges.find((x) => onSegment(x.a, x.b, q.at)) ?? part.edges[0]
-      const o = outwardNormal(area, e.a, e.b)
+      const o = outwardNormal(area, edgeAt(q).a, edgeAt(q).b)
       return [-o[0], -o[1]]
     }
     const i = q.vertex
@@ -160,11 +110,23 @@ export function PointLabels({ part, pen }: { readonly part: SheetPart; readonly 
     <g fontSize={pen.tiny} fill="#000" stroke="none" textAnchor="middle" dominantBaseline="central">
       {part.points.map((q) => {
         const inward = inwardAt(q)
-        const at: Pt = [q.at[0] + inward[0] * back, q.at[1] + inward[1] * back]
-        const tick = q.vertex === null ? WALL_HALF_FT * 1.6 : 0
+        // a corner's label sits in from the wall's inside corner, a station's in from the inside face square across
+        const wall = q.vertex === null ? edgeAt(q).thicknessFt : 0
+        const from: Pt = walled && q.vertex !== null ? part.inner[q.vertex] : [q.at[0] + inward[0] * wall, q.at[1] + inward[1] * wall]
+        const at: Pt = [from[0] + inward[0] * back, from[1] + inward[1] * back]
+        const tick = q.vertex === null
         return (
           <g key={q.label}>
-            {tick > 0 && <line x1={q.at[0] - inward[0] * tick} y1={q.at[1] - inward[1] * tick} x2={q.at[0] + inward[0] * tick} y2={q.at[1] + inward[1] * tick} stroke="#000" strokeWidth={pen.hair} />}
+            {tick && (
+              <line
+                x1={q.at[0] - inward[0] * STATION_TICK_FT}
+                y1={q.at[1] - inward[1] * STATION_TICK_FT}
+                x2={q.at[0] + inward[0] * (wall + STATION_TICK_FT)}
+                y2={q.at[1] + inward[1] * (wall + STATION_TICK_FT)}
+                stroke="#000"
+                strokeWidth={pen.hair}
+              />
+            )}
             <text x={at[0]} y={at[1]} fontWeight={around && q.vertex === 0 ? 700 : undefined}>
               {q.label}
             </text>

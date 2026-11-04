@@ -17,7 +17,7 @@ const opening = (a: Pt, b: Pt): SheetOpening => ({
   wall: 'Main · front',
   a,
   b,
-  pieces: [{ edge: 0, a, b, fromLeftFt: 0 }],
+  pieces: [{ edge: 0, a, b, fromLeftFt: 0, innerA: a, innerB: b, midA: a, midB: b }],
   arc: null,
   onCurve: false,
   widthFt: Math.hypot(b[0] - a[0], b[1] - a[1]),
@@ -35,7 +35,7 @@ const square: Pt[] = [
 ]
 const edges: SheetEdge[] = square.map((a, i) => {
   const b = square[(i + 1) % square.length]
-  return { index: i, a, b, lengthFt: 10, name: `edge ${i + 1}`, arc: null, curved: false }
+  return { index: i, a, b, lengthFt: 10, name: `edge ${i + 1}`, arc: null, curved: false, thicknessFt: 0, glass: false }
 })
 
 beforeAll(() => {

@@ -1,6 +1,6 @@
 import type { LocalPoint } from '../../buildings/footprint'
 import { buildingToMass, massToBuilding, type Mass } from '../../buildings/masses'
-import type { SheetArc, SheetEllipse } from './types'
+import type { FittedArc, SheetEllipse } from './types'
 
 /**
  * An ellipse part, exactly (centre, axes, turn), and the draftsman's
@@ -80,7 +80,7 @@ export function ellipseOf(m: Mass, fourCentreErrorFt: number | null): SheetEllip
  * arc says it all), or when the construction strays past FOUR_CENTRE_MAX_FT
  * from the drawn outline.
  */
-export function fourCentreArcs(m: Mass, outline: readonly LocalPoint[]): { readonly arcs: SheetArc[]; readonly errorFt: number } | null {
+export function fourCentreArcs(m: Mass, outline: readonly LocalPoint[]): { readonly arcs: FittedArc[]; readonly errorFt: number } | null {
   const p = m.w / 2
   const q = m.d / 2
   if (m.shape !== 'ellipse' || Math.abs(p - q) < ROUND_FT || outline.length < 8) return null
@@ -115,7 +115,7 @@ export function fourCentreArcs(m: Mass, outline: readonly LocalPoint[]): { reado
     else runs.push({ k: sector[i], edges: [i] })
   }
   if (runs.length !== 4 || new Set(runs.map((r) => r.k)).size !== 4) return null
-  const arcs = runs.map(({ k, edges }): SheetArc => {
+  const arcs = runs.map(({ k, edges }): FittedArc => {
     const centre = massToBuilding(m, centres[k])
     const verts = [outline[edges[0]], ...edges.map((i) => outline[(i + 1) % outline.length])]
     const off = Math.max(...verts.map((v) => Math.abs(Math.hypot(v[0] - centre[0], v[1] - centre[1]) - radii[k])))

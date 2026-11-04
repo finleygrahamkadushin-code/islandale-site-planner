@@ -1,5 +1,5 @@
 import type { LocalPoint } from '../../buildings/footprint'
-import type { SheetArc } from './types'
+import type { FittedArc } from './types'
 
 /**
  * Curves in an outline. The app stores a curved wall as many short straight
@@ -151,7 +151,7 @@ function candidateRuns(lens: readonly number[], turns: readonly number[], closed
   return runs.filter((r) => r.length >= MIN_EDGES).map((edges) => ({ edges, cyclic: false }))
 }
 
-function arcOf(pts: readonly LocalPoint[], lens: readonly number[], run: readonly number[]): SheetArc | null {
+function arcOf(pts: readonly LocalPoint[], lens: readonly number[], run: readonly number[]): FittedArc | null {
   const verts = [pts[run[0]], ...run.map((i) => pts[(i + 1) % pts.length])]
   const fit = fitCircle(verts)
   if (!fit || fit.error >= MAX_FIT_FT) return null
@@ -170,7 +170,7 @@ function arcOf(pts: readonly LocalPoint[], lens: readonly number[], run: readonl
 }
 
 interface Fit {
-  readonly arc: SheetArc
+  readonly arc: FittedArc
   /** Where the arc starts in the run, and how many edges it takes. */
   readonly at: number
   readonly size: number
@@ -212,7 +212,7 @@ function longestFit(pts: readonly LocalPoint[], lens: readonly number[], run: Ru
  * either side of it the same way. A single edge left over between two arcs
  * stays a chord.
  */
-function segment(pts: readonly LocalPoint[], lens: readonly number[], run: Run): SheetArc[] {
+function segment(pts: readonly LocalPoint[], lens: readonly number[], run: Run): FittedArc[] {
   if (run.edges.length < MIN_ARC_EDGES) return []
   const fit = longestFit(pts, lens, run)
   if (!fit) return []
@@ -226,7 +226,7 @@ function segment(pts: readonly LocalPoint[], lens: readonly number[], run: Run):
 
 export interface Curves {
   /** Arcs in order of their first edge. */
-  readonly arcs: SheetArc[]
+  readonly arcs: FittedArc[]
   /** Per edge: whether it is one of a smooth run's edges (on an arc, or a chord left between two). */
   readonly smooth: boolean[]
 }
@@ -252,4 +252,4 @@ export function fitCurves(outline: readonly LocalPoint[], closed: boolean): Curv
   return { arcs, smooth }
 }
 
-export const fitArcs = (outline: readonly LocalPoint[], closed: boolean): SheetArc[] => fitCurves(outline, closed).arcs
+export const fitArcs = (outline: readonly LocalPoint[], closed: boolean): FittedArc[] => fitCurves(outline, closed).arcs

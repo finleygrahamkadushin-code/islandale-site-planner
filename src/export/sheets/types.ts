@@ -43,6 +43,10 @@ export interface SheetEdge {
   readonly arc: number | null
   /** On a curve: a chord of an arc, or of a curved footprint between its arcs; such edges are not dimensioned one by one. */
   readonly curved: boolean
+  /** The wall's thickness, from the outline (its outside face) inward; 0 on a part with no walls. */
+  readonly thicknessFt: number
+  /** A glass curtain wall: one thin glazed skin, drawn without hatching. */
+  readonly glass: boolean
 }
 
 /** A run of short, evenly turning edges read as one circular arc: the whole of a circle, or one arc of a compound curve. */
@@ -60,7 +64,12 @@ export interface SheetArc {
   readonly chordFt: number
   /** Worst distance of any of its vertices from the circle, feet. */
   readonly fitErrorFt: number
+  /** The wall's inside face round the same centre (radius less the thickness on a convex curve, more on a hollow one); null on a part with no walls. */
+  readonly innerRadiusFt: number | null
 }
+
+/** An arc as fitted to an outline, before the walls' inside face is known. */
+export type FittedArc = Omit<SheetArc, 'innerRadiusFt'>
 
 /** One straight run of an opening on one edge of its part, building frame. */
 export interface SheetOpeningPiece {
@@ -71,6 +80,12 @@ export interface SheetOpeningPiece {
   readonly b: LocalPoint
   /** From the edge's left end as seen from outside (its vertex b) to this piece's left end. */
   readonly fromLeftFt: number
+  /** Where the hole's sides at a and b meet the wall's inside face: the jambs run a → innerA and b → innerB (square across, or to a mitred corner near one). Equal to a and b on a part with no walls. */
+  readonly innerA: LocalPoint
+  readonly innerB: LocalPoint
+  /** The piece's ends at mid-wall, half the thickness in, square across, where the 3D glass and door leaves stand. */
+  readonly midA: LocalPoint
+  readonly midB: LocalPoint
 }
 
 export interface SheetOpening {
@@ -177,8 +192,10 @@ export interface SheetPart {
   readonly levelFt: number
   /** Wall or post height above the part's floor (0 for stairs, ramps and decks). */
   readonly wallFt: number
-  /** Outline, building frame, as drawn in 3D. */
+  /** Outline, building frame, as drawn in 3D: on walls, their outside face, which every dimension is to. */
   readonly outline: readonly LocalPoint[]
+  /** The walls' inside face, vertex for vertex with the outline (the 3D shell's mitred corners); empty on a part with no walls. */
+  readonly inner: readonly LocalPoint[]
   readonly perimeterFt: number
   readonly areaSqFt: number
   readonly edges: readonly SheetEdge[]

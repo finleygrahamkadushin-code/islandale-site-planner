@@ -30,13 +30,16 @@ describe('sheetTables', () => {
     expect(deckRows.filter((r) => r[1] === 'curve P4–P16, 1 arc')).toHaveLength(1)
     expect(deckRows.some((r) => r[1] === 'edge 5')).toBe(false)
     expect(curves.rows.filter((r) => r[0] === 'Deck 3').map((r) => r[1])).toEqual(['P4–P16', 'P19–P31'])
-    expect(curves.rows[0][3]).toBe('90°')
+    expect(curves.rows[0][4]).toBe('90°')
   })
 
   test('rect parts read their width and depth; openings and stairs are listed', () => {
     const b = prow()
     const [parts, , , openings, stairs, levels, corners] = sheetTables(b)
     expect(parts.rows.find((r) => r[0] === 'Main')?.slice(2, 4)).toEqual([`28'-0"`, `26'-0"`])
+    // the walls' thickness, 7 7/8" to the quarter inch, and none on a deck
+    expect(parts.rows.find((r) => r[0] === 'Main')?.[6]).toBe('8"')
+    expect(parts.rows.find((r) => r[0] === 'Deck 3')?.[6]).toBe('—')
     expect(openings.rows).toHaveLength(b.parts.reduce((s, p) => s + p.openings.length, 0))
     expect(stairs.rows.map((r) => r[0])).toEqual(['Stair 2'])
     expect(levels.rows[0].slice(0, 2)).toEqual(['Main floor', `0'-0"`])
@@ -59,7 +62,7 @@ describe('tablesCsv', () => {
     const lines = csv.split('\n')
     expect(lines[0]).toBe('Gathering prow — Parts')
     expect(lines[1]).toContain('Width and depth')
-    expect(lines[2]).toBe('Part,Kind,Width,Depth,Level,Wall height,Area,Roof,Pitch,Overhang,Ridge above floor')
+    expect(lines[2]).toBe('Part,Kind,Width,Depth,Level,Wall height,Wall,Area,Roof,Pitch,Overhang,Ridge above floor')
     expect(lines[3]).toContain(`"28'-0"""`)
     expect(csv.match(/^Gathering prow — /gm)).toHaveLength(7)
     expect(csv.endsWith('\n')).toBe(true)

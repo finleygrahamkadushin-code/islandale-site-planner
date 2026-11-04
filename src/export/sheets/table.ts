@@ -17,6 +17,13 @@ const ridgeOf = (p: SheetPart) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0)
 const hasCurve = (p: SheetPart) => p.edges.some((e) => e.curved)
 const orNone = (v: number | null) => (v === null ? NONE : formatArch(v))
 
+/** A part's wall thicknesses, as 8" or 8", glass 2 1/4"; none for a part with no walls. */
+function wallThickness(p: SheetPart): string {
+  const of = (glass: boolean) => [...new Set(p.edges.filter((e) => e.thicknessFt > 0 && e.glass === glass).map((e) => formatInches(e.thicknessFt * IN_PER_FT)))]
+  const out = [...of(false), ...of(true).map((t) => `glass ${t}`)]
+  return out.length ? out.join(', ') : NONE
+}
+
 /** How the coordinate tables are read: from the main walls' back-left corner, or from their bounding box's when no wall passes through it. */
 function datumNote(b: SheetBuilding): string {
   const datum = b.datumOnWall ? "the main walls' back-left corner" : "the back-left corner of the main walls' bounding box, drawn dashed on the plan"
@@ -26,8 +33,8 @@ function datumNote(b: SheetBuilding): string {
 function partsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Parts',
-    note: "Width and depth: the drawn outline's size along the part's own axes.",
-    columns: ['Part', 'Kind', 'Width', 'Depth', 'Level', 'Wall height', 'Area', 'Roof', 'Pitch', 'Overhang', 'Ridge above floor'],
+    note: "Width and depth: the drawn outline's size along the part's own axes, to the outside face of its walls. Wall: thickness from the outside face in.",
+    columns: ['Part', 'Kind', 'Width', 'Depth', 'Level', 'Wall height', 'Wall', 'Area', 'Roof', 'Pitch', 'Overhang', 'Ridge above floor'],
     rows: b.parts.map((p) => [
       p.name,
       p.curve ? `${p.kind}, ${p.curve}` : p.kind,
@@ -35,6 +42,7 @@ function partsTable(b: SheetBuilding): SheetTable {
       formatArch(p.dFt),
       formatArch(p.levelFt),
       p.wallFt > 0 ? formatArch(p.wallFt) : NONE,
+      wallThickness(p),
       formatArea(p.areaSqFt),
       p.roof?.type ?? 'none',
       p.roof ? `${p.roof.pitch}:12` : NONE,
@@ -66,13 +74,14 @@ function curvesTable(b: SheetBuilding): SheetTable {
   const [dx, dz] = b.datum
   return {
     title: 'Curves',
-    note: `${datumNote(b)} Each arc runs between the two P points named; arcs of one curve meet end to end. Within: how far the drawn outline strays from the arc.`,
-    columns: ['Part', 'From–to', 'Radius', 'Sweep', 'Arc length', 'Chord', 'Centre x from datum', 'Centre z from datum', 'Within'],
+    note: `${datumNote(b)} Each arc runs between the two P points named; arcs of one curve meet end to end. Radius is to the outside face of the wall, Inside radius its inside face round the same centre. Within: how far the drawn outline strays from the arc.`,
+    columns: ['Part', 'From–to', 'Radius', 'Inside radius', 'Sweep', 'Arc length', 'Chord', 'Centre x from datum', 'Centre z from datum', 'Within'],
     rows: b.parts.flatMap((p) =>
       p.arcs.map((a) => [
         p.name,
         spanLabel(p.edges.length, a.fromEdge, a.toEdge),
         formatArch(a.radiusFt),
+        orNone(a.innerRadiusFt),
         formatDeg(a.sweepDeg),
         formatArch(a.lengthFt),
         formatArch(a.chordFt),
@@ -106,7 +115,7 @@ function ellipsesTable(b: SheetBuilding): SheetTable[] {
 function openingsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Openings',
-    note: "From left: along the wall from its left end as seen from outside to the opening's left edge; for one that turns a corner, on the last wall named. Round from P1: round the part's walls from its P1, the way the arrow there points, to the opening's first edge; it locates every opening on a curve, whose width is round the wall too.",
+    note: "From left: along the wall from its left end as seen from outside to the opening's left edge; for one that turns a corner, on the last wall named. Round from P1: round the part's walls from its P1, the way the arrow there points, to the opening's first edge; it locates every opening on a curve, whose width is round the wall too. All on the outside face of the wall. Door swings are not stored; the plan draws them opening in, dashed.",
     columns: ['Tag', 'Wall', 'Kind', 'Width', 'From left', 'Round from P1', 'Sill', 'Head'],
     rows: b.parts.flatMap((p) =>
       p.openings.map((o) => [o.tag, o.wall, o.kind, formatArch(o.widthFt), orNone(o.fromLeftFt), orNone(o.aroundFt), formatArch(o.sillFt), formatArch(o.headFt)]),

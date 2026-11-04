@@ -8,6 +8,7 @@ import { boundsOf } from '../../export/sheets/model'
 import type { Scale, SheetBounds, SheetBuilding } from '../../export/sheets/types'
 import type { Extent } from './Page'
 import { arcPoints, openingStops, pointAlong } from './planDims'
+import { thicknessMarks, wallNotes, type ThicknessMark } from './planWalls'
 import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, type DimLine, type Placed, type Pt } from './svgDims'
 
 const FIRST_OFFSET_FT = 2.5
@@ -20,6 +21,8 @@ const FAR_CENTRE_FT = 10
 const NOTE_OUT_FT = 1.2
 /** Bounds poking out further than this count as reaching past the walls, feet. */
 const BEYOND_FT = 1 / 48
+/** The sheet's general notes start this many text heights below the drawing. */
+const NOTES_GAP_TEXT = 2
 
 /** Paper sizes turned into drawing feet at the scale. */
 export function penSizes(scale: Scale) {
@@ -48,6 +51,8 @@ export interface ArcNote {
   readonly leaderFrom: Pt
   readonly showCentre: boolean
   readonly radiusFt: number
+  /** The wall's inside face round the same centre; null on a part with no walls. */
+  readonly innerRadiusFt: number | null
   readonly lengthFt: number
   readonly sweepDeg: number
 }
@@ -63,6 +68,10 @@ export interface PlanLayout {
   readonly dims: LabelledDim[]
   readonly arcs: ArcNote[]
   readonly notes: CurveOpeningNote[]
+  /** One thickness dimension per wall kind of each part. */
+  readonly thickness: ThicknessMark[]
+  /** The sheet's general notes (dimensions to the outside face, the walls, door swings), under the drawing; null when there are none. */
+  readonly general: CurveOpeningNote | null
   readonly extent: Extent
 }
 
@@ -135,16 +144,27 @@ function overallDims(b: SheetBuilding, opts: Opts, edge: readonly DimLine[]): La
   return dims
 }
 
+/** Two arcs this close in centre and radius are one line on the plan, feet (a quarter inch). */
+const SAME_ARC_FT = 1 / 48
+
+/**
+ * A note for every arc, except a deck's or porch's arc that runs along a
+ * wall's (the same centre and radius), which the wall's note, giving both
+ * faces, already gives.
+ */
 function arcNotes(b: SheetBuilding): ArcNote[] {
   const { minx, maxx, minz, maxz } = b.bounds
+  const wallArcs = b.parts.flatMap((p) => p.arcs.filter((a) => a.innerRadiusFt !== null))
+  const onWall = (arc: SheetBuilding['parts'][number]['arcs'][number]) =>
+    arc.innerRadiusFt === null && wallArcs.some((w) => Math.hypot(w.centre[0] - arc.centre[0], w.centre[1] - arc.centre[1]) < SAME_ARC_FT && Math.abs(w.radiusFt - arc.radiusFt) < SAME_ARC_FT)
   return b.parts.flatMap((part) =>
-    part.arcs.map((arc): ArcNote => {
+    part.arcs.filter((arc) => !onWall(arc)).map((arc): ArcNote => {
       const mid = arcMidpoint(arcPoints(part.edges, arc), arc.centre, arc.radiusFt)
       const [cx, cz] = arc.centre
       const showCentre = cx > minx - FAR_CENTRE_FT && cx < maxx + FAR_CENTRE_FT && cz > minz - FAR_CENTRE_FT && cz < maxz + FAR_CENTRE_FT
       const toward = unitTo(mid, arc.centre)
       const leaderFrom: Pt = showCentre ? arc.centre : [mid[0] + toward[0] * 4, mid[1] + toward[1] * 4]
-      return { centre: arc.centre, mid, leaderFrom, showCentre, radiusFt: arc.radiusFt, lengthFt: arc.lengthFt, sweepDeg: arc.sweepDeg }
+      return { centre: arc.centre, mid, leaderFrom, showCentre, radiusFt: arc.radiusFt, innerRadiusFt: arc.innerRadiusFt, lengthFt: arc.lengthFt, sweepDeg: arc.sweepDeg }
     }),
   )
 }
@@ -179,18 +199,29 @@ export function planLayout(b: SheetBuilding, scale: Scale): PlanLayout {
   const notes = curveOpeningNotes(b)
   const { minx, maxx, minz, maxz } = b.bounds
   const all = dimBounds(dims)
-  const noteXs = notes.flatMap((n) => {
-    const w = Math.max(...n.lines.map((l) => textWidthFt(l, pen.small)))
-    return n.anchor === 'start' ? [n.at[0], n.at[0] + w] : [n.at[0] - w, n.at[0]]
-  })
-  const noteYs = notes.flatMap((n) => [n.at[1] - pen.small, n.at[1] + pen.small * (n.lines.length + 0.5)])
+  const noteXs = notes.flatMap((n) => noteSpanX(n, pen.small))
+  const noteYs = notes.flatMap((n) => noteSpanY(n, pen.small))
   const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs]
   const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs]
+  // the general notes go under everything else, from its left edge
+  const lines = wallNotes(b)
+  const general: CurveOpeningNote | null = lines.length ? { at: [Math.min(...xs), Math.max(...ys) + pen.text * NOTES_GAP_TEXT], anchor: 'start', lines } : null
+  if (general) {
+    xs.push(...noteSpanX(general, pen.small))
+    ys.push(...noteSpanY(general, pen.small))
+  }
   const x0 = Math.floor(Math.min(...xs) - MARGIN_FT)
   const y0 = Math.floor(Math.min(...ys) - MARGIN_FT)
   const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(Math.max(...ys) + MARGIN_FT) - y0 }
-  return { dims, arcs, notes, extent }
+  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, extent }
 }
+
+/** A note's reach across and down the drawing, at its text size. */
+function noteSpanX(n: CurveOpeningNote, size: number): number[] {
+  const w = Math.max(...n.lines.map((l) => textWidthFt(l, size)))
+  return n.anchor === 'start' ? [n.at[0], n.at[0] + w] : [n.at[0] - w, n.at[0]]
+}
+const noteSpanY = (n: CurveOpeningNote, size: number): number[] => [n.at[1] - size, n.at[1] + size * (n.lines.length + 0.5)]
 
 export function unitTo(from: Pt, to: Pt): Pt {
   const l = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1

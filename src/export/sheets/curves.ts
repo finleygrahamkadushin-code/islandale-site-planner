@@ -2,7 +2,8 @@ import { CURVED_SHAPES, type LocalPoint } from '../../buildings/footprint'
 import { edgeName, type Mass } from '../../buildings/masses'
 import { FIT } from '../../buildings/openingLayout'
 import { edgeInArc } from './openings'
-import type { CurveKind, SheetArc, SheetEdge, SheetPoint } from './types'
+import type { WallSpec } from '../../buildings/wallShell'
+import type { CurveKind, FittedArc, SheetEdge, SheetPoint } from './types'
 
 /**
  * How a part's outline is read on the sheets once its arcs are known: which
@@ -45,15 +46,17 @@ const sharp = (outline: readonly LocalPoint[], i: number) => turnAt(outline, i) 
  * The outline's edges. An edge is curve when it is a chord of an arc, a
  * chord of a smooth run left between two arcs, or any chord of a curved
  * footprint save a straight end between two sharp corners (a ribbon's).
+ * `walls` gives each edge's wall (empty on a part with no walls).
  */
-export function edgesOf(m: Mass, outline: readonly LocalPoint[], arcs: readonly SheetArc[], smooth: readonly boolean[]): SheetEdge[] {
+export function edgesOf(m: Mass, outline: readonly LocalPoint[], arcs: readonly FittedArc[], smooth: readonly boolean[], walls: readonly WallSpec[] = []): SheetEdge[] {
   const n = outline.length
   const organic = curveKindOf(m.shape) !== null
   return outline.map((a, i) => {
     const b = outline[(i + 1) % n]
     const k = arcs.findIndex((arc) => edgeInArc(i, arc))
     const curved = k >= 0 || !!smooth[i] || (organic && !(sharp(outline, i) && sharp(outline, (i + 1) % n)))
-    return { index: i, a, b, lengthFt: dist(a, b), name: edgeName(m, i), arc: k < 0 ? null : k, curved }
+    const wall = walls[i]
+    return { index: i, a, b, lengthFt: dist(a, b), name: edgeName(m, i), arc: k < 0 ? null : k, curved, thicknessFt: wall?.thicknessFt ?? 0, glass: wall?.kind === 'glass' }
   })
 }
 
