@@ -23,7 +23,7 @@ Finley needs to draw each building by hand at 1/4" = 1'-0" for class. The **Shee
 | Area | Files |
 | --- | --- |
 | Contract (types, paper sizes, scales) | `src/export/sheets/types.ts`, `sides.ts` (elevation axes) |
-| Pure model | `src/export/sheets/model.ts`, `parts.ts`, `openings.ts`, `elevation.ts`, `arcs.ts` (circle fitting), `format.ts` (architectural ft-in), `tiles.ts`, `table.ts` |
+| Pure model | `src/export/sheets/model.ts`, `parts.ts`, `openings.ts`, `elevation.ts`, `arcs.ts` (circle fitting, compound curves), `ellipse.ts` (an ellipse exactly, and its four-centre arcs), `curves.ts` (curve edges, P corners and S stations), `format.ts` (architectural ft-in), `tiles.ts`, `table.ts` |
 | Elevation renderer | `src/scene/sheetCapture.ts` (API, camera maths), `src/scene/ElevationCapture.tsx` (inside the Canvas; restores the scene after every capture) |
 | Screen | `src/ui/DrawingSheets.tsx`, `src/ui/sheets/*` (`Page`, `PlanSheet`, `planLayout`, `planMarks`, `planDims`, `svgDims`, `ElevationSheet`, `MeasureTables`) |
 | Also touched | `src/scene/Scene.tsx` (mounts the capture), `src/ui/TopBar.tsx` (Sheets button), and the end of `src/app/styles.css` (Drawing sheets section and print CSS) |
@@ -44,8 +44,22 @@ The capture file is `ElevationCapture.tsx`, not `SheetCapture.tsx`. This disk ig
 10. **Finish:** committed. Merging into `drawing-sheets` or `phase-5a-parts-rails`, or opening a PR, is Finley's call.
 
 Known limits:
-- Curved footprints (ellipse, kidney, teardrop, blob, ribbon) are still drawn as their box until Phase 5D. The model marks them `approximate`, and they'll come out right once 5D lands, because the sheets read the same geometry.
+- Curved footprints were drawn as their box until Phase 5D; they are now drawn true (see the 5D rework below).
 - Interiors (rooms) aren't in the new app yet (Phase 5B).
+
+## 5D rework (Nov 4 2026)
+
+On branch `sheets-5d`, the sheets were brought up to the 5B–5D buildings, area by area.
+
+- **Curved outlines.** Every ellipse, kidney, teardrop, blob and ribbon is drawn as its true outline (5D's `massPoly`), so the false "drawn as box" notes and the `approximate` flag are gone; a part now carries its `curve` kind, shown in the Parts table's Kind ("wall, blob").
+  - `fitCurves` (`arcs.ts`) covers every smooth run with arcs that meet end to end (longest fitting stretch first, then each side), so a non-circular curve is a compound curve a draftsman can swing with a compass, every arc within 0.1 ft of the outline. A circle is still one 360° arc.
+  - An ellipse is given exactly (centre, axes, turn: new Ellipses table, centre lines on the plan) and drawn with the four-centre construction (`ellipse.ts`): two small and two large arcs, tangent where they meet, the small radius chosen to keep closest to the ellipse (within about 1 1/4 in on the schemes' ellipses; never used if more than 0.25 ft out, when the fitted arcs stand).
+  - Chords of a curve are never dimensioned one by one (D-0 went from 148 plan dimensions to 14). The Edges table gives each curve once with its length round the wall; Curves names each arc by the P points at its ends and says how close it fits ("Within").
+  - P labels on a curve only mark where its arcs meet and real corners (vertex numbers are kept, so P5, P15 …). Stations S1, S2 … every 2 ft round from P1 are marked on the plan and listed with the corners, with a "Round from P1" column, on curved footprints and on any stretch of curve no arc draws.
+  - Every opening on a curve is located round the walls from P1 (an along-cut's own `x`), labelled "Main · curved wall", with a note beside it on the plan; P1 is bold on a part with a curve and an arrow outside the wall shows the direction. An opening that turns a straight corner is measured on the last wall named, where its left end is (it used to print 0).
+  - When no main wall passes through the datum (a curved or turned main part), the datum note says it is the bounding box's corner, the box is drawn dashed and, where it is not the overall size, dimensioned as "Main box".
+  - Parts table Width and Depth are the drawn outline's extent along the part's own axes.
+  - Measurement pages: rows that wrap are counted, and a long narrow table runs on in up to three blocks side by side. On tabloid, D-0 went from 10 pages to 4, D-1 12 to 4, E-0 8 to 3, G-1 7 to 3, and C-0 4 to 3; no building takes more pages than before.
 
 ## How to run
 
