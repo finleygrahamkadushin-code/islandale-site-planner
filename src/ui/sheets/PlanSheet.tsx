@@ -4,7 +4,7 @@ import { formatArch, formatDeg } from '../../export/sheets/format'
 import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
 import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
-import { CornerLabels, CurveNotes, DatumMark, Opening, pts, StairMarks } from './planMarks'
+import { CurveNotes, DatumMark, EllipseAxes, MainBox, Opening, PointLabels, pts, StairMarks } from './planMarks'
 import { arrowHead, centreMark, northOnSheetDeg, uprightAngle, type Pt, type Segment } from './svgDims'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
@@ -15,7 +15,7 @@ interface Props {
   readonly grid: boolean
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned. */
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned, and every curve's stations marked. */
 export function PlanSheet({ building: b, info, grid }: Props) {
   const pen = penSizes(info.scale)
   const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
@@ -28,9 +28,11 @@ export function PlanSheet({ building: b, info, grid }: Props) {
       {b.parts.map((p) => (
         <PartLabel key={p.massIndex} part={p} pen={pen} />
       ))}
+      {b.parts.map((p) => p.ellipse && <EllipseAxes key={p.massIndex} ellipse={p.ellipse} pen={pen} />)}
       {b.parts.map((p) => (
-        <CornerLabels key={p.massIndex} part={p} pen={pen} />
+        <PointLabels key={p.massIndex} part={p} pen={pen} />
       ))}
+      {!b.datumOnWall && <MainBox box={b.mainBounds} pen={pen} />}
       <DatumMark at={b.datum} pen={pen} />
       <g stroke="#000" strokeWidth={pen.hair} fill="none">
         {layout.dims.map((d, i) => (
@@ -106,7 +108,6 @@ function PartLabel({ part, pen }: { readonly part: SheetPart; readonly pen: Pen 
   return (
     <text x={x} y={y} fontSize={pen.text} textAnchor="middle" dominantBaseline="central" style={{ fontVariant: 'small-caps', letterSpacing: '0.04em' }} fill="#000">
       {part.name.toLowerCase()}
-      {part.approximate ? ' (curve drawn as box)' : ''}
     </text>
   )
 }
@@ -125,11 +126,15 @@ export function Dim({ dim, pen }: { readonly dim: LabelledDim; readonly pen: Pen
   )
 }
 
+/** An arc's radius is written this far in from the curve along its leader (or halfway, on a short one), feet, so the leaders of arcs swung from across a shape keep their words apart. */
+const ARC_TEXT_IN_FT = 4
+
 function ArcMarks({ arc, pen }: { readonly arc: ArcNote; readonly pen: Pen }) {
   const [fx, fy] = arc.leaderFrom
   const [mx, my] = arc.mid
-  const lx = (fx + mx) / 2
-  const ly = (fy + my) / 2
+  const t = Math.min(0.5, ARC_TEXT_IN_FT / (Math.hypot(fx - mx, fy - my) || 1))
+  const lx = mx + (fx - mx) * t
+  const ly = my + (fy - my) * t
   const angle = uprightAngle((Math.atan2(my - fy, mx - fx) * 180) / Math.PI)
   return (
     <g stroke="#000" strokeWidth={pen.hair} fill="none">

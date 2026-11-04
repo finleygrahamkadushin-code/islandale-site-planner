@@ -1,5 +1,6 @@
+import { curveRuns, spanLabel, STATION_FT } from './curves'
 import { formatArch, formatArea, formatDeg, formatInches } from './format'
-import type { SheetArc, SheetBuilding, SheetPart } from './types'
+import type { SheetBuilding, SheetPart } from './types'
 
 /** One table of the measurement sheet: every value already written as it is printed. */
 export interface SheetTable {
@@ -11,17 +12,25 @@ export interface SheetTable {
 }
 
 const NONE = '—'
-const DATUM_NOTE = "x and z from the datum (main walls' back-left corner), marked DATUM 0,0 on the plan: x to the right, z toward the front."
-const edgeSpan = (a: SheetArc) => `${a.fromEdge + 1}–${a.toEdge + 1}`
+const IN_PER_FT = 12
 const ridgeOf = (p: SheetPart) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0)
+const hasCurve = (p: SheetPart) => p.edges.some((e) => e.curved)
+const orNone = (v: number | null) => (v === null ? NONE : formatArch(v))
+
+/** How the coordinate tables are read: from the main walls' back-left corner, or from their bounding box's when no wall passes through it. */
+function datumNote(b: SheetBuilding): string {
+  const datum = b.datumOnWall ? "the main walls' back-left corner" : "the back-left corner of the main walls' bounding box, drawn dashed on the plan"
+  return `x and z from the datum (${datum}), marked DATUM 0,0 on the plan: x to the right, z toward the front.`
+}
 
 function partsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Parts',
+    note: "Width and depth: the drawn outline's size along the part's own axes.",
     columns: ['Part', 'Kind', 'Width', 'Depth', 'Level', 'Wall height', 'Area', 'Roof', 'Pitch', 'Overhang', 'Ridge above floor'],
     rows: b.parts.map((p) => [
-      p.approximate ? `${p.name} (curved, drawn as its box)` : p.name,
-      p.kind,
+      p.name,
+      p.curve ? `${p.kind}, ${p.curve}` : p.kind,
       formatArch(p.wFt),
       formatArch(p.dFt),
       formatArch(p.levelFt),
@@ -35,49 +44,72 @@ function partsTable(b: SheetBuilding): SheetTable {
   }
 }
 
-/** Straight edges one by one; a curve's edges once, as the curve. */
+const arcWord = (n: number) => (n === 1 ? '1 arc' : `${n} arcs`)
+
+/** Straight edges one by one; each stretch of curve once, round its chords, its arcs listed in Curves. */
 function edgesTable(b: SheetBuilding): SheetTable {
-  const rows = b.parts.flatMap((p) =>
-    p.edges.flatMap((e): string[][] => {
-      if (e.arc === null) return [[p.name, e.name, formatArch(e.lengthFt)]]
-      const arc = p.arcs[e.arc]
-      return arc && e.index === arc.fromEdge ? [[p.name, `curve, edges ${edgeSpan(arc)}`, formatArch(arc.lengthFt)]] : []
-    }),
-  )
-  return { title: 'Edges', columns: ['Part', 'Edge', 'Length'], rows }
+  const rows = b.parts.flatMap((p) => {
+    const runs = curveRuns(p.edges)
+    return p.edges.flatMap((e): string[][] => {
+      if (!e.curved) return [[p.name, e.name, formatArch(e.lengthFt)]]
+      const run = runs.find((r) => r.fromEdge === e.index)
+      if (!run) return []
+      const arcs = run.arcCount ? `, ${arcWord(run.arcCount)}` : ''
+      const what = run.whole ? `whole outline${p.curve ? ` (${p.curve})` : ''}, round from P1` : `curve ${spanLabel(p.edges.length, run.fromEdge, run.toEdge)}`
+      return [[p.name, `${what}${arcs}`, formatArch(run.lengthFt)]]
+    })
+  })
+  return { title: 'Edges', note: 'A curve is given once, its length round the wall; Curves gives the arcs to draw it with.', columns: ['Part', 'Edge', 'Length'], rows }
 }
 
 function curvesTable(b: SheetBuilding): SheetTable {
   const [dx, dz] = b.datum
   return {
     title: 'Curves',
-    note: DATUM_NOTE,
-    columns: ['Part', 'Edges', 'Radius', 'Sweep', 'Arc length', 'Chord', 'Centre x from datum', 'Centre z from datum'],
+    note: `${datumNote(b)} Each arc runs between the two P points named; arcs of one curve meet end to end. Within: how far the drawn outline strays from the arc.`,
+    columns: ['Part', 'From–to', 'Radius', 'Sweep', 'Arc length', 'Chord', 'Centre x from datum', 'Centre z from datum', 'Within'],
     rows: b.parts.flatMap((p) =>
       p.arcs.map((a) => [
         p.name,
-        edgeSpan(a),
+        spanLabel(p.edges.length, a.fromEdge, a.toEdge),
         formatArch(a.radiusFt),
         formatDeg(a.sweepDeg),
         formatArch(a.lengthFt),
         formatArch(a.chordFt),
         formatArch(a.centre[0] - dx),
         formatArch(a.centre[1] - dz),
+        formatInches(a.fitErrorFt * IN_PER_FT),
       ]),
     ),
   }
 }
 
+/** Every ellipse part exactly; listed only when the building has one. */
+function ellipsesTable(b: SheetBuilding): SheetTable[] {
+  const [dx, dz] = b.datum
+  const rows = b.parts.flatMap((p) => {
+    const e = p.ellipse
+    if (!e) return []
+    return [[p.name, formatArch(e.centre[0] - dx), formatArch(e.centre[1] - dz), formatArch(e.widthFt), formatArch(e.depthFt), formatDeg(e.rotDeg), e.fourCentreErrorFt === null ? NONE : formatInches(e.fourCentreErrorFt * IN_PER_FT)]]
+  })
+  if (!rows.length) return []
+  return [
+    {
+      title: 'Ellipses',
+      note: 'The true ellipse. Where the last column gives a figure, its arcs in Curves are the four-centre construction, within that of the drawn outline: two small arcs at the ends of the long axis and two large at the ends of the short, meeting on the lines through their centres. Axis turned: counter-clockwise on the plan.',
+      columns: ['Part', 'Centre x from datum', 'Centre z from datum', 'Width axis', 'Depth axis', 'Axis turned', 'Four-centre arcs within'],
+      rows,
+    },
+  ]
+}
+
 function openingsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Openings',
-    note: "From left: along the wall from its left end as seen from outside to the opening's left edge; for one that turns a corner, on the first wall named. On a curved wall, width and from left are along the curve, from the curve's left end.",
-    columns: ['Tag', 'Wall', 'Kind', 'Width', 'From left', 'Sill', 'Head'],
+    note: "From left: along the wall from its left end as seen from outside to the opening's left edge; for one that turns a corner, on the last wall named. Round from P1: round the part's walls from its P1, the way the arrow there points, to the opening's first edge; it locates every opening on a curve, whose width is round the wall too.",
+    columns: ['Tag', 'Wall', 'Kind', 'Width', 'From left', 'Round from P1', 'Sill', 'Head'],
     rows: b.parts.flatMap((p) =>
-      p.openings.map((o) => {
-        const curve = o.arc !== null ? ' along curve' : ''
-        return [o.tag, o.wall, o.kind, formatArch(o.widthFt) + curve, formatArch(o.fromLeftFt) + curve, formatArch(o.sillFt), formatArch(o.headFt)]
-      }),
+      p.openings.map((o) => [o.tag, o.wall, o.kind, formatArch(o.widthFt), orNone(o.fromLeftFt), orNone(o.aroundFt), formatArch(o.sillFt), formatArch(o.headFt)]),
     ),
   }
 }
@@ -127,15 +159,15 @@ function cornersTable(b: SheetBuilding): SheetTable {
   const [dx, dz] = b.datum
   return {
     title: 'Corner coordinates',
-    note: `${DATUM_NOTE} P1, P2 … are marked at each part's corners on the plan.`,
-    columns: ['Part', 'Point', 'x from datum', 'z from datum'],
-    rows: b.parts.flatMap((p) => p.outline.map((q, i) => [p.name, `P${i + 1}`, formatArch(q[0] - dx), formatArch(q[1] - dz)])),
+    note: `${datumNote(b)} P1, P2 … are marked at each part's corners on the plan (on a curve, only where its arcs meet); S1, S2 … at stations every ${STATION_FT} ft round a curve from P1.`,
+    columns: ['Part', 'Point', 'x from datum', 'z from datum', 'Round from P1'],
+    rows: b.parts.flatMap((p) => p.points.map((q) => [p.name, q.label, formatArch(q.at[0] - dx), formatArch(q.at[1] - dz), hasCurve(p) ? formatArch(q.aroundFt) : NONE])),
   }
 }
 
 /** Every measurement of a building, table by table, as printed beside its drawings. */
 export function sheetTables(b: SheetBuilding): SheetTable[] {
-  return [partsTable(b), edgesTable(b), curvesTable(b), openingsTable(b), stairsTable(b), levelsTable(b), cornersTable(b)]
+  return [partsTable(b), edgesTable(b), curvesTable(b), ...ellipsesTable(b), openingsTable(b), stairsTable(b), levelsTable(b), cornersTable(b)]
 }
 
 const csvCell = (v: string) => (/[",\n\r]|^\s|\s$/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)

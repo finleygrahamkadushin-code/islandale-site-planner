@@ -39,11 +39,13 @@ export interface SheetEdge {
   readonly lengthFt: number
   /** "back", "right", "edge 5" … as the part inspector names it. */
   readonly name: string
-  /** Index into the part's `arcs` when this edge is one chord of a fitted curve; such edges are not dimensioned one by one. */
+  /** Index into the part's `arcs` when this edge is one chord of an arc. */
   readonly arc: number | null
+  /** On a curve: a chord of an arc, or of a curved footprint between its arcs; such edges are not dimensioned one by one. */
+  readonly curved: boolean
 }
 
-/** A run of short, evenly turning edges read as one circular arc. */
+/** A run of short, evenly turning edges read as one circular arc: the whole of a circle, or one arc of a compound curve. */
 export interface SheetArc {
   /** First and last edge index of the run (inclusive). */
   readonly fromEdge: number
@@ -52,11 +54,11 @@ export interface SheetArc {
   readonly radiusFt: number
   /** Turn of the arc in degrees, always positive. */
   readonly sweepDeg: number
-  /** Length along the curve (the sum of the chords). */
+  /** Length along the curve (the sum of the chords; on an ellipse's four-centre arc, the arc swung between the points where it meets the next). */
   readonly lengthFt: number
   /** Straight distance between its ends. */
   readonly chordFt: number
-  /** Worst distance of any vertex from the fitted circle, feet. */
+  /** Worst distance of any of its vertices from the circle, feet. */
   readonly fitErrorFt: number
 }
 
@@ -75,23 +77,33 @@ export interface SheetOpening {
   /** "D1", "W3": doors and sliders D, windows W, cut-outs C, numbered per building. */
   readonly tag: string
   readonly kind: OpeningKind
-  /** Wall label, "Main · front 3", or "Main · curved wall, edges 7–14" along a fitted curve. */
+  /** Wall label, "Main · front 3", "Main · front 3, turning onto right 2", or "Main · curved wall" on a curve. */
   readonly wall: string
   /** Plan position of the opening's two ends on the wall line, building frame: a is its right end seen from outside. */
   readonly a: LocalPoint
   readonly b: LocalPoint
   /** The opening's straight runs, one per edge it crosses, in outline order (right to left seen from outside). */
   readonly pieces: readonly SheetOpeningPiece[]
-  /** Index into the part's `arcs` when every piece lies on that fitted curve. */
+  /** Index into the part's `arcs` when every piece lies on that one arc. */
   readonly arc: number | null
-  /** Width along the wall (along the curve on a curved wall). */
+  /** Some piece lies on a curved edge, so straight dimensions cannot locate it. */
+  readonly onCurve: boolean
+  /** Width along the wall (round the wall where it turns or curves). */
   readonly widthFt: number
   /**
-   * From the wall's left end as seen from outside. On a curve (arc not
-   * null), along the curve from the curve's left end; for an opening that
-   * turns a corner, on the first piece's edge.
+   * From the wall's left end as seen from outside to the opening's left
+   * end; for an opening that turns a corner, on the last wall it turns
+   * onto, where its left end is. Null on a curve, where `aroundFt` locates
+   * it.
    */
-  readonly fromLeftFt: number
+  readonly fromLeftFt: number | null
+  /**
+   * Round the part's outline from its P1, in the P1 → P2 direction, to the
+   * opening's first end (its right end seen from outside): for every
+   * opening that runs round the walls and every opening on a part with a
+   * curve. Null otherwise.
+   */
+  readonly aroundFt: number | null
   readonly sillFt: number
   readonly headFt: number
 }
@@ -124,11 +136,37 @@ export interface SheetRoof {
   readonly riseFt: number
 }
 
+/** A footprint whose outline is a curve: the shapes the app draws as many short chords. */
+export type CurveKind = 'ellipse' | 'kidney' | 'teardrop' | 'blob' | 'ribbon'
+
+/** A point the plan labels and the corner table lists: a corner P (numbered by outline vertex) or a station S on a curve. */
+export interface SheetPoint {
+  /** "P1", "P13" (vertex 12), or "S4", stations numbered round each part. */
+  readonly label: string
+  readonly at: LocalPoint
+  /** Round the outline from P1, in the P1 → P2 direction, feet. */
+  readonly aroundFt: number
+  /** Outline vertex index of a corner; null for a station. */
+  readonly vertex: number | null
+}
+
+/** An ellipse part exactly, building frame. */
+export interface SheetEllipse {
+  readonly centre: LocalPoint
+  /** Full axes along the part's own x (width) and z (depth). */
+  readonly widthFt: number
+  readonly depthFt: number
+  /** Turn of the width axis, degrees counter-clockwise on the plan (the part's rotation). */
+  readonly rotDeg: number
+  /** How far the four-centre arcs the part's `arcs` give come from its outline; null when they are not used (a circle, or too far out). */
+  readonly fourCentreErrorFt: number | null
+}
+
 export interface SheetPart {
   readonly massIndex: number
   readonly name: string
   readonly kind: MassKind
-  /** Width and depth as stored (the part inspector's fields). */
+  /** Width and depth of the drawn outline along the part's own axes (a rect's are the inspector's fields; a curve's are what it draws). */
   readonly wFt: number
   readonly dFt: number
   /** Offset of the part's centre from the main walls' centre, and its turn. */
@@ -141,6 +179,7 @@ export interface SheetPart {
   readonly wallFt: number
   /** Outline, building frame, as drawn in 3D. */
   readonly outline: readonly LocalPoint[]
+  readonly perimeterFt: number
   readonly areaSqFt: number
   readonly edges: readonly SheetEdge[]
   readonly arcs: readonly SheetArc[]
@@ -149,8 +188,11 @@ export interface SheetPart {
   readonly roof: SheetRoof | null
   /** Curved sitting steps on a deck: each band's outline pieces, building frame, top band first. */
   readonly stepBands: readonly (readonly (readonly LocalPoint[])[])[]
-  /** True for a curved footprint the app still draws as its box (until Phase 5D). */
-  readonly approximate: boolean
+  /** The curved footprint the part is, or null for a shape of straight sides (which may still have fitted arcs). */
+  readonly curve: CurveKind | null
+  readonly ellipse: SheetEllipse | null
+  /** Its corners (on a curve, only the ends of arcs and real corners) and, on curves, stations every STATION_FT round from P1, in order round the outline. */
+  readonly points: readonly SheetPoint[]
 }
 
 export interface SheetLevels {
@@ -182,8 +224,12 @@ export interface SheetBuilding {
   readonly bounds: SheetBounds
   /** Bounds of the parts' outlines alone (walls, decks, porches, stairs): the building's overall size. */
   readonly outlineBounds: SheetBounds
-  /** The datum the coordinate tables measure from: the back-left corner (least x, least z) of the main walls' outline (part 0). */
+  /** The datum the coordinate tables measure from: the back-left corner (least x, least z) of the main walls' outline (part 0) or, when no wall passes through it, of their bounding box. */
   readonly datum: LocalPoint
+  /** Whether the datum is a corner of the main walls; when it is not, the plan draws their bounding box. */
+  readonly datumOnWall: boolean
+  /** Bounds of the main walls' outline (part 0). */
+  readonly mainBounds: SheetBounds
   readonly levels: SheetLevels
   readonly totalAreaSqFt: { readonly enclosed: number; readonly decks: number }
 }

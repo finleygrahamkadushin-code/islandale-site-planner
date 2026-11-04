@@ -1,15 +1,17 @@
 import { deckStepsPlan, TREE_WELL_FT, type TreeWell } from '../../buildings/deckSteps'
-import { CURVED_SHAPES, localToSite, signedArea, siteToLocal, type LocalPoint } from '../../buildings/footprint'
-import { buildingToMass, edgeName, massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from '../../buildings/masses'
+import { localToSite, signedArea, siteToLocal, type LocalPoint } from '../../buildings/footprint'
+import { buildingToMass, massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from '../../buildings/masses'
 import { offsetOutline } from '../../buildings/outline'
 import { buildRoof, normaliseRoof } from '../../buildings/roof'
 import { ftToM, mToFt } from '../../site/units'
 import type { RailWorld } from '../../scene/railWorld'
 import { stairInfo } from '../../scene/stairSite'
 import type { PlanObject } from '../../store/types'
-import { fitArcs } from './arcs'
-import { edgeInArc, openingsOf, type UntaggedOpening } from './openings'
-import type { SheetArc, SheetEdge, SheetPart, SheetRoof, SheetStair } from './types'
+import { fitCurves, type Curves } from './arcs'
+import { aroundOf, curveKindOf, edgesOf, pointsOf } from './curves'
+import { ellipseOf, fourCentreArcs } from './ellipse'
+import { openingsOf, type UntaggedOpening } from './openings'
+import type { SheetEllipse, SheetPart, SheetRoof, SheetStair } from './types'
 
 /** What every part of one building is worked out from. */
 export interface PartSite {
@@ -36,13 +38,20 @@ export function groundUnder(site: PartSite, m: Mass, p: LocalPoint): number {
   return site.world.ground(x, n)
 }
 
-function edgesOf(m: Mass, outline: readonly LocalPoint[], arcs: readonly SheetArc[]): SheetEdge[] {
-  const n = outline.length
-  return outline.map((a, i) => {
-    const b = outline[(i + 1) % n]
-    const k = arcs.findIndex((arc) => edgeInArc(i, arc))
-    return { index: i, a, b, lengthFt: Math.hypot(b[0] - a[0], b[1] - a[1]), name: edgeName(m, i), arc: k < 0 ? null : k }
-  })
+/** An ellipse's four-centre arcs when they come close enough, else the outline's own fitted arcs. */
+function curvesOf(m: Mass, outline: readonly LocalPoint[]): Curves & { readonly ellipse: SheetEllipse | null } {
+  const four = fourCentreArcs(m, outline)
+  if (four) return { arcs: four.arcs, smooth: outline.map(() => true), ellipse: ellipseOf(m, four.errorFt) }
+  return { ...fitCurves(outline, true), ellipse: ellipseOf(m, null) }
+}
+
+/** Width and depth of the drawn outline along the part's own axes. */
+function extentOf(m: Mass): { w: number; d: number } {
+  const poly = massPoly(m)
+  if (poly.length === 0) return { w: m.w, d: m.d }
+  const xs = poly.map((p) => p[0])
+  const zs = poly.map((p) => p[1])
+  return { w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs) }
 }
 
 function stairOf(site: PartSite, m: Mass, mi: number): SheetStair | null {
@@ -103,27 +112,33 @@ function stepBandsOf(site: PartSite, m: Mass): LocalPoint[][][] {
 export function sheetPart(site: PartSite, mi: number): UntaggedPart {
   const m = site.masses[mi]
   const outline = massBuildingPoly(m)
-  const arcs = fitArcs(outline, true)
+  const { arcs, smooth, ellipse } = curvesOf(m, outline)
+  const edges = edgesOf(m, outline, arcs, smooth)
+  const around = aroundOf(outline)
+  const { w, d } = extentOf(m)
   return {
     massIndex: mi,
     name: site.standalone ? 'Deck' : partName(m, mi),
     kind: m.kind,
-    wFt: m.w,
-    dFt: m.d,
+    wFt: w,
+    dFt: d,
     dxFt: m.dx,
     dzFt: m.dz,
     rotDeg: m.rot,
     levelFt: site.standalone ? 0 : m.lvl,
     wallFt: m.kind === 'wall' || m.kind === 'porch' ? m.h : 0,
     outline,
+    perimeterFt: around[outline.length] ?? 0,
     areaSqFt: Math.abs(signedArea(outline)),
-    edges: edgesOf(m, outline, arcs),
+    edges,
     arcs,
-    openings: site.standalone ? [] : openingsOf(site.o.params, m, mi, arcs),
+    openings: site.standalone ? [] : openingsOf(site.o.params, m, mi, arcs, edges, around),
     stair: stairOf(site, m, mi),
     roof: roofOf(m),
     stepBands: stepBandsOf(site, m),
-    approximate: (CURVED_SHAPES as readonly string[]).includes(m.shape),
+    curve: curveKindOf(m.shape),
+    ellipse,
+    points: pointsOf(outline, edges, curveKindOf(m.shape) !== null),
   }
 }
 

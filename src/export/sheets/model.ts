@@ -19,6 +19,9 @@ export { elevationView } from './elevation'
 
 type Bounds = SheetBuilding['bounds']
 
+/** A wall corner this close to the bounding box's back-left corner is on it, feet (a quarter inch). */
+const ON_CORNER_FT = 1 / 48
+
 const TAG_LETTER: Readonly<Record<SheetOpening['kind'], string>> = { door: 'D', slider: 'D', window: 'W', cutout: 'C' }
 
 /** Main floor, metres NAVD88, as the scene sets the group (railOwner's base). */
@@ -88,7 +91,9 @@ function sheetBuilding(o: PlanObject, world: RailWorld, trees: PartSite['trees']
   const parts = tagOpenings(masses.map((_, mi) => sheetPart(site, mi)))
   const bounds = boundsOf(parts.flatMap(partPoints))
   const outlineBounds = boundsOf(parts.flatMap((p) => p.outline))
-  const main = boundsOf(parts[0]?.outline ?? [])
+  const mainOutline = parts[0]?.outline ?? []
+  const main = boundsOf(mainOutline)
+  const datumOnWall = mainOutline.some((p) => Math.hypot(p[0] - main.minx, p[1] - main.minz) <= ON_CORNER_FT)
   return {
     id: o.id,
     name: o.name,
@@ -98,6 +103,8 @@ function sheetBuilding(o: PlanObject, world: RailWorld, trees: PartSite['trees']
     bounds,
     outlineBounds,
     datum: [main.minx, main.minz],
+    datumOnWall,
+    mainBounds: main,
     levels: levelsOf(o, world, floorM, parts),
     totalAreaSqFt: areasOf(parts, masses),
   }

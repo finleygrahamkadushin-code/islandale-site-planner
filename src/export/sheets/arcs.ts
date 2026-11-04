@@ -3,12 +3,15 @@ import type { SheetArc } from './types'
 
 /**
  * Curves in an outline. The app stores a curved wall as many short straight
- * edges; a drawing dimensions it as one arc (centre, radius, sweep), the way
- * it would be laid out on site. A run of at least MIN_EDGES short edges,
- * each turning the same way by a similar small angle, is fitted with a
- * circle and kept when every vertex lies within MAX_FIT_FT of it.
+ * edges; a drawing dimensions it as arcs (centre, radius, sweep), the way it
+ * would be laid out on site. A run of at least MIN_EDGES short edges, each
+ * turning the same way by a similar small angle, is covered by circles that
+ * each keep every vertex of theirs within MAX_FIT_FT: one arc for a true
+ * circle, a compound curve of several for an ellipse, kidney or blob.
  */
 const MIN_EDGES = 4
+/** Within a smooth run, an arc of a compound curve may be this short. */
+const MIN_ARC_EDGES = 2
 const MAX_EDGE_FT = 4
 const MAX_TURN_DEG = 30
 /** A vertex turning less than this is straight, not part of a curve. */
@@ -107,8 +110,14 @@ function turnsOf(pts: readonly LocalPoint[], closed: boolean, count: number): nu
 
 const similar = (t: number, p: number) => Math.sign(t) === Math.sign(p) && Math.abs(t - p) <= Math.max(SIMILAR_DEG, SIMILAR_SHARE * Math.max(Math.abs(t), Math.abs(p)))
 
+/** A smooth run of edge indices in walking order; a cyclic one is a whole closed outline with no break, so it has no first edge. */
+interface Run {
+  readonly edges: readonly number[]
+  readonly cyclic: boolean
+}
+
 /** Candidate runs of edge indices (in walking order), each edge joining the one before into a curve. */
-function candidateRuns(lens: readonly number[], turns: readonly number[], closed: boolean): number[][] {
+function candidateRuns(lens: readonly number[], turns: readonly number[], closed: boolean): Run[] {
   const count = lens.length
   const short = (i: number) => lens[i] > 1e-6 && lens[i] < MAX_EDGE_FT
   const bends = (t: number) => Math.abs(t) >= MIN_TURN_DEG && Math.abs(t) < MAX_TURN_DEG
@@ -122,7 +131,7 @@ function candidateRuns(lens: readonly number[], turns: readonly number[], closed
   if (closed) {
     const breaks = lens.map((_, i) => !joins(i, null))
     start = breaks.indexOf(true)
-    if (start < 0) return [lens.map((_, i) => i)]
+    if (start < 0) return [{ edges: lens.map((_, i) => i), cyclic: true }]
   }
   const runs: number[][] = []
   let cur: number[] = []
@@ -139,7 +148,7 @@ function candidateRuns(lens: readonly number[], turns: readonly number[], closed
     prevTurn = null
   }
   if (cur.length) runs.push(cur)
-  return runs.filter((r) => r.length >= MIN_EDGES)
+  return runs.filter((r) => r.length >= MIN_EDGES).map((edges) => ({ edges, cyclic: false }))
 }
 
 function arcOf(pts: readonly LocalPoint[], lens: readonly number[], run: readonly number[]): SheetArc | null {
@@ -160,30 +169,87 @@ function arcOf(pts: readonly LocalPoint[], lens: readonly number[], run: readonl
   }
 }
 
-/** The best arc in a run: the whole run, else the run trimmed of an odd edge at either end. */
-function bestArc(pts: readonly LocalPoint[], lens: readonly number[], run: readonly number[]): SheetArc | null {
-  for (let trim = 0; run.length - trim >= MIN_EDGES; trim++) {
-    for (let head = 0; head <= trim; head++) {
-      const arc = arcOf(pts, lens, run.slice(head, run.length - (trim - head)))
-      if (arc) return arc
-    }
+interface Fit {
+  readonly arc: SheetArc
+  /** Where the arc starts in the run, and how many edges it takes. */
+  readonly at: number
+  readonly size: number
+}
+
+/** The best-fitting arc of exactly `size` edges anywhere in the run (wrapping round a cyclic one), or null. */
+function fitOfSize(pts: readonly LocalPoint[], lens: readonly number[], run: Run, size: number): Fit | null {
+  const n = run.edges.length
+  const starts = run.cyclic ? (size === n ? 1 : n) : n - size + 1
+  let best: Fit | null = null
+  for (let at = 0; at < starts; at++) {
+    const sub = Array.from({ length: size }, (_, k) => run.edges[(at + k) % n])
+    const arc = arcOf(pts, lens, sub)
+    if (arc && (!best || arc.fitErrorFt < best.arc.fitErrorFt - 1e-9)) best = { arc, at, size }
   }
-  return null
+  return best
+}
+
+/** The longest arc in the run that fits (a binary search on its length, as a shorter stretch of a fitting one fits too). */
+function longestFit(pts: readonly LocalPoint[], lens: readonly number[], run: Run): Fit | null {
+  let lo = MIN_ARC_EDGES
+  let hi = run.edges.length
+  let best = fitOfSize(pts, lens, run, lo)
+  if (!best) return null
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2)
+    const fit = fitOfSize(pts, lens, run, mid)
+    if (fit) {
+      best = fit
+      lo = mid
+    } else hi = mid - 1
+  }
+  return best
+}
+
+/**
+ * A run as arcs meeting end to end, a compound curve a draftsman can swing
+ * with a compass: the longest stretch that fits first, then what is left on
+ * either side of it the same way. A single edge left over between two arcs
+ * stays a chord.
+ */
+function segment(pts: readonly LocalPoint[], lens: readonly number[], run: Run): SheetArc[] {
+  if (run.edges.length < MIN_ARC_EDGES) return []
+  const fit = longestFit(pts, lens, run)
+  if (!fit) return []
+  const n = run.edges.length
+  const rest = Array.from({ length: n - fit.size }, (_, k) => run.edges[(fit.at + fit.size + k) % n])
+  if (run.cyclic) return [fit.arc, ...segment(pts, lens, { edges: rest, cyclic: false })]
+  const before = run.edges.slice(0, fit.at)
+  const after = run.edges.slice(fit.at + fit.size)
+  return [...segment(pts, lens, { edges: before, cyclic: false }), fit.arc, ...segment(pts, lens, { edges: after, cyclic: false })]
+}
+
+export interface Curves {
+  /** Arcs in order of their first edge. */
+  readonly arcs: SheetArc[]
+  /** Per edge: whether it is one of a smooth run's edges (on an arc, or a chord left between two). */
+  readonly smooth: boolean[]
 }
 
 /**
  * Circular arcs in an outline (feet), as runs of its edges: edge i runs from
- * vertex i to i + 1. A closed outline's arc may run through vertex 0, so its
- * fromEdge can be larger than its toEdge; a ring of edges that is all curve
- * is one arc of every edge. Sweep is the turn along the arc, always positive.
+ * vertex i to i + 1. Every smooth run (at least MIN_EDGES short edges
+ * turning the same way by similar small angles) is covered by arcs meeting
+ * end to end. A closed outline's arc may run through vertex 0, so its
+ * fromEdge can be larger than its toEdge; a ring of edges that is all one
+ * circle is one arc of every edge. Sweep is the turn along the arc, always
+ * positive.
  */
-export function fitArcs(outline: readonly LocalPoint[], closed: boolean): SheetArc[] {
+export function fitCurves(outline: readonly LocalPoint[], closed: boolean): Curves {
   const count = closed ? outline.length : outline.length - 1
-  if (outline.length < 3 || count < MIN_EDGES) return []
+  const smooth = Array.from({ length: Math.max(0, outline.length) }, () => false)
+  if (outline.length < 3 || count < MIN_EDGES) return { arcs: [], smooth }
   const lens = Array.from({ length: count }, (_, i) => dist(outline[i], outline[(i + 1) % outline.length]))
   const turns = turnsOf(outline, closed, count)
-  return candidateRuns(lens, turns, closed)
-    .map((run) => bestArc(outline, lens, run))
-    .filter((a): a is SheetArc => a !== null)
-    .sort((a, b) => a.fromEdge - b.fromEdge)
+  const runs = candidateRuns(lens, turns, closed)
+  for (const run of runs) for (const i of run.edges) smooth[i] = true
+  const arcs = runs.flatMap((run) => segment(outline, lens, run)).sort((a, b) => a.fromEdge - b.fromEdge)
+  return { arcs, smooth }
 }
+
+export const fitArcs = (outline: readonly LocalPoint[], closed: boolean): SheetArc[] => fitCurves(outline, closed).arcs

@@ -1,8 +1,10 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import type { LocalPoint } from '../../buildings/footprint'
+import { localFootprint } from '../../buildings/footprint'
 import { buildingMasses, massBuildingPoly, massPoly } from '../../buildings/masses'
 import { usePlanStore } from '../../store/planStore'
-import { fitArcs } from './arcs'
+import { fitArcs, fitCurves } from './arcs'
+import { edgeInArc } from './openings'
 
 /** Points round a circle from a0 to a1 degrees, in k equal edges. */
 const arcPts = (cx: number, cz: number, r: number, a0: number, a1: number, k: number): LocalPoint[] =>
@@ -62,6 +64,41 @@ describe('fitArcs on drawn shapes', () => {
   test('a zig-zag of short edges is not a curve', () => {
     const zig: LocalPoint[] = Array.from({ length: 10 }, (_, i) => [i * 2, i % 2 ? 0.3 : 0])
     expect(fitArcs(zig, false)).toEqual([])
+  })
+})
+
+describe('fitCurves on curved footprints', () => {
+  const SHAPES = ['ellipse', 'kidney', 'teardrop', 'blob', 'ribbon']
+
+  // a ribbon's w is its centreline's length and d its width
+  const sizes = (shape: string) => (shape === 'ribbon' ? [[40, 6], [20, 4], [60, 8]] : [[40, 24], [14, 9], [26, 6.5]])
+
+  for (const shape of SHAPES) {
+    for (const [w, d] of sizes(shape)) {
+      test(`a ${w} × ${d} ${shape}: every smooth run is arcs end to end, each a true fit, a chord left only singly between two`, () => {
+        const outline = localFootprint({ shape, w, d })
+        const n = outline.length
+        const { arcs, smooth } = fitCurves(outline, true)
+        expect(arcs.length).toBeGreaterThan(0)
+        const owners = Array.from({ length: n }, (_, i) => arcs.filter((a) => edgeInArc(i, a)).length)
+        expect(owners.every((k) => k <= 1)).toBe(true)
+        for (const a of arcs) {
+          expect(a.fitErrorFt).toBeLessThan(0.1)
+          expect(smooth[a.fromEdge] && smooth[a.toEdge]).toBe(true)
+        }
+        const bare = smooth.map((s, i) => s && owners[i] === 0)
+        expect(bare.some((b, i) => b && bare[(i + 1) % n])).toBe(false)
+        expect(owners.filter((k) => k > 0).length).toBeGreaterThanOrEqual(smooth.filter(Boolean).length * 0.9)
+      })
+    }
+  }
+
+  test("an ellipse's arcs come in mirror pairs, as the shape does", () => {
+    const radii = fitArcs(localFootprint({ shape: 'ellipse', w: 40, d: 24 }), true)
+      .map((a) => a.radiusFt)
+      .sort((p, q) => p - q)
+    expect(radii.length % 2).toBe(0)
+    for (let i = 0; i < radii.length; i += 2) expect(radii[i]).toBeCloseTo(radii[i + 1], 3)
   })
 })
 
