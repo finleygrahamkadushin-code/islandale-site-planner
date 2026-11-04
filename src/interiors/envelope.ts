@@ -35,6 +35,9 @@ const FLOOR_HEIGHT_FT = 9
 /** On upper floors only parts at least this tall (ft) are enclosed. */
 const TALL_FT = 15
 
+/** The floor a part at level `lvl` (feet above the main floor) belongs to. */
+export const floorAtLevel = (lvl: number): number => Math.round(lvl / FLOOR_HEIGHT_FT)
+
 const isAccess = (m: Mass) => m.kind === 'stair' || m.kind === 'ramp'
 const isPts = (P: readonly (readonly number[])[] | undefined): P is Poly => Array.isArray(P) && P.length >= 3
 
@@ -195,6 +198,17 @@ export function planPoly(params: Record<string, unknown>, m: Mass, masses: reado
   return isPts(P) && !m.open ? dpClosed(P, PLAN_TOL, landings(params, masses)) : P
 }
 
+/**
+ * The parts whose walls enclose floor fi: every walled part on the main
+ * floor; above it, the tall ones, or the main part when none is tall.
+ */
+export function enclosedOn<T extends { readonly m: Mass; readonly i: number }>(list: readonly T[], fi: number): T[] {
+  const encl = list.filter((e) => !e.m.open)
+  if (fi < 1) return encl
+  const tall = encl.filter((e) => e.m.h >= TALL_FT)
+  return tall.length ? tall : list.filter((e) => e.i === 0)
+}
+
 const cache = new Map<string, Envelope>()
 const CACHE_MAX = 64
 const ZERO_BOX: G.Box = { x1: 0, z1: 0, x2: 0, z2: 0, w: 0, d: 0 }
@@ -206,15 +220,11 @@ export function envelopeOf(params: Record<string, unknown>, fi = 0): Envelope {
   const key = `${fi}${JSON.stringify(raw)}${JSON.stringify(all.map((m) => [m.kind, m.open, m.h, m.lvl]))}${JSON.stringify((floors[0] as { flats?: unknown } | undefined)?.flats ?? 0)}`
   const hit = cache.get(key)
   if (hit) return hit
-  const onFloor = (m: Mass) => Math.round(m.lvl / FLOOR_HEIGHT_FT) === fi
+  const onFloor = (m: Mass) => floorAtLevel(m.lvl) === fi
   const lands = landings(params, all)
   const polys = raw.map((P, i) => (isPts(P) && !all[i].open ? dpClosed(P, PLAN_TOL, lands) : P))
   const list = all.flatMap((m, i) => (isPts(polys[i]) && G.area(polys[i]) > G.EPS ? [{ m, i, P: G.ensureCCW(polys[i]) }] : []))
-  let encl = list.filter((e) => !e.m.open)
-  if (fi >= 1) {
-    const tall = encl.filter((e) => e.m.h >= TALL_FT)
-    encl = tall.length ? tall : list.filter((e) => e.i === 0)
-  }
+  const encl = enclosedOn(list, fi)
   const M = encl.map((e) => e.P)
   const simplified = encl.some((e) => raw[e.i] !== polys[e.i])
   let tiles = M.length ? G.disjointTiles(M) : []
