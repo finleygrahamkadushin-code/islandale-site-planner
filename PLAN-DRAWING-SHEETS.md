@@ -47,6 +47,16 @@ Known limits:
 - Curved footprints (ellipse, kidney, teardrop, blob, ribbon) are still drawn as their box until Phase 5D. The model marks them `approximate`, and they'll come out right once 5D lands, because the sheets read the same geometry.
 - Interiors (rooms) aren't in the new app yet (Phase 5B).
 
+## 5D rework (Nov 4 2026)
+
+### Elevation capture (branch `sheets-5d-capture`)
+
+- **Outlines:** the capture now draws the outline a surface makes as seen from each side, as well as its creases, so dome, sod and curved vault roofs get their profile (they have no sharp crease). `src/scene/edgeTable.ts` welds each geometry's edges once (cached per geometry). Then `pickEdges` chooses, for each view, the creases sharper than 25°, the edges where the surface turns away from the camera, and open edges. The view is carried into each mesh's own space, so any rotation or scale works.
+- **Smooth shading decides curves:** an edge the mesh shades smooth (its vertex normals agree across it) is not drawn as a crease unless it is sharper than 70°. That turns stilt struts, round posts, piers, tip columns and bridge members into two outline lines instead of hatching, with no tag per part. This replaces the scout's per-mesh `sheetCrease` tag, because it also covers parts added later. Elsewhere the crease output matches EdgesGeometry within a few edges (probe over every classic roof on every footprint).
+- **Tags** (`src/scene/sheetTarget.ts`): `sheetSkip` leaves a subtree out (InteriorMesh's root, sod tufts). `sheetOwner: id` puts a mesh in that object's elevations without making it the object: retaining walls are now one mesh per building and material, and door thresholds and deck filler strips carry their owner. Path tabs carry theirs too, so they appear only in a piece's own elevation. Every other mesh under the building is drawn white with its edges. An instanced mesh draws every copy, with its per-instance colours taken off during the capture. Lines of every kind are hidden, including Sketch's fat lines (drei Edges, meshes of line quads), which used to draw as white boxes.
+- **Roofs off:** a capture holds every roof on (`holdRoofs` in `sheetCapture.ts`, read through `useRoofsOff`). The Roofs off toggle itself never changes. Roofs go back about 250 ms after the last capture of a batch, so the four sides don't flicker. The hold is released in `finally`, and materials, visibility and instance colours are restored there too.
+- **Tests:** `edgeTable.test.ts` checks that every roof type (vault and saddle included) on every footprint shape, and every Scheme C/C2/C3/C4 wall and roof mass, draws its outline against the sky from four sides and two turned views. `sheetTarget.test.ts` covers the tags, instancing and fat lines, and `sheetCapture.test.ts` covers the roof hold. In the browser, schemes C–C4 and D (Roofs off on, in Realistic, Sketch and Diagram) gave the same image in every style. Every image had zero coloured pixels and its roof drawn up to the window top. `sceneStats()` was unchanged afterwards and Roofs off was restored.
+
 ## How to run
 
 ```bash
