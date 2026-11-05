@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C in detail below, waiting for Finley's OK; 4D–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan") and built on branch `claude/4c-using-plan-15a5b2`; 4D–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -170,7 +170,7 @@ All are unstyled and take the app's tokens. **New section:** `src/layout/`, with
 - **Inspector headings open by default:** Placement and Size and shape; the rest start closed and are remembered.
 - **W:** expands the Openings heading, rather than opening a separate walls editor.
 
-## 4C in detail: Beginner (waiting for Finley's OK)
+## 4C in detail: Beginner (approved, built)
 
 Branch: `phase-4c-beginner`, from `main` after 4B.
 

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openSection } from './inspector'
 
 /**
  * Phase 2 done-when check: rearrange Scheme C, lock it, hide names, reload,
@@ -68,9 +69,10 @@ test('move, lock, hide names, reload: the plan comes back unchanged', async ({ p
   expect(moved.undoSteps).toBe(3)
 
   // Lock it: the gizmo goes away and a nudge is refused with a toast.
+  await openSection(page, 'visibility')
   await page.getByLabel('Locked').check()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('status')).toContainText(/locked/i)
+  await expect(page.getByRole('status').filter({ hasText: /locked/i })).toBeVisible()
   const locked = await snapshot(page)
   expect(locked.locked).toBe(true)
   expect(locked.x).toBeCloseTo(moved.x, 9)

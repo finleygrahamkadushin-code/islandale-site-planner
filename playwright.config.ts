@@ -10,6 +10,11 @@ export default defineConfig({
     baseURL: 'http://localhost:5174',
     trace: 'retain-on-failure',
     viewport: { width: 1280, height: 800 },
+    // every spec starts as a seasoned browser (Advanced, tour seen); the Beginner spec clears this itself
+    storageState: {
+      cookies: [],
+      origins: [{ origin: 'http://localhost:5174', localStorage: [{ name: 'islandale-mode', value: 'advanced' }, { name: 'islandale-tour', value: 'done' }] }],
+    },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {

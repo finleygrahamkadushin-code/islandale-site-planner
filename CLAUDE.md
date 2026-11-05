@@ -25,6 +25,7 @@ src/
   interiors/    feature (map inside): the floor-plan model at the top, then editor/ furniture/ scene3d/
   tools/        feature (map inside): tool strip, object library, place, drag, snap, duplicate, measure, box select, align
   layout/       feature (map inside): task tabs, bottom bar, command search, shortcuts sheet, view keys
+  guide/        feature (map inside): Beginner / Advanced mode, the shared tooltip, glossary words, the confirm dialog, the first-run tour
   export/       planFile.ts (plan download) and sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/
   scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
   ui/           shared UI only: top bar, side panel, inspector shell, layers, history, fields, shortcuts
@@ -46,6 +47,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
 | Tool strip, object library, placing, dragging, snapping, duplicate, Q / E / R turns, measuring, box select, align | `src/tools/` | `src/tools/CLAUDE.md` |
 | Task tabs, which panels each tab shows, bottom bar, command search, shortcuts sheet, view keys | `src/layout/` | `src/layout/CLAUDE.md` |
+| Beginner / Advanced, what Beginner hides, tooltips, glossary words, delete confirmation, the first-run tour | `src/guide/` | `src/guide/CLAUDE.md` |
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
 | Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
