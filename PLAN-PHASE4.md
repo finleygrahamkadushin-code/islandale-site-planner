@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan") and built on branch `claude/4c-using-plan-15a5b2`; 4D–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan") built and merged into main. 4D–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
