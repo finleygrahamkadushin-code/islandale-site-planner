@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A in detail below, waiting for Finley's OK.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A trimmed to the essentials, with everything else placed in 4B–4E; waiting for Finley's OK on 4A.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -12,11 +12,11 @@ Phase 4 is too big for one branch, so it is split like Phase 5. Each part gets i
 
 | Part | Builds | Done when |
 | --- | --- | --- |
-| **4A · Tools** | One current tool in the store and a left tool strip; the object library and place tool for every object type; drag to move; snapping (1 ft, 5°) with a toggle; Q / E / R turns; duplicate; the measure tool; the pointer's elevation and slope readout; a mode chip | From Scheme C you can place a cabin, a tree and a pad from the library, duplicate one, drag it with snapping, turn it with Q / E, and measure between two cabins. Each step is one undo step, refused on a locked layer, and the readout shows the ground under the pointer |
-| **4B · Layout** | Site / Build / Interior / Present task tabs, each showing only its tools; the inspector grouped under collapsible headings; empty states that teach; the Help menu with a shortcuts sheet; Cmd/Ctrl+K command search; box select and moving a group; align and distribute | Every tool sits in one tab, the inspector reads top to bottom by heading, and Cmd+K finds and runs any action or setting |
-| **4C · Beginner** | The Beginner / Advanced switch (**Beginner by default** for a new browser), plain-language names, tooltips on every control with one-line definitions (setback, OHWM, NAVD88, pitch, overhang), delete confirmation in Beginner only, and the five-step first-run tour | Someone new can place, move, lock and save a cabin in about a minute without help |
-| **4D · Present** | Present mode (full screen, no editing controls, saved views as a strip, labels off, a sun animation from morning to golden hour, Escape to leave); compass and scale bar; loading splash; PNG snapshot | Present mode shows the saved views full screen with no editing controls and looks at least as good as the Phase 3 screenshots |
-| **4E · Graphics polish** | Beach and shore (gravel and driftwood band, a foam line that moves with the tide, wet sand); soft contact shadows under each cabin; warmer sunset sky and distance haze; a cleaner Sketch style; faster first frame (target under 3 s); the WebGPU test behind `?gpu=1` | The scene shows in under 3 s on a fresh load, and the shore and contact shadows read in every display style |
+| **4A · Tools (essentials)** | One current tool and a mode chip; a left tool strip; the object library and place tool for every object type; drag to move; snapping (1 ft, 5°) with Q / E / R turns; duplicate | From Scheme C you can place a cabin, a tree and a pad from the library, duplicate one, drag it with snapping, and turn it with Q / E / R. Each step is one undo step and is refused on a locked layer |
+| **4B · Layout and site tools** | Site / Build / Interior / Present task tabs; the grouped inspector; the measure tool; the pointer's elevation and slope readout; camera views (orbit, plan, from the water); display toggles; legend; lot facts; selection stats; Help with a shortcuts sheet; Cmd/Ctrl+K command search; box select, group moves, align and distribute; keep placing with Shift-click | Every tool sits in one tab, the inspector reads top to bottom by heading, you can measure between two cabins and read the ground under the pointer, and Cmd+K finds and runs any action or setting |
+| **4C · Beginner** | The Beginner / Advanced switch (**Beginner by default**), plain-language names, tooltips with one-line definitions, delete confirmation in Beginner only, the five-step first-run tour, and a full accessibility pass | Someone new can place, move, lock and save a cabin in about a minute without help, and the Lighthouse accessibility score is 95 or more |
+| **4D · Present** | Present mode with the sun animation; compass and scale bar; loading splash; PNG snapshot; a message when WebGL isn't available | Present mode shows the saved views full screen with no editing controls and looks at least as good as the Phase 3 screenshots |
+| **4E · Polish** | Beach and shore; contact shadows; sky and haze; a cleaner Sketch style; faster first frame; React re-render tuning; the WebGPU test; a light theme and a narrow-screen layout | The scene shows in under 3 s on a fresh load, dragging stays smooth on Scheme C, and the shore and shadows read in every display style |
 
 ## Decisions (Finley, Nov 4 2026)
 
@@ -24,38 +24,53 @@ Phase 4 is too big for one branch, so it is split like Phase 5. Each part gets i
 - **Snapping:** moves snap to 1 ft and turns to **5°**, as in the old planner (Q / E turn 5°, R turns 90°).
 - **Beginner mode is the default** for a new browser; Advanced is one click and remembered.
 - **Graphics polish** is its own part, 4E, after 4D.
+- **4A holds only the essentials**; everything else from the first draft, from 5E's tools, and from the old planner's toolbar is placed in 4B–4E below.
 
-## 4A in detail (waiting for Finley's OK)
+## Libraries, skills and design rules (all parts)
+
+- **Libraries:**
+  - **Radix UI primitives** for tooltips, toggle groups, popovers, dialogs and collapsibles. They're accessible and keyboard-reachable, and styled with the app's own CSS tokens.
+  - **`lucide-react`** for SVG icons, never emoji.
+  - **`cmdk`** for command search (4B).
+  - **No Tailwind or shadcn/ui:** both would mean restyling the whole app.
+- **Design rules:** every part follows the ui-ux-pro-max accessibility and interaction rules:
+  - Text contrast of at least 4.5:1.
+  - A visible focus ring on every control.
+  - Hit targets of at least 32 px.
+  - No hover-only controls.
+  - Every icon button has an `aria-label` and a tooltip.
+  - New colours are tokens on `:root` in `src/app/styles.css`, never raw hex in components.
+- **Skills, used where they fit** (installed Nov 4 2026):
+
+| Skill | From | Used in |
+| --- | --- | --- |
+| `web-design-guidelines` (Vercel's Web Interface Guidelines, pinned locally) | vercel-labs/agent-skills | A review of every part's new UI files before its done-when check |
+| `ui-ux-pro-max` | nextlevelbuilder/ui-ux-pro-max-skill | Accessibility and interaction rules in every part; style and palette choices in 4C and 4E |
+| `vercel-composition-patterns` | vercel-labs/agent-skills | 4B: the inspector regrouping and the task tabs as compound components, not boolean props |
+| `frontend-design` | anthropics/skills (example-skills) | 4B layout and 4D Present mode's look |
+| `webapp-testing` | anthropics/skills (example-skills) | 4C: the first-time-user walk and tour tests |
+| `vercel-react-best-practices` | vercel-labs/agent-skills | 4E: re-render and bundle-size tuning |
+| `theme-factory` | anthropics/skills (example-skills) | 4E: the light theme |
+
+## 4A in detail: the essentials (waiting for Finley's OK)
 
 Branch: `phase-4a-tools`, from `main`.
 
 The tools get their own section, `src/tools/`, with a `CLAUDE.md` map like the others. The tool's store slice is `src/store/toolActions.ts`.
 
-**Libraries and design rules (added after the Nov 4 2026 review of the ui-ux-pro-max plugin and GitHub):**
-- **Radix UI primitives** (`@radix-ui/react-tooltip`, `@radix-ui/react-toggle-group`) for the tool strip's tooltips and buttons. They're keyboard-reachable from the start, so 4C builds on them rather than redoing the strip. They're styled with the app's own CSS tokens. **No Tailwind or shadcn/ui:** both would mean restyling the whole app.
-- **Icons:** `lucide-react` (MIT, tree-shaken, about 1 KB per icon), as SVG, never emoji. Every icon button gets an `aria-label` and a tooltip with its key.
-- **Accessibility checks from the ui-ux-pro-max rules:** text contrast of at least 4.5:1, a visible focus ring on every control, at least 32 px hit targets (the app is desktop-first), and no hover-only controls. New colours go in as tokens on `:root` in `src/app/styles.css`, never as raw hex in components.
-- **Review step:** before the done-when check, the tool strip, library and mode chip get a pass with the ui-ux-pro-max accessibility and interaction rules, plus a Lighthouse accessibility audit through Chrome DevTools.
-
-1. **One current tool.** The store holds one `tool`: `select`, `place` (with the library item), `measure`, `paint` or `connect`.
+1. **One current tool.** The store holds one `tool`: `select`, `place` (with the library item), `paint` or `connect`.
    - Today's separate `placing`, `painting` and `connecting` flags become this one value. They already exclude each other, so behaviour doesn't change.
-   - Switching tools is view state: never an undo step, never saved with the plan.
-   - Escape returns to Select. A mode chip over the view says what's active ("Placing: Guest cabin · R to turn · Esc to stop"), as in the old planner.
+   - Switching tools is view state: never an undo step, never saved with the plan. Escape returns to Select.
+   - A mode chip over the view says what's active ("Placing: Guest cabin · R to turn · Esc to stop"), so you always know which tool you're in.
 2. **Left tool strip.** A narrow strip down the left edge of the 3D view:
-   - **Tools:** Select (V), Place (opens the library), Measure (M), Paint (P), Connect (C), and the Snap toggle. Each has a tooltip with its key.
-   - **Path pieces:** the Path pieces library moves into Place, alongside the other objects.
+   - **Tools:** Select (V), Place (opens the library), Paint (P), Connect (C), and the Snap toggle, as Radix toggle buttons with lucide icons. Each has a tooltip with its name and key.
+   - **Path pieces:** the Path pieces library moves into Place, alongside the other objects. Measure joins the strip in 4B.
 3. **Object library and place tool.** Every object the old planner's library offers, with its defaults: Main house, Guest cabin, Shop / garage, Deck, Driveway, Trailer pad, Shed, Drainfield reserve, Garden beds, the four trees, Granite erratic, Native meadow, Rain-garden pond, Sky bridge and Plunge pool, plus the five path pieces.
-   - **Placing:** a ghost follows the pointer on the ground, snapping when Snap is on. R turns it 90°, and Q / E turn it 5°. A click places it as one undo step and selects it. Shift-click keeps placing more.
+   - **Placing:** a ghost follows the pointer on the ground. R turns it 90°, and Q / E turn it 5°. A click places it as one undo step, selects it, and returns to Select.
    - **Locks:** placing is refused on a locked layer, with a toast saying why.
-4. **Drag to move.** Drag a selected, unlocked object across the ground to move it, as the old Select tool did. It's one undo step, it snaps when Snap is on, and the move gizmo stays as it is.
-5. **Snapping.** With Snap on, moves land on a 1 ft grid and turns on 5° steps: dragging, the gizmo, placing, and the resize handles. The snapped value shows beside the pointer while dragging. Q / E turn the selection 5° and R turns it 90°, each as one undo step.
+4. **Drag to move.** Drag a selected, unlocked object across the ground to move it, as the old Select tool did. It's one undo step, and the move gizmo stays as it is.
+5. **Snapping and turning.** With Snap on (the default), moves land on a 1 ft grid and turns on 5° steps: dragging, the gizmo, placing, and the resize handles. Q / E turn the selection 5° and R turns it 90°, each as one undo step and refused when locked.
 6. **Duplicate.** Cmd/Ctrl+D copies the selection 5 ft east and south, as one undo step, and selects the copies. Refused on a locked layer.
-7. **Measure tool (M).**
-   - **Use:** click two points on the ground or on any object.
-   - **Readout:** horizontal distance, slope distance and rise, in feet and inches, as a line and a label in 3D.
-   - **Keeping measurements:** the last five stay until you press Clear. Esc drops the one in progress.
-   - **Storage:** measurements are view state, not plan data.
-8. **Pointer readout.** The ground elevation (NAVD88, feet) and slope (%) under the pointer, at the bottom of the view, with earthworks applied.
 
 **Tests first:**
 - **Tool state:** switching tools adds no undo step, Escape returns to Select, and starting one tool ends the others.
@@ -63,32 +78,75 @@ The tools get their own section, `src/tools/`, with a `CLAUDE.md` map like the o
 - **Placing:** each placement is one undo step, lands at the click, is selected afterwards, and is refused on a locked layer.
 - **Snapping:** positions round to 1 ft and turns to 5°; Q / E / R turn by 5°, 5° and 90°.
 - **Duplicate:** one undo step, offset 5 ft, refused on a locked layer.
-- **Measure:** horizontal, slope and vertical distances against known terrain points.
-- **Readout:** elevation and slope against the terrain grid.
 - **E2e:** the done-when walk above, in Playwright.
+
+**Review before done-when:** run the `web-design-guidelines` skill over the new `src/tools/` UI files, and fix what it finds.
 
 Anything that behaves differently from the old planner goes into PLAN.md under "Deliberate changes from the legacy file".
 
-## 4B–4E: notes carried from the first draft
+## 4B in outline: layout and site tools
 
-**4B · Layout.**
-- **Top bar:** plan name, the four task tabs, undo and redo, display style, save status.
-- **Right side:** the inspector for the selection, or Layers plus Sun and tide when nothing is selected.
-- **Bottom:** the saved-views strip and a one-line hint ("Drag to orbit · right-drag to pan · scroll to zoom").
-- **Tabs:** Site has layers, sun and tide, the terrain lock and contours. Build has the tools, parts, openings, railings and paint. Interior opens the floor-plan editor. Present enters Present mode.
-- **Inspector headings:** Placement, Size, Roof, Openings, Foundation, Look.
-- **Libraries:** command search uses `cmdk` (13k stars, unstyled, so it takes the app's own tokens). The inspector's collapsible headings use Radix Collapsible.
+- **Layout:**
+  - **Top bar:** plan name, the four task tabs, undo and redo, display style, save status.
+  - **Left tool strip:** the current tab's tools only.
+  - **Right side:** the inspector for the selection, or Layers plus Sun and tide when nothing is selected.
+  - **Bottom:** the saved-views strip, the pointer readout and a one-line hint ("Drag to orbit · right-drag to pan · scroll to zoom").
+- **Tabs:**
+  - **Site:** layers, sun and tide, the terrain lock, contours, measure, legend, lot facts.
+  - **Build:** the 4A tools, parts, openings, railings and paint.
+  - **Interior:** opens the floor-plan editor.
+  - **Present:** enters Present mode.
+- **Inspector:** grouped under Radix collapsible headings (Placement, Size, Roof, Openings, Foundation, Look), using composition patterns rather than boolean props. Selection stats (elevation, clearance, area) sit at the top.
+- **Measure tool (M):** click two points on the ground or any object. It shows horizontal distance, slope distance and rise in feet and inches, as a line and label in 3D. The last five stay until Clear; Esc drops the one in progress. View state, not plan data.
+- **Pointer readout:** ground elevation (NAVD88, feet) and slope (%) under the pointer, with earthworks applied.
+- **Camera views:** Orbit, Plan (straight down) and From the water buttons, beside the saved views.
+- **Display toggles:** occlusion, shadows and edges on and off on their own, plus number keys 1 / 2 / 3 for the display styles.
+- **Legend:** the ground colour key (earthworks tints, contours, setbacks).
+- **Lot facts:** lot area and shoreline length in the Site tab.
+- **Help menu:** a controls and shortcuts sheet (?), and the old keys V, M, I, W, P, C, 1–3, Q / E / R, F.
+- **Command search (Cmd/Ctrl+K, `cmdk`):** actions (add cabin, lock all, golden hour, white model) and the selected object's settings.
+- **Box select:** Shift-drag on empty ground selects everything inside; the gizmo or a drag then moves the group as one undo step, skipping locked objects.
+- **Align and distribute** for multi-selections.
+- **Keep placing:** Shift-click places one and stays in Place.
+- **Empty states that teach** ("Add a cabin from the tool strip, then drag it into place").
 
-**4C · Beginner.**
+## 4C in outline: Beginner
+
+- **Beginner / Advanced switch:** Beginner by default, remembered per browser.
 - **Hidden in Beginner:** pitch, ridge direction, overhang, post spacing, foundation type and per-layer locks, with plain-language names ("How steep the roof is").
-- **Tooltips:** Radix UI Tooltip (already in from 4A), so they're keyboard-reachable. The tour uses Radix Popover anchored to each control.
-- **Tour:** five steps (orbit, select, move, lock, save); skippable, replayable from Help, and remembered per browser.
+- **Tooltips everywhere** (Radix, already in from 4A), with one-line definitions of setback, OHWM, NAVD88, pitch and overhang.
+- **Delete confirmation in Beginner only.** Advanced keeps undo as the safety net.
+- **First-run tour:** five steps (orbit, select, move, lock, save), as Radix popovers anchored to each control; skippable, replayable from Help, and remembered.
+- **Full accessibility pass:**
+  - Running the `web-design-guidelines` and ui-ux-pro-max rules over all of `src/ui/` and every panel, not just the new ones.
+  - A Lighthouse accessibility audit through Chrome DevTools (target 95 or more).
+  - `prefers-reduced-motion` respected.
+- **Tests:** the first-time-user walk and the tour, using the `webapp-testing` skill alongside Playwright.
 
-**4D · Present.**
+## 4D in outline: Present
+
+- **Present mode:**
+  - **Layout:** full screen with every editing control and panel hidden, the saved views as a strip, and labels off by default.
+  - **Sun animation:** a play button runs the sun from 7 am to golden hour.
+  - **Leaving:** Escape leaves.
+  - **Design:** its look follows the `frontend-design` skill.
+- **Compass and scale bar** in the corner of the 3D view, both following the camera.
+- **Loading splash** while shaders compile.
+- **PNG snapshot** of the current view.
+- **WebGL fallback message** when the browser can't run WebGL.
 - **Open question:** should Present mode also offer a slow orbit animation, or only the sun animation?
 
-**4E · Graphics polish.**
+## 4E in outline: polish
+
+- **Beach and shore:** a gravel and driftwood band along the shoreline, a foam line that moves with the tide, and wet sand above the water.
+- **Contact shadows** under each cabin, in every style.
+- **Sky:** warmer sunset colours and a subtle distance haze over Mud Bay.
+- **Sketch style:** cleaner, slightly thicker silhouettes, with no lines on terrain triangles.
+- **Faster first frame:**
+  - Precompile materials once (`gl.compile`), and load the reflection and post-processing after the first frame.
+  - Target: under 3 s on a fresh load.
+- **React tuning:** re-renders and bundle size (the build warns about chunks over 500 kB), following `vercel-react-best-practices`.
+- **WebGPU test** behind `?gpu=1`: move AO, tone mapping and the water to TSL nodes if it works, and stay on WebGL by default until it matches.
+- **Light theme** (with `theme-factory`) beside today's dark one.
+- **Narrow-screen layout:** for tablets and phones, as the old planner had.
 - **Rebuilding:** rebuild shore and shadow meshes only when the plan changes, never while something moves.
-- **Shaders:** new shaders in TSL.
-- **Precompiling:** precompile materials once (`gl.compile`).
-- **Load order:** load the reflection and post-processing after the first frame.
