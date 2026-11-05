@@ -13,6 +13,8 @@ import type { PlanObject } from '../store/types'
 import { ElevationSheet, elevationLayout } from './sheets/ElevationSheet'
 import { MeasureTables } from './sheets/MeasureTables'
 import { planLayout, PlanSheet } from './sheets/PlanSheet'
+import { FoundationSheet } from './sheets/FoundationSheet'
+import { hasSupports } from './sheets/planLayout'
 
 interface Props {
   readonly onClose: () => void
@@ -128,7 +130,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
           <Check label="Grid" on={show.grid} onChange={() => toggle('grid')} title="A 1 ft grid on the plan, darker every 4 ft" />
           <Check label="Rooms" on={show.rooms} onChange={() => toggle('rooms')} title="The rooms from the interior plan: partitions, interior doors, each room's name, size and area" />
           <Check label="Furniture" on={show.furniture} onChange={() => toggle('furniture')} title="The furniture and fixtures from the interior plan" />
-          <Check label="Supports" on={show.supports} onChange={() => toggle('supports')} title="What each part stands on, under the floor in grey: posts, piers and piles at their size, beams dashed, a mast or stilts, with one spacing chain per row of posts" />
+          <Check label="Supports" on={show.supports} onChange={() => toggle('supports')} title="A foundation plan after the floor plans: what each part stands on (posts, piers and piles at their size, beams dashed, a mast or stilts), with one spacing chain per row of posts" />
         </fieldset>
         <button onClick={() => window.print()} disabled={!shown.length || drawing} title={drawing ? 'Waiting for the elevations to finish drawing' : undefined}>
           {drawing ? 'Drawing elevations…' : 'Print'}
@@ -148,8 +150,9 @@ export function DrawingSheets({ onClose, opener }: Props) {
             <div key={b.id} className="sheets-building">
               {show.plan &&
                 floorPlans(b).map((f) => (
-                  <PlanSheet key={f.floor?.index ?? 0} building={f.building} info={sheet} grid={show.grid} floor={f.floor} rooms={show.rooms} furniture={show.furniture} supports={show.supports} title={f.title} />
+                  <PlanSheet key={f.floor?.index ?? 0} building={f.building} info={sheet} grid={show.grid} floor={f.floor} rooms={show.rooms} furniture={show.furniture} title={f.title} />
                 ))}
+              {show.plan && show.supports && hasSupports(b) && <FoundationSheet building={b} info={sheet} grid={show.grid} />}
               {show.elevations && object && <ElevationSheet building={b} object={object} objects={objects} terrain={terrain} info={sheet} onBusy={busyCallbacks.get(b.id)} />}
               {show.measurements && <MeasureTables building={b} info={sheet} />}
             </div>
@@ -184,11 +187,12 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
   const fits = useMemo(
     () =>
       buildings.map((b) => {
-        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null, show.supports).extent)
+        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null).extent)
+        const foundation = show.supports && hasSupports(b) ? planLayout({ ...b, earthworks: null }, scale, null, true).extent : null
         const sides = SIDES.map((side) => elevationLayout(b, elevationView(objects, terrain, b, side), undefined, scale).extent)
         return {
           name: b.name,
-          planPages: plans.reduce((n, e) => n + tileDrawing(e.w, e.h, paper, scale).length, 0),
+          planPages: [...plans, ...(foundation ? [foundation] : [])].reduce((n, e) => n + tileDrawing(e.w, e.h, paper, scale).length, 0),
           elevationPages: sides.reduce((n, e) => n + tileDrawing(e.w, e.h, paper, scale).length, 0),
           smallest: smallestPaper(Math.max(...plans.map((e) => e.w)), Math.max(...plans.map((e) => e.h)), scale),
         }

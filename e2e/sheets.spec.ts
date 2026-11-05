@@ -196,13 +196,16 @@ test('D-0: curves drawn true, every opening located, walls and rooms drawn, the 
   await expect.poll(() => sceneStats(page), { timeout: 30_000 }).toEqual(before)
 })
 
-test('the Supports checkbox draws the posts under C-0 and takes them off the plan', async ({ page }) => {
+test('the Supports checkbox draws the posts under C-0 on a foundation plan of their own, not on the floor plan', async ({ page }) => {
   await open(page)
   const supports = dialog(page).locator('.sheet-svg g[aria-label="Supports"]')
   const box = dialog(page).getByRole('checkbox', { name: 'Supports' })
   await expect(box).toBeChecked()
   expect(await supports.first().locator('rect, circle').count()).toBeGreaterThan(0)
+  await expect(dialog(page).locator('section[aria-label*="Foundation plan"] g[aria-label="Supports"]').first()).toBeAttached()
+  await expect(dialog(page).locator('section[aria-label*="Floor plan"] g[aria-label="Supports"]')).toHaveCount(0)
   await box.uncheck()
+  await expect(dialog(page).locator('section[aria-label*="Foundation plan"]')).toHaveCount(0)
   await expect(supports).toHaveCount(0)
   await box.check()
   await expect(supports.first()).toBeAttached()
