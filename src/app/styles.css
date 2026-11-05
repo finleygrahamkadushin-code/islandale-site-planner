@@ -320,3 +320,51 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
   .drawing-sheets svg { max-width: none; }
   .sheet-retry { display: none; }
 }
+
+/* Tools (4A): the left tool strip, the object library beside it, and their tooltips */
+:root {
+  --tool-size: 36px;
+  --tool-on-bg: color-mix(in srgb, var(--accent) 22%, transparent);
+  --focus-ring: 2px solid var(--accent);
+}
+.toolstrip {
+  position: absolute; left: 12px; top: calc(var(--topbar-bottom, 56px) + 12px); z-index: 2;
+  display: flex; flex-direction: column; gap: 4px; padding: 4px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px);
+}
+.toolstrip-group { display: flex; flex-direction: column; gap: 4px; }
+.toolstrip-rule { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
+.tool-button {
+  display: grid; place-items: center; width: var(--tool-size); height: var(--tool-size); padding: 0;
+  border: 1px solid transparent; border-radius: 6px; color: var(--fg); background: transparent;
+  transition: background-color 0.12s, border-color 0.12s;
+}
+.tool-button:hover:not(:disabled) { border-color: var(--line); background: color-mix(in srgb, var(--fg) 8%, transparent); }
+/* the toggle group marks the current tool aria-checked (its data-state belongs to the tooltip) */
+.toolstrip .tool-button[aria-checked='true'], .toolstrip .tool-button[aria-pressed='true'] { background: var(--tool-on-bg); border-color: var(--accent); color: var(--fg); }
+.toolstrip button:focus-visible, .library button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.tool-tip {
+  z-index: 10; padding: 4px 8px; border-radius: 6px; font-size: 12px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.tool-tip kbd { margin-left: 6px; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; font: 11px/1.4 ui-monospace, monospace; color: var(--muted); }
+.library {
+  position: absolute; left: calc(12px + var(--tool-size) + 20px); top: calc(var(--topbar-bottom, 56px) + 12px); z-index: 2;
+  width: 240px; max-height: calc(100% - var(--topbar-bottom, 56px) - 96px); overflow: auto; overscroll-behavior: contain; gap: 8px;
+}
+.library header.row { flex-direction: row; }
+.tool-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-color: transparent; }
+.library-group { display: flex; flex-direction: column; gap: 2px; }
+.library-title { margin: 0; font-size: 14px; font-weight: 600; }
+.library-group h3 { margin: 4px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.library-item {
+  display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px; text-align: left;
+  border-color: transparent;
+}
+.library-item:hover:not(:disabled) { border-color: var(--line); }
+.library-item.on { background: var(--tool-on-bg); border-color: var(--accent); color: var(--fg); }
+.library-item .swatch { flex: none; width: 14px; height: 14px; border-radius: 3px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+.library-item span { display: flex; flex-direction: column; font-size: 13px; }
+.library-item small { font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .tool-button { transition: none; } }

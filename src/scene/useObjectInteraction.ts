@@ -5,6 +5,7 @@ import type { PlanObject } from '../store/types'
 import { massOf } from '../buildings/parts/partFrame'
 import { firstPaintHit, isPaintable } from '../buildings/paint/paintHit'
 import { usePaintHover } from '../buildings/paint/paintHover'
+import { useDragMove } from '../tools/useDragMove'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
 const PICK_SLOP_PX = 4
@@ -13,9 +14,11 @@ const PICK_SLOP_PX = 4
  * Click to select, shift-click to add or remove, hover highlight. A
  * second click on the selected building (or an Alt+click) picks the part
  * under the pointer, main walls included. In Paint mode a click picks the
- * element (wall, roof, rail…) the Exterior panel paints instead.
+ * element (wall, roof, rail…) the Exterior panel paints instead. With the
+ * Select tool, dragging the selected object moves it (useDragMove).
  */
 export function useObjectInteraction(o: PlanObject) {
+  const dragMove = useDragMove(o)
   const select = usePlanStore((s) => s.select)
   const toggleSelect = usePlanStore((s) => s.toggleSelect)
   const setHovered = usePlanStore((s) => s.setHovered)
@@ -56,12 +59,13 @@ export function useObjectInteraction(o: PlanObject) {
   )
   const onPointerMove = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
+      if (dragMove.onPointerMove(e)) return
       if (!usePlanStore.getState().painting) return
       e.stopPropagation()
       const hit = isPaintable(o) ? firstPaintHit(o, e.intersections) : null
       usePaintHover.getState().setLabel(hit ? hit.label : null)
     },
-    [o],
+    [o, dragMove.onPointerMove],
   )
   const onPointerOut = useCallback(() => {
     setHovered(null)
@@ -69,5 +73,9 @@ export function useObjectInteraction(o: PlanObject) {
     document.body.style.cursor = ''
   }, [setHovered])
 
-  return { selected, hovered, handlers: { onClick, onPointerOver, onPointerMove, onPointerOut } }
+  return {
+    selected,
+    hovered,
+    handlers: { onClick, onPointerOver, onPointerMove, onPointerOut, onPointerDown: dragMove.onPointerDown, onPointerUp: dragMove.onPointerUp },
+  }
 }

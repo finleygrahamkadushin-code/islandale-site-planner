@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Box3, Raycaster, Vector2, Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
+import { onGround } from './frame'
 
 const DURATION_S = 0.9
 
@@ -170,7 +171,25 @@ export function CameraRig() {
       controls.update()
       return true
     }
-  }, [camera, gl, controls, scene])
+    // look down at a site point (metres) from the south, so a test can click the open ground around it
+    w.islandale.lookAtSite = (x: number, n: number, distanceM = 30, heightM = 40) => {
+      if (!controls) return false
+      const [gx, gy, gz] = onGround(site.terrain, x, n)
+      flight.current = null
+      camera.position.set(gx, gy + heightM, gz + distanceM)
+      controls.target.set(gx, gy, gz)
+      controls.update()
+      return true
+    }
+    // where a site point on the surveyed ground (metres) is on screen, in client px, or null when it is behind the camera
+    w.islandale.screenOf = (x: number, n: number) => {
+      camera.updateMatrixWorld()
+      const p = new Vector3(...onGround(site.terrain, x, n)).project(camera)
+      if (p.z > 1) return null
+      const r = gl.domElement.getBoundingClientRect()
+      return { x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height }
+    }
+  }, [camera, gl, controls, scene, site])
 
   useFrame((_, dt) => {
     const f = flight.current

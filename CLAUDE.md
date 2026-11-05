@@ -23,6 +23,7 @@ src/
   site/         feature (map inside): the lot at the top, then earthworks/ objects/ environment/
   paths/        feature (map inside): path pieces at the top, then connect/ route/ junctions/
   interiors/    feature (map inside): the floor-plan model at the top, then editor/ furniture/ scene3d/
+  tools/        feature (map inside): tool strip, object library, place, drag, snap, duplicate, tool keys
   export/       planFile.ts (plan download) and sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/
   scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
   ui/           shared UI only: top bar, side panel, inspector shell, layers, history, fields, shortcuts
@@ -42,6 +43,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
+| Tool strip, object library, placing, dragging, snapping, duplicate, Q / E / R turns | `src/tools/` | `src/tools/CLAUDE.md` |
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
 | Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
@@ -49,7 +51,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 
 `scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.
 
-Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/`, `site/`, `interiors/` and `export/sheets/` each have one, with a map). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
+Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/`, `site/`, `interiors/`, `export/sheets/` and `tools/` each have one, with a map). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
 
 ## The old planner (`legacy/islandale-planner.html`)
 

@@ -5,6 +5,7 @@ import { isSnappable, snapTargets } from '../paths/targets'
 import type { Terrain } from '../site/types'
 import type { PlanState } from './planStore'
 import type { ObjectId, Plan, PlanObject } from './types'
+import { freshId, freshName, withObjectPut } from './ids'
 
 /**
  * Path-piece actions of the plan store (5C): add a piece (snapped to what
@@ -72,20 +73,6 @@ export interface PathContext {
 
 const objectsOf = (plan: Plan): PlanObject[] => plan.order.map((id) => plan.objects[id]).filter(Boolean)
 
-function freshId(plan: Plan): ObjectId {
-  let k = plan.order.length + 1
-  while (plan.objects[`piece-${k}`]) k++
-  return `piece-${k}`
-}
-
-function freshName(plan: Plan, base: string): string {
-  const stem = base.replace(/\s+\d+$/, '')
-  const used = new Set(objectsOf(plan).map((o) => o.name))
-  if (!used.has(stem)) return stem
-  for (let k = 2; k < 999; k++) if (!used.has(`${stem} ${k}`)) return `${stem} ${k}`
-  return stem
-}
-
 const withoutEnds = (params: Record<string, unknown>, ends: ReturnType<typeof refreshedEnds>): Record<string, unknown> => {
   const { ends: _old, ...rest } = params
   return ends ? { ...rest, ends } : rest
@@ -116,7 +103,7 @@ export function settledPiece(o: PlanObject, plan: Plan, terrain: Terrain, ground
 }
 
 export function pathActions({ get, set, writable, editable, isLocked, terrain, ground }: PathContext): PathActions {
-  const put = (plan: Plan, o: PlanObject): Plan => ({ ...plan, objects: { ...plan.objects, [o.id]: o }, order: plan.order.includes(o.id) ? plan.order : [...plan.order, o.id] })
+  const put = withObjectPut
   const toast = (snap: SnapResult | null) => snap && get().showToast(`Snapped: ${snap.end} → ${snap.target.label}`)
   const newObject = (plan: Plan, spec: NewPiece): PlanObject => {
     const lib = PIECE_LIBRARY[spec.kind]
@@ -129,7 +116,7 @@ export function pathActions({ get, set, writable, editable, isLocked, terrain, g
       ...(spec.ends ? { ends: { ...spec.ends } } : {}),
       ...(spec.lift !== undefined ? { lift: spec.lift } : {}),
     }
-    return { id: freshId(plan), type: 'pad', name: freshName(plan, spec.name ?? lib.name), position: { ...spec.position }, rotation: spec.rotation, params, locked: false, hidden: false, labelVisible: true }
+    return { id: freshId(plan, 'piece'), type: 'pad', name: freshName(plan, spec.name ?? lib.name), position: { ...spec.position }, rotation: spec.rotation, params, locked: false, hidden: false, labelVisible: true }
   }
   return {
     addPathPiece: (kind, at, rotation = 0) => {

@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
-import { partKey } from '../buildings/parts/partKeys'
+import { partKey, TURN_KEYS } from '../buildings/parts/partKeys'
+import { toolKey } from '../tools/toolKeys'
 import { useInteriorView } from '../interiors/editor/interiorView'
 
 const NUDGE_FT = 1
@@ -16,7 +17,7 @@ function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
 }
 
-/** Undo/redo, delete, escape and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
+/** Undo/redo, duplicate, the tool keys (toolKeys), delete, escape, Q / E / R turns and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -36,43 +37,25 @@ export function useKeyboardShortcuts(): void {
       }
       // the interior editor takes every other key while it is open
       if (useInteriorView.getState().objectId) return
-      // placing a path piece: R turns it a quarter, Escape stops
-      if (s.placing && !mod) {
-        if (e.key === 'Escape') {
-          e.preventDefault()
-          s.setPlacing(null)
-          return
-        }
-        if (e.key === 'r' || e.key === 'R') {
-          e.preventDefault()
-          s.setPlacing({ ...s.placing, rotation: (s.placing.rotation + (e.shiftKey ? 270 : 90)) % 360 })
-          return
-        }
-      }
-      // Paint mode: P toggles it, Escape leaves it
-      if (!mod && (e.key === 'p' || e.key === 'P')) {
+      // Cmd/Ctrl+D duplicates the selection (and keeps the browser from bookmarking)
+      if (mod && e.key.toLowerCase() === 'd') {
         e.preventDefault()
-        s.setPainting(!s.painting)
+        if (s.selection.length) s.duplicateObjects(s.selection)
         return
       }
-      if (s.painting && e.key === 'Escape') {
+      if (!mod && toolKey(e, s)) {
         e.preventDefault()
-        s.setPainting(false)
-        return
-      }
-      // the Connect tool: C toggles it, Escape leaves it
-      if (!mod && (e.key === 'c' || e.key === 'C')) {
-        e.preventDefault()
-        s.setConnecting(s.connecting ? null : { A: null, B: null, widthFt: 4 })
-        return
-      }
-      if (s.connecting && e.key === 'Escape') {
-        e.preventDefault()
-        s.setConnecting(null)
         return
       }
       if (!mod && partKey(e, usePlanStore.getState)) {
         e.preventDefault()
+        return
+      }
+      // Q / E turn the selection 5°, R a quarter turn (the picked wing took them first, above)
+      const turn = TURN_KEYS[e.key.toLowerCase()]
+      if (!mod && turn !== undefined && s.selection.length) {
+        e.preventDefault()
+        s.turnObjects(s.selection, e.key === 'R' && e.shiftKey ? -turn : turn)
         return
       }
       if (e.key === 'Escape') {

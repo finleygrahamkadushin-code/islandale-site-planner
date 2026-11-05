@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A trimmed to the essentials, with everything else placed in 4B–4E; waiting for Finley's OK on 4A.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026 and built on branch `phase-4a-tools`; 4B–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -52,7 +52,7 @@ Phase 4 is too big for one branch, so it is split like Phase 5. Each part gets i
 | `vercel-react-best-practices` | vercel-labs/agent-skills | 4E: re-render and bundle-size tuning |
 | `theme-factory` | anthropics/skills (example-skills) | 4E: the light theme |
 
-## 4A in detail: the essentials (waiting for Finley's OK)
+## 4A in detail: the essentials (approved, built)
 
 Branch: `phase-4a-tools`, from `main`.
 

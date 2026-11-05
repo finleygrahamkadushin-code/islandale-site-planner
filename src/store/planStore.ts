@@ -14,7 +14,7 @@ import { normalizeDeg } from '../site/units'
 import { partActions, watchPickedPart, type PartActions } from './partActions'
 import { interiorActions, type InteriorActions } from './interiorActions'
 import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
-import type { PathKind } from '../paths/pieces'
+import { toolActions, type ToolActions } from './toolActions'
 import type { PaintFocus, PaintScope } from './paintTypes'
 import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
@@ -57,7 +57,7 @@ export interface Toast {
   readonly text: string
 }
 
-export interface PlanState extends PartActions, InteriorActions, PathActions {
+export interface PlanState extends PartActions, InteriorActions, PathActions, ToolActions {
   readonly site: Site
   readonly schemes: readonly Scheme[]
   readonly plan: Plan
@@ -78,8 +78,10 @@ export interface PlanState extends PartActions, InteriorActions, PathActions {
   /** The element the Exterior panel works on, and how far a change reaches. */
   readonly paintFocus: PaintFocus | null
   readonly paintScope: PaintScope
-  /** A path piece being placed: its kind, turn, and where the ghost is (view state). */
-  readonly placing: { readonly kind: PathKind; readonly rotation: number; readonly at: { readonly x: number; readonly n: number } | null } | null
+  /** The Place tool: the library item being placed, its turn, and where the ghost is (view state; see toolOf). */
+  readonly placing: { readonly item: string; readonly rotation: number; readonly at: { readonly x: number; readonly n: number } | null } | null
+  /** Moves land on a 1 ft grid and turns on 5° steps (view state, on by default). */
+  readonly snap: boolean
   readonly saveStatus: SaveStatus
   readonly readOnly: ReadOnlyReason
   /** The opening picked in the Openings panel, outlined in 3D. */
@@ -251,6 +253,7 @@ export const usePlanStore = create<PlanState>()(
         paintFocus: null,
         paintScope: 'element',
         placing: null,
+        snap: true,
         connecting: null,
         saveStatus: 'loading',
         readOnly: null,
@@ -368,6 +371,7 @@ export const usePlanStore = create<PlanState>()(
         ...partActions({ get, set, editable, edit, editRefit, refitObject }),
         ...interiorActions({ get, editable, edit }),
         ...pathActions({ get, set, writable, editable, isLocked: (id) => isObjectLocked(get(), id), terrain: site.terrain, ground: siteGround }),
+        ...toolActions({ get, set, writable, isLocked: (id) => isObjectLocked(get(), id), terrain: site.terrain, ground: siteGround }),
 
         // the picked part survives only a selection of exactly its own building
         select: (ids) =>
@@ -407,11 +411,12 @@ export const usePlanStore = create<PlanState>()(
         setDisplayStyle: (displayStyle) => set({ displayStyle }),
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
-        setPainting: (painting) => set({ painting, placing: painting ? null : get().placing, connecting: painting ? null : get().connecting }),
+        // one tool at a time (toolOf): starting Paint, Place or Connect ends the other two
+        setPainting: (painting) => set(painting ? { painting, placing: null, connecting: null } : { painting }),
         setPaintFocus: (paintFocus) => set({ paintFocus }),
         setPaintScope: (paintScope) => set({ paintScope }),
-        setPlacing: (placing) => set({ placing, connecting: placing ? null : get().connecting }),
-        setConnecting: (connecting) => set({ connecting, placing: connecting ? null : get().placing, selection: connecting ? [] : get().selection, pickedPart: connecting ? null : get().pickedPart }),
+        setPlacing: (placing) => set(placing ? { placing, painting: false, connecting: null } : { placing }),
+        setConnecting: (connecting) => set(connecting ? { connecting, placing: null, painting: false, selection: [], pickedPart: null } : { connecting }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),

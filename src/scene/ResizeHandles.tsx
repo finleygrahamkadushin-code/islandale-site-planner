@@ -40,7 +40,9 @@ export function ResizeHandles({ o, setDrag }: { readonly o: PlanObject; readonly
       e.stopPropagation()
       if (!e.ray.intersectPlane(plane, hit)) return
       const [lx, lz] = siteToLocal(o.position, o.rotation, [hit.x, -hit.z])
-      const size = { w: Math.max(MIN_FT, Math.abs(lx) * 2), d: Math.max(MIN_FT, Math.abs(lz) * 2) }
+      // with Snap on, width and depth land on whole feet
+      const fit = (ft: number) => Math.max(MIN_FT, usePlanStore.getState().snap ? Math.round(ft) : ft)
+      const size = { w: fit(Math.abs(lx) * 2), d: fit(Math.abs(lz) * 2) }
       live.current = size
       setDrag(resizeDrag(o.id, size))
     },

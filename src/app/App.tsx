@@ -5,6 +5,8 @@ import { Toast } from '../ui/Toast'
 import { ViewStrip } from '../ui/ViewStrip'
 import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
 import { InteriorEditor } from '../interiors/editor/InteriorEditor'
+import { ToolStrip } from '../tools/ToolStrip'
+import { ModeChip } from '../tools/ModeChip'
 
 export function App() {
   useKeyboardShortcuts()
@@ -12,6 +14,8 @@ export function App() {
     <div className="app">
       <TopBar />
       <Scene />
+      <ToolStrip />
+      <ModeChip />
       <SidePanel />
       <ViewStrip />
       <InteriorEditor />

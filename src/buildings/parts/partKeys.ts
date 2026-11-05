@@ -7,8 +7,9 @@ import { pickedPartOf, type PlanState } from '../../store/planStore'
 export const MAIN_DELETE_TEXT = 'Esc to select the whole building, then Delete removes it'
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
-/** Q and E turn the picked wing 5°, R a quarter turn (legacy). */
-const TURNS: Record<string, number> = { q: -5, e: 5, r: 90 }
+/** Q and E turn 5°, R a quarter turn (legacy): the picked wing here, the whole selection in useKeyboardShortcuts. */
+export const TURN_KEYS: Readonly<Record<string, number>> = { q: -5, e: 5, r: 90 }
+const TURNS = TURN_KEYS
 const STEPS: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
 
 /**

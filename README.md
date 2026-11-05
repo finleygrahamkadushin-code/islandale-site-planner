@@ -50,6 +50,7 @@ src/
   paths/          walks, ramps, stairs and boardwalks; the Connect tool; accessible-route checks; junctions
   interiors/      floor plans: rooms, doors, furniture, the plan editor, rooms in 3D
   export/sheets/  drawing sheets: floor plans, foundation plan, elevations, measurement tables
+  tools/          the tool strip, object library, place, drag, snap, duplicate
   store/          shared core: plan data, undo, selection, locks, saving
   scene/          shared 3D plumbing: cameras, effects, gizmos, labels, surfaces, display styles
   ui/             shared interface: top bar, side panel, inspector, layers, history
@@ -68,6 +69,7 @@ tools/            map.sh (search the old planner), move-modules.mjs (move files 
 | Paths, accessible routes, Connect, junctions | [`src/paths/CLAUDE.md`](src/paths/CLAUDE.md) |
 | Floor plans and furniture | [`src/interiors/CLAUDE.md`](src/interiors/CLAUDE.md) |
 | Drawing sheets | [`src/export/sheets/CLAUDE.md`](src/export/sheets/CLAUDE.md) |
+| The tool strip, library, placing, dragging, snapping | [`src/tools/CLAUDE.md`](src/tools/CLAUDE.md) |
 
 A few rules hold everywhere:
 - The plan is data in the store, and the scene only draws it.
@@ -91,7 +93,8 @@ To work on one part, start a session and name the section in the first message, 
 | 1–3C: foundation, editing, graphics, design fidelity, safe autosave and openings | Done |
 | 5A–5D: building parts and rails, interiors, paths, shapes, roofs, finishes, earthworks | Done |
 | Drawing sheets: floor plans, foundation plan, elevations, tables | Done |
-| 4: UI and beginner experience (task tabs, Beginner mode, tour, Present mode) | Planned, not started |
+| 4A: tools (tool strip, object library, place, drag, snap, duplicate) | Done |
+| 4B–4E: layout and site tools, Beginner mode, Present mode, polish | Planned |
 | 5E–5F, 6: the remaining tools, exports and renders | Planned |
 | Blender → Unreal Engine 5 exterior pipeline | In progress on its own branch |
 

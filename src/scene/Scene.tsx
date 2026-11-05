@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { usePlanStore } from '../store/planStore'
@@ -23,12 +22,13 @@ import { JunctionLayer } from '../paths/junctions/JunctionLayer'
 import { RouteChips } from '../paths/route/RouteChips'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
-import type { DragState } from './editing'
+import { useLiveDrag } from './editing'
 
 export function Scene() {
   const site = usePlanStore((s) => s.site)
   const select = usePlanStore((s) => s.select)
-  const [drag, setDrag] = useState<DragState | null>(null)
+  const drag = useLiveDrag((s) => s.drag)
+  const setDrag = useLiveDrag((s) => s.setDrag)
   const target = onGround(site.terrain, 0, 0)
   return (
     <div className="viewport">

@@ -11,32 +11,6 @@ const M_TO_FT = 1 / 0.3048
 const fmtFt = (m: number) => `${(m * M_TO_FT).toFixed(2)} ft`
 const ratio = (slope: number) => (slope > 1e-4 ? `1:${(1 / slope).toFixed(1)}` : 'level')
 
-/** The old library's path pieces: a click starts placing one (a ghost follows the pointer; click the ground; R turns it; Escape stops). */
-export function PathLibrary() {
-  const placing = usePlanStore((s) => s.placing)
-  const setPlacing = usePlanStore((s) => s.setPlacing)
-  const connecting = usePlanStore((s) => s.connecting)
-  const setConnecting = usePlanStore((s) => s.setConnecting)
-  return (
-    <section className="panel" aria-label="Path pieces">
-      <header>
-        <strong>Path pieces</strong>
-      </header>
-      <div className="row" style={{ flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-        {PATH_KINDS.map((k) => (
-          <button key={k} className={placing?.kind === k ? 'on' : ''} data-testid={`place-${k}`} onClick={() => setPlacing(placing?.kind === k ? null : { kind: k, rotation: 0, at: null })}>
-            {KIND_LABELS[k]}
-          </button>
-        ))}
-        <button className={connecting ? 'on' : ''} data-testid="connect-tool" title="Connect two ends with a walk, ramp, boardwalk or stair (C)" onClick={() => setConnecting(connecting ? null : { A: null, B: null, widthFt: 4 })}>
-          Connect…
-        </button>
-      </div>
-      {placing && <p className="muted small">Click the ground to place it · R turns it · Esc stops. It snaps to doors, decks, stairs and other pieces within 3 ft.</p>}
-    </section>
-  )
-}
-
 /** A path piece's settings and readouts (old Path piece panel): kind, surface, rails, length, width, lift, slope, risers and end levels. */
 export function PathPiecePanel({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)

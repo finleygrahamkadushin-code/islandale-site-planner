@@ -4,6 +4,8 @@ import { Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { isObjectLocked, usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { baseElevation } from './placement'
+import { snapDeg, snapPoint } from '../tools/snap'
+import { normalizeDeg } from '../site/units'
 import type { DragState } from './editing'
 
 const Y_AXIS = new Vector3(0, 1, 0)
@@ -38,9 +40,12 @@ export function SelectionGizmo({ o, setDrag }: { readonly o: PlanObject; readonl
 
   const onDrag = (local: Matrix4) => {
     local.decompose(scratch.p, scratch.q, scratch.s)
-    const x = scratch.p.x
-    const n = -scratch.p.z
-    const rotation = (scratch.e.setFromQuaternion(scratch.q, 'YXZ').y * 180) / Math.PI
+    // with Snap on, the move lands on the 1 ft grid and a turn on 5° steps (an untouched turn stays as it was)
+    const snap = usePlanStore.getState().snap
+    const free = { x: scratch.p.x, n: -scratch.p.z }
+    const { x, n } = snap ? snapPoint(free) : free
+    const turned = (scratch.e.setFromQuaternion(scratch.q, 'YXZ').y * 180) / Math.PI
+    const rotation = snap && Math.abs(normalizeDeg(turned - o.rotation)) > 1e-6 ? snapDeg(turned) : turned
     const y = baseElevation(terrain, { ...o, position: { x, n }, rotation })
     // keep the gizmo on the ground and its rotation about y only
     matrix.compose(scratch.p.set(x, y, -n), scratch.q.setFromAxisAngle(Y_AXIS, (rotation * Math.PI) / 180), UNIT)

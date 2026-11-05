@@ -30,7 +30,7 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   )
 }
 
-/** While a path piece is being placed, its ghost follows the pointer on the ground and a click puts it down. */
+/** While the Place tool is on, its ghost follows the pointer on the ground and a click puts the item down (placeItem snaps it). */
 const placeMove = (e: ThreeEvent<PointerEvent>) => {
   const s = usePlanStore.getState()
   if (!s.placing) return
@@ -40,9 +40,8 @@ const placeClick = (e: ThreeEvent<MouseEvent>) => {
   const s = usePlanStore.getState()
   if (!s.placing) return
   e.stopPropagation()
-  const { kind, rotation } = s.placing
-  s.setPlacing(null)
-  s.addPathPiece(kind, { x: e.point.x, n: -e.point.z }, rotation)
+  const { item, rotation } = s.placing
+  s.placeItem(item, { x: e.point.x, n: -e.point.z }, rotation)
 }
 
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
