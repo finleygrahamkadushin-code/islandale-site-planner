@@ -104,3 +104,7 @@ tools/map.sh def roofGeometry
 ```
 
 It is edited only through appended `ext:` blocks, each recorded in `PLAN.md`.
+
+## License
+
+[MIT](LICENSE) © 2026 Finley Graham-Kadushin
