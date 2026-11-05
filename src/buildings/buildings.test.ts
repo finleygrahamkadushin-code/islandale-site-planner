@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { localFootprint } from './footprint'
-import { buildWalls } from './walls'
-import { buildRoof, ROOF_TYPES } from './roof'
+import { buildWalls } from './walls/walls'
+import { buildRoof, ROOF_TYPES } from './roofs/roof'
 import { bounds, triangleCount } from './geom'
-import { layoutOpenings } from './openingLayout'
-import { postPositions, supportType } from './foundation'
+import { layoutOpenings } from './openings/openingLayout'
+import { postPositions, supportType } from './foundation/foundation'
 
 const FT = 0.3048
 const rect = localFootprint({ w: 20, d: 16 })

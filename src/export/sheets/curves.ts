@@ -1,8 +1,8 @@
 import { CURVED_SHAPES, type LocalPoint } from '../../buildings/footprint'
 import { edgeName, type Mass } from '../../buildings/masses'
-import { FIT } from '../../buildings/openingLayout'
+import { FIT } from '../../buildings/openings/openingLayout'
 import { edgeInArc } from './openings'
-import type { WallSpec } from '../../buildings/wallShell'
+import type { WallSpec } from '../../buildings/walls/wallShell'
 import type { CurveKind, FittedArc, SheetEdge, SheetPoint } from './types'
 
 /**

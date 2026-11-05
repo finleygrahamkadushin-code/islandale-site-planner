@@ -1,6 +1,6 @@
 import { Color, IcosahedronGeometry } from 'three'
 import { num, signedArea, type LocalPoint } from '../buildings/footprint'
-import { pointInPolygon } from '../buildings/foundation'
+import { pointInPolygon } from '../buildings/foundation/foundation'
 import { seededRandom, treeSeed } from '../scene/treeShapes'
 
 /**

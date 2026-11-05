@@ -1,4 +1,4 @@
-import { pointInPolygon } from './foundation'
+import { pointInPolygon } from './foundation/foundation'
 import { signedArea, type LocalPoint } from './footprint'
 
 /**

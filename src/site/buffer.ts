@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../buildings/foundation'
+import { pointInPolygon } from '../buildings/foundation/foundation'
 import { isoSegments, type IsoSegment } from './contours'
 import { isShorelineEdge } from './parcel'
 import type { Parcel } from './types'

@@ -1,4 +1,4 @@
-import type { EdgeDraw } from '../buildings/railEdits'
+import type { EdgeDraw } from '../buildings/rails/railEdits'
 import type { Site } from '../site/types'
 import type { ObjectId, Plan } from './types'
 

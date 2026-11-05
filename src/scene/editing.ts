@@ -1,4 +1,4 @@
-import { withSize } from '../buildings/wingEdits'
+import { withSize } from '../buildings/parts/wingEdits'
 import type { PlanObject } from '../store/types'
 
 /** A live edit in progress (drag, rotate or resize) before it is committed to the store as one undo step. */

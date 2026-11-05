@@ -2,9 +2,9 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { useCallback } from 'react'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
-import { massOf } from './partFrame'
-import { firstPaintHit, isPaintable } from './paintHit'
-import { usePaintHover } from './paintHover'
+import { massOf } from '../buildings/parts/partFrame'
+import { firstPaintHit, isPaintable } from '../buildings/paint/paintHit'
+import { usePaintHover } from '../buildings/paint/paintHover'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
 const PICK_SLOP_PX = 4

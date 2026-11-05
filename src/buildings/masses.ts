@@ -1,5 +1,5 @@
 import { localFootprint, num, type LocalPoint } from './footprint'
-import type { LegacyCut } from './openings'
+import type { LegacyCut } from './openings/openings'
 
 export type MassKind = 'wall' | 'porch' | 'deck' | 'stair' | 'ramp'
 

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest'
-import { FIT } from '../../buildings/openingLayout'
-import { GLASS_WALL_FT } from '../../buildings/wallShell'
+import { FIT } from '../../buildings/openings/openingLayout'
+import { GLASS_WALL_FT } from '../../buildings/walls/wallShell'
 import { sheetBuildings } from '../../export/sheets/model'
 import { usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'

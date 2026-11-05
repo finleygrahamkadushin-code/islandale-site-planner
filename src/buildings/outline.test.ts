@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { curvePosts, edgePosts, offsetOutline, perimeterLength, perimeterSamples } from './outline'
 import { buildSlab } from './slab'
-import { pointInPolygon } from './foundation'
+import { pointInPolygon } from './foundation/foundation'
 import { bounds } from './geom'
 import type { LocalPoint } from './footprint'
 

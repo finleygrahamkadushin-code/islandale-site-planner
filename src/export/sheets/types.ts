@@ -11,9 +11,9 @@
  * `y` (feet above the main floor; NAVD88 is given alongside).
  */
 import type { LocalPoint } from '../../buildings/footprint'
-import type { SupportKind } from '../../buildings/foundation'
+import type { SupportKind } from '../../buildings/foundation/foundation'
 import type { MassKind } from '../../buildings/masses'
-import type { OpeningKind } from '../../buildings/openingLayout'
+import type { OpeningKind } from '../../buildings/openings/openingLayout'
 
 /** Paper inches per foot of building: 1/4" = 1'-0" is 0.25. */
 export type Scale = 0.125 | 0.25 | 0.5

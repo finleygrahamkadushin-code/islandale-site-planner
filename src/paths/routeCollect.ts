@@ -1,6 +1,6 @@
 import { siteFootprint } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
-import { massSite, railOwner, surfaceZ } from '../scene/railWorld'
+import { massSite, railOwner, surfaceZ } from '../buildings/rails/railWorld'
 import type { Terrain } from '../site/types'
 import type { PlanObject } from '../store/types'
 import { isDriveway, isPathPiece, pieceEnds, pieceKind, pieceLength, pieceProfile, pieceWidth, railOn, type Ground } from './pieces'

@@ -1,5 +1,5 @@
 import { ShapeUtils, Vector2 } from 'three'
-import { pointInPolygon } from './foundation'
+import { pointInPolygon } from './foundation/foundation'
 import type { LocalPoint } from './footprint'
 import { addPolygon, emptyMesh, type MeshData } from './geom'
 

@@ -1,8 +1,8 @@
 import type { LocalPoint } from '../../buildings/footprint'
 import { massPoly, massToBuilding, type Mass } from '../../buildings/masses'
-import { fitMass, wallLabel } from '../../buildings/openingEdits'
-import type { OpeningPiece, PlacedOpening } from '../../buildings/openingLayout'
-import type { WallPlan } from '../../buildings/wallShell'
+import { fitMass, wallLabel } from '../../buildings/openings/openingEdits'
+import type { OpeningPiece, PlacedOpening } from '../../buildings/openings/openingLayout'
+import type { WallPlan } from '../../buildings/walls/wallShell'
 import type { FittedArc, SheetEdge, SheetOpening, SheetOpeningPiece } from './types'
 
 /** An opening before the building numbers it. */

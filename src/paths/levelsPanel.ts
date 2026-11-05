@@ -1,5 +1,5 @@
 import { buildingMasses, partName } from '../buildings/masses'
-import { railOwner, surfaceZ } from '../scene/railWorld'
+import { railOwner, surfaceZ } from '../buildings/rails/railWorld'
 import type { Ground } from '../site/earthworks'
 import type { Terrain } from '../site/types'
 import type { PlanObject } from '../store/types'

@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../buildings/foundation'
+import { pointInPolygon } from '../buildings/foundation/foundation'
 import { siteFootprint } from '../buildings/footprint'
 import type { PlanObject } from '../store/types'
 import { elevationAt } from './terrain'

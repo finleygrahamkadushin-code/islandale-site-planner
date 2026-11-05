@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import type { LocalPoint } from '../../buildings/footprint'
-import { fitMass } from '../../buildings/openingEdits'
+import { fitMass } from '../../buildings/openings/openingEdits'
 import { usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'
 import { sheetBuildings } from './model'

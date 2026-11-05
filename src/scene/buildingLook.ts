@@ -1,8 +1,8 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import type { LocalPoint } from '../buildings/footprint'
-import { extResolve, type ExtHost, type ExtResolved, type ExtTagPart } from '../buildings/exterior'
-import type { RailStyle } from '../buildings/railEdits'
-import type { EdgeRail } from '../buildings/railRules'
+import { extResolve, type ExtHost, type ExtResolved, type ExtTagPart } from '../buildings/paint/exterior'
+import type { RailStyle } from '../buildings/rails/railEdits'
+import type { EdgeRail } from '../buildings/rails/railRules'
 import type { DisplayStyle, PlanObject } from '../store/types'
 import { diagramColourFor, type TextureName } from './Surface'
 

@@ -8,7 +8,7 @@ import { CHANNEL_NAME, startTabLock } from './store/tabLock'
 import { defaultHome, type PlanHome } from './store/planHome'
 import { artifactDbHome, findArtifactDb, findArtifactDbLikely } from './store/artifactHome'
 import { setRailDrawResolver } from './store/railResolver'
-import { resolveRailDraws } from './scene/railSite'
+import { resolveRailDraws } from './buildings/rails/railSite'
 
 // For end-to-end tests and debugging in the console.
 declare global {

@@ -1,5 +1,5 @@
 import { symbol } from '../../interiors/furniture'
-import { wallThicknessFt } from '../../buildings/wallShell'
+import { wallThicknessFt } from '../../buildings/walls/wallShell'
 import type { SheetFloor, SheetInteriorOpening, SheetPartition } from '../../export/sheets/types'
 import type { Pen } from './planLayout'
 import { pts } from './planMarks'

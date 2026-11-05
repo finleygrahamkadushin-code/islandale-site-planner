@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
-import { partKey } from './partKeys'
+import { partKey } from '../buildings/parts/partKeys'
 import { useInteriorView } from './interior/interiorView'
 
 const NUDGE_FT = 1

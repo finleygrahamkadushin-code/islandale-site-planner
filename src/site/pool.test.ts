@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { localFootprint, signedArea, type LocalPoint } from '../buildings/footprint'
-import { pointInPolygon } from '../buildings/foundation'
+import { pointInPolygon } from '../buildings/foundation/foundation'
 import { bounds, triangleCount } from '../buildings/geom'
 import { POOL_COPING_FT, poolInfinityEdges, poolLayout, poolLevel, poolMeshes, poolShellDepth, prism } from './pool'
 

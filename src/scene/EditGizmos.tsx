@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { isObjectVisible, pickedPartOf, usePlanStore } from '../store/planStore'
 import { SelectionGizmo } from './SelectionGizmo'
 import { ResizeHandles } from './ResizeHandles'
-import { PartLayer } from './PartLayer'
+import { PartLayer } from '../buildings/parts/PartLayer'
 import type { DragState } from './editing'
 
 /**

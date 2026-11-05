@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { PlanObject } from '../store/types'
-import { BuildingMesh } from './BuildingMesh'
+import { BuildingMesh } from '../buildings/BuildingMesh'
 
 /**
  * The old library's shed and shop (legacy LIB): what one placed from it

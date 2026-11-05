@@ -20,14 +20,18 @@ src/
   app/          home, layout, routing
   store/        plan data, undo/redo, selection, locks, visibility
   site/         terrain, parcel, setbacks, tide, sun (Islandale data lives here)
-  buildings/    cabin generator, roofs, walls, openings, decks, stairs, rails
-  scene/        lights, materials, display styles, cameras, post-processing
+  buildings/    one feature: core model at the top (masses, footprint, outline, organic, geom, slab, BuildingMesh),
+                then walls/ roofs/ openings/ rails/ stairs/ decks/ foundation/ paint/ parts/, each holding
+                its maths, its 3D meshes and its panels, with tests beside the files
+  scene/        lights, materials, display styles, cameras, post-processing; shared scene plumbing only
   ui/           toolbar, inspector, layers panel, tooltips, tour
   tools/        select, move, rotate, measure, place, paint
   export/       images, PDF sheets, glTF
 data/islandale/ terrain grid, parcel, schemes A–D (JSON)
 legacy/         the old planner and its patch scripts (read-only reference)
 ```
+
+Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/` is done; site, paths, interiors and export follow). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
 
 ## The old planner (`legacy/islandale-planner.html`)
 

@@ -1,7 +1,7 @@
 import { localToSite } from '../buildings/footprint'
 import { emptyMesh, type MeshData } from '../buildings/geom'
-import { beam, box, slab } from '../buildings/stairMesh'
-import { planStair, type StairMat } from '../buildings/stairPlan'
+import { beam, box, slab } from '../buildings/stairs/stairMesh'
+import { planStair, type StairMat } from '../buildings/stairs/stairPlan'
 import type { PlanObject } from '../store/types'
 import { GUARD_IN, pieceEnds, pieceKind, pieceLength, pieceWidth, railOn, stairInfo, type Ground } from './pieces'
 

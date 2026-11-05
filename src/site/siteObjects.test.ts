@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { localFootprint, signedArea, type LocalPoint } from '../buildings/footprint'
-import { pointInPolygon } from '../buildings/foundation'
+import { pointInPolygon } from '../buildings/foundation/foundation'
 import { seededRandom, treeSeed } from '../scene/treeShapes'
 import {
   BOULDER_MAX_ROCKS,

@@ -1,6 +1,6 @@
 import { num } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
-import { BUILDING_SHAPES, carsPatch, changes, extraField, extraPatch, PAD_SHAPES, ROOF_FINISHES, ROOF_OPTIONS, roofPatch, shapePatch, type Option } from '../buildings/shapeEdits'
+import { BUILDING_SHAPES, carsPatch, changes, extraField, extraPatch, PAD_SHAPES, ROOF_FINISHES, ROOF_OPTIONS, roofPatch, shapePatch, type Option } from '../buildings/parts/shapeEdits'
 import { NumField } from './fields'
 
 type Patch = Readonly<Record<string, unknown>>

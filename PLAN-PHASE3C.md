@@ -56,8 +56,8 @@ Finley has lost work more than once. The planners have three problems that need 
   - Openings are never re-fitted after a wall is resized or reshaped.
   - Only five fields can be edited, all in 0.5 ft steps (`:366-370`, `:8566`).
 - **New app:**
-  - Walls are zero-thickness quads (`src/buildings/walls.ts:21-26`). Openings are glass planes plus frame bars standing up to 11 cm proud of the wall (`src/scene/OpeningMesh.tsx:6-8`, `:17`).
-  - Placement only clamps an opening to its own edge, with no corner clearance and no overlap check (`src/buildings/openings.ts:62-67`).
+  - Walls are zero-thickness quads (`src/buildings/walls/walls.ts:21-26`). Openings are glass planes plus frame bars standing up to 11 cm proud of the wall (`src/buildings/openings/OpeningMesh.tsx:6-8`, `:17`).
+  - Placement only clamps an opening to its own edge, with no corner clearance and no overlap check (`src/buildings/openings/openings.ts:62-67`).
   - The frame corners are ragged and the sill floats (`OpeningMesh.tsx:41-48`).
   - The inspector has no opening controls at all (`src/ui/Inspector.tsx:37-67`).
 
@@ -124,22 +124,22 @@ Finley has lost work more than once. The planners have three problems that need 
 ### Part 2: openings that fit (both planners)
 
 6. **One set of fit rules, written once.**
-   - Add `src/buildings/openingLayout.ts`, pure and tested. It returns the wall faces of each mass and the openings placed on each face. Every change it makes is reported as `{id, field, wanted, got, reason}`.
+   - Add `src/buildings/openings/openingLayout.ts`, pure and tested. It returns the wall faces of each mass and the openings placed on each face. Every change it makes is reported as `{id, field, wanted, got, reason}`.
    - The rules, in feet:
      - **Corner clearance:** the outer frame stays at least max(0.75, (wall thickness + trim) / sin(corner angle)) from each end.
-     - **Head:** sill + h ≤ the lowest roof line over the opening's span minus 0.5. Use the fitted roof's height function from `src/buildings/fittedRoof.ts`, including the prow dip.
+     - **Head:** sill + h ≤ the lowest roof line over the opening's span minus 0.5. Use the fitted roof's height function from `src/buildings/roofs/fittedRoof.ts`, including the prow dip.
      - **Floor:** door and slider sills are at least the slab top. The UI shows that as sill 0.
      - **No overlap:** the gap between outer frames is at least 0.33. The later opening slides along if there is room, then shrinks, and is otherwise marked as a conflict.
      - **Buried edges:** an opening on an edge that is inside or flush against another mass is marked hidden.
    - The same numbers go into PLAN.md so the old planner uses identical limits.
-7. **Fix the new app's opening data handling** in `src/buildings/openings.ts`:
+7. **Fix the new app's opening data handling** in `src/buildings/openings/openings.ts`:
    - Treat sill 0 as valid (`c.sill ?? default`, not `||`, `:48`).
    - Keep `id` on every cut and keep `cutout` as its own kind (`:95-97`).
    - Stop splitting along-cuts into separately framed pieces at every vertex (`:51-59`). One along-cut is one opening with one frame. Where it crosses a sharp corner, it gets one jamb at that corner, not two.
    - Report dropped cuts (edge index past the outline, `:63`) instead of skipping them silently.
-   - In `src/scene/WallMass.tsx:30-31`, key openings by id, not by index.
+   - In `src/buildings/walls/WallMass.tsx:30-31`, key openings by id, not by index.
 8. **Redraw the new app's openings flush and clean.**
-   - In `src/scene/OpeningMesh.tsx`:
+   - In `src/buildings/openings/OpeningMesh.tsx`:
      - Make the frame a mitred ring laid on the wall face, so the corners close and nothing overhangs the jambs.
      - Put the sill under the frame with no gap.
      - Add mullions from the `mullV`/`mullH` counts.
@@ -151,7 +151,7 @@ Finley has lost work more than once. The planners have three problems that need 
    - Each one writes `params.cuts` or `params.wings[i].cuts` immutably, without touching the wing's other fields. New cuts get `max(id)+1`.
    - When a building's size, shape or edge count changes, the same step re-fits its openings and shows a toast ("2 openings fitted").
 10. **Openings panel in the new app.**
-    - Add `src/ui/OpeningsPanel.tsx`, a collapsible group in `Inspector.tsx` with:
+    - Add `src/buildings/openings/OpeningsPanel.tsx`, a collapsible group in `Inspector.tsx` with:
       - a wall picker (Main or Wing n, then front, back, left, right or edge n, named as legacy `wallLabel` does, `:8489`);
       - one row per opening: kind, width, height, sill, head, from-left and from-right (linked), trim and mullions, plus Centre, Duplicate and Delete;
       - a small SVG elevation of the wall below the rows, with conflicts in red and the fit notes from step 6.

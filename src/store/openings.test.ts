@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'vitest'
 import { usePlanStore } from './planStore'
-import { massCuts, massWalls } from '../buildings/openingEdits'
-import type { CutData } from '../buildings/openingLayout'
+import { massCuts, massWalls } from '../buildings/openings/openingEdits'
+import type { CutData } from '../buildings/openings/openingLayout'
 
 const store = () => usePlanStore.getState()
 const history = () => usePlanStore.temporal.getState()
