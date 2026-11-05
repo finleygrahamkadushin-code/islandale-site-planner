@@ -60,6 +60,8 @@ test('each saved view moves the camera', async ({ page }) => {
 
 test('style and sun settings survive a reload', async ({ page }) => {
   await page.getByRole('group', { name: 'Display style' }).getByRole('button', { name: 'White model' }).click()
+  // Sun and tide lives on the Site tab (4B)
+  await page.getByTestId('tab-site').click()
   await page.getByRole('region', { name: 'Sun and tide' }).getByRole('button', { name: 'June' }).click()
   await page.getByLabel('Tide level').fill('9')
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 15_000 })

@@ -105,6 +105,7 @@ test('the Openings panel adds and resizes a window as undoable steps, and a lock
   expect(await cuts()).toBe(before)
 
   // locked: the panel's buttons are disabled and the store refuses
+  await openSection(page, 'visibility')
   await page.getByLabel('Locked').check()
   await expect(panel.getByRole('button', { name: '+ Window' })).toBeDisabled()
   await page.evaluate((id) => (window as any).islandale.store.getState().addOpening(id, 0, { kind: 'window', edge: 0, x: 1, w: 2, h: 3, sill: 3 }), id)

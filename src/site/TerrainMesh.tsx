@@ -61,17 +61,13 @@ const groundClick = (e: ThreeEvent<MouseEvent>) => {
 
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
   const box = useBoxSelect()
-  const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!box.onPointerMove(e)) groundMove(e)
-  }
   return (
     <mesh
       geometry={geometry}
       receiveShadow
       name={name}
       onPointerDown={box.onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={box.onPointerUp}
+      onPointerMove={groundMove}
       onPointerLeave={groundLeave}
       onClick={groundClick}
     >

@@ -15,7 +15,7 @@ export function BottomBar() {
   const r = at ? groundReadout(ground, at.x, at.n) : null
   return (
     <div className="bottombar" aria-label="Pointer readout">
-      <span role="status" data-testid="pointer-readout" className="readout">
+      <span aria-live="off" data-testid="pointer-readout" className="readout">
         {r ? `Ground ${r.elevFt.toFixed(1)} ft NAVD88 · slope ${r.slopePct.toFixed(0)} %` : 'Point at the ground to read its height'}
       </span>
       <span className="muted">Drag to orbit · right-drag to pan · scroll to zoom</span>

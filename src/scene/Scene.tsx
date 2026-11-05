@@ -18,7 +18,7 @@ import { PaintHud } from '../buildings/paint/PaintHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
 import { MeasureLayer } from '../tools/MeasureLayer'
-import { BoxSelectLayer } from '../tools/useBoxSelect'
+import { BoxSelectLayer, boxJustEnded } from '../tools/useBoxSelect'
 import { ConnectLayer } from '../paths/connect/ConnectLayer'
 import { JunctionLayer } from '../paths/junctions/JunctionLayer'
 import { RouteChips } from '../paths/route/RouteChips'
@@ -41,7 +41,8 @@ export function Scene() {
       shadows="percentage"
       camera={{ position: [target[0] + 32, target[1] + 26, target[2] + 40], fov: 45, near: 0.5, far: 8000 }}
       gl={{ antialias: false, toneMapping: NoToneMapping }}
-      onPointerMissed={() => select([])}
+      // a click on nothing clears the selection, but not the click that ends a box select
+      onPointerMissed={() => !boxJustEnded() && select([])}
     >
       <SceneEnvironment />
       <Terrain terrain={site.terrain} />

@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
+import { Plane, Raycaster, Vector2, Vector3, type Camera } from 'three'
 import { create } from 'zustand'
 import { usePlanStore } from '../store/planStore'
 import { isObjectVisible } from '../store/selectors'
@@ -12,7 +13,9 @@ import { idsInBox } from './arrange'
 /**
  * Box select (4B): with the Select tool, Shift-drag on empty ground draws a
  * north-up box and selects every visible object whose centre is inside.
- * The box is view state.
+ * The drag is followed with window listeners (pointer on a level plane at
+ * the press point), so it does not depend on which mesh the pointer is
+ * over; the click that ends it is not a "click on nothing". View state.
  */
 
 type Pos = { x: number; n: number }
@@ -23,42 +26,55 @@ export const useSelectBox = create<{ readonly a: Pos | null; readonly b: Pos | n
   set: (a, b) => set({ a, b }),
 }))
 
-/** Pointer handlers the ground adds for box select; onPointerMove says whether it took the event. */
+/** A box drag ended this recently, ms: the click that follows it must not clear the new selection. */
+const AFTER_BOX_MS = 300
+let boxEndedAt = 0
+export const boxJustEnded = (): boolean => performance.now() - boxEndedAt < AFTER_BOX_MS
+
+/** Where a screen point meets the level plane at height y (scene metres), as a site point. */
+function onPlane(clientX: number, clientY: number, camera: Camera, dom: HTMLElement, y: number): Pos | null {
+  const r = dom.getBoundingClientRect()
+  const ray = new Raycaster()
+  ray.setFromCamera(new Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1), camera)
+  const hit = new Vector3()
+  return ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -y), hit) ? { x: hit.x, n: -hit.z } : null
+}
+
+/** The ground's Shift-press handler that starts a box. */
 export function useBoxSelect() {
   const controls = useThree((s) => s.controls) as { enabled: boolean } | null
+  const camera = useThree((s) => s.camera)
+  const dom = useThree((s) => s.gl.domElement)
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       const s = usePlanStore.getState()
       if (e.button !== 0 || !e.shiftKey || toolOf(s) !== 'select') return
       e.stopPropagation()
-      ;(e.target as Element).setPointerCapture(e.pointerId)
       if (controls) controls.enabled = false
-      const at = { x: e.point.x, n: -e.point.z }
-      useSelectBox.getState().set(at, at)
+      const y = e.point.y
+      const a = { x: e.point.x, n: -e.point.z }
+      useSelectBox.getState().set(a, a)
+      const move = (ev: PointerEvent) => {
+        const b = onPlane(ev.clientX, ev.clientY, camera, dom, y)
+        if (b) useSelectBox.getState().set(a, b)
+      }
+      const up = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', move, true)
+        window.removeEventListener('pointerup', up, true)
+        if (controls) controls.enabled = true
+        const b = onPlane(ev.clientX, ev.clientY, camera, dom, y) ?? useSelectBox.getState().b ?? a
+        useSelectBox.getState().set(null, null)
+        boxEndedAt = performance.now()
+        const st = usePlanStore.getState()
+        const shown = st.plan.order.map((id) => st.plan.objects[id]).filter((o) => o && isObjectVisible(st, o.id))
+        st.select(idsInBox(shown, a, b))
+      }
+      window.addEventListener('pointermove', move, true)
+      window.addEventListener('pointerup', up, true)
     },
-    [controls],
+    [controls, camera, dom],
   )
-  const onPointerMove = useCallback((e: ThreeEvent<PointerEvent>): boolean => {
-    const box = useSelectBox.getState()
-    if (!box.a) return false
-    box.set(box.a, { x: e.point.x, n: -e.point.z })
-    return true
-  }, [])
-  const onPointerUp = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      const { a, b, set } = useSelectBox.getState()
-      if (!a || !b) return
-      e.stopPropagation()
-      ;(e.target as Element).releasePointerCapture?.(e.pointerId)
-      if (controls) controls.enabled = true
-      set(null, null)
-      const s = usePlanStore.getState()
-      const shown = s.plan.order.map((id) => s.plan.objects[id]).filter((o) => o && isObjectVisible(s, o.id))
-      s.select(idsInBox(shown, a, b))
-    },
-    [controls],
-  )
-  return { onPointerDown, onPointerMove, onPointerUp }
+  return { onPointerDown }
 }
 
 /** The box being dragged, drawn on the ground. */

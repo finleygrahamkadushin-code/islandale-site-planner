@@ -91,6 +91,7 @@ test('a placed ramp snaps to a door, a Fix is one undo step, and a locked layer 
     return s.applyPathEdit([{ kind: 'ramp', position: { x: prow.x + 30, n: prow.n - 20 }, rotation: 0, w: 6, d: 4, ends: { zA: 8, zB: 7 } }])[0]
   })
   await store(page, 'select', [id])
+  await openSection(page, 'path')
   const check = page.getByTestId('piece-check')
   await expect(check).toContainText(/fails/)
   const steps = await page.evaluate(() => (window as any).islandale.store.temporal.getState().pastStates.length)

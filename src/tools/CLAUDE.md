@@ -16,6 +16,10 @@ The editing tools (Phase 4A): the one current tool (Select, Place, Paint, Connec
 | Snapping on the move gizmo and corner handles | `../scene/SelectionGizmo.tsx`, `../scene/ResizeHandles.tsx` |
 | Duplicate and turning the selection | `../store/toolActions.ts` (`duplicateObjects`, `turnObjects`) |
 | The tool keys (V, L, S, P, C, Esc; R / Q / E while placing) | `toolKeys.ts`; Cmd/Ctrl+D and Q / E / R on the selection are in `../ui/useKeyboardShortcuts.ts` |
+| The Measure tool (M): maths, keeping five, drawing | `measure.ts` (`measureOf`), `../store/toolActions.ts` (`measurePoint`), `MeasureLayer.tsx` |
+| Box select (Shift-drag on empty ground) | `useBoxSelect.tsx` (window listeners from the ground's press), `arrange.ts` (`idsInBox`) |
+| Align and distribute several objects | `arrange.ts`, `../store/toolActions.ts` (`alignObjects`, `distributeObjects`), the buttons in `../ui/Inspector.tsx` |
+| Group drag (drag any selected object) | `useDragMove.ts` (commits through `nudgeObjects`); `DragState.group` in `../scene/editing.ts` |
 | The "Placing: … · Esc stops" chip | `ModeChip.tsx` (Paint keeps its own `../buildings/paint/PaintHud.tsx`) |
 | How the strip, library and tooltips look | the "Tools (4A)" block at the end of `../app/styles.css` |
 

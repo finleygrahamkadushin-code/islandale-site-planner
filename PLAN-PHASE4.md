@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B in detail below, waiting for Finley's OK; 4C–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved and built on branch `phase-4b-layout`; 4C–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -84,7 +84,7 @@ The tools get their own section, `src/tools/`, with a `CLAUDE.md` map like the o
 
 Anything that behaves differently from the old planner goes into PLAN.md under "Deliberate changes from the legacy file".
 
-## 4B in detail: layout and site tools (waiting for Finley's OK)
+## 4B in detail: layout and site tools (approved, built)
 
 Branch: `phase-4b-layout`, from `main` after 4A.
 
