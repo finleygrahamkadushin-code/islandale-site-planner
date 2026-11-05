@@ -104,6 +104,12 @@ On branch `sheets-5d`, the sheets were brought up to the 5B–5D buildings, area
   - **Roofs off:** a capture holds every roof on (`holdRoofs` in `sheetCapture.ts`, read through `useRoofsOff`). The Roofs off toggle itself never changes. Roofs go back about 250 ms after the last capture of a batch, so the four sides don't flicker. The hold is released in `finally`, and materials, visibility and instance colours are restored there too.
   - **Tests:** `edgeTable.test.ts` checks that every roof type (vault and saddle included) on every footprint shape, and every Scheme C/C2/C3/C4 wall and roof mass, draws its outline against the sky from four sides and two turned views. `sheetTarget.test.ts` covers the tags, instancing and fat lines, and `sheetCapture.test.ts` covers the roof hold. In the browser, schemes C–C4 and D (Roofs off on, in Realistic, Sketch and Diagram) gave the same image in every style. Every image had zero coloured pixels and its roof drawn up to the window top. `sceneStats()` was unchanged afterwards and Roofs off was restored.
 
+- **e2e.** `e2e/sheets.spec.ts` keeps the six C-0 checks and adds three (9 tests, about 4 minutes headless):
+  - C4-0: the Levels table has the dipped prow shell's tip eave, its underside and the tip column top; the walls are drawn; the four elevations finish as PNGs.
+  - D-0, with Roofs off turned on before opening: no "drawn as" or "approximate" text; every Openings row has a From left or Round from P1; wall bands draw both faces; Rooms in the table and on the plan; Supports on the plan and in the table; 1 to 6 Measurements pages; the four elevation PNGs finish with no Try again; after closing, Roofs off is still on and `sceneStats()` equals the count from before opening.
+  - C-0: the Supports checkbox starts on with posts drawn, takes the Supports group off the plan and puts it back.
+  - The whole suite was run on `sheets-5d` (`playwright.local.config.ts`, one worker): every spec passed, with no app fixes needed.
+
 ## How to run
 
 ```bash
