@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved and built on branch `phase-4b-layout`; 4C–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C in detail below, waiting for Finley's OK; 4D–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -170,18 +170,64 @@ All are unstyled and take the app's tokens. **New section:** `src/layout/`, with
 - **Inspector headings open by default:** Placement and Size and shape; the rest start closed and are remembered.
 - **W:** expands the Openings heading, rather than opening a separate walls editor.
 
-## 4C in outline: Beginner
+## 4C in detail: Beginner (waiting for Finley's OK)
 
-- **Beginner / Advanced switch:** Beginner by default, remembered per browser.
-- **Hidden in Beginner:** pitch, ridge direction, overhang, post spacing, foundation type and per-layer locks, with plain-language names ("How steep the roof is").
-- **Tooltips everywhere** (Radix, already in from 4A), with one-line definitions of setback, OHWM, NAVD88, pitch and overhang.
-- **Delete confirmation in Beginner only.** Advanced keeps undo as the safety net.
-- **First-run tour:** five steps (orbit, select, move, lock, save), as Radix popovers anchored to each control; skippable, replayable from Help, and remembered.
-- **Full accessibility pass:**
-  - Running the `web-design-guidelines` and ui-ux-pro-max rules over all of `src/ui/` and every panel, not just the new ones.
-  - A Lighthouse accessibility audit through Chrome DevTools (target 95 or more).
-  - `prefers-reduced-motion` respected.
-- **Tests:** the first-time-user walk and the tour, using the `webapp-testing` skill alongside Playwright.
+Branch: `phase-4c-beginner`, from `main` after 4B.
+
+**New library:** Radix Popover (pinned, at least two weeks old) for the tour. Tooltips already use Radix Tooltip from 4A.
+
+**Where the code goes:** a new `src/guide/` section with its own `CLAUDE.md` map, holding the mode, the glossary, the shared tooltip and the tour. The plain-language names live next to each field.
+
+### Order of work
+
+1. **Beginner / Advanced switch.**
+   - **Where:** a switch in the top bar, remembered per browser. **Beginner is the default** for a browser that has never chosen.
+   - **Store:** `mode` is view state in its own small store: never saved with the plan, never an undo step.
+   - **Command search:** "Beginner mode" and "Advanced mode" commands.
+2. **What Beginner hides and renames.**
+   - **Roof:** Pitch, Ridge runs and Overhang are hidden. Roof type shows as "Roof shape".
+   - **Supports:** post spacing, post size, bracing and foundation type are hidden. The building keeps the old planner's automatic support.
+   - **Layers:** per-layer padlocks are hidden; "Lock all" and "Unlock all" stay.
+   - **Inspector:** the advanced shape fields (taper, skew, bend, curl) are hidden.
+   - **Plain names:** the remaining fields get plain-language names: "How tall the walls are" (Height), "Turned" (Rotation), "East" and "North" with "from the centre of the lot".
+   - **Only the presentation changes:** a hidden field keeps its value, and Advanced shows it again.
+3. **Tooltips everywhere.**
+   - **One shared tooltip:** a single `Tip` component (moved from the tool strip into `src/guide/`) replaces every native `title` hint in the 13 files that have one. Each control gets its name and, where there is one, its key.
+   - **Glossary terms:** setback, OHWM (ordinary high water mark), NAVD88, pitch, overhang, contour, berm, lot coverage and accessible route get a dotted underline wherever they appear, and their one-line definition on hover or focus. The definitions live in one `GLOSSARY` table.
+4. **Delete confirmation in Beginner only.**
+   - **When:** in Beginner, Delete (the key or the button) asks first in a Radix Dialog: "Delete the Guest cabin? You can undo this."
+   - **Why a Dialog:** it replaces the browser `window.confirm`, which can't be styled or tested well.
+   - **Advanced:** keeps today's behaviour (no question; undo brings it back).
+   - **Other confirms:** Reset and removing a floor move to the same dialog in both modes.
+5. **First-run tour.**
+   - **Steps:** orbit, select, move, lock, save. Each is a Radix Popover anchored to the real control (the view, a cabin's label, the move gizmo, the Locked box, the save status), with Next, Back and Skip.
+   - **When it runs:** it starts on a browser's first visit after the plan has loaded. Help gets "Take the tour" to replay it, and finishing or skipping is remembered.
+   - **Behaviour:** it never changes the plan; it only points. Escape ends it, and it respects `prefers-reduced-motion`.
+6. **Full accessibility pass.**
+   - **Guidelines:** run the `web-design-guidelines` and ui-ux-pro-max rules over all of `src/ui/` and every feature panel, not just the new files, and fix what they find.
+   - **Lighthouse:** an accessibility audit through Chrome DevTools, with a target of 95 or more.
+   - **Things to check:** labels on every control, focus rings, contrast, `prefers-reduced-motion`, and keyboard reach for every panel.
+
+### Done when
+
+- **The one-minute test:** someone new, in Beginner mode, can place a cabin, move it, lock it and save, in about a minute without help. As a browser test: the tour runs, then the walk is done with the real controls.
+- **Lighthouse:** the accessibility score is 95 or more.
+
+### Tests first
+
+- **Mode:** Beginner by default, remembered, never an undo step; Advanced shows every field again with its value intact.
+- **Glossary:** every term has a definition, and a `Term` shows it on focus.
+- **Delete:** in Beginner it asks first and Cancel keeps the object; in Advanced it deletes at once and undo brings it back.
+- **Tour:** it runs once, Skip and Escape end it and are remembered, Help replays it, and the plan is never changed.
+- **E2e:** the one-minute walk, plus the tour.
+- **Skills:** the `webapp-testing` skill alongside Playwright for the walk.
+
+### Decisions (say if you disagree)
+
+- **What Beginner hides:** the fields listed in step 2. Anything a beginner needs to finish a cabin stays.
+- **Mode switch:** in the top bar, beside Style.
+- **Tour steps:** five steps, and they point at real controls rather than showing a video or slides.
+- **Deleting:** Beginner asks before deleting; Advanced never does.
 
 ## 4D in outline: Present
 
