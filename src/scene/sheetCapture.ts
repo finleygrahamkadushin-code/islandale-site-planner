@@ -41,6 +41,52 @@ export function captureElevation(req: ElevationRequest): Promise<ElevationImage>
   return capturer(req)
 }
 
+/** How long the roofs stay on after a capture, ms, so the next one in a batch finds them still there. */
+export const ROOF_HOLD_GRACE_MS = 250
+
+let roofHolds = 0
+let roofsForced = false
+let roofRelease: ReturnType<typeof setTimeout> | null = null
+const roofListeners = new Set<() => void>()
+
+function setRoofsForced(on: boolean) {
+  if (roofsForced === on) return
+  roofsForced = on
+  roofListeners.forEach((fn) => fn())
+}
+
+/** True while a capture needs every roof drawn, Roofs off or not: an elevation shows the building whole. */
+export const roofsHeld = (): boolean => roofsForced
+
+/** Calls `fn` whenever roofsHeld() changes; returns the unsubscribe. */
+export function onRoofHold(fn: () => void): () => void {
+  roofListeners.add(fn)
+  return () => roofListeners.delete(fn)
+}
+
+/**
+ * Draws every roof until the returned release is called (once; later calls
+ * do nothing). The roofs go back as Roofs off has them a little after the
+ * last hold is released, so the four sides of a batch, captured one after
+ * another, keep them on throughout instead of flickering per side.
+ */
+export function holdRoofs(): () => void {
+  if (roofRelease) clearTimeout(roofRelease)
+  roofRelease = null
+  roofHolds++
+  setRoofsForced(true)
+  let held = true
+  return () => {
+    if (!held) return
+    held = false
+    if (--roofHolds > 0) return
+    roofRelease = setTimeout(() => {
+      roofRelease = null
+      if (roofHolds === 0) setRoofsForced(false)
+    }, ROOF_HOLD_GRACE_MS)
+  }
+}
+
 /** An axis-aligned box in the capture frame, feet. */
 export interface FrameBox {
   readonly minX: number

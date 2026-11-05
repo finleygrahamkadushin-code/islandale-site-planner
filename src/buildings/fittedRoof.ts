@@ -121,7 +121,8 @@ export function prowRoof(poly: readonly LocalPoint[], pitch: number, ridge: 'x' 
   return { ...out, rise }
 }
 
-function prowOutline(poly: readonly LocalPoint[], overhangFt: number, roofPts?: readonly (readonly number[])[]): P2[] {
+/** A prow roof's eave, metres, counter-clockwise: its own outline (roofPts) when it has one, else the walls grown by the overhang. */
+export function prowOutline(poly: readonly LocalPoint[], overhangFt: number, roofPts?: readonly (readonly number[])[]): P2[] {
   const custom = (roofPts ?? []).filter((p) => p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
   if (custom.length >= 3) return ccw(custom.map(([x, z]) => [x * FT, z * FT] as const))
   return ccw(toM(offsetOutline(poly, overhangFt)))

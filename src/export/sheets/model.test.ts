@@ -142,6 +142,34 @@ describe('sheetBuildings', () => {
   })
 })
 
+describe('earthworks on the sheets', () => {
+  test("the sunk prow: the scene's one stone retaining wall and its court, cut to a floor just under the main floor", () => {
+    const e = prow().earthworks
+    expect(e?.sinkFt).toBe(4)
+    expect(e?.walls.map((w) => [w.tag, w.material])).toEqual([['RW1', 'stone']])
+    const w = e?.walls[0]
+    expect(w?.lengthFt).toBeGreaterThan(30)
+    // it holds back up to about 3 ft of bank over the cut floor, 1 1/4" under the main floor
+    expect((w?.topHighFt ?? 0) - (w?.bottomFt ?? 0)).toBeGreaterThan(2.5)
+    expect(w?.bottomFt).toBeCloseTo(-0.03 / 0.3048, 6)
+    expect(e?.courts).toHaveLength(1)
+    expect(e?.courts[0].depthFt).toBeCloseTo(10, 6)
+    expect(e?.berms).toEqual([])
+  })
+
+  test('the prow reads finished grade at its walls as the cut floor where the survey stood higher; the unsunk cabins as the survey', () => {
+    const b = prow()
+    expect(b.levels.gradeHighFt).toBeCloseTo(b.earthworks?.walls[0].bottomFt ?? NaN, 1)
+    expect(b.levels.surveyHighFt).toBeGreaterThan(1)
+    for (const c of buildings().filter((x) => x.id !== 'C-0')) {
+      expect(c.earthworks).toBeNull()
+      // the prow's patch reaches some of them, where its raster gives back the survey to a hair
+      expect(c.levels.gradeLowFt).toBeCloseTo(c.levels.surveyLowFt, 4)
+      expect(c.levels.gradeHighFt).toBeCloseTo(c.levels.surveyHighFt, 4)
+    }
+  })
+})
+
 describe('elevationView', () => {
   test('fromSide undoes sideU and sideDepth', () => {
     for (const side of SIDES) {

@@ -1,28 +1,20 @@
 import { useEffect, useMemo } from 'react'
 import { isWallKind, WALL_KIND_TEXTURE, type WallKind } from '../buildings/finishes'
 import type { MeshData } from '../buildings/geom'
-import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
+import { CURVED_SHAPES } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
-import { FIT, layoutOpenings } from '../buildings/openingLayout'
-import { buildWallShell, edgeMesh, GLASS_WALL_FT, joinByEdge, wallDecorByEdge, type EdgeMesh, type WallShell } from '../buildings/wallShell'
+import { layoutOpenings } from '../buildings/openingLayout'
+import type { SupportParams } from '../buildings/supportParams'
+import { buildWallShell, edgeMesh, joinByEdge, wallDecorByEdge, wallThicknessFt, type EdgeMesh, type WallShell } from '../buildings/wallShell'
 import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
 import { toGeometry } from './meshData'
 import { OpeningMesh } from './OpeningMesh'
 import { RoofMesh } from './RoofMesh'
-import { usePlanStore } from '../store/planStore'
 import { Surface } from './Surface'
+import { useRoofsOff } from './useRoofsOff'
 
-export interface SupportParams {
-  readonly support: unknown
-  readonly spacingFt: number
-  /** Post size, inches; undefined for each support kind's own. */
-  readonly postIn?: number
-  /** Cross-brace a high post grid (legacy o.bracing), under every rectangular enclosed mass. */
-  readonly bracing?: boolean
-  /** Where a mast stands, feet, building-local (legacy o.mastAt); main mass only. */
-  readonly mastAt?: LocalPoint
-}
+export type { SupportParams } from '../buildings/supportParams'
 
 /** How one wall is finished: its kind (null keeps the building's siding), colour, and a glass wall's tint. */
 interface WallFinish {
@@ -62,16 +54,16 @@ export function WallMass({
   readonly highlight?: number | null
 }) {
   const poly = useMemo(() => massPoly(m), [m])
-  const roofsOff = usePlanStore((s) => s.roofsOff)
+  const roofsOff = useRoofsOff()
   const openings = useMemo(
     () => layoutOpenings(poly, m.cuts, { wallHeightFt: m.h, buried: site.insideWalls }).openings,
     [poly, m.cuts, m.h, site.insideWalls],
   )
-  // walls that share a finish draw as one mesh; glass walls are a thin curtain wall
+  // walls that share a finish draw as one mesh; glass walls are a thin curtain wall (wallThicknessFt, as the sheets draw them)
   const mi = site.mi ?? 0
   const finishes = poly.map((_, e) => wallFinish(look, mi, e))
   const glassKey = finishes.map((f) => (f.kind === 'glass' ? 'g' : '-')).join('')
-  const thickness = useMemo(() => (e: number) => (glassKey[e] === 'g' ? GLASS_WALL_FT : FIT.wallFt), [glassKey])
+  const thickness = useMemo(() => (e: number) => wallThicknessFt(glassKey[e] === 'g' ? 'glass' : null), [glassKey])
   const shell = useMemo(() => buildWallShell(poly, m.h, openings, { cap: !roofsOff, thicknessFt: thickness }), [poly, m.h, openings, roofsOff, thickness])
   const decor = useMemo(
     () => (glassKey.includes('g') ? wallDecorByEdge(poly, m.h, (e) => (glassKey[e] === 'g' ? 'glass' : null), openings, { thicknessFt: thickness }) : []),

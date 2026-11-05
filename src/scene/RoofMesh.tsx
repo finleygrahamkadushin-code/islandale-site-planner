@@ -4,13 +4,13 @@ import { isRoofFinish, isWallKind, ROOF_FINISH_COLOUR, ROOF_FINISH_TEXTURE, WALL
 import { CURVED_SHAPES, type LocalPoint } from '../buildings/footprint'
 import type { V3 } from '../buildings/geom'
 import type { Mass } from '../buildings/masses'
-import { buildRoof, normaliseRoof, type TipPost } from '../buildings/roof'
-import { glassMullions, isSculpted, sculptedRoof, type RoofLineKind, type SculptedType, type TuftPlacement } from '../buildings/sculptRoof'
+import { buildRoof, normaliseRoof, roofParamsOf, sculptOptionsOf, tipColumnTop, TIP_POST, type TipPost } from '../buildings/roof'
+import { glassMullions, isSculpted, sculptedRoof, type RoofLineKind, type TuftPlacement } from '../buildings/sculptRoof'
 import { ftToM } from '../site/units'
-import { usePlanStore } from '../store/planStore'
 import { isPainted, shade, type BuildingLook, type MeshHandlers } from './buildingLook'
 import { toGeometry } from './meshData'
 import { Surface, type SurfaceKind, type TextureName } from './Surface'
+import { useRoofsOff } from './useRoofsOff'
 
 /** Legacy sculptRoof timber soffit, porch struts and the dark frame round a glass roof. */
 const SOFFIT_TIMBER = '#a07c55'
@@ -25,8 +25,6 @@ const LINE_LOOK: Readonly<Record<RoofLineKind, { readonly color: string; readonl
   seam: { color: '#2b2622', opacity: 0.2 },
   mullion: { color: '#2f3a40', opacity: 0.75 },
 }
-/** Legacy roofTipPost: a 0.09–0.11 m column from 0.3 m above the floor, at least 0.5 m tall. */
-const TIP_POST = { topR: 0.09, footR: 0.11, base: 0.3, min: 0.5 } as const
 
 /** How a roof's surface is drawn: its finish and the Surface kind, texture and colour that go with it. */
 export interface RoofLook {
@@ -95,14 +93,14 @@ interface RoofMeshProps {
 
 /** A mass's roof set on its wall top, classic or sculpted, in its finish; nothing while Roofs off is on. */
 export function RoofMesh({ m, mi, poly, look, handlers }: RoofMeshProps) {
-  const roofsOff = usePlanStore((s) => s.roofsOff)
+  const roofsOff = useRoofsOff()
   const type = normaliseRoof(m.roof)
   if (type === 'none' || roofsOff) return null
   const finish = roofFinish(look, mi)
   return (
     <group position={[0, ftToM(m.h), 0]}>
       {isSculpted(type) ? (
-        <SculptedRoofMesh m={m} mi={mi} type={type} poly={poly} look={look} finish={finish} handlers={handlers} />
+        <SculptedRoofMesh m={m} mi={mi} poly={poly} look={look} finish={finish} handlers={handlers} />
       ) : (
         <ClassicRoofMesh m={m} mi={mi} poly={poly} look={look} finish={finish} handlers={handlers} />
       )}
@@ -116,10 +114,7 @@ interface PartProps extends RoofMeshProps {
 
 /** Gable, hip, shed, gambrel, butterfly, pyramid, prow and flat: roof, gable infill in the siding, fascia and soffit, prow clerestory and tip column. */
 function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
-  const built = useMemo(() => {
-    const prow = { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip }
-    return buildRoof(poly, { type: m.roof, pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow })
-  }, [poly, m.roof, m.pitch, m.ridge, m.overhang, m.roofPts, m.gable, m.vault, m.roofDip])
+  const built = useMemo(() => buildRoof(poly, roofParamsOf(m, finish.finish)), [poly, m, finish.finish])
   const geo = useMemo(() => ({ roof: toGeometry(built.roof), gables: toGeometry(built.gables), trim: toGeometry(built.trim), glass: toGeometry(built.glass) }), [built])
   useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo])
   const glass = finish.kind === 'clearGlass'
@@ -148,11 +143,8 @@ function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
 }
 
 /** Dome, vault, shell, saddle and sod: the slab with its soffit and fascia, infill or struts below, linework, and grass on sod. */
-function SculptedRoofMesh({ m, mi, type, poly, look, finish, handlers }: PartProps & { readonly type: SculptedType }) {
-  const r = useMemo(
-    () => sculptedRoof(poly, { roof: type, pitch: m.pitch, ridge: m.ridge, overhang: m.overhang, open: m.open, curl: m.curl, roofMat: finish.finish ?? '' }),
-    [poly, type, m.pitch, m.ridge, m.overhang, m.open, m.curl, finish.finish],
-  )
+function SculptedRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
+  const r = useMemo(() => sculptedRoof(poly, sculptOptionsOf(roofParamsOf(m, finish.finish))), [poly, m, finish.finish])
   const geo = useMemo(() => ({ slab: toGeometry(r.slab), soffit: toGeometry(r.soffit), fascia: toGeometry(r.fascia), infill: toGeometry(r.infill), struts: toGeometry(r.struts) }), [r])
   useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo])
   const lines = useMemo(() => r.lines.map((l) => ({ kind: l.kind, geometry: lineGeometry(l.segments) })), [r])
@@ -214,7 +206,7 @@ function RoofLineSegments({ geometry, kind }: { readonly geometry: BufferGeometr
 
 /** The slim column under a prow shell's tip (legacy roofTipPost), from 0.3 m above the floor to the roof's underside. */
 function TipColumn({ tip, wallM, look, handlers }: { readonly tip: TipPost; readonly wallM: number; readonly look: BuildingLook; readonly handlers: MeshHandlers }) {
-  const len = Math.max(TIP_POST.min, tip.top + wallM - TIP_POST.base)
+  const len = tipColumnTop(tip, wallM) + wallM - TIP_POST.base
   return (
     <mesh position={[tip.x, TIP_POST.base - wallM + len / 2, tip.z]} castShadow userData={{ part: 'post' }} {...handlers}>
       <cylinderGeometry args={[TIP_POST.topR, TIP_POST.footR, len, 12]} />
@@ -242,6 +234,9 @@ function RoofTufts({ tufts, blooms, handlers }: { readonly tufts: readonly TuftP
   )
 }
 
+/** Tufts paint as the roof, and are dressing the elevation sheets leave out. */
+const TUFT_DATA = { part: 'roof', sheetSkip: true } as const
+
 function Instanced({ geometry, items, handlers }: { readonly geometry: BufferGeometry; readonly items: readonly TuftPlacement[]; readonly handlers: MeshHandlers }) {
   const ref = useRef<InstancedMesh>(null)
   useLayoutEffect(() => {
@@ -265,7 +260,7 @@ function Instanced({ geometry, items, handlers }: { readonly geometry: BufferGeo
   }, [items])
   if (!items.length) return null
   return (
-    <instancedMesh key={items.length} ref={ref} args={[geometry, undefined, items.length]} castShadow receiveShadow userData={{ part: 'roof' }} {...handlers}>
+    <instancedMesh key={items.length} ref={ref} args={[geometry, undefined, items.length]} castShadow receiveShadow userData={TUFT_DATA} {...handlers}>
       <meshStandardMaterial roughness={0.95} side={DoubleSide} />
     </instancedMesh>
   )

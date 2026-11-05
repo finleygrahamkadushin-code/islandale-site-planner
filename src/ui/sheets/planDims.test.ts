@@ -3,6 +3,7 @@ import { sheetBuildings } from '../../export/sheets/model'
 import type { SheetEdge, SheetOpening } from '../../export/sheets/types'
 import { usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'
+import { formatArch } from '../../export/sheets/format'
 import { arcEdgeIndices, arcPoints, openingStops, pointAlong } from './planDims'
 import { planLayout } from './PlanSheet'
 import type { Pt } from './svgDims'
@@ -16,10 +17,12 @@ const opening = (a: Pt, b: Pt): SheetOpening => ({
   wall: 'Main · front',
   a,
   b,
-  pieces: [{ edge: 0, a, b, fromLeftFt: 0 }],
+  pieces: [{ edge: 0, a, b, fromLeftFt: 0, innerA: a, innerB: b, midA: a, midB: b }],
   arc: null,
+  onCurve: false,
   widthFt: Math.hypot(b[0] - a[0], b[1] - a[1]),
   fromLeftFt: 0,
+  aroundFt: null,
   sillFt: 3,
   headFt: 7,
 })
@@ -32,7 +35,7 @@ const square: Pt[] = [
 ]
 const edges: SheetEdge[] = square.map((a, i) => {
   const b = square[(i + 1) % square.length]
-  return { index: i, a, b, lengthFt: 10, name: `edge ${i + 1}`, arc: null }
+  return { index: i, a, b, lengthFt: 10, name: `edge ${i + 1}`, arc: null, curved: false, thicknessFt: 0, glass: false }
 })
 
 beforeAll(() => {
@@ -132,18 +135,40 @@ describe('overall dimensions', () => {
     expect(roofs).toBeGreaterThan(0)
   })
 
-  test('chains every straight-wall piece of an opening that runs along the walls (scheme D)', () => {
+  test('chains every piece of an opening on a straight wall, and notes every opening on a curve with its place round from P1', () => {
+    try {
+      for (const scheme of ['C', 'D', 'G']) {
+        store().loadScheme(scheme)
+        for (const b of sheetBuildings(objects(), store().site.terrain)) {
+          const layout = planLayout(b, 0.25)
+          const values = layout.dims.map((d) => d.text.value)
+          for (const p of b.parts) {
+            for (const o of p.openings) {
+              for (const piece of o.pieces.filter((x) => !p.edges[x.edge].curved)) {
+                const w = Math.hypot(piece.b[0] - piece.a[0], piece.b[1] - piece.a[1])
+                // a sliver under a quarter inch shares its stop with the next
+                if (w > 1 / 48) expect(values.some((v) => Math.abs(v - w) < 0.05)).toBe(true)
+              }
+              const note = layout.notes.find((n) => n.lines[0].startsWith(`${o.tag} `))
+              expect(!!note).toBe(o.onCurve)
+              if (note) expect(note.lines[1]).toBe(`${formatArch(o.aroundFt ?? NaN)} from P1`)
+            }
+          }
+        }
+      }
+    } finally {
+      store().loadScheme('C')
+    }
+  })
+
+  test("no chord of a curve is dimensioned on its own: scheme D's plans carry a handful of dimensions, not one per chord", () => {
     store().loadScheme('D')
     try {
       for (const b of sheetBuildings(objects(), store().site.terrain)) {
-        const values = planLayout(b, 0.25).dims.map((d) => d.text.value)
-        for (const o of b.parts.flatMap((p) => p.openings)) {
-          for (const piece of o.pieces) {
-            const w = Math.hypot(piece.b[0] - piece.a[0], piece.b[1] - piece.a[1])
-            // D-0's D3 and its neighbour overlap by a quarter inch in the data, so their shared stop is one
-            if (w > 1 / 48) expect(values.some((v) => Math.abs(v - w) < 0.05)).toBe(true)
-          }
-        }
+        const straight = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved && e.lengthFt >= 1 / 48))
+        const chains = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved).flatMap((e) => Math.max(0, openingStops(e.a, e.b, p.openings).length - 1)))
+        const overall = planLayout(b, 0.25).dims.filter((d) => d.label).length
+        expect(planLayout(b, 0.25).dims).toHaveLength(straight.length + chains.reduce((s, n) => s + n, 0) + overall)
       }
     } finally {
       store().loadScheme('C')

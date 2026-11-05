@@ -42,6 +42,9 @@ export interface PreparedBuilding {
   readonly op: BuildingEarthOp
   readonly polys: readonly Float64Array[]
   readonly courts: readonly Float64Array[]
+  /** The same courts as outlines, and the main-mass edge each lies against, for the plan sheet. */
+  readonly courtPolys: readonly (readonly SitePoint[])[]
+  readonly courtSides: readonly number[]
   readonly berms: readonly EarthEdge[]
   readonly floorC: number
   readonly crestTop: number

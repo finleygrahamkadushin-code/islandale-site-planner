@@ -1,11 +1,17 @@
 import { useMemo } from 'react'
 import { signedArea } from '../../buildings/footprint'
 import { formatArch, formatDeg } from '../../export/sheets/format'
-import type { SheetBuilding, SheetPart } from '../../export/sheets/types'
+import type { SheetBuilding, SheetFloor, SheetPart } from '../../export/sheets/types'
+import { EarthLabels, EarthLines } from './EarthMarks'
 import { TiledDrawing, type Extent, type SheetInfo } from './Page'
-import { penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
-import { CornerLabels, CurveNotes, DatumMark, Opening, pts, StairMarks } from './planMarks'
-import { arrowHead, centreMark, northOnSheetDeg, uprightAngle, type Pt, type Segment } from './svgDims'
+import { arcTextAt, penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
+import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
+import { RoofMarks } from './RoofMarks'
+import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
+import { planFigures } from './roomLayout'
+import { SupportMarks } from './SupportMarks'
+import { Opening, ThicknessDim, WallBand } from './WallMarks'
+import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from './svgDims'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -13,34 +19,64 @@ interface Props {
   readonly building: SheetBuilding
   readonly info: Omit<SheetInfo, 'sheetTitle' | 'northDeg'>
   readonly grid: boolean
+  /** The floor whose rooms this plan draws (null for none), and whether to draw its rooms and its furniture. */
+  readonly floor: SheetFloor | null
+  readonly rooms: boolean
+  readonly furniture: boolean
+  /** Draw what the parts stand on under the floor, with their spacing. */
+  readonly supports: boolean
+  /** "Floor plan", or the floor's own name on a cabin of several. */
+  readonly title?: string
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned. */
-export function PlanSheet({ building: b, info, grid }: Props) {
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, the floor's rooms (partitions, interior doors, names and areas) and furniture inside it, and what the parts stand on under the floor in grey, with their spacing. */
+export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, supports, title = 'Floor plan' }: Props) {
   const pen = penSizes(info.scale)
-  const layout = useMemo(() => planLayout(b, info.scale), [b, info.scale])
+  const shownFloor = rooms && floor?.rooms.length ? floor : null
+  const layout = useMemo(() => planLayout(b, info.scale, shownFloor, supports), [b, info.scale, shownFloor, supports])
+  // the rooms name the space inside the walls, so the walls' own part name gives way to them
+  const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
   return (
-    <TiledDrawing info={{ ...info, sheetTitle: 'Floor plan', northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`Floor plan of ${b.name}`}>
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`${title} of ${b.name}`}>
       {grid && <Grid extent={layout.extent} pen={pen} />}
+      {b.earthworks && layout.earth && <EarthLines earth={b.earthworks} plan={layout.earth} pen={pen} />}
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
       ))}
-      {b.parts.map((p) => (
+      {supports && <SupportMarks supports={b.supports} pen={pen} />}
+      {furniture && floor && <FurnitureMarks floor={floor} pen={pen} />}
+      {shownFloor && <Partitions partitions={shownFloor.partitions} pen={pen} />}
+      {shownFloor && <InteriorOpenings openings={shownFloor.openings} pen={pen} />}
+      {b.parts.map((p) => p.roof && <RoofMarks key={p.massIndex} roof={p.roof} pen={pen} />)}
+      {b.parts.filter(named).map((p) => (
         <PartLabel key={p.massIndex} part={p} pen={pen} />
       ))}
+      {shownFloor && <RoomLabels floor={shownFloor} pen={pen} taken={planFigures(b, layout, pen)} />}
+      {b.parts.map((p) => p.ellipse && <EllipseAxes key={p.massIndex} ellipse={p.ellipse} pen={pen} />)}
       {b.parts.map((p) => (
-        <CornerLabels key={p.massIndex} part={p} pen={pen} />
+        <PointLabels key={p.massIndex} part={p} pen={pen} />
       ))}
+      {!b.datumOnWall && <MainBox box={b.mainBounds} pen={pen} />}
       <DatumMark at={b.datum} pen={pen} />
       <g stroke="#000" strokeWidth={pen.hair} fill="none">
         {layout.dims.map((d, i) => (
           <Dim key={i} dim={d} pen={pen} />
         ))}
       </g>
+      <g stroke="#555" strokeWidth={pen.hair} fill="none">
+        {layout.supportDims.map((d, i) => (
+          <Dim key={i} dim={d} pen={pen} />
+        ))}
+      </g>
       {layout.arcs.map((a, i) => (
         <ArcMarks key={i} arc={a} pen={pen} />
       ))}
+      {layout.thickness.map((m, i) => (
+        <ThicknessDim key={i} mark={m} pen={pen} />
+      ))}
+      {layout.earth && <EarthLabels plan={layout.earth} pen={pen} />}
       <CurveNotes notes={layout.notes} pen={pen} />
+      {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
     </TiledDrawing>
   )
 }
@@ -74,13 +110,20 @@ function PartPlan({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }
   return (
     <g>
       {roof && <polygon points={pts(roof.eave)} fill="none" stroke="#000" strokeWidth={pen.thin} strokeDasharray={`${pen.text} ${pen.text * 0.5}`} />}
-      <polygon points={pts(part.outline)} fill={deckLike ? '#f1f1ef' : '#fff'} stroke="#000" strokeWidth={wall ? pen.heavy : pen.medium} strokeLinejoin="miter" />
+      {wall && part.inner.length ? (
+        <>
+          <polygon points={pts(part.outline)} fill="#fff" stroke="none" />
+          <WallBand part={part} pen={pen} />
+        </>
+      ) : (
+        <polygon points={pts(part.outline)} fill={deckLike ? '#f1f1ef' : '#fff'} stroke="#000" strokeWidth={wall ? pen.heavy : pen.medium} strokeLinejoin="miter" />
+      )}
       {part.stepBands.flatMap((band, i) =>
         band.map((piece, j) => <polyline key={`${i}-${j}`} points={pts(piece)} fill="none" stroke="#000" strokeWidth={pen.thin} />),
       )}
       {part.stair && <StairMarks part={part} pen={pen} />}
       {part.openings.map((o) => (
-        <Opening key={o.tag} opening={o} outline={part.outline} pen={pen} heavy={wall ? pen.heavy : pen.medium} />
+        <Opening key={o.tag} opening={o} part={part} pen={pen} />
       ))}
     </g>
   )
@@ -106,7 +149,6 @@ function PartLabel({ part, pen }: { readonly part: SheetPart; readonly pen: Pen 
   return (
     <text x={x} y={y} fontSize={pen.text} textAnchor="middle" dominantBaseline="central" style={{ fontVariant: 'small-caps', letterSpacing: '0.04em' }} fill="#000">
       {part.name.toLowerCase()}
-      {part.approximate ? ' (curve drawn as box)' : ''}
     </text>
   )
 }
@@ -128,9 +170,8 @@ export function Dim({ dim, pen }: { readonly dim: LabelledDim; readonly pen: Pen
 function ArcMarks({ arc, pen }: { readonly arc: ArcNote; readonly pen: Pen }) {
   const [fx, fy] = arc.leaderFrom
   const [mx, my] = arc.mid
-  const lx = (fx + mx) / 2
-  const ly = (fy + my) / 2
-  const angle = uprightAngle((Math.atan2(my - fy, mx - fx) * 180) / Math.PI)
+  const { at, angleDeg: angle } = arcTextAt(arc)
+  const [lx, ly] = at
   return (
     <g stroke="#000" strokeWidth={pen.hair} fill="none">
       {arc.showCentre && <path d={centreMark(arc.centre, pen.text * 0.6).map(seg).join(' ')} />}
@@ -138,8 +179,14 @@ function ArcMarks({ arc, pen }: { readonly arc: ArcNote; readonly pen: Pen }) {
       <polygon points={pts(arrowHead(arc.leaderFrom, arc.mid, pen.text * 0.8))} fill="#000" stroke="none" />
       <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${-pen.text * 0.6})`} fontSize={pen.text} textAnchor="middle" fill="#000" stroke="none">
         R {formatArch(arc.radiusFt)}
+        {arc.innerRadiusFt !== null && ' outside'}
       </text>
-      <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * 1.3})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
+      {arc.innerRadiusFt !== null && (
+        <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * 1.3})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
+          R {formatArch(arc.innerRadiusFt)} inside
+        </text>
+      )}
+      <text x={lx} y={ly} transform={`rotate(${angle} ${lx} ${ly}) translate(0 ${pen.text * (arc.innerRadiusFt !== null ? 2.3 : 1.3)})`} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
         arc {formatArch(arc.lengthFt)}, {formatDeg(arc.sweepDeg)}
       </text>
     </g>

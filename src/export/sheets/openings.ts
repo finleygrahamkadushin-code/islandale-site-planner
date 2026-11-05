@@ -2,7 +2,8 @@ import type { LocalPoint } from '../../buildings/footprint'
 import { massPoly, massToBuilding, type Mass } from '../../buildings/masses'
 import { fitMass, wallLabel } from '../../buildings/openingEdits'
 import type { OpeningPiece, PlacedOpening } from '../../buildings/openingLayout'
-import type { SheetArc, SheetOpening, SheetOpeningPiece } from './types'
+import type { WallPlan } from '../../buildings/wallShell'
+import type { FittedArc, SheetEdge, SheetOpening, SheetOpeningPiece } from './types'
 
 /** An opening before the building numbers it. */
 export type UntaggedOpening = Omit<SheetOpening, 'tag'>
@@ -12,7 +13,7 @@ type Params = Record<string, unknown>
 const lerp = (a: LocalPoint, b: LocalPoint, t: number): LocalPoint => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
 
 /** Whether edge i is one of an arc's edges, the run wrapping through vertex 0 when fromEdge > toEdge. */
-export const edgeInArc = (i: number, a: Pick<SheetArc, 'fromEdge' | 'toEdge'>): boolean =>
+export const edgeInArc = (i: number, a: Pick<FittedArc, 'fromEdge' | 'toEdge'>): boolean =>
   a.fromEdge <= a.toEdge ? i >= a.fromEdge && i <= a.toEdge : i >= a.fromEdge || i <= a.toEdge
 
 /** Distances of a piece's ends from its edge's vertex a, mass frame. */
@@ -26,81 +27,85 @@ function pieceSpan(poly: readonly LocalPoint[], p: OpeningPiece): { t0: number; 
   return { t0: Math.max(0, mid - p.w / 2), t1: Math.min(len, mid + p.w / 2), len }
 }
 
-function piecesOf(m: Mass, poly: readonly LocalPoint[], c: PlacedOpening): SheetOpeningPiece[] {
-  return c.pieces.flatMap((p): SheetOpeningPiece[] => {
+type Piece = SheetOpeningPiece & { readonly fromA: number }
+
+/**
+ * A piece's ends on the outside face, through the wall at its jambs (the
+ * shell's wallPoint, as its reveals are built) and at mid-wall square
+ * across (where OpeningMesh stands the glass and door leaf, t / 2 in).
+ */
+function piecesOf(m: Mass, poly: readonly LocalPoint[], c: PlacedOpening, plan: WallPlan | null): Piece[] {
+  return c.pieces.flatMap((p): Piece[] => {
     const span = pieceSpan(poly, p)
     if (!span) return []
-    const a = poly[p.edge]
-    const b = poly[(p.edge + 1) % poly.length]
+    const a = lerp(poly[p.edge], poly[(p.edge + 1) % poly.length], span.t0 / span.len)
+    const b = lerp(poly[p.edge], poly[(p.edge + 1) % poly.length], span.t1 / span.len)
+    const half = (plan?.thicknessFt[p.edge] ?? 0) / 2
+    const out = plan?.outward[p.edge] ?? [0, 0]
+    const midOf = (q: LocalPoint): LocalPoint => [q[0] - out[0] * half, q[1] - out[1] * half]
+    const at = (q: LocalPoint) => massToBuilding(m, q)
     return [
       {
         edge: p.edge,
-        a: massToBuilding(m, lerp(a, b, span.t0 / span.len)),
-        b: massToBuilding(m, lerp(a, b, span.t1 / span.len)),
+        a: at(a),
+        b: at(b),
         fromLeftFt: span.len - span.t1,
+        innerA: at(plan ? plan.across(p.edge, span.t0, 1) : a),
+        innerB: at(plan ? plan.across(p.edge, span.t1, 1) : b),
+        midA: at(midOf(a)),
+        midB: at(midOf(b)),
+        fromA: span.t0,
       },
     ]
   })
 }
 
 /** The arc every piece lies on, if there is one. */
-function arcOfPieces(pieces: readonly SheetOpeningPiece[], arcs: readonly SheetArc[]): number | null {
+function arcOfPieces(pieces: readonly SheetOpeningPiece[], arcs: readonly FittedArc[]): number | null {
   if (!pieces.length) return null
   const k = arcs.findIndex((arc) => pieces.every((p) => edgeInArc(p.edge, arc)))
   return k < 0 ? null : k
 }
 
-/**
- * From the curve's left end as seen from outside (the far end of its last
- * edge: walking the outline runs right to left from outside) to the
- * opening's left end, along the curve.
- */
-function fromLeftOnArc(arc: SheetArc, lens: readonly number[], last: SheetOpeningPiece): number {
-  const n = lens.length
-  const before: number[] = []
-  for (let i = arc.fromEdge; i !== last.edge; i = (i + 1) % n) before.push(lens[i])
-  const reach = before.reduce((s, l) => s + l, 0) + (lens[last.edge] - last.fromLeftFt)
-  return Math.max(0, arc.lengthFt - reach)
-}
-
-function wallOf(params: Params, mi: number, pieces: readonly SheetOpeningPiece[], arc: SheetArc | null): string {
-  const first = pieces[0]
-  if (arc) {
-    const edges = pieces.map((p) => p.edge + 1)
-    const span = edges.length > 1 ? `edges ${edges[0]}–${edges[edges.length - 1]}` : `edge ${edges[0]}`
-    return `${wallLabel(params, mi, 'along')}, ${span}`
-  }
-  const label = wallLabel(params, mi, first.edge)
+/** "Main · curved wall" on a curve; else the first piece's wall, then any it turns onto. */
+function wallOf(params: Params, mi: number, pieces: readonly SheetOpeningPiece[], onCurve: boolean): string {
+  if (onCurve) return wallLabel(params, mi, 'along')
+  const label = wallLabel(params, mi, pieces[0].edge)
   const more = pieces.slice(1).map((p) => wallLabel(params, mi, p.edge).split(' · ').pop())
   return more.length ? `${label}, turning onto ${more.join(', ')}` : label
 }
 
-/** Every drawn opening of a part, each split into its straight pieces, building frame. */
-export function openingsOf(params: Params, m: Mass, mi: number, arcs: readonly SheetArc[]): UntaggedOpening[] {
+/**
+ * Every drawn opening of a part, each split into its straight pieces,
+ * building frame. `edges` are the part's sheet edges (which are curve);
+ * `around` the distance round its outline from P1 to each vertex; `plan`
+ * its walls in plan (null on a part with no walls), for the jambs.
+ */
+export function openingsOf(params: Params, m: Mass, mi: number, arcs: readonly FittedArc[], edges: readonly SheetEdge[], around: readonly number[], plan: WallPlan | null = null): UntaggedOpening[] {
   if (m.cuts.length === 0) return []
   const poly = massPoly(m)
-  const lens = poly.map((a, i) => {
-    const b = poly[(i + 1) % poly.length]
-    return Math.hypot(b[0] - a[0], b[1] - a[1])
-  })
+  const partCurves = edges.some((e) => e.curved)
   return fitMass(params, mi).openings.flatMap((c): UntaggedOpening[] => {
     if (c.hidden) return []
-    const pieces = piecesOf(m, poly, c)
+    const pieces = piecesOf(m, poly, c, plan)
     const first = pieces[0]
     const last = pieces[pieces.length - 1]
     if (!first || !last) return []
-    const k = c.along ? arcOfPieces(pieces, arcs) : null
-    const arc = k === null ? null : arcs[k]
+    const onCurve = pieces.some((p) => edges[p.edge]?.curved)
+    // an along-cut's x is already round the outline from vertex 0 (P1); any other opening's first end is found from its first piece
+    const aroundFt = c.along ? c.x : partCurves ? (around[first.edge] ?? 0) + first.fromA : null
     return [
       {
         kind: c.kind,
-        wall: wallOf(params, mi, pieces, arc),
+        wall: wallOf(params, mi, pieces, onCurve),
         a: first.a,
         b: last.b,
-        pieces,
-        arc: k,
+        pieces: pieces.map(({ fromA: _, ...p }) => p),
+        arc: arcOfPieces(pieces, arcs),
+        onCurve,
         widthFt: c.w,
-        fromLeftFt: arc ? fromLeftOnArc(arc, lens, last) : c.along ? first.fromLeftFt : c.x,
+        fromLeftFt: onCurve ? null : c.along ? last.fromLeftFt : c.x,
+        aroundFt,
         sillFt: c.sill,
         headFt: c.sill + c.h,
       },

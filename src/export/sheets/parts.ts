@@ -1,15 +1,19 @@
 import { deckStepsPlan, TREE_WELL_FT, type TreeWell } from '../../buildings/deckSteps'
-import { CURVED_SHAPES, localToSite, signedArea, siteToLocal, type LocalPoint } from '../../buildings/footprint'
-import { buildingToMass, edgeName, massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from '../../buildings/masses'
-import { offsetOutline } from '../../buildings/outline'
-import { buildRoof, normaliseRoof } from '../../buildings/roof'
+import { localToSite, signedArea, siteToLocal, type LocalPoint } from '../../buildings/footprint'
+import { extResolve } from '../../buildings/exterior'
+import { isRoofFinish } from '../../buildings/finishes'
+import { buildingToMass, massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from '../../buildings/masses'
+import { wallPlan, wallSpecsOf, type WallPlan, type WallSpec } from '../../buildings/wallShell'
 import { ftToM, mToFt } from '../../site/units'
 import type { RailWorld } from '../../scene/railWorld'
 import { stairInfo } from '../../scene/stairSite'
 import type { PlanObject } from '../../store/types'
-import { fitArcs } from './arcs'
-import { edgeInArc, openingsOf, type UntaggedOpening } from './openings'
-import type { SheetArc, SheetEdge, SheetPart, SheetRoof, SheetStair } from './types'
+import { fitCurves, type Curves } from './arcs'
+import { aroundOf, curveKindOf, edgesOf, pointsOf } from './curves'
+import { ellipseOf, fourCentreArcs } from './ellipse'
+import { openingsOf, type UntaggedOpening } from './openings'
+import { sheetRoof } from './roofs'
+import type { FittedArc, SheetArc, SheetEdge, SheetEllipse, SheetPart, SheetRoof, SheetStair } from './types'
 
 /** What every part of one building is worked out from. */
 export interface PartSite {
@@ -36,13 +40,51 @@ export function groundUnder(site: PartSite, m: Mass, p: LocalPoint): number {
   return site.world.ground(x, n)
 }
 
-function edgesOf(m: Mass, outline: readonly LocalPoint[], arcs: readonly SheetArc[]): SheetEdge[] {
-  const n = outline.length
-  return outline.map((a, i) => {
-    const b = outline[(i + 1) % n]
-    const k = arcs.findIndex((arc) => edgeInArc(i, arc))
-    return { index: i, a, b, lengthFt: Math.hypot(b[0] - a[0], b[1] - a[1]), name: edgeName(m, i), arc: k < 0 ? null : k }
+/** An ellipse's four-centre arcs when they come close enough, else the outline's own fitted arcs. */
+function curvesOf(m: Mass, outline: readonly LocalPoint[]): Curves & { readonly ellipse: SheetEllipse | null } {
+  const four = fourCentreArcs(m, outline)
+  if (four) return { arcs: four.arcs, smooth: outline.map(() => true), ellipse: ellipseOf(m, four.errorFt) }
+  return { ...fitCurves(outline, true), ellipse: ellipseOf(m, null) }
+}
+
+/** A part's walls in plan as the scene builds them: each edge's kind and thickness, and the band they make; null for a part with no walls. */
+function wallsOf(site: PartSite, m: Mass, mi: number): { readonly specs: WallSpec[]; readonly plan: WallPlan } | null {
+  if (site.standalone || m.kind !== 'wall') return null
+  const poly = massPoly(m)
+  const kinds = wallSpecsOf(site.o.params, mi, poly.length)
+  const plan = wallPlan(poly, (e) => kinds[e]?.thicknessFt ?? 0)
+  // the plan's thickness, as a zero-length edge carries the wall's before it
+  return { specs: kinds.map((k, e) => ({ ...k, thicknessFt: plan.thicknessFt[e] })), plan }
+}
+
+/**
+ * Each arc's inside face, round the same centre: in by the thickness where
+ * the centre is inside the wall (a convex curve), out by it where the curve
+ * is hollow. The shell sets its inside face square across on a smooth run,
+ * so it is a true concentric arc.
+ */
+function withInnerRadii(arcs: readonly FittedArc[], edges: readonly SheetEdge[], area: number): SheetArc[] {
+  return arcs.map((arc) => {
+    const e = edges[arc.fromEdge]
+    if (!e || e.thicknessFt <= 0) return { ...arc, innerRadiusFt: null }
+    // the outward normal of its first edge (signedArea > 0 winds with the outward normal on the right, y up)
+    const dx = e.b[0] - e.a[0]
+    const dz = e.b[1] - e.a[1]
+    const l = Math.hypot(dx, dz) || 1
+    const s = area >= 0 ? 1 : -1
+    const out: LocalPoint = [(s * dz) / l, (-s * dx) / l]
+    const toCentre = (arc.centre[0] - (e.a[0] + e.b[0]) / 2) * out[0] + (arc.centre[1] - (e.a[1] + e.b[1]) / 2) * out[1]
+    return { ...arc, innerRadiusFt: arc.radiusFt + (toCentre < 0 ? -e.thicknessFt : e.thicknessFt) }
   })
+}
+
+/** Width and depth of the drawn outline along the part's own axes. */
+function extentOf(m: Mass): { w: number; d: number } {
+  const poly = massPoly(m)
+  if (poly.length === 0) return { w: m.w, d: m.d }
+  const xs = poly.map((p) => p[0])
+  const zs = poly.map((p) => p[1])
+  return { w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs) }
 }
 
 function stairOf(site: PartSite, m: Mass, mi: number): SheetStair | null {
@@ -70,19 +112,14 @@ function stairOf(site: PartSite, m: Mass, mi: number): SheetStair | null {
   }
 }
 
-/** The eave line: a prow roof's own outline when it has one, else the walls grown by the overhang. */
-function eaveOf(m: Mass, type: string): LocalPoint[] {
-  const custom = (m.roofPts ?? []).filter((p) => p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
-  const eave = type === 'prow' && custom.length >= 3 ? custom.map(([x, z]): LocalPoint => [x, z]) : offsetOutline(massPoly(m), m.overhang)
-  return eave.map((p) => massToBuilding(m, p))
+/** The roof's finish as the scene resolves it (RoofMesh's roofFinish): the exterior resolver's roof mat when it is a roof finish. */
+export function roofFinishAt(site: PartSite, mi: number): string | null {
+  const mat = extResolve(site.o.params, mi, 'roof', null, site.standalone ? 'deck' : 'building').mat
+  return isRoofFinish(mat) ? mat : null
 }
 
-function roofOf(m: Mass): SheetRoof | null {
-  const type = normaliseRoof(m.roof)
-  if (isAccess(m) || type === 'none') return null
-  const prow = { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip }
-  const rise = buildRoof(massPoly(m), { type: m.roof, pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow }).rise
-  return { type, pitch: m.pitch, overhangFt: m.overhang, eave: eaveOf(m, type), riseFt: mToFt(rise) }
+function roofOf(site: PartSite, m: Mass, mi: number): SheetRoof | null {
+  return isAccess(m) ? null : sheetRoof(m, roofFinishAt(site, mi))
 }
 
 /** Sitting steps' tread bands, building frame, top first: the ground relative to the deck floor exactly as DeckStepsMesh takes it. */
@@ -103,27 +140,36 @@ function stepBandsOf(site: PartSite, m: Mass): LocalPoint[][][] {
 export function sheetPart(site: PartSite, mi: number): UntaggedPart {
   const m = site.masses[mi]
   const outline = massBuildingPoly(m)
-  const arcs = fitArcs(outline, true)
+  const { arcs: fitted, smooth, ellipse } = curvesOf(m, outline)
+  const walls = wallsOf(site, m, mi)
+  const edges = edgesOf(m, outline, fitted, smooth, walls?.specs)
+  const arcs = withInnerRadii(fitted, edges, signedArea(outline))
+  const around = aroundOf(outline)
+  const { w, d } = extentOf(m)
   return {
     massIndex: mi,
     name: site.standalone ? 'Deck' : partName(m, mi),
     kind: m.kind,
-    wFt: m.w,
-    dFt: m.d,
+    wFt: w,
+    dFt: d,
     dxFt: m.dx,
     dzFt: m.dz,
     rotDeg: m.rot,
     levelFt: site.standalone ? 0 : m.lvl,
     wallFt: m.kind === 'wall' || m.kind === 'porch' ? m.h : 0,
     outline,
+    inner: walls ? walls.plan.inner.map((p) => massToBuilding(m, p)) : [],
+    perimeterFt: around[outline.length] ?? 0,
     areaSqFt: Math.abs(signedArea(outline)),
-    edges: edgesOf(m, outline, arcs),
+    edges,
     arcs,
-    openings: site.standalone ? [] : openingsOf(site.o.params, m, mi, arcs),
+    openings: site.standalone ? [] : openingsOf(site.o.params, m, mi, arcs, edges, around, walls?.plan ?? null),
     stair: stairOf(site, m, mi),
-    roof: roofOf(m),
+    roof: roofOf(site, m, mi),
     stepBands: stepBandsOf(site, m),
-    approximate: (CURVED_SHAPES as readonly string[]).includes(m.shape),
+    curve: curveKindOf(m.shape),
+    ellipse,
+    points: pointsOf(outline, edges, curveKindOf(m.shape) !== null),
   }
 }
 

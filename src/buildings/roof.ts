@@ -3,7 +3,8 @@ import { signedArea, type LocalPoint } from './footprint'
 import { addCap } from './walls'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from './geom'
 import { polyRoof, prowRoof, SHELL_M, type ProwOptions } from './fittedRoof'
-import { isSculpted, sculptedRoof } from './sculptRoof'
+import type { Mass } from './masses'
+import { isSculpted, sculptedRoof, type SculptMass } from './sculptRoof'
 
 const FT = 0.3048
 const FASCIA_M = 0.24
@@ -13,6 +14,8 @@ const GAMBREL_RISE = 1.3
 const GAMBREL_KNUCKLE = 0.72
 /** The prow tip column stands this far in from the tip, from 0.3 m above the floor (legacy roofTipPost). */
 const TIP_POST_IN_M = 0.9
+/** Legacy roofTipPost: a 0.09–0.11 m column from 0.3 m above the floor, at least 0.5 m tall. */
+export const TIP_POST = { topR: 0.09, footR: 0.11, base: 0.3, min: 0.5 } as const
 
 export type RoofType = 'gable' | 'hip' | 'shed' | 'gambrel' | 'butterfly' | 'pyramid' | 'prow' | 'flat' | 'sod' | 'dome' | 'vault' | 'shell' | 'saddle' | 'none'
 
@@ -33,6 +36,48 @@ export interface RoofParams {
   readonly curl?: number
   readonly roofMat?: string
   readonly open?: boolean
+}
+
+/** The mass fields a roof is built from. */
+export type RoofMass = Pick<Mass, 'roof' | 'pitch' | 'ridge' | 'overhang' | 'roofPts' | 'gable' | 'vault' | 'roofDip' | 'curl' | 'open'>
+
+/**
+ * A mass's roof parameters, as the scene builds its roof and the drawing
+ * sheets measure it: `finish` is the roof's resolved finish (the exterior
+ * resolver's roof mat when it is a roof finish), null for the standard one.
+ */
+export function roofParamsOf(m: RoofMass, finish: string | null): RoofParams {
+  return {
+    type: m.roof,
+    pitch: m.pitch,
+    ridge: m.ridge,
+    overhangFt: m.overhang,
+    prow: { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip },
+    curl: m.curl,
+    open: m.open,
+    roofMat: finish ?? '',
+  }
+}
+
+/** A sculpted roof's options from the roof parameters (what buildRoof and the scene's sculpted roof both pass to sculptedRoof). */
+export function sculptOptionsOf(p: RoofParams): SculptMass {
+  return { roof: normaliseRoof(p.type), pitch: p.pitch, ridge: p.ridge, overhang: p.overhangFt, open: p.open ?? false, curl: p.curl, roofMat: p.roofMat }
+}
+
+/** How a roof is built over an outline: fitted to a prow outline, sculpted, fitted to a plan that is not a rectangle, over its polygon (flat, pyramid) or over its box. */
+export type RoofForm = 'none' | 'prow' | 'sculpted' | 'fitted' | 'flat' | 'pyramid' | 'box'
+
+export function roofForm(type: string, poly: readonly LocalPoint[]): RoofForm {
+  const t = normaliseRoof(type)
+  if (t === 'none' || t === 'prow' || t === 'flat' || t === 'pyramid') return t
+  if (isSculpted(t)) return 'sculpted'
+  return FITTED.has(t) && !isRectangle(poly) ? 'fitted' : 'box'
+}
+
+/** Top of the prow tip column above the wall top, metres: the roof's underside, or lower where the column keeps its least height. */
+export function tipColumnTop(tip: TipPost, wallM: number): number {
+  const len = Math.max(TIP_POST.min, tip.top + wallM - TIP_POST.base)
+  return TIP_POST.base - wallM + len
 }
 
 /** The column under a prow shell's tip: plan position and the roof's underside above it, metres from the wall top. */
@@ -71,19 +116,20 @@ const FITTED: ReadonlySet<RoofType> = new Set(['gable', 'hip', 'shed', 'gambrel'
  */
 export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh {
   const type = normaliseRoof(p.type)
+  const form = roofForm(type, poly)
   const out: RoofMesh = { roof: emptyMesh(), gables: emptyMesh(), trim: emptyMesh(), glass: emptyMesh(), rise: 0 }
-  if (type === 'none') return out
-  if (type === 'prow') {
+  if (form === 'none') return out
+  if (form === 'prow') {
     const r = prowRoof(poly, p.pitch, p.ridge, p.overhangFt, p.prow)
     const tip = p.tipPost === false ? null : prowTipPost(r.roof, p.prow)
     return tip ? { ...r, tip } : r
   }
-  if (isSculpted(type)) {
-    const s = sculptedRoof(poly, { roof: type, pitch: p.pitch, ridge: p.ridge, overhang: p.overhangFt, open: p.open ?? false, curl: p.curl, roofMat: p.roofMat })
+  if (form === 'sculpted') {
+    const s = sculptedRoof(poly, sculptOptionsOf(p))
     const glass = s.infillKind === 'glass'
     return { roof: s.slab, gables: glass ? emptyMesh() : s.infill, trim: mergeMeshes(s.soffit, s.fascia, s.struts), glass: glass ? s.infill : emptyMesh(), rise: s.rise }
   }
-  if (FITTED.has(type) && !isRectangle(poly)) return polyRoof(poly, type, p.pitch, p.ridge, p.overhangFt)
+  if (form === 'fitted') return polyRoof(poly, type, p.pitch, p.ridge, p.overhangFt)
   const slope = Math.max(0, p.pitch) / 12
   const o = Math.max(0, p.overhangFt) * FT
   const xs = poly.map((q) => q[0] * FT)

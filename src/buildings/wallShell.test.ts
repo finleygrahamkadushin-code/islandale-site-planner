@@ -4,7 +4,7 @@ import { localFootprint, type LocalPoint } from './footprint'
 import { bounds, type MeshData } from './geom'
 import { buildingMasses, massPoly } from './masses'
 import { FIT, layoutOpenings, type CutData } from './openingLayout'
-import { buildWallShell, curvedToAlong, edgeMesh, GLASS_WALL_FT, joinByEdge, joinMeshes, openingHoles, railHeightsFt, wallDecor, wallDecorByEdge, wallFaces, type WallShell } from './wallShell'
+import { buildWallShell, curvedToAlong, edgeMesh, GLASS_WALL_FT, joinByEdge, joinMeshes, openingHoles, railHeightsFt, wallDecor, wallDecorByEdge, wallFaces, wallPlan, wallSpecsOf, wallThicknessFt, type WallShell } from './wallShell'
 
 const FT = 0.3048
 const T = FIT.wallFt
@@ -328,3 +328,46 @@ function normalsByPoint(m: MeshData): Map<string, Set<string>> {
   }
   return out
 }
+
+describe('the walls in plan (wallPlan, wallSpecsOf)', () => {
+  test("a rect's inside face is the outline brought in by the wall all round", () => {
+    const plan = wallPlan(rect)
+    expect(plan.thicknessFt).toEqual([T, T, T, T])
+    expect(plan.crease).toEqual([true, true, true, true])
+    plan.inner.forEach((p, i) => {
+      expect(Math.abs(p[0])).toBeCloseTo(10 - T, 9)
+      expect(Math.abs(p[1])).toBeCloseTo(8 - T, 9)
+      expect(Math.sign(p[0])).toBe(Math.sign(rect[i][0]))
+    })
+  })
+
+  test('a point through the wall is square across mid-wall and runs to the mitred corner at the ends', () => {
+    const plan = wallPlan(rect)
+    // edge 0 is the back wall, z = -8, running +x from x = -10: its outward normal is -z
+    expect(plan.outward[0][0]).toBeCloseTo(0, 9)
+    expect(plan.outward[0][1]).toBeCloseTo(-1, 9)
+    const [x, z] = plan.across(0, 9, 1)
+    expect(x).toBeCloseTo(-1, 9)
+    expect(z).toBeCloseTo(-8 + T, 9)
+    expect(plan.across(0, 9, 0.5)[1]).toBeCloseTo(-8 + T / 2, 9)
+    expect(plan.across(0, 0.2, 1)).toEqual(plan.inner[0])
+  })
+
+  test('the inside face is the one the shell builds, per edge thickness and all', () => {
+    const thickness = (e: number) => (e === 1 ? GLASS_WALL_FT : T)
+    const plan = wallPlan(rect, thickness)
+    const shell = buildWallShell(rect, H, [], { cap: false, thicknessFt: thickness })
+    const floor = trisOf(all(shell, 'inner')).flatMap((t) => t.p.filter((p) => Math.abs(p[1]) < 1e-9))
+    expect(floor.length).toBeGreaterThan(0)
+    for (const p of floor) expect(plan.inner.some((q) => Math.hypot(q[0] - p[0], q[1] - p[2]) < 1e-6)).toBe(true)
+  })
+
+  test("each wall's kind through the exterior model, glass thin and every other kind the full wall", () => {
+    const params = { w: 20, d: 16, walls: 'cedar', ext: { walls: { '0:2': { kind: 'glass' } } } }
+    expect(wallSpecsOf(params, 0, 4).map((s) => s.kind)).toEqual(['cedar', 'cedar', 'glass', 'cedar'])
+    expect(wallSpecsOf(params, 0, 4).map((s) => s.thicknessFt)).toEqual([T, T, GLASS_WALL_FT, T])
+    expect(wallThicknessFt('glass')).toBe(GLASS_WALL_FT)
+    expect(wallThicknessFt('')).toBe(FIT.wallFt)
+    expect(wallThicknessFt('stone')).toBe(FIT.wallFt)
+  })
+})

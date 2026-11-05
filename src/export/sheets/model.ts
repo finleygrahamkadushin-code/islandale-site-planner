@@ -1,12 +1,17 @@
 import { localToSite, num, type LocalPoint } from '../../buildings/footprint'
 import { buildingMasses, deckObjectMass, type Mass } from '../../buildings/masses'
+import { area, disjointTiles } from '../../interiors/geom'
+import { elevationAt } from '../../site/terrain'
 import { mToFt, ftToM } from '../../site/units'
 import type { Terrain } from '../../site/types'
 import { baseElevation } from '../../scene/placement'
 import { planRailWorld } from '../../scene/railSite'
 import type { RailWorld } from '../../scene/railWorld'
 import type { PlanObject } from '../../store/types'
+import { planEarth, sheetEarthworks, type PlanEarth } from './earthworks'
+import { sheetFloors } from './interiors'
 import { partPoints, sheetPart, type PartSite, type UntaggedPart } from './parts'
+import { sheetSupports } from './supports'
 import type { SheetBuilding, SheetLevels, SheetOpening, SheetPart } from './types'
 
 export { elevationView } from './elevation'
@@ -18,6 +23,9 @@ export { elevationView } from './elevation'
  */
 
 type Bounds = SheetBuilding['bounds']
+
+/** A wall corner this close to the bounding box's back-left corner is on it, feet (a quarter inch). */
+const ON_CORNER_FT = 1 / 48
 
 const TAG_LETTER: Readonly<Record<SheetOpening['kind'], string>> = { door: 'D', slider: 'D', window: 'W', cutout: 'C' }
 
@@ -55,32 +63,36 @@ const gradePoints = (outline: readonly LocalPoint[]): LocalPoint[] =>
     return [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as const]
   })
 
+const lowHigh = (vs: readonly number[]) => (vs.length ? [Math.min(...vs), Math.max(...vs)] : [0, 0])
+
+/** The parts whose outline the grade is read round: the walls, or every part of a building with none (a standalone deck). */
+export const gradeParts = (parts: readonly SheetPart[]): readonly SheetPart[] => (parts.some((p) => p.kind === 'wall') ? parts.filter((p) => p.kind === 'wall') : parts)
+
+/** Finished grade (the ground the scene draws) and surveyed grade round the walls, and the roof top. */
 function levelsOf(o: PlanObject, world: RailWorld, floorM: number, parts: readonly SheetPart[]): SheetLevels {
-  const grades = parts.flatMap((p) =>
-    gradePoints(p.outline).map((q) => {
-      const [x, n] = localToSite(o.position, o.rotation, q)
-      return mToFt(world.ground(x, n) - floorM)
-    }),
-  )
+  const at = gradeParts(parts).flatMap((p) => gradePoints(p.outline).map((q) => localToSite(o.position, o.rotation, q)))
+  const [gradeLowFt, gradeHighFt] = lowHigh(at.map(([x, n]) => mToFt(world.ground(x, n) - floorM)))
+  const [surveyLowFt, surveyHighFt] = lowHigh(at.map(([x, n]) => mToFt(elevationAt(world.terrain, x, n) - floorM)))
   const tops = parts.map((p) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0))
-  return {
-    floorNavdFt: mToFt(floorM),
-    gradeLowFt: grades.length ? Math.min(...grades) : 0,
-    gradeHighFt: grades.length ? Math.max(...grades) : 0,
-    topFt: Math.max(0, ...tops),
-  }
+  return { floorNavdFt: mToFt(floorM), gradeLowFt, gradeHighFt, surveyLowFt, surveyHighFt, topFt: Math.max(0, ...tops) }
 }
 
-/** Covered floor of enclosed rooms, and of decks and porches (a porch roof over a deck, with no floor of its own, is left out). */
-function areasOf(parts: readonly SheetPart[], masses: readonly Mass[]): SheetBuilding['totalAreaSqFt'] {
-  const sum = (keep: (p: SheetPart) => boolean) => parts.filter(keep).reduce((s, p) => s + p.areaSqFt, 0)
-  return {
-    enclosed: sum((p) => p.kind === 'wall'),
-    decks: sum((p) => p.kind === 'deck' || (p.kind === 'porch' && masses[p.massIndex]?.slab !== false)),
-  }
+/** Area of the union of some outlines, square feet: where they overlap, counted once. */
+export const unionArea = (outlines: readonly (readonly LocalPoint[])[]): number => disjointTiles(outlines).reduce((s, t) => s + area(t), 0)
+
+/**
+ * Floor inside the walls' outside face, and of decks and porches outside
+ * it (a porch roof over a deck, with no floor of its own, is left out),
+ * each overlap counted once.
+ */
+export function areasOf(parts: readonly SheetPart[], masses: readonly Mass[]): SheetBuilding['totalAreaSqFt'] {
+  const walls = parts.filter((p) => p.kind === 'wall').map((p) => p.outline)
+  const decks = parts.filter((p) => p.kind === 'deck' || (p.kind === 'porch' && masses[p.massIndex]?.slab !== false)).map((p) => p.outline)
+  const enclosed = unionArea(walls)
+  return { enclosed, decks: decks.length ? Math.max(0, unionArea([...walls, ...decks]) - enclosed) : 0 }
 }
 
-function sheetBuilding(o: PlanObject, world: RailWorld, trees: PartSite['trees']): SheetBuilding {
+function sheetBuilding(o: PlanObject, world: RailWorld, earth: PlanEarth, trees: PartSite['trees']): SheetBuilding {
   const standalone = o.type === 'deck'
   const masses = standalone ? [deckObjectMass(o.params)] : buildingMasses(o.params)
   const floorM = floorOf(o, world)
@@ -88,7 +100,9 @@ function sheetBuilding(o: PlanObject, world: RailWorld, trees: PartSite['trees']
   const parts = tagOpenings(masses.map((_, mi) => sheetPart(site, mi)))
   const bounds = boundsOf(parts.flatMap(partPoints))
   const outlineBounds = boundsOf(parts.flatMap((p) => p.outline))
-  const main = boundsOf(parts[0]?.outline ?? [])
+  const mainOutline = parts[0]?.outline ?? []
+  const main = boundsOf(mainOutline)
+  const datumOnWall = mainOutline.some((p) => Math.hypot(p[0] - main.minx, p[1] - main.minz) <= ON_CORNER_FT)
   return {
     id: o.id,
     name: o.name,
@@ -98,15 +112,22 @@ function sheetBuilding(o: PlanObject, world: RailWorld, trees: PartSite['trees']
     bounds,
     outlineBounds,
     datum: [main.minx, main.minz],
+    datumOnWall,
+    mainBounds: main,
     levels: levelsOf(o, world, floorM, parts),
+    earthworks: sheetEarthworks(o, earth, world.terrain, floorM, parts[0]),
+    supports: sheetSupports(site),
+    floors: sheetFloors(o.params, masses, parts, standalone),
     totalAreaSqFt: areasOf(parts, masses),
   }
 }
 
 /** Every visible cabin ('house') and standalone deck, in the order given (plan.order mapped to objects). */
 export function sheetBuildings(objects: readonly PlanObject[], terrain: Terrain): SheetBuilding[] {
-  const world = planRailWorld(objects, terrain)
   const visible = objects.filter((o) => !o.hidden)
+  // the earthworks once, for the ground every part stands on and for their own drawing
+  const earth = planEarth(visible, terrain)
+  const world = planRailWorld(objects, terrain, earth.works.ground)
   const trees = visible.filter((o) => o.type === 'tree').map((o) => o.position)
-  return visible.filter((o) => o.type === 'house' || o.type === 'deck').map((o) => sheetBuilding(o, world, trees))
+  return visible.filter((o) => o.type === 'house' || o.type === 'deck').map((o) => sheetBuilding(o, world, earth, trees))
 }

@@ -18,23 +18,29 @@ const SHADE_SPREAD = 0.2
 /** Wall thickness in feet, for the cap and end UVs. */
 const THICK_FT = WALL_THICKNESS_M / FT
 
-/** Retaining walls along the deep edges of every sunk building's cut, stone or concrete. */
+/**
+ * Retaining walls along the deep edges of every sunk building's cut, stone
+ * or concrete: one mesh per building and material, tagged with the building
+ * (sheetOwner) so its elevations draw the walls that hold back its cut.
+ */
 export function RetainingWalls() {
   const style = useDisplayStyle()
   const { works } = useEarthworks()
   const meshes = useMemo(
-    () => MATERIALS.flatMap((material) => {
-      const walls = works.walls.filter((w) => w.material === material)
-      return walls.length ? [{ material, geometry: retainingWallGeometry(walls) }] : []
-    }),
+    () => [...new Set(works.walls.map((w) => w.id))].flatMap((id) =>
+      MATERIALS.flatMap((material) => {
+        const walls = works.walls.filter((w) => w.id === id && w.material === material)
+        return walls.length ? [{ id, material, geometry: retainingWallGeometry(walls), owner: { sheetOwner: id } }] : []
+      }),
+    ),
     [works.walls],
   )
   useEffect(() => () => meshes.forEach((m) => m.geometry.dispose()), [meshes])
   if (!meshes.length) return null
   return (
     <group name="retaining-walls">
-      {meshes.map(({ material, geometry }) => (
-        <mesh key={material} geometry={geometry} castShadow receiveShadow>
+      {meshes.map(({ id, material, geometry, owner }) => (
+        <mesh key={`${id}|${material}`} geometry={geometry} userData={owner} castShadow receiveShadow>
           <Surface kind="wall" style={style} texture={material} vertexColors diagramColor="#bdbab2" />
         </mesh>
       ))}

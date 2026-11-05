@@ -95,3 +95,115 @@ test('Download measurements gives a UTF-8 CSV with a byte-order mark, the prow a
   expect(text).toContain('Gathering prow')
   expect(text).toContain('W6')
 })
+
+/** Scheme C4's gathering cabin (C4-0) and scheme D's curved cabin (D-0): a shell prow with a dipped tip, and a building of curves, rooms and thick walls. */
+async function showScheme(page: Page, scheme: string, id: string, roofsOff = false) {
+  await page.evaluate(
+    ([s, i, off]) => {
+      const st = (window as any).islandale.store.getState()
+      st.loadScheme(s)
+      st.setRoofsOff(off)
+      st.select([i])
+    },
+    [scheme, id, roofsOff] as const,
+  )
+}
+
+async function openOn(page: Page, id: string) {
+  await sheetsButton(page).click()
+  await expect(dialog(page)).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue(id, { timeout: 60_000 })
+}
+
+/** Every row of the measurement table titled `title`, continued blocks included, as cell text. */
+const tableRows = (page: Page, title: string) =>
+  dialog(page)
+    .locator('table.sheet-table')
+    .evaluateAll(
+      (tables, t) =>
+        tables
+          .filter((el) => (el.querySelector('caption')?.firstChild?.textContent ?? '').replace(' (continued)', '').trim() === t)
+          .flatMap((el) => [...el.querySelectorAll('tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent ?? ''))),
+      title,
+    )
+
+const columnOf = (page: Page, title: string, column: string) =>
+  dialog(page)
+    .locator('table.sheet-table')
+    .evaluateAll((tables, [t, c]) => {
+      const el = tables.find((e) => (e.querySelector('caption')?.firstChild?.textContent ?? '').trim() === t)
+      return el ? [...el.querySelectorAll('thead th')].findIndex((th) => th.textContent === c) : -1
+    }, [title, column])
+
+const NONE_OR_ZERO = /^(—|-|)$|^0'-0"$/
+
+async function elevationPngs(page: Page) {
+  await elevationsDrawn(page)
+  const hrefs = await dialog(page).locator('image').evaluateAll((els) => els.map((el) => el.getAttribute('href') ?? ''))
+  expect(hrefs.length).toBeGreaterThanOrEqual(4)
+  for (const href of hrefs) expect(href.startsWith('data:image/png')).toBe(true)
+  await expect(dialog(page).locator('.sheet-retry')).toHaveCount(0)
+}
+
+test("C4-0: the shell prow's dipped tip is in the Levels table, its walls are drawn, and its elevations finish", async ({ page }) => {
+  test.setTimeout(240_000)
+  await showScheme(page, 'C4', 'C4-0')
+  await openOn(page, 'C4-0')
+  const levels = (await tableRows(page, 'Levels')).map((r) => r[0])
+  expect(levels.some((l) => l.includes('tip eave'))).toBe(true)
+  expect(levels.some((l) => l.includes('tip eave, underside'))).toBe(true)
+  expect(levels.some((l) => l.includes('tip column top'))).toBe(true)
+  await expect(dialog(page).locator('g[aria-label$=" walls"]').first()).toBeAttached()
+  await elevationPngs(page)
+})
+
+test('D-0: curves drawn true, every opening located, walls and rooms drawn, the measurements bounded, the elevations finish and the scene is left as it was with Roofs off', async ({ page }) => {
+  test.setTimeout(420_000)
+  // selected before the stats are read: the selection draws its own outline meshes
+  await showScheme(page, 'D', 'D-0', true)
+  await page.waitForTimeout(3_000)
+  const before = await sceneStats(page)
+  await openOn(page, 'D-0')
+  await expect(dialog(page)).not.toContainText(/drawn as|approximate/i)
+
+  const fromLeft = await columnOf(page, 'Openings', 'From left')
+  const around = await columnOf(page, 'Openings', 'Round from P1')
+  expect(fromLeft).toBeGreaterThanOrEqual(0)
+  expect(around).toBeGreaterThanOrEqual(0)
+  const openings = await tableRows(page, 'Openings')
+  expect(openings.length).toBeGreaterThan(0)
+  for (const row of openings) expect(NONE_OR_ZERO.test(row[fromLeft]) && NONE_OR_ZERO.test(row[around]), `opening ${row[0]} has a location`).toBe(false)
+
+  const walls = dialog(page).locator('.sheet-svg g[aria-label$=" walls"]')
+  expect(await walls.count()).toBeGreaterThan(0)
+  // each wall band draws its outer and inner faces
+  expect(await walls.first().locator('polygon, polyline').count()).toBeGreaterThanOrEqual(2)
+  const rooms = await tableRows(page, 'Rooms')
+  expect(rooms.length).toBeGreaterThan(0)
+  await expect(dialog(page).locator('.sheet-svg g[aria-label="Rooms"] text').first()).toBeAttached()
+  // the stilts and the decks' rim posts, under the floor
+  expect(await dialog(page).locator('.sheet-svg g[aria-label="Supports"]').first().locator('line, circle, rect, polyline, polygon').count()).toBeGreaterThan(0)
+  expect((await tableRows(page, 'Supports')).length).toBeGreaterThan(0)
+
+  const measurementPages = await dialog(page).locator('section.sheet-page[aria-label*=": Measurements"]').count()
+  expect(measurementPages).toBeGreaterThanOrEqual(1)
+  expect(measurementPages).toBeLessThanOrEqual(6)
+
+  await elevationPngs(page)
+  await dialog(page).getByRole('button', { name: 'Back to the planner' }).click()
+  await expect(dialog(page)).toHaveCount(0)
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().roofsOff)).toBe(true)
+  await expect.poll(() => sceneStats(page), { timeout: 30_000 }).toEqual(before)
+})
+
+test('the Supports checkbox draws the posts under C-0 and takes them off the plan', async ({ page }) => {
+  await open(page)
+  const supports = dialog(page).locator('.sheet-svg g[aria-label="Supports"]')
+  const box = dialog(page).getByRole('checkbox', { name: 'Supports' })
+  await expect(box).toBeChecked()
+  expect(await supports.first().locator('rect, circle').count()).toBeGreaterThan(0)
+  await box.uncheck()
+  await expect(supports).toHaveCount(0)
+  await box.check()
+  await expect(supports.first()).toBeAttached()
+})

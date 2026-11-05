@@ -46,14 +46,15 @@ function prepare(t: Terrain, op: EarthOp): Prepared {
   const e = op.spec
   const edges = earthEdges(t, op.main)
   const D = e.court * FT
-  const courts = e.court > 0
-    ? earthSides(edges, e.courtSides).map(({ a, b, nw: [ux, un] }): SitePoint[] => [a, b, [b[0] + ux * D, b[1] + un * D], [a[0] + ux * D, a[1] + un * D]])
-    : []
+  const courtSides = e.court > 0 ? earthSides(edges, e.courtSides) : []
+  const courts = courtSides.map(({ a, b, nw: [ux, un] }): SitePoint[] => [a, b, [b[0] + ux * D, b[1] + un * D], [a[0] + ux * D, a[1] + un * D]])
   return {
     kind: 'building',
     op,
     polys: op.polys.map(flat),
     courts: courts.map(flat),
+    courtPolys: courts,
+    courtSides: courtSides.map((c) => c.i),
     berms: e.berm ? earthSides(edges, e.sides) : [],
     floorC: op.floor - CUT_UNDER_FLOOR_M,
     crestTop: op.floor + e.berm * FT,
@@ -175,8 +176,11 @@ function build(t: Terrain, ops: readonly EarthOp[]): SiteEarthworks {
     const grid = { x0: R.x0, n0: R.n0, h: R.h, ...d.r, rw: d.rw, sd: d.sdC }
     walls.push(...retainingWalls(grid, p.floorC, p.op.spec.wallMat, p.op.id, ground))
   }
-  const berms = buildings.filter(({ p }) => p.berms.length).map(({ p }) => ({ id: p.op.id, top: p.crestTop, edges: p.berms.map((e) => [e.a, e.b] as const) }))
-  return { fields, ponds, walls, berms, sample, ground, drawnGround }
+  const berms = buildings
+    .filter(({ p }) => p.berms.length)
+    .map(({ p }) => ({ id: p.op.id, top: p.crestTop, edges: p.berms.map((e) => [e.a, e.b] as const), sides: p.berms.map((e) => e.i), crest: p.op.spec.crest * FT, slope: p.op.spec.slope }))
+  const courts = buildings.flatMap(({ p }) => p.courtPolys.map((poly, k) => ({ id: p.op.id, poly, side: p.courtSides[k], floor: p.floorC })))
+  return { fields, ponds, walls, berms, courts, sample, ground, drawnGround }
 }
 
 // One build per set of objects: every hook and the rail resolver ask for the same ground.

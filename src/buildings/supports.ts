@@ -21,8 +21,14 @@ const IN = 0.0254
 export const SUPPORT_EMBED_M = 0.3
 /** Outlines with more vertices than this are curves (legacy P.length > 24). */
 const CURVED_VERTICES = 24
-const BEAM_H_M = 0.28
-const BEAM_W_M = 0.12
+/** Beams under the floor are this deep and wide, metres. */
+export const BEAM_H_M = 0.28
+export const BEAM_W_M = 0.12
+/** A stilt's footing pad's radius, metres. */
+export const FOOTING_R_M = 0.26
+/** A mast core's radius at its foot and its flared head, as shares of its radius r. */
+export const MAST_FOOT_R = 1.1
+export const MAST_HEAD_R = 2.4
 const BRACE_R_M = 0.04
 /** Bracing goes where the floor is more than this over the ground, metres (legacy drop > 1.8). */
 const BRACE_MIN_DROP_M = 1.8
@@ -348,14 +354,14 @@ export function supportMeshes(plan: SupportPlan, polyFt: readonly LocalPoint[]):
   if (plan.plate) buildSlab(polyFt, SPEC_PLATE_M, top, plan.mast ? m.plateSteel : m.plateWhite)
   if (plan.mast) {
     const { x, z, r, bottom, collarY } = plan.mast
-    addPrism(m.pier, [x, bottom, z], [x, top - 0.4, z], r * 1.1, 28, true, r * 0.9)
-    addPrism(m.pier, [x, top - 1.5, z], [x, top - 0.4, z], r * 0.95, 28, true, r * 2.4)
+    addPrism(m.pier, [x, bottom, z], [x, top - 0.4, z], r * MAST_FOOT_R, 28, true, r * 0.9)
+    addPrism(m.pier, [x, top - 1.5, z], [x, top - 0.4, z], r * 0.95, 28, true, r * MAST_HEAD_R)
     addPrism(m.steel, [x, collarY - 0.25, z], [x, collarY + 0.25, z], r * 1.35, 28, true)
     for (const s of plan.struts) addPrism(m.steel, s.a, s.b, 0.1, 8)
   } else {
     for (const s of plan.struts) addPrism(m.white, s.a, s.b, 0.085, 8)
   }
-  for (const f of plan.footings) addPrism(m.pier, f.a, f.b, 0.26, 10, true)
+  for (const f of plan.footings) addPrism(m.pier, f.a, f.b, FOOTING_R_M, 10, true)
   const pieces: SupportPiece[] = [
     { part: 'post', material: 'wood', mesh: m.wood },
     { part: 'post', material: 'concrete', mesh: m.pier },
