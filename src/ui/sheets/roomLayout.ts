@@ -85,7 +85,7 @@ function curveNoteBox(n: CurveOpeningNote, size: number): Box {
 /** Every figure of the plan a room's words could land on inside the walls: the dimensions', arcs' and curved openings' notes, the openings' tags and the walls' thickness notes. */
 export function planFigures(b: SheetBuilding, layout: PlanLayout, pen: Pen): Box[] {
   return [
-    ...layout.dims.map((d) => dimTextBox(d, d.label, pen.text)),
+    ...[...layout.dims, ...layout.supportDims].map((d) => dimTextBox(d, d.label, pen.text)),
     ...layout.arcs.map((a) => arcNoteBox(a, pen)),
     ...layout.notes.map((n) => curveNoteBox(n, pen.small)),
     ...b.parts.flatMap((p) => p.openings.map((o) => around(openingTagAt(o, p, pen.text), pen.text * 0.85, pen.text * 0.85))),

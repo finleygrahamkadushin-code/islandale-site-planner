@@ -10,6 +10,7 @@ import type { Extent } from './Page'
 import { arcPoints, openingStops, pointAlong } from './planDims'
 import { earthNotes, earthPlan, type EarthPlan } from './earthLayout'
 import { thicknessMarks, thicknessText, wallNotes, type ThicknessMark } from './planWalls'
+import { supportDims, supportExtentPoints } from './supportLayout'
 import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, uprightAngle, type DimLine, type Placed, type Pt } from './svgDims'
 
 const FIRST_OFFSET_FT = 2.5
@@ -75,6 +76,8 @@ export interface PlanLayout {
   readonly general: CurveOpeningNote | null
   /** Retaining walls, berms, courts and the limits of the earthworks, with their labels; null when the building has none. */
   readonly earth: EarthPlan | null
+  /** The supports' spacing chains, one per distinct row and column of posts; empty when the plan leaves the supports out. */
+  readonly supportDims: LabelledDim[]
   readonly extent: Extent
 }
 
@@ -214,25 +217,33 @@ function roomNotes(floor: SheetFloor | null): string[] {
   ]
 }
 
-/** Where every dimension, arc note and the drawing's edges go; with a floor, the notes for its rooms too. */
-export function planLayout(b: SheetBuilding, scale: Scale, floor: SheetFloor | null = null): PlanLayout {
+/** The general note for the supports, when the plan draws any. */
+const supportNotes = (b: SheetBuilding, shown: boolean): string[] =>
+  shown && b.supports.some((s) => s.posts.length || s.mast || s.struts.length || s.beams.length)
+    ? ['Supports under the floor, in grey: posts, piers and piles at their section, beams dashed, a mast or stilts to their footings.', 'One spacing chain per row and column of posts, centre to centre from the outside face; sizes in the Supports table.']
+    : []
+
+/** Where every dimension, arc note and the drawing's edges go; with a floor, the notes for its rooms too; with supports, their spacing. */
+export function planLayout(b: SheetBuilding, scale: Scale, floor: SheetFloor | null = null, supports = false): PlanLayout {
   const pen = penSizes(scale)
   const opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
   const edge = edgeDims(b, opts, [])
   const dims: LabelledDim[] = [...edge, ...overallDims(b, opts, edge)]
+  const posts = supports ? supportDims(b, opts, pen) : []
   const arcs = arcNotes(b)
   const notes = curveOpeningNotes(b)
   const { minx, maxx, minz, maxz } = b.bounds
-  const all = dimBounds(dims)
+  const all = dimBounds([...dims, ...posts])
+  const reach = supports ? supportExtentPoints(b) : []
   const noteXs = notes.flatMap((n) => noteSpanX(n, pen.small))
   const noteYs = notes.flatMap((n) => noteSpanY(n, pen.small))
   const earth = earthPlan(b, pen)
   const earthXs = earth?.points.map((p) => p[0]) ?? []
   const earthYs = earth?.points.map((p) => p[1]) ?? []
-  const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs, ...earthXs]
-  const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs, ...earthYs]
+  const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs, ...earthXs, ...reach.map((p) => p[0])]
+  const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs, ...earthYs, ...reach.map((p) => p[1])]
   // the general notes go under everything else, from its left edge
-  const lines = [...wallNotes(b), ...roomNotes(floor), ...earthNotes(b)]
+  const lines = [...wallNotes(b), ...roomNotes(floor), ...supportNotes(b, supports), ...earthNotes(b)]
   const general: CurveOpeningNote | null = lines.length ? { at: [Math.min(...xs), Math.max(...ys) + pen.text * NOTES_GAP_TEXT], anchor: 'start', lines } : null
   if (general) {
     xs.push(...noteSpanX(general, pen.small))
@@ -241,7 +252,7 @@ export function planLayout(b: SheetBuilding, scale: Scale, floor: SheetFloor | n
   const x0 = Math.floor(Math.min(...xs) - MARGIN_FT)
   const y0 = Math.floor(Math.min(...ys) - MARGIN_FT)
   const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(Math.max(...ys) + MARGIN_FT) - y0 }
-  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, earth, extent }
+  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, earth, supportDims: posts, extent }
 }
 
 /** A note's reach across and down the drawing, at its text size. */

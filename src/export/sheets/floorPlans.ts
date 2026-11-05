@@ -41,6 +41,8 @@ export function floorPlans(b: SheetBuilding): FloorPlan[] {
       outlineBounds: boundsOf(parts.flatMap((p) => p.outline)),
       datumOnWall: b.datumOnWall && parts.some((p) => p.massIndex === b.parts[0]?.massIndex),
       earthworks: floor.index === 0 ? b.earthworks : null,
+      // each part's supports on the plan of the floor its own floor is on, not under every storey its walls enclose
+      supports: b.supports.filter((s) => parts.some((p) => p.massIndex === s.massIndex && floorAtLevel(p.levelFt) === floor.index)),
     }
     return { building, floor, title: `Floor plan, ${floor.name}` }
   })

@@ -35,7 +35,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const [pick, setPick] = useState(() => selection.find((id) => buildings.some((b) => b.id === id)) ?? buildings[0]?.id ?? ALL)
   const [paper, setPaper] = useState<PaperId>('tabloid')
   const [scale, setScale] = useState<Scale>(0.25)
-  const [show, setShow] = useState({ plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false })
+  const [show, setShow] = useState({ plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
   const picked = buildings.filter((b) => b.id === pick)
   const shown = pick === ALL ? buildings : picked.length ? picked : buildings.slice(0, 1)
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
@@ -128,6 +128,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
           <Check label="Grid" on={show.grid} onChange={() => toggle('grid')} title="A 1 ft grid on the plan, darker every 4 ft" />
           <Check label="Rooms" on={show.rooms} onChange={() => toggle('rooms')} title="The rooms from the interior plan: partitions, interior doors, each room's name, size and area" />
           <Check label="Furniture" on={show.furniture} onChange={() => toggle('furniture')} title="The furniture and fixtures from the interior plan" />
+          <Check label="Supports" on={show.supports} onChange={() => toggle('supports')} title="What each part stands on, under the floor in grey: posts, piers and piles at their size, beams dashed, a mast or stilts, with one spacing chain per row of posts" />
         </fieldset>
         <button onClick={() => window.print()} disabled={!shown.length || drawing} title={drawing ? 'Waiting for the elevations to finish drawing' : undefined}>
           {drawing ? 'Drawing elevations…' : 'Print'}
@@ -147,7 +148,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
             <div key={b.id} className="sheets-building">
               {show.plan &&
                 floorPlans(b).map((f) => (
-                  <PlanSheet key={f.floor?.index ?? 0} building={f.building} info={sheet} grid={show.grid} floor={f.floor} rooms={show.rooms} furniture={show.furniture} title={f.title} />
+                  <PlanSheet key={f.floor?.index ?? 0} building={f.building} info={sheet} grid={show.grid} floor={f.floor} rooms={show.rooms} furniture={show.furniture} supports={show.supports} title={f.title} />
                 ))}
               {show.elevations && object && <ElevationSheet building={b} object={object} objects={objects} terrain={terrain} info={sheet} onBusy={busyCallbacks.get(b.id)} />}
               {show.measurements && <MeasureTables building={b} info={sheet} />}
@@ -175,7 +176,7 @@ interface FitProps {
   readonly terrain: Terrain
   readonly paper: PaperId
   readonly scale: Scale
-  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly rooms: boolean }
+  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly rooms: boolean; readonly supports: boolean }
 }
 
 /** How many pages the plans and elevations take on this paper, and the smallest paper that fits each plan on one. */
@@ -183,7 +184,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
   const fits = useMemo(
     () =>
       buildings.map((b) => {
-        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null).extent)
+        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null, show.supports).extent)
         const sides = SIDES.map((side) => elevationLayout(b, elevationView(objects, terrain, b, side), undefined, scale).extent)
         return {
           name: b.name,
@@ -192,7 +193,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
           smallest: smallestPaper(Math.max(...plans.map((e) => e.w)), Math.max(...plans.map((e) => e.h)), scale),
         }
       }),
-    [buildings, objects, terrain, paper, scale, show.rooms],
+    [buildings, objects, terrain, paper, scale, show.rooms, show.supports],
   )
   if (!fits.length || !(show.plan || show.elevations)) return null
   const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
