@@ -3,6 +3,7 @@ import { earthTables, gradeLevels } from './earthTables'
 import { formatArch, formatArea, formatDeg, formatInches } from './format'
 import { partLevels } from './levels'
 import { roomTables } from './roomTables'
+import { supportsTable } from './supportTables'
 import type { SheetBuilding, SheetPart } from './types'
 
 /** One table of the measurement sheet: every value already written as it is printed. */
@@ -179,7 +180,7 @@ function cornersTable(b: SheetBuilding): SheetTable {
 
 /** Every measurement of a building, table by table, as printed beside its drawings. */
 export function sheetTables(b: SheetBuilding): SheetTable[] {
-  return [partsTable(b), edgesTable(b), curvesTable(b), ...ellipsesTable(b), openingsTable(b), stairsTable(b), ...roomTables(b), levelsTable(b), ...earthTables(b), cornersTable(b)]
+  return [partsTable(b), edgesTable(b), curvesTable(b), ...ellipsesTable(b), openingsTable(b), stairsTable(b), ...roomTables(b), ...supportsTable(b), levelsTable(b), ...earthTables(b), cornersTable(b)]
 }
 
 const csvCell = (v: string) => (/[",\n\r]|^\s|\s$/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)

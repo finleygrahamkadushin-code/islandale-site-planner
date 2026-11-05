@@ -11,6 +11,7 @@ import type { PlanObject } from '../../store/types'
 import { planEarth, sheetEarthworks, type PlanEarth } from './earthworks'
 import { sheetFloors } from './interiors'
 import { partPoints, sheetPart, type PartSite, type UntaggedPart } from './parts'
+import { sheetSupports } from './supports'
 import type { SheetBuilding, SheetLevels, SheetOpening, SheetPart } from './types'
 
 export { elevationView } from './elevation'
@@ -115,6 +116,7 @@ function sheetBuilding(o: PlanObject, world: RailWorld, earth: PlanEarth, trees:
     mainBounds: main,
     levels: levelsOf(o, world, floorM, parts),
     earthworks: sheetEarthworks(o, earth, world.terrain, floorM, parts[0]),
+    supports: sheetSupports(site),
     floors: sheetFloors(o.params, masses, parts, standalone),
     totalAreaSqFt: areasOf(parts, masses),
   }

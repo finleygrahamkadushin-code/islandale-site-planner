@@ -11,6 +11,7 @@
  * `y` (feet above the main floor; NAVD88 is given alongside).
  */
 import type { LocalPoint } from '../../buildings/footprint'
+import type { SupportKind } from '../../buildings/foundation'
 import type { MassKind } from '../../buildings/masses'
 import type { OpeningKind } from '../../buildings/openingLayout'
 
@@ -319,6 +320,66 @@ export interface SheetEarthworks {
   readonly cutLimit: readonly (readonly [LocalPoint, LocalPoint])[]
 }
 
+/** What a part stands on: the support supportPlan lays out under walls and standalone decks, or a deck wing's or porch's own posts. */
+export type SheetSupportKind = SupportKind | 'deck posts' | 'porch posts'
+
+/** One post, pier or pile, building frame. */
+export interface SheetSupportPost {
+  readonly at: LocalPoint
+  /** Its top, under what it carries, and where it stands (the ground, or the part's floor for a porch post that does not run down), feet relative to the main floor. */
+  readonly topFt: number
+  readonly footFt: number
+  /** It runs down into the ground, SheetSupport.embedFt below footFt. */
+  readonly onGround: boolean
+}
+
+/** A raking member in plan, building frame: a stilt from the plate's edge down to its footing, or a mast strut from the collar up to the plate. */
+export interface SheetStrut {
+  readonly a: LocalPoint
+  readonly b: LocalPoint
+  /** Height of each end, feet relative to the main floor. */
+  readonly aFt: number
+  readonly bFt: number
+}
+
+export interface SheetMast {
+  readonly at: LocalPoint
+  /** The concrete core at its foot, and its flared head under the plate. */
+  readonly footDiameterFt: number
+  readonly headDiameterFt: number
+  /** The steel collar the struts spring from, and the core's bottom in the ground, feet relative to the main floor. */
+  readonly collarFt: number
+  readonly bottomFt: number
+}
+
+/** What one part stands on, as the 3D scene builds it. */
+export interface SheetSupport {
+  readonly massIndex: number
+  readonly part: string
+  readonly kind: SheetSupportKind
+  /** Turn of the part's own x axis on the plan, degrees (SVG rotate): square posts are drawn square to it. */
+  readonly axisDeg: number
+  /** Posts, piers and pilings: their section, feet, and whether round; null for none. */
+  readonly section: { readonly sizeFt: number; readonly round: boolean } | null
+  readonly posts: readonly SheetSupportPost[]
+  /** How far posts, piles, cores and skirts go into the ground, feet. */
+  readonly embedFt: number
+  /** Beams under the floor in plan, building frame, and their depth and width (width null for a deck's rim). */
+  readonly beams: readonly (readonly [LocalPoint, LocalPoint])[]
+  readonly beam: { readonly depthFt: number; readonly widthFt: number | null } | null
+  /** X-braced bays between posts. */
+  readonly bracedBays: number
+  readonly mast: SheetMast | null
+  /** A mast's struts, or stilts down to their footings (the strut's b end). */
+  readonly struts: readonly SheetStrut[]
+  /** Stilt footings: round pads at each stilt's foot. */
+  readonly footingDiameterFt: number | null
+  /** A concrete skirt round the outline down to its bottom (feet relative to the main floor), with a slab's apron; null for none. */
+  readonly skirt: { readonly bottomFt: number; readonly apron: boolean } | null
+  /** A mast or stilt house's plate under the floor. */
+  readonly plate: boolean
+}
+
 /** One room of a floor plan, building frame. */
 export interface SheetRoom {
   readonly id: number
@@ -426,6 +487,8 @@ export interface SheetBuilding {
   readonly levels: SheetLevels
   /** Null when the building leaves the ground as surveyed. */
   readonly earthworks: SheetEarthworks | null
+  /** What each part stands on, in part order; stairs and ramps, which stand on their own stringers, are left out. */
+  readonly supports: readonly SheetSupport[]
   /** The cabin's floors with their rooms, lowest first; empty when it has no rooms, partitions or furniture drawn in. */
   readonly floors: readonly SheetFloor[]
   /** Floor inside the walls' outside face, and of decks and porches outside it, square feet; where parts overlap, counted once. */
