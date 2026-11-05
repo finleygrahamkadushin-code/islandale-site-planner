@@ -298,6 +298,8 @@ export interface ShellOptions {
   readonly cap: boolean
   /** Wall thickness in feet, one for all or per edge; FIT.wallFt by default. */
   readonly thicknessFt?: Thickness
+  /** Holes that are not the exterior cuts': interior doorways in a wall that runs across another part's floor. */
+  readonly extraHoles?: readonly WallHole[]
 }
 
 /**
@@ -312,7 +314,7 @@ export function buildWallShell(poly: readonly LocalPoint[], heightFt: number, op
   const h = Math.max(0, heightFt)
   const cap = emptyMesh()
   if (n < 3 || L <= EPS || h <= EPS) return { edges: [], cap, holes: [] }
-  const holes = openingHoles(poly, openings, h)
+  const holes = [...openingHoles(poly, openings, h), ...(opts.extraHoles ?? [])]
   const holesOn = poly.map((_, e) => holes.filter((o) => o.edge === e))
   const open = (u: number, v: number) => {
     const x = ((u % L) + L) % L

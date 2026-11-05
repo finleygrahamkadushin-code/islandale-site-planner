@@ -428,7 +428,7 @@ export interface SheetInteriorOpening {
   readonly to: string | null
   /** The room a door swings into. */
   readonly swingsInto: string | null
-  /** It lies in one part's wall where that wall runs across another part's floor: the 3D model builds that wall solid, with no opening, so the plan draws the wall and the table flags it. */
+  /** It lies in one part's wall where that wall runs across another part's floor: the 3D model cuts it through that wall (crossingHoles), so the plan opens the wall's full thickness there. */
   readonly inPartWall: boolean
 }
 

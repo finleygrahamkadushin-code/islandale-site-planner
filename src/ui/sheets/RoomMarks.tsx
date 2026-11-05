@@ -1,4 +1,5 @@
 import { symbol } from '../../interiors/furniture'
+import { wallThicknessFt } from '../../buildings/wallShell'
 import type { SheetFloor, SheetInteriorOpening, SheetPartition } from '../../export/sheets/types'
 import type { Pen } from './planLayout'
 import { pts } from './planMarks'
@@ -42,7 +43,8 @@ export function Partitions({ partitions, pen }: { readonly partitions: readonly 
 
 /** An opening in a partition: the partition cleared, jambs across it, and its kind's mark (a door's leaf and swing as stored, a window's glass, a slider's panes, a cased opening's head dashed). */
 function InteriorOpening({ opening: o, pen }: { readonly opening: SheetInteriorOpening; readonly pen: Pen }) {
-  const h = o.thicknessFt / 2
+  // one through a part's wall opens that wall's whole thickness, on either side of the room's edge
+  const h = o.inPartWall ? wallThicknessFt(null) : o.thicknessFt / 2
   const n = o.swing
   const face = (p: Pt, k: number) => push(p, n, k)
   const line = (p: Pt, q: Pt, w: number, key: string, dash?: string) => <line key={key} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#000" strokeWidth={w} strokeDasharray={dash} />
@@ -72,7 +74,9 @@ function InteriorOpening({ opening: o, pen }: { readonly opening: SheetInteriorO
 export function InteriorOpenings({ openings, pen }: { readonly openings: readonly SheetInteriorOpening[]; readonly pen: Pen }) {
   return (
     <g aria-label="Interior openings">
-      {openings.map((o, i) => !o.inPartWall && <InteriorOpening key={i} opening={o} pen={pen} />)}
+      {openings.map((o, i) => (
+        <InteriorOpening key={i} opening={o} pen={pen} />
+      ))}
     </g>
   )
 }

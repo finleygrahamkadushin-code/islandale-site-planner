@@ -219,7 +219,7 @@ describe('built in code', () => {
     expect(b.partitions).toEqual(a.partitions)
   })
 
-  test('a door where one part\'s wall runs across another\'s floor is flagged, not drawn, and no partition runs through that wall', () => {
+  test('a door where one part\'s wall runs across another\'s floor is flagged as through that wall, and no partition runs through it', () => {
     const wing = { kind: 'wall', shape: 'rect', dx: 12, dz: 0, w: 8, d: 8, h: 9, roof: 'flat' }
     const rooms = [
       { id: 1, name: 'Main', type: 'living', pts: [[-10, -5], [9.7, -5], [9.7, 5], [-10, 5]] },
@@ -232,7 +232,7 @@ describe('built in code', () => {
     expect(f.openings).toHaveLength(1)
     expect(f.openings[0].inPartWall).toBe(true)
     expect(f.partitions.filter((s) => Math.abs(s.a[0] - 9.7) < 0.01)).toEqual([])
-    expect(sheetTables(b).find((t) => t.title === 'Interior openings')?.rows[0][0]).toBe('door, not cut')
+    expect(sheetTables(b).find((t) => t.title === 'Interior openings')?.rows[0][0]).toBe('door, through wall')
   })
 
   test('a cabin of two floors gets a plan of each, with its own rooms, parts and windows', () => {

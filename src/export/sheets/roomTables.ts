@@ -53,12 +53,12 @@ function openingsTable(b: SheetBuilding, floors: readonly SheetFloor[]): SheetTa
   const many = b.floors.length > 1
   return {
     title: 'Interior openings',
-    note: "Doors, windows, sliders and cased openings in the partitions, from the interior plan; a door swings into the room named. One marked 'not cut' lies in a part's wall where it runs across another part's floor: the 3D model builds that wall solid there, so the plan shows the wall.",
+    note: "Doors, windows, sliders and cased openings in the partitions, from the interior plan; a door swings into the room named. One marked 'through wall' lies in a part's wall where it runs across another part's floor, and is cut through that wall.",
     columns: [...(many ? ['Floor'] : []), 'Opening', 'Width', 'Between', 'Swings into'],
     rows: floors.flatMap((f) =>
       f.openings.map((o) => [
         ...(many ? [f.name] : []),
-        o.inPartWall ? `${KIND[o.kind]}, not cut` : KIND[o.kind],
+        o.inPartWall ? `${KIND[o.kind]}, through wall` : KIND[o.kind],
         formatArch(o.widthFt),
         o.to ? `${o.room} and ${o.to}` : o.room,
         o.swingsInto ?? NONE,

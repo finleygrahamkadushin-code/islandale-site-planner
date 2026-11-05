@@ -83,7 +83,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
     <group position={toScene(o.position.x, o.position.n, base)} rotation={[0, (o.rotation * Math.PI) / 180, 0]} userData={{ objectId: o.id }}>
       {masses.map((m, i) => (
         <group key={i} position={[ftToM(m.dx), ftToM(m.lvl), ftToM(m.dz)]} rotation={[0, (m.rot * Math.PI) / 180, 0]} userData={{ mass: i }}>
-          {m.kind === 'wall' && <WallMass m={m} look={look} site={sites[i]} supports={supports} handlers={handlers} highlight={focus?.objectId === o.id && focus.mass === i ? focus.cutId : null} />}
+          {m.kind === 'wall' && <WallMass m={m} params={o.params} look={look} site={sites[i]} supports={supports} handlers={handlers} highlight={focus?.objectId === o.id && focus.mass === i ? focus.cutId : null} />}
           {m.kind === 'porch' && <PorchMass m={m} look={look} site={sites[i]} handlers={handlers} />}
           {m.kind === 'deck' && <DeckMass m={m} look={look} site={sites[i]} handlers={handlers} wells={wells[i]} />}
           {(m.kind === 'stair' || m.kind === 'ramp') && <AccessMass masses={masses} mi={i} look={look} site={sites[i]} handlers={handlers} />}
