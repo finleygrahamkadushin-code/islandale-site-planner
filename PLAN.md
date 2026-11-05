@@ -200,6 +200,8 @@ Don't start a phase until the one before passes its done-when check; that keeps 
 
 **Order change (Nov 2 2026, Finley's request):** drawing sheets, part of Phase 6, come forward and land on their own branch (`drawing-sheets`, cut from `phase-5a-parts-rails`), because Finley draws each building by hand at 1/4" = 1'-0" for class now. The rest of Phase 6 (path-traced stills, section sheets, glTF) stays where it is. See [PLAN-DRAWING-SHEETS.md](PLAN-DRAWING-SHEETS.md).
 
+**Order change (Nov 4 2026, Finley's OK):** Phase 4 is split into 4A Tools, 4B Layout, 4C Beginner, 4D Present and 4E Graphics polish, each on its own branch, in that order. 5E's tools are part of 4A; 5E keeps its site rules (setbacks, code check, coverage, budget) and follows Phase 4. See [PLAN-PHASE4.md](PLAN-PHASE4.md).
+
 Per-phase plans live next to this file: [PLAN-PHASE2.md](PLAN-PHASE2.md), [PLAN-PHASE3.md](PLAN-PHASE3.md), [PLAN-PHASE3B.md](PLAN-PHASE3B.md) (added after Phase 3: draw the full design before building tools on it), [PLAN-PHASE3C.md](PLAN-PHASE3C.md) (added at Finley's request: never lose work, openings that fit, one home for the plan), [PLAN-PHASE4.md](PLAN-PHASE4.md) (Phase 4 widened to graphics polish, tools and UI), [PLAN-PHASE5.md](PLAN-PHASE5.md) (Phase 5 split into six parts from an audit of every feature the old planner has, with the full gap list).
 
 ## Later: making it bigger
