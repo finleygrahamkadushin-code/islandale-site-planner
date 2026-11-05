@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan") built and merged into main. 4D–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D in detail below, waiting for Finley's OK; 4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -229,18 +229,65 @@ Branch: `phase-4c-beginner`, from `main` after 4B.
 - **Tour steps:** five steps, and they point at real controls rather than showing a video or slides.
 - **Deleting:** Beginner asks before deleting; Advanced never does.
 
-## 4D in outline: Present
+## 4D in detail: Present (waiting for Finley's OK)
 
-- **Present mode:**
-  - **Layout:** full screen with every editing control and panel hidden, the saved views as a strip, and labels off by default.
-  - **Sun animation:** a play button runs the sun from 7 am to golden hour.
-  - **Leaving:** Escape leaves.
-  - **Design:** its look follows the `frontend-design` skill.
-- **Compass and scale bar** in the corner of the 3D view, both following the camera.
-- **Loading splash** while shaders compile.
-- **PNG snapshot** of the current view.
-- **WebGL fallback message** when the browser can't run WebGL.
-- **Open question:** should Present mode also offer a slow orbit animation, or only the sun animation?
+Branch: `phase-4d-present`, from `main` after 4C.
+
+**No new library.** Full screen uses the browser's Fullscreen API, the snapshot uses the canvas's own `toBlob`, and the splash waits on three.js's `compileAsync`.
+
+**Where the code goes:** a new `src/present/` section with its own `CLAUDE.md` map, holding Present mode, the sun timeline, the compass and scale bar, the snapshot and the WebGL check. The look follows the `frontend-design` skill.
+
+### Order of work
+
+1. **Present mode.**
+   - **Entering:** a "Start presenting" button on the Present tab, and a "Present" command in command search.
+   - **Layout:** the 3D view fills the screen. The top bar, tool strip, side panel, bottom bar and every chip and gizmo are hidden. The saved views become a larger strip along the bottom, with a small control bar (play the sun, snapshot, leave).
+   - **Full screen:** it asks the browser for real full screen. Where the browser refuses (the hosted home runs in a frame), it fills the window instead.
+   - **Labels:** off while presenting. Leaving puts back whatever Labels was set to.
+   - **Leaving:** Escape, the Leave button, or leaving browser full screen. The tab, selection and labels come back as they were.
+   - **Store:** `presenting` is view state in its own small store: never saved, never an undo step. Nothing in Present mode can edit the plan.
+2. **Sun animation.**
+   - **What it does:** Play runs the sun from 7 am to golden hour (4:45 pm, the Golden hour view's time) in about 20 seconds, then stops. Pause and a time readout ("2:30 pm, September") sit beside it.
+   - **The saved time stays put:** the animation drives a preview hour in the Present store, not the plan's saved hour. Leaving Present, or stopping, goes back to the saved time.
+   - **Smoothness:** the sun's direction and shadows move every frame. The sky reflection (`Environment`, which is rebuilt whenever the hour changes) only steps every half hour, so it doesn't rebuild 60 times a second.
+   - **Reduced motion:** with `prefers-reduced-motion`, Play steps through five fixed times instead of sweeping.
+3. **Compass and scale bar,** in the corner of the 3D view in every tab, not just Present.
+   - **Compass:** a north arrow that turns with the camera's heading. Clicking it turns the view to face north.
+   - **Scale bar:** a bar of a round length (5, 10, 20, 50 or 100 ft) sized to the ground at the centre of the view. It's labelled "at the centre" in perspective views and is exact in the Plan view.
+4. **Loading splash.**
+   - **When:** from page load until the first frame is drawn with every shader compiled (`compileAsync`), so the view never shows half-built.
+   - **What:** the Islandale name, a quiet progress line from drei's `useProgress`, and the lot's outline. It fades out, or disappears at once under reduced motion.
+5. **PNG snapshot.**
+   - **Where:** the camera button in Present mode's control bar, and a "Save a picture of this view" command.
+   - **What:** the 3D view at its drawn size, as a PNG named after the view and date (`islandale-golden-hour-2026-11-05.png`). It's the 3D scene only: names, the compass and the scale bar are HTML on top of it, so they aren't in the picture.
+6. **WebGL fallback.**
+   - **Check:** before the 3D view mounts, test for WebGL 2.
+   - **Message:** where it's missing, the view area says so in plain words ("This browser can't draw the 3D view…"), with what to try (turn on hardware acceleration, or another browser).
+   - **The rest still works:** panels, the plan file, history and the drawing sheets (which are SVG) work without the 3D view.
+
+### Done when
+
+- **Present mode:** shows each saved view full screen with no editing controls, and the sun plays from morning to golden hour.
+- **The look:** at least as good as the Phase 3 screenshots. Those were sent in chat on Oct 26 and never saved in the repo, so the check is: the e2e run saves Present-mode pictures of all five views in Realistic and White model, and Finley compares them with the Phase 3 ones.
+
+### Tests first
+
+- **Present store:** entering and leaving are never undo steps; labels, tab and selection come back on leaving; nothing can edit while presenting.
+- **Sun timeline:** 7 am to 4:45 pm in order, ending at golden hour; the plan's saved hour is untouched; the sky steps every half hour; reduced motion gives five steps.
+- **Scale bar:** metres per pixel from the camera, the round length chosen, exact in Plan view.
+- **Compass:** its angle for known camera headings; clicking faces north.
+- **Snapshot:** the file name; a PNG is produced at the view's size.
+- **WebGL check:** no WebGL 2 shows the message and no 3D view.
+- **E2e:** enter Present, check no editing control is visible, click each view, play the sun, take a snapshot (a PNG downloads), Escape leaves with everything restored. It saves the ten done-when pictures.
+
+### Decisions (say if you disagree)
+
+- **Slow orbit (the open question):** yes, as an Orbit toggle in Present's control bar, off by default. It turns slowly around the view's centre and stops the moment you drag.
+- **Compass and scale bar:** in every tab, because they help while editing too.
+- **The sun animation is a preview:** it never changes the plan's saved time.
+- **Snapshot:** the 3D scene only in 4D. Burning names into the picture can come with Phase 6's renders.
+- **No key for Present yet:** P is Paint. Present is a button and a command; a key can be added if you want one.
+- **The done-when pictures:** saved under `test-results/` for you to look at, not committed, unless you'd like a committed baseline for later parts.
 
 ## 4E in outline: polish
 
