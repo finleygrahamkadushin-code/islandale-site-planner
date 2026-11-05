@@ -31,6 +31,12 @@ Branch: `phase-4a-tools`, from `main`.
 
 The tools get their own section, `src/tools/`, with a `CLAUDE.md` map like the others. The tool's store slice is `src/store/toolActions.ts`.
 
+**Libraries and design rules (added after the Nov 4 2026 review of the ui-ux-pro-max plugin and GitHub):**
+- **Radix UI primitives** (`@radix-ui/react-tooltip`, `@radix-ui/react-toggle-group`) for the tool strip's tooltips and buttons. They're keyboard-reachable from the start, so 4C builds on them rather than redoing the strip. They're styled with the app's own CSS tokens. **No Tailwind or shadcn/ui:** both would mean restyling the whole app.
+- **Icons:** `lucide-react` (MIT, tree-shaken, about 1 KB per icon), as SVG, never emoji. Every icon button gets an `aria-label` and a tooltip with its key.
+- **Accessibility checks from the ui-ux-pro-max rules:** text contrast of at least 4.5:1, a visible focus ring on every control, at least 32 px hit targets (the app is desktop-first), and no hover-only controls. New colours go in as tokens on `:root` in `src/app/styles.css`, never as raw hex in components.
+- **Review step:** before the done-when check, the tool strip, library and mode chip get a pass with the ui-ux-pro-max accessibility and interaction rules, plus a Lighthouse accessibility audit through Chrome DevTools.
+
 1. **One current tool.** The store holds one `tool`: `select`, `place` (with the library item), `measure`, `paint` or `connect`.
    - Today's separate `placing`, `painting` and `connecting` flags become this one value. They already exclude each other, so behaviour doesn't change.
    - Switching tools is view state: never an undo step, never saved with the plan.
@@ -71,11 +77,11 @@ Anything that behaves differently from the old planner goes into PLAN.md under "
 - **Bottom:** the saved-views strip and a one-line hint ("Drag to orbit · right-drag to pan · scroll to zoom").
 - **Tabs:** Site has layers, sun and tide, the terrain lock and contours. Build has the tools, parts, openings, railings and paint. Interior opens the floor-plan editor. Present enters Present mode.
 - **Inspector headings:** Placement, Size, Roof, Openings, Foundation, Look.
-- **Libraries:** command search uses `cmdk`.
+- **Libraries:** command search uses `cmdk` (13k stars, unstyled, so it takes the app's own tokens). The inspector's collapsible headings use Radix Collapsible.
 
 **4C · Beginner.**
 - **Hidden in Beginner:** pitch, ridge direction, overhang, post spacing, foundation type and per-layer locks, with plain-language names ("How steep the roof is").
-- **Tooltips:** Radix UI Tooltip, so they're keyboard-reachable.
+- **Tooltips:** Radix UI Tooltip (already in from 4A), so they're keyboard-reachable. The tour uses Radix Popover anchored to each control.
 - **Tour:** five steps (orbit, select, move, lock, save); skippable, replayable from Help, and remembered per browser.
 
 **4D · Present.**
