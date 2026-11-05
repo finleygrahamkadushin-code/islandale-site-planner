@@ -9,7 +9,6 @@ import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMar
 import { RoofMarks } from './RoofMarks'
 import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
 import { planFigures } from './roomLayout'
-import { SupportMarks } from './SupportMarks'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
 import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from './svgDims'
 
@@ -23,17 +22,15 @@ interface Props {
   readonly floor: SheetFloor | null
   readonly rooms: boolean
   readonly furniture: boolean
-  /** Draw what the parts stand on under the floor, with their spacing. */
-  readonly supports: boolean
   /** "Floor plan", or the floor's own name on a cabin of several. */
   readonly title?: string
 }
 
-/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, the floor's rooms (partitions, interior doors, names and areas) and furniture inside it, and what the parts stand on under the floor in grey, with their spacing. */
-export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, supports, title = 'Floor plan' }: Props) {
+/** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, and the floor's rooms (partitions, interior doors, names and areas) and furniture inside it. What the parts stand on has its own foundation plan. */
+export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan' }: Props) {
   const pen = penSizes(info.scale)
   const shownFloor = rooms && floor?.rooms.length ? floor : null
-  const layout = useMemo(() => planLayout(b, info.scale, shownFloor, supports), [b, info.scale, shownFloor, supports])
+  const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
   // the rooms name the space inside the walls, so the walls' own part name gives way to them
   const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
   return (
@@ -43,7 +40,6 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, su
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
       ))}
-      {supports && <SupportMarks supports={b.supports} pen={pen} />}
       {furniture && floor && <FurnitureMarks floor={floor} pen={pen} />}
       {shownFloor && <Partitions partitions={shownFloor.partitions} pen={pen} />}
       {shownFloor && <InteriorOpenings openings={shownFloor.openings} pen={pen} />}
@@ -60,11 +56,6 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, su
       <DatumMark at={b.datum} pen={pen} />
       <g stroke="#000" strokeWidth={pen.hair} fill="none">
         {layout.dims.map((d, i) => (
-          <Dim key={i} dim={d} pen={pen} />
-        ))}
-      </g>
-      <g stroke="#555" strokeWidth={pen.hair} fill="none">
-        {layout.supportDims.map((d, i) => (
           <Dim key={i} dim={d} pen={pen} />
         ))}
       </g>
@@ -87,7 +78,7 @@ const orderForDrawing = (parts: readonly SheetPart[]) => [...parts].sort((a, b) 
 
 const seg = (s: Segment) => `M${s.a[0]} ${s.a[1]} L${s.b[0]} ${s.b[1]}`
 
-function Grid({ extent, pen }: { readonly extent: Extent; readonly pen: Pen }) {
+export function Grid({ extent, pen }: { readonly extent: Extent; readonly pen: Pen }) {
   const xs = Array.from({ length: Math.floor(extent.w) + 1 }, (_, i) => Math.ceil(extent.x) + i)
   const ys = Array.from({ length: Math.floor(extent.h) + 1 }, (_, i) => Math.ceil(extent.y) + i)
   const line = (major: boolean) => (major ? '#b4b4b4' : '#dcdcdc')

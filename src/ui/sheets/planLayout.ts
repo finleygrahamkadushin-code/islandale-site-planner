@@ -217,9 +217,12 @@ function roomNotes(floor: SheetFloor | null): string[] {
   ]
 }
 
+/** Whether anything stands under the building's floor: posts, beams, a mast or stilts. */
+export const hasSupports = (b: SheetBuilding): boolean => b.supports.some((s) => s.posts.length || s.mast || s.struts.length || s.beams.length)
+
 /** The general note for the supports, when the plan draws any. */
-const supportNotes = (b: SheetBuilding, shown: boolean): string[] =>
-  shown && b.supports.some((s) => s.posts.length || s.mast || s.struts.length || s.beams.length)
+export const supportNotes = (b: SheetBuilding, shown: boolean): string[] =>
+  shown && hasSupports(b)
     ? ['Supports under the floor, in grey: posts, piers and piles at their section, beams dashed, a mast or stilts to their footings.', 'One spacing chain per row and column of posts, centre to centre from the outside face; sizes in the Supports table.']
     : []
 
