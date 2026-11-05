@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026 and built on branch `phase-4a-tools`; 4B–4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B in detail below, waiting for Finley's OK; 4C–4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -13,7 +13,7 @@ Phase 4 is too big for one branch, so it is split like Phase 5. Each part gets i
 | Part | Builds | Done when |
 | --- | --- | --- |
 | **4A · Tools (essentials)** | One current tool and a mode chip; a left tool strip; the object library and place tool for every object type; drag to move; snapping (1 ft, 5°) with Q / E / R turns; duplicate | From Scheme C you can place a cabin, a tree and a pad from the library, duplicate one, drag it with snapping, and turn it with Q / E / R. Each step is one undo step and is refused on a locked layer |
-| **4B · Layout and site tools** | Site / Build / Interior / Present task tabs; the grouped inspector; the measure tool; the pointer's elevation and slope readout; camera views (orbit, plan, from the water); display toggles; legend; lot facts; selection stats; Help with a shortcuts sheet; Cmd/Ctrl+K command search; box select, group moves, align and distribute; keep placing with Shift-click | Every tool sits in one tab, the inspector reads top to bottom by heading, you can measure between two cabins and read the ground under the pointer, and Cmd+K finds and runs any action or setting |
+| **4B · Layout and site tools** | Site / Build / Interior / Present task tabs; the grouped inspector; the measure tool; the pointer's elevation and slope readout; display toggles; legend; lot facts; selection stats; Help with a shortcuts sheet; Cmd/Ctrl+K command search; box select, group moves, align and distribute; keep placing with Shift-click | Every tool sits in one tab, the inspector reads top to bottom by heading, you can measure between two cabins and read the ground under the pointer, and Cmd+K finds and runs any action or setting |
 | **4C · Beginner** | The Beginner / Advanced switch (**Beginner by default**), plain-language names, tooltips with one-line definitions, delete confirmation in Beginner only, the five-step first-run tour, and a full accessibility pass | Someone new can place, move, lock and save a cabin in about a minute without help, and the Lighthouse accessibility score is 95 or more |
 | **4D · Present** | Present mode with the sun animation; compass and scale bar; loading splash; PNG snapshot; a message when WebGL isn't available | Present mode shows the saved views full screen with no editing controls and looks at least as good as the Phase 3 screenshots |
 | **4E · Polish** | Beach and shore; contact shadows; sky and haze; a cleaner Sketch style; faster first frame; React re-render tuning; the WebGPU test; a light theme and a narrow-screen layout | The scene shows in under 3 s on a fresh load, dragging stays smooth on Scheme C, and the shore and shadows read in every display style |
@@ -84,31 +84,91 @@ The tools get their own section, `src/tools/`, with a `CLAUDE.md` map like the o
 
 Anything that behaves differently from the old planner goes into PLAN.md under "Deliberate changes from the legacy file".
 
-## 4B in outline: layout and site tools
+## 4B in detail: layout and site tools (waiting for Finley's OK)
 
-- **Layout:**
-  - **Top bar:** plan name, the four task tabs, undo and redo, display style, save status.
-  - **Left tool strip:** the current tab's tools only.
-  - **Right side:** the inspector for the selection, or Layers plus Sun and tide when nothing is selected.
-  - **Bottom:** the saved-views strip, the pointer readout and a one-line hint ("Drag to orbit · right-drag to pan · scroll to zoom").
-- **Tabs:**
-  - **Site:** layers, sun and tide, the terrain lock, contours, measure, legend, lot facts.
-  - **Build:** the 4A tools, parts, openings, railings and paint.
-  - **Interior:** opens the floor-plan editor.
-  - **Present:** enters Present mode.
-- **Inspector:** grouped under Radix collapsible headings (Placement, Size, Roof, Openings, Foundation, Look), using composition patterns rather than boolean props. Selection stats (elevation, clearance, area) sit at the top.
-- **Measure tool (M):** click two points on the ground or any object. It shows horizontal distance, slope distance and rise in feet and inches, as a line and label in 3D. The last five stay until Clear; Esc drops the one in progress. View state, not plan data.
-- **Pointer readout:** ground elevation (NAVD88, feet) and slope (%) under the pointer, with earthworks applied.
-- **Camera views:** Orbit, Plan (straight down) and From the water buttons, beside the saved views.
-- **Display toggles:** occlusion, shadows and edges on and off on their own, plus number keys 1 / 2 / 3 for the display styles.
-- **Legend:** the ground colour key (earthworks tints, contours, setbacks).
-- **Lot facts:** lot area and shoreline length in the Site tab.
-- **Help menu:** a controls and shortcuts sheet (?), and the old keys V, M, I, W, P, C, 1–3, Q / E / R, F.
-- **Command search (Cmd/Ctrl+K, `cmdk`):** actions (add cabin, lock all, golden hour, white model) and the selected object's settings.
-- **Box select:** Shift-drag on empty ground selects everything inside; the gizmo or a drag then moves the group as one undo step, skipping locked objects.
-- **Align and distribute** for multi-selections.
-- **Keep placing:** Shift-click places one and stays in Place.
-- **Empty states that teach** ("Add a cabin from the tool strip, then drag it into place").
+Branch: `phase-4b-layout`, from `main` after 4A.
+
+**Already there, so not rebuilt:**
+- **Camera views:** the saved-views strip has Overview, From the water, Entry, Golden hour and Plan (top), and the free orbit is the default view.
+- **Elsewhere:** the contours switch is in Layers, and Roofs off is on the views strip.
+
+**New libraries:**
+- `cmdk` 1.1.1 for command search.
+- Radix Collapsible 1.2.1 for the inspector headings.
+- Radix Dialog 1.3.1 for the shortcuts sheet.
+
+All are unstyled and take the app's tokens. **New section:** `src/layout/`, with its own `CLAUDE.md` map, for the tabs, side-panel switching, help, command search and the bottom bar. The inspector stays in `src/ui/`.
+
+### Order of work
+
+1. **Task tabs.**
+   - **Where:** the top bar gets four tabs: **Site**, **Build**, **Interior** and **Present**. The current tab is view state, remembered per browser, and opens on Build.
+   - **Tools per tab:** the left strip shows the current tab's tools, and the library is filtered to the tab's groups.
+   - **Side panel per tab:** the right panel shows the tab's panels.
+   - **Built as compound components** (`<TaskTabs>`, `<TaskTabs.Panel tab="site">`), not boolean props, following `vercel-composition-patterns`.
+
+   | Tab | Tool strip | Library groups | Right panel, nothing selected | Right panel, something selected |
+   | --- | --- | --- | --- | --- |
+   | **Site** | Select, Place, Measure | Site, Trees, Path pieces | Lot facts, Layers, Sun and tide, Legend | the inspector |
+   | **Build** | Select, Place, Paint, Connect, Measure | Buildings, Path pieces | Accessible route, Layers | the inspector |
+   | **Interior** | Select | (none) | "Pick a cabin to open its floor plan" | Open floor plan, the cabin's room stats |
+   | **Present** | (none) | (none) | Saved views; Present mode itself arrives in 4D | (same) |
+
+2. **The grouped inspector.**
+   - **Headings:** the single-object inspector gets Radix collapsible headings, in this order: **Placement** (east, north, rotation), **Size and shape** (height, width, depth, shape fields), **Roof**, **Look** (colour, the Exterior panel), **Openings**, **Railings**, **Levels**, and **Visibility and lock** (locked, show name, hide, delete).
+   - **Open by default:** Placement and Size and shape. Which headings are open is remembered per browser.
+   - **Selection stats:** a one-line summary sits above the headings: footprint area (sq ft), floor elevation (NAVD88), and the lowest ground under the object.
+   - **Empty states:** they teach. For example: "Nothing selected. Pick something in the view, or add a cabin from Place."
+3. **Measure and readouts.**
+   - **Measure tool (M):** a new tool in `toolOf`. Click two points on the ground or any object. It shows horizontal distance, slope distance and rise in feet and inches, as a line and label in 3D. The last five stay until Clear; Esc drops the one in progress. View state.
+   - **Bottom bar:** under the 3D view it shows the pointer's ground elevation (NAVD88, ft) and slope (%), with earthworks applied, plus the hint "Drag to orbit · right-drag to pan · scroll to zoom".
+   - **Lot facts** (Site tab): lot area (20,847 sq ft from the parcel data), shoreline length, and the area covered by buildings and decks.
+   - **Legend** (Site tab): the ground colour key for earthworks tints, contours, the parcel line and the shoreline buffer.
+4. **Selecting and arranging.**
+   - **Box select:** Shift-drag on empty ground selects every visible object inside the box.
+   - **Group moves:** dragging any selected object moves the whole selection as one undo step, through the existing `nudgeObjects`, which skips locked objects. The gizmo stays single-object.
+   - **Align and distribute:** the multi-object inspector gets align (west, east, north, south edges and centres) and distribute evenly (east–west, north–south) buttons. Each is one undo step, and locked objects stay put.
+   - **Keep placing:** Shift-click places one and stays in Place.
+5. **Help, keys and command search.**
+   - **Help menu (?)** in the top bar, with a Radix Dialog shortcuts sheet.
+   - **Old keys:** **1–4** display styles, **M** Measure, **I** open the selected cabin's floor plan, **F** fly to the selection. (The old **W** opened the walls editor; its job is the Openings panel now, so W expands that heading.)
+   - **Command search (Cmd/Ctrl+K):** `cmdk` over every action and setting, for example "Place guest cabin", "Lock all", "Golden hour", "White model", "Roofs off", "Snap off" and "Roof pitch" (which jumps to that inspector field). Running one closes it.
+6. **Display toggles.**
+   - **What:** occlusion, shadows and edges, each on or off on its own, in a small Display popover beside the style buttons. Each starts as its style's default, and choosing a style resets them.
+   - **Where:** in the Effects pass, the sun's shadows, and `Surface`'s edges.
+   - **Saved:** with the plan, like the display style, and not undoable.
+
+### Done when
+
+- **Tabs:** every tool and panel sits in exactly one tab (or is shared on purpose), and switching tabs is never an undo step.
+- **Inspector:** reads top to bottom by heading.
+- **Measure and readout:** from the Site tab you can measure between two cabins, and the bottom bar reads the ground under the pointer.
+- **Box select:** Shift-drag selects a group, and a drag moves it as one undo step.
+- **Cmd+K:** finds and runs "Lock all", "Golden hour" and "Place guest cabin".
+
+### Tests first
+
+- **Tabs:** which tools, library groups and panels each tab shows; switching adds no undo step; the tab is remembered.
+- **Measure:** horizontal, slope and vertical distances against known terrain points; at most five kept; Esc and Clear.
+- **Pointer readout:** elevation and slope against the terrain grid, with a cut applied.
+- **Lot facts:** lot area, shoreline length and covered area for Scheme C.
+- **Box select:** what's inside a box, hidden objects left out.
+- **Align and distribute:** positions, one undo step each, locked objects untouched.
+- **Commands:** every registered command runs and names its key.
+- **Display toggles:** each turns its effect off and on; a new style resets them.
+- **E2e:** the done-when walk above, plus "switching tabs keeps the selection".
+
+**Skills:**
+- `vercel-composition-patterns` for the tabs and inspector.
+- `frontend-design` for the layout.
+- `web-design-guidelines` over every new UI file before the done-when check.
+
+### Decisions (say if you disagree)
+
+- **The tab contents** in the table above, and Build as the tab a new browser opens on.
+- **Present before 4D:** in 4B the Present tab only shows the saved views. Full-screen Present mode comes in 4D.
+- **Inspector headings open by default:** Placement and Size and shape; the rest start closed and are remembered.
+- **W:** expands the Openings heading, rather than opening a separate walls editor.
 
 ## 4C in outline: Beginner
 
