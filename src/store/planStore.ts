@@ -15,6 +15,7 @@ import { partActions, watchPickedPart, type PartActions } from './partActions'
 import { interiorActions, type InteriorActions } from './interiorActions'
 import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
 import { toolActions, type ToolActions } from './toolActions'
+import type { Measurement, MeasurePoint } from '../tools/measure'
 import type { PaintFocus, PaintScope } from './paintTypes'
 import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
@@ -82,6 +83,10 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly placing: { readonly item: string; readonly rotation: number; readonly at: { readonly x: number; readonly n: number } | null } | null
   /** Moves land on a 1 ft grid and turns on 5° steps (view state, on by default). */
   readonly snap: boolean
+  /** The Measure tool: its first point once picked (view state; see toolOf). */
+  readonly measuring: { readonly a: MeasurePoint | null } | null
+  /** The last few measurements, kept on screen until Clear (view state). */
+  readonly measurements: readonly Measurement[]
   readonly saveStatus: SaveStatus
   readonly readOnly: ReadOnlyReason
   /** The opening picked in the Openings panel, outlined in 3D. */
@@ -254,6 +259,8 @@ export const usePlanStore = create<PlanState>()(
         paintScope: 'element',
         placing: null,
         snap: true,
+        measuring: null,
+        measurements: [],
         connecting: null,
         saveStatus: 'loading',
         readOnly: null,
@@ -412,11 +419,12 @@ export const usePlanStore = create<PlanState>()(
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
         // one tool at a time (toolOf): starting Paint, Place or Connect ends the other two
-        setPainting: (painting) => set(painting ? { painting, placing: null, connecting: null } : { painting }),
+        setPainting: (painting) => set(painting ? { painting, placing: null, connecting: null, measuring: null } : { painting }),
         setPaintFocus: (paintFocus) => set({ paintFocus }),
         setPaintScope: (paintScope) => set({ paintScope }),
-        setPlacing: (placing) => set(placing ? { placing, painting: false, connecting: null } : { placing }),
-        setConnecting: (connecting) => set(connecting ? { connecting, placing: null, painting: false, selection: [], pickedPart: null } : { connecting }),
+        setPlacing: (placing) => set(placing ? { placing, painting: false, connecting: null, measuring: null } : { placing }),
+        setConnecting: (connecting) =>
+          set(connecting ? { connecting, placing: null, painting: false, measuring: null, selection: [], pickedPart: null } : { connecting }),
         requestView: (id) => set((s) => ({ viewRequest: { id, n: (s.viewRequest?.n ?? 0) + 1 } })),
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         setReadOnly: (readOnly) => set({ readOnly }),

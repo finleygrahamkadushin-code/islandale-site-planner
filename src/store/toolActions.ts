@@ -1,5 +1,6 @@
 import { libraryItem, buildLibraryObject } from '../tools/library'
 import { snapDeg, snapPoint } from '../tools/snap'
+import { measureOf, withMeasurement, type MeasurePoint } from '../tools/measure'
 import type { Ground } from '../paths/pieces'
 import type { Terrain } from '../site/types'
 import { elevationAt } from '../site/terrain'
@@ -20,15 +21,16 @@ import { LAYER_NAMES, layerOf, type ObjectId, type Plan, type PlanObject } from 
  * refused on a read-only tab or a locked layer.
  */
 
-export type ToolId = 'select' | 'place' | 'paint' | 'connect'
+export type ToolId = 'select' | 'place' | 'paint' | 'connect' | 'measure'
 
 /** Duplicates land this far east and this far south of the original (old planner: 5 ft). */
 const DUPLICATE_OFFSET_FT = 5
 
-export function toolOf(s: Pick<PlanState, 'placing' | 'painting' | 'connecting'>): ToolId {
+export function toolOf(s: Pick<PlanState, 'placing' | 'painting' | 'connecting' | 'measuring'>): ToolId {
   if (s.placing) return 'place'
   if (s.painting) return 'paint'
   if (s.connecting) return 'connect'
+  if (s.measuring) return 'measure'
   return 'select'
 }
 
@@ -42,6 +44,11 @@ export interface ToolActions {
   readonly duplicateObjects: (ids: readonly ObjectId[]) => ObjectId[]
   /** Turn objects by `byDeg` about their own centres as one undo step; locked ones stay put. */
   readonly turnObjects: (ids: readonly ObjectId[], byDeg: number) => void
+  /** The Measure tool's click: the first point, or the second, which makes a measurement (view state). */
+  readonly measurePoint: (p: MeasurePoint) => void
+  /** Escape: drop the half-made measurement, keeping the tool on. */
+  readonly dropMeasurePoint: () => void
+  readonly clearMeasurements: () => void
 }
 
 export interface ToolContext {
@@ -70,8 +77,19 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
         s.setPlacing({ item, rotation: 0, at: null })
       } else if (tool === 'paint') s.setPainting(true)
       else if (tool === 'connect') s.setConnecting({ ...CONNECT_START })
-      else set({ placing: null, painting: false, connecting: null })
+      else if (tool === 'measure') set({ measuring: { a: null }, placing: null, painting: false, connecting: null })
+      else set({ placing: null, painting: false, connecting: null, measuring: null })
     },
+    measurePoint: (p) => {
+      const m = get().measuring
+      if (!m) return
+      if (!m.a) set({ measuring: { a: p } })
+      else set({ measuring: { a: null }, measurements: withMeasurement(get().measurements, measureOf(m.a, p)) })
+    },
+    dropMeasurePoint: () => {
+      if (get().measuring) set({ measuring: { a: null } })
+    },
+    clearMeasurements: () => set({ measurements: [] }),
     setSnap: (snap) => set({ snap }),
 
     placeItem: (itemId, at, rotation) => {

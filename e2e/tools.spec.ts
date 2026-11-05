@@ -70,6 +70,8 @@ test('place a cabin, a tree and a pad, duplicate, drag with snapping and turn wi
   expect(await steps(page)).toBe(1)
   await expect(page.getByTestId('mode-chip')).toHaveCount(0)
 
+  // trees and driveways are in the Site tab's library (4B)
+  await page.getByTestId('tab-site').click()
   await placeFromLibrary(page, 'red-alder', { x: SPOT.x + 14, n: SPOT.n })
   await expect.poll(() => count(page), { timeout: 20_000 }).toBe(n0 + 2)
   expect((await selected(page))[0]).toMatchObject({ type: 'tree', name: 'Red alder' })

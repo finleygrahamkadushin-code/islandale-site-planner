@@ -4,6 +4,10 @@ import type { Parcel, Terrain } from './types'
 import { isShorelineEdge } from './parcel'
 import { onGround } from '../scene/frame'
 
+/** The lot line, and its edges along the water. */
+export const PARCEL_LINE = '#f4f1ea'
+export const SHORELINE_LINE = '#5fb3e6'
+
 const LIFT_M = 0.15
 /** Points per edge so the line follows the ground. */
 const STEPS = 6
@@ -28,10 +32,10 @@ export function ParcelLine({ parcel, terrain }: { readonly parcel: Parcel; reado
   return (
     <group name="parcel">
       {land.map((pts, i) => (
-        <Line key={`l${i}`} points={pts} color="#f4f1ea" lineWidth={2} />
+        <Line key={`l${i}`} points={pts} color={PARCEL_LINE} lineWidth={2} />
       ))}
       {shore.map((pts, i) => (
-        <Line key={`s${i}`} points={pts} color="#5fb3e6" lineWidth={3} />
+        <Line key={`s${i}`} points={pts} color={SHORELINE_LINE} lineWidth={3} />
       ))}
     </group>
   )

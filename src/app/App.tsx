@@ -7,6 +7,7 @@ import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
 import { InteriorEditor } from '../interiors/editor/InteriorEditor'
 import { ToolStrip } from '../tools/ToolStrip'
 import { ModeChip } from '../tools/ModeChip'
+import { BottomBar } from '../layout/BottomBar'
 
 export function App() {
   useKeyboardShortcuts()
@@ -17,7 +18,10 @@ export function App() {
       <ToolStrip />
       <ModeChip />
       <SidePanel />
-      <ViewStrip />
+      <div className="bottom-row">
+        <ViewStrip />
+        <BottomBar />
+      </div>
       <InteriorEditor />
       <Toast />
     </div>

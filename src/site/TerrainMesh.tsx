@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react'
 import type { BufferGeometry } from 'three'
 import type { Terrain as TerrainData } from './types'
 import { usePlanStore } from '../store/planStore'
+import { usePointerGround } from './pointer'
 import { buildPatchGeometry, buildTerrainGeometry, colourTerrain } from './terrainGeometry'
 import { grass, perMetre } from '../scene/textures'
 import { useEarthworks } from './earthworks/useEarthworks'
@@ -30,14 +31,25 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   )
 }
 
-/** While the Place tool is on, its ghost follows the pointer on the ground and a click puts the item down (placeItem snaps it). */
-const placeMove = (e: ThreeEvent<PointerEvent>) => {
+/**
+ * The pointer on the ground: the readout follows it (usePointerGround), the
+ * Place tool's ghost follows it and a click puts the item down (placeItem
+ * snaps it), and the Measure tool's click picks a point on the ground.
+ */
+const groundMove = (e: ThreeEvent<PointerEvent>) => {
+  usePointerGround.getState().setAt({ x: e.point.x, n: -e.point.z })
   const s = usePlanStore.getState()
   if (!s.placing) return
   s.setPlacing({ ...s.placing, at: { x: e.point.x, n: -e.point.z } })
 }
-const placeClick = (e: ThreeEvent<MouseEvent>) => {
+const groundLeave = () => usePointerGround.getState().setAt(null)
+const groundClick = (e: ThreeEvent<MouseEvent>) => {
   const s = usePlanStore.getState()
+  if (s.measuring) {
+    e.stopPropagation()
+    s.measurePoint({ x: e.point.x, n: -e.point.z, z: e.point.y })
+    return
+  }
   if (!s.placing) return
   e.stopPropagation()
   const { item, rotation } = s.placing
@@ -46,7 +58,7 @@ const placeClick = (e: ThreeEvent<MouseEvent>) => {
 
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
   return (
-    <mesh geometry={geometry} receiveShadow name={name} onPointerMove={placeMove} onClick={placeClick}>
+    <mesh geometry={geometry} receiveShadow name={name} onPointerMove={groundMove} onPointerLeave={groundLeave} onClick={groundClick}>
       {style === 'realistic' ? (
         <meshStandardMaterial key="real" vertexColors map={map} roughness={1} metalness={0} />
       ) : (

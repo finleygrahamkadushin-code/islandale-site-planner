@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { usePlanStore } from '../store/planStore'
 import { LIBRARY, LIBRARY_GROUPS, type LibraryItem } from './library'
+import { TAB_LIBRARY_GROUPS, useTaskTab } from '../layout/tabs'
 
 /** The data-testid each item keeps: path pieces keep their 5C ids (place-walk, …) so the path tests still find them. */
 const testIdOf = (item: LibraryItem): string => (item.pathKind ? `place-${item.pathKind}` : `library-${item.id}`)
@@ -14,6 +15,8 @@ const testIdOf = (item: LibraryItem): string => (item.pathKind ? `place-${item.p
 export function LibraryPanel({ onClose }: { readonly onClose: () => void }) {
   const armed = usePlanStore((s) => s.placing?.item ?? null)
   const setTool = usePlanStore((s) => s.setTool)
+  // only the current tab's groups (Site: site, trees, paths; Build: buildings, paths)
+  const groups = TAB_LIBRARY_GROUPS[useTaskTab((s) => s.tab)]
   const pick = (item: LibraryItem) => (armed === item.id ? setTool('select') : setTool('place', item.id))
   return (
     <section className="panel library" aria-label="Object library" data-testid="library">
@@ -23,7 +26,7 @@ export function LibraryPanel({ onClose }: { readonly onClose: () => void }) {
           <X size={16} aria-hidden="true" />
         </button>
       </header>
-      {LIBRARY_GROUPS.map((g) => (
+      {LIBRARY_GROUPS.filter((g) => groups.includes(g.id)).map((g) => (
         <div key={g.id} className="library-group" role="group" aria-label={g.label}>
           <h3>{g.label}</h3>
           {LIBRARY.filter((i) => i.group === g.id).map((item) => (

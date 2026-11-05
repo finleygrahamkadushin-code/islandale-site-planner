@@ -7,6 +7,7 @@ import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
 import { DrawingSheets } from '../export/sheets/DrawingSheets'
 import { LegacyPlanner } from './LegacyPlanner'
+import { TaskTabs } from '../layout/TaskTabs'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
@@ -50,6 +51,7 @@ export function TopBar() {
   return (
     <header className="topbar" ref={bar}>
       <h1>Islandale</h1>
+      <TaskTabs />
       <label className="field">
         <span className="muted">Scheme</span>
         <select

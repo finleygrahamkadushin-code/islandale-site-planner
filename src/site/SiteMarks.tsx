@@ -16,8 +16,9 @@ const CONTOUR_STEP_FT = 2
 const LIFT_M = 0.06
 const STAKE_M = 2.4
 /** Legacy lot-stake orange. */
-const STAKE = '#d1581e'
-const BUFFER = '#c4b97b'
+export const STAKE = '#d1581e'
+/** The shoreline buffer line. */
+export const BUFFER = '#c4b97b'
 
 /** Contour lines every 2 ft (darker every 10 ft), lot-corner stakes and the shoreline buffer line. */
 export function SiteMarks({ terrain, parcel }: { readonly terrain: Terrain; readonly parcel: Parcel }) {

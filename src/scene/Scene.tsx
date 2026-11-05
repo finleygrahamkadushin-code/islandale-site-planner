@@ -17,6 +17,7 @@ import { PartHud } from '../buildings/parts/PartHud'
 import { PaintHud } from '../buildings/paint/PaintHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
+import { MeasureLayer } from '../tools/MeasureLayer'
 import { ConnectLayer } from '../paths/connect/ConnectLayer'
 import { JunctionLayer } from '../paths/junctions/JunctionLayer'
 import { RouteChips } from '../paths/route/RouteChips'
@@ -48,6 +49,7 @@ export function Scene() {
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
       <PlaceGhost />
+      <MeasureLayer />
       <ConnectLayer />
       <JunctionLayer />
       <RouteChips />

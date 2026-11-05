@@ -29,6 +29,11 @@ export function useObjectInteraction(o: PlanObject) {
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation()
       const s = usePlanStore.getState()
+      // the Measure tool picks the point on the object, whatever it is
+      if (s.measuring) {
+        if (e.delta < PICK_SLOP_PX) s.measurePoint({ x: e.point.x, n: -e.point.z, z: e.point.y })
+        return
+      }
       if (s.painting) {
         if (e.delta >= PICK_SLOP_PX) return
         if (!isPaintable(o)) return s.showToast('Paint works on buildings and decks')

@@ -368,3 +368,39 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .library-item span { display: flex; flex-direction: column; font-size: 13px; }
 .library-item small { font-size: 12px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .tool-button { transition: none; } }
+
+/* Layout (4B): task tabs in the top bar, the bottom bar, lot facts, legend and measure labels */
+.task-tabs { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; }
+.task-tab {
+  display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px;
+  border-color: transparent; border-radius: 6px; color: var(--muted);
+}
+.task-tab[aria-selected='true'] { background: var(--tool-on-bg); border-color: var(--accent); color: var(--fg); }
+.task-tab:hover:not(:disabled) { color: var(--fg); }
+.task-tab:focus-visible, .bottombar button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.bottombar {
+  position: absolute; right: 292px; bottom: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 12px; max-width: 46%; flex-wrap: wrap; justify-content: flex-end;
+  padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px);
+}
+.bottombar .readout { font-variant-numeric: tabular-nums; }
+.bottombar button { font-size: 12px; padding: 2px 8px; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend-key { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+.legend-key.line { height: 4px; border-radius: 2px; border: 0; }
+.measure-label {
+  padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+  font-size: 12px; font-variant-numeric: tabular-nums; color: #fff; background: #d1581e;
+}
+/* the saved views and the bottom bar share one row under the view, so neither covers the other */
+.bottom-row {
+  position: absolute; left: 12px; right: 292px; bottom: 12px; z-index: 2; pointer-events: none;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; flex-wrap: wrap-reverse;
+}
+.bottom-row > * { pointer-events: auto; }
+.bottom-row .viewstrip, .bottom-row .bottombar { position: static; max-width: none; }
