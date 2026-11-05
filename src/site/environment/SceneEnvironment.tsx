@@ -7,6 +7,7 @@ import { ftToM } from '../units'
 import { usePlanStore } from '../../store/planStore'
 import { onGround } from '../../scene/frame'
 import { STYLE_BACKGROUND, useDisplayStyle } from '../../scene/useDisplayStyle'
+import { useDisplayEffects } from '../../scene/displayOptions'
 
 const SUN_DISTANCE_M = 220
 const SHADOW_MARGIN_M = 25
@@ -18,6 +19,7 @@ const WATER_SIZE_M = 6000
  */
 export function SceneEnvironment() {
   const style = useDisplayStyle()
+  const { shadows } = useDisplayEffects()
   const site = usePlanStore((s) => s.site)
   const { season, hour, tideFt } = usePlanStore((s) => s.environment)
   const light = useRef<DirectionalLight>(null)
@@ -79,7 +81,7 @@ export function SceneEnvironment() {
         position={lightPos}
         color={sunColour}
         intensity={sunIntensity}
-        castShadow={style !== 'diagram'}
+        castShadow={shadows}
         shadow-mapSize={[4096, 4096]}
         shadow-radius={realistic ? 4 : 7}
         shadow-bias={-0.0004}

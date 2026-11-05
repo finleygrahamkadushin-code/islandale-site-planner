@@ -16,6 +16,7 @@ import { interiorActions, type InteriorActions } from './interiorActions'
 import { pathActions, settledPiece, snappedPiece, type PathActions } from './pathActions'
 import { toolActions, type ToolActions } from './toolActions'
 import type { Measurement, MeasurePoint } from '../tools/measure'
+import type { DisplayOptions, DisplayToggle } from '../scene/displayOptions'
 import type { PaintFocus, PaintScope } from './paintTypes'
 import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
@@ -70,6 +71,8 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly layers: Layers
   readonly environment: Environment
   readonly displayStyle: DisplayStyle
+  /** Occlusion, shadows and edges switched away from the style's defaults (saved, not undone; see effectiveDisplay). */
+  readonly displayOptions: DisplayOptions
   /** Contour lines: on, off, or null to follow the display style (off in Realistic). */
   readonly contours: boolean | null
   /** Hide every roof so the rooms inside can be seen (old Roofs off). View state, not saved. */
@@ -136,6 +139,7 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly showAll: () => void
   readonly setEnvironment: (patch: Partial<Environment>) => void
   readonly setDisplayStyle: (style: DisplayStyle) => void
+  readonly setDisplayOption: (toggle: DisplayToggle, on: boolean) => void
   readonly setContours: (contours: boolean | null) => void
   readonly setRoofsOff: (roofsOff: boolean) => void
   readonly setPainting: (painting: boolean) => void
@@ -157,6 +161,7 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
     environment?: Environment
     displayStyle?: DisplayStyle
     contours?: boolean | null
+    displayOptions?: DisplayOptions
   }) => void
 }
 
@@ -252,6 +257,7 @@ export const usePlanStore = create<PlanState>()(
         layers: DEFAULT_LAYERS,
         environment: DEFAULT_ENVIRONMENT,
         displayStyle: 'realistic',
+        displayOptions: {},
         contours: null,
         roofsOff: false,
         painting: false,
@@ -415,7 +421,9 @@ export const usePlanStore = create<PlanState>()(
           })),
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
         setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
-        setDisplayStyle: (displayStyle) => set({ displayStyle }),
+        // a new style starts from its own defaults
+        setDisplayStyle: (displayStyle) => set({ displayStyle, displayOptions: {} }),
+        setDisplayOption: (toggle, on) => set((s) => ({ displayOptions: { ...s.displayOptions, [toggle]: on } })),
         setContours: (contours) => set({ contours }),
         setRoofsOff: (roofsOff) => set({ roofsOff }),
         // one tool at a time (toolOf): starting Paint, Place or Connect ends the other two
@@ -430,7 +438,7 @@ export const usePlanStore = create<PlanState>()(
         setReadOnly: (readOnly) => set({ readOnly }),
         setOpeningFocus: (openingFocus) => set({ openingFocus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
-        hydrate: ({ plan, labelMode, layers, environment, displayStyle, contours }) =>
+        hydrate: ({ plan, labelMode, layers, environment, displayStyle, displayOptions, contours }) =>
           set({
             plan,
             labelMode: labelMode ?? get().labelMode,
@@ -438,6 +446,7 @@ export const usePlanStore = create<PlanState>()(
             environment: environment ? clampEnvironment(environment) : get().environment,
             displayStyle: displayStyle ?? get().displayStyle,
             contours: contours === undefined ? get().contours : contours,
+            displayOptions: displayOptions ?? get().displayOptions,
             selection: [],
             pickedPart: null,
           }),

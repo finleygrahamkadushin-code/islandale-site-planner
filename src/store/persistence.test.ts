@@ -10,6 +10,7 @@ describe('plan files', () => {
     environment: { season: 'dec' as const, hour: 9.5, tideFt: 3 },
     displayStyle: 'white' as const,
     contours: true,
+    displayOptions: { shadows: false },
   }
 
   test('a plan round-trips through the JSON file format', () => {

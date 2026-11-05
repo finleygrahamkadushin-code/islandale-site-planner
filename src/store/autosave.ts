@@ -155,6 +155,7 @@ export function startAutosave({
       state.layers !== prev.layers ||
       state.environment !== prev.environment ||
       state.displayStyle !== prev.displayStyle ||
+      state.displayOptions !== prev.displayOptions ||
       state.contours !== prev.contours
     )
       schedule()
@@ -285,4 +286,5 @@ export const viewOf = (s: PlanState) => ({
   environment: s.environment,
   displayStyle: s.displayStyle,
   contours: s.contours,
+  displayOptions: s.displayOptions,
 })

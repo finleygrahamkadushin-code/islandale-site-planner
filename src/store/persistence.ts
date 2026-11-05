@@ -1,4 +1,5 @@
 import { get as idbGet, set as idbSet } from 'idb-keyval'
+import { DISPLAY_TOGGLES, type DisplayOptions } from '../scene/displayOptions'
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_LAYERS,
@@ -26,6 +27,7 @@ export interface PlanFile {
     readonly environment?: Environment
     readonly displayStyle?: DisplayStyle
     readonly contours?: boolean | null
+    readonly displayOptions?: DisplayOptions
   }
 }
 
@@ -132,7 +134,8 @@ function validateView(raw: unknown): PlanFile['view'] {
   const style = isRecord(raw) ? raw.displayStyle : undefined
   const displayStyle: DisplayStyle = DISPLAY_STYLES.some((d) => d.id === style) ? (style as DisplayStyle) : 'realistic'
   const contours = isRecord(raw) && typeof raw.contours === 'boolean' ? raw.contours : null
-  return { labelMode, layers, environment, displayStyle, contours }
+  const displayOptions = readDisplayOptions(isRecord(raw) ? raw.displayOptions : undefined)
+  return { labelMode, layers, environment, displayStyle, contours, displayOptions }
 }
 
 /** A synchronous copy written as the tab closes, when an IndexedDB write may not finish. */
@@ -169,3 +172,9 @@ export function readSavedText(text: string): { readonly file: PlanFile; readonly
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const str = (v: unknown, fallback: string): string => (typeof v === 'string' ? v : fallback)
+
+/** Saved display toggles: only the known ones, and only true or false. */
+export function readDisplayOptions(raw: unknown): DisplayOptions {
+  if (!isRecord(raw)) return {}
+  return Object.fromEntries(DISPLAY_TOGGLES.flatMap(({ id }) => (typeof raw[id] === 'boolean' ? [[id, raw[id]]] : []))) as DisplayOptions
+}

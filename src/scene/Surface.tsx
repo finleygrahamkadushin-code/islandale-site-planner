@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Edges } from '@react-three/drei'
 import { DoubleSide, type Texture } from 'three'
 import type { DisplayStyle } from '../store/types'
+import { useDisplayEffects } from './displayOptions'
 import {
   battenSiding,
   boardBatten,
@@ -100,6 +101,7 @@ interface SurfaceProps {
 
 /** The material (and, in Sketch, the edge lines) for one mesh. Use as a mesh child. */
 export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagramColor, glow = 0, vertexColors = false, layer = 0 }: SurfaceProps) {
+  const { edges } = useDisplayEffects()
   const lift = layer ? { polygonOffset: true, polygonOffsetFactor: -layer, polygonOffsetUnits: -layer } : {}
   const map = useMemo(() => (style === 'realistic' && texture ? textureFor(texture, textureUnit) : null), [style, texture, textureUnit])
   const emissive = glow > 0 ? '#ffffff' : '#000000'
@@ -112,7 +114,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} color={nonRealisticGlass(style)} roughness={0.3} />
-        {style === 'sketch' && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges color={SKETCH_LINE} />}
       </>
     )
   }
@@ -124,7 +126,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} {...see} opacity={0.4} color={nonRealisticGlass(style)} roughness={0.3} />
-        {style === 'sketch' && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges color={SKETCH_LINE} />}
       </>
     )
   }
@@ -136,7 +138,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} {...see} color={nonRealisticGlass(style)} roughness={0.3} />
-        {style === 'sketch' && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges color={SKETCH_LINE} />}
       </>
     )
   }
@@ -155,7 +157,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
   return (
     <>
       <meshStandardMaterial {...lift} color={tone} roughness={1} metalness={0} emissive={emissive} emissiveIntensity={emissiveIntensity} />
-      {style === 'sketch' && kind !== 'canopy' && kind !== 'trunk' && <Edges color={SKETCH_LINE} threshold={20} />}
+      {edges && kind !== 'canopy' && kind !== 'trunk' && <Edges color={SKETCH_LINE} threshold={20} />}
     </>
   )
 }

@@ -10,6 +10,7 @@ import { LegacyPlanner } from './LegacyPlanner'
 import { TaskTabs } from '../layout/TaskTabs'
 import { useOverlay } from '../layout/Overlays'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
+import { DISPLAY_TOGGLES, useDisplayEffects } from '../scene/displayOptions'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -37,6 +38,8 @@ export function TopBar() {
   const readOnly = usePlanStore((s) => s.readOnly)
   const displayStyle = usePlanStore((s) => s.displayStyle)
   const setDisplayStyle = usePlanStore((s) => s.setDisplayStyle)
+  const setDisplayOption = usePlanStore((s) => s.setDisplayOption)
+  const effects = useDisplayEffects()
   const canUndo = useStore(usePlanStore.temporal, (s) => s.pastStates.length > 0)
   const canRedo = useStore(usePlanStore.temporal, (s) => s.futureStates.length > 0)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -92,9 +95,17 @@ export function TopBar() {
 
       <div className="seg" role="group" aria-label="Display style">
         <span className="muted">Style</span>
-        {DISPLAY_STYLES.map((d) => (
-          <button key={d.id} className={displayStyle === d.id ? 'on' : ''} onClick={() => setDisplayStyle(d.id)}>
+        {DISPLAY_STYLES.map((d, i) => (
+          <button key={d.id} className={displayStyle === d.id ? 'on' : ''} title={`${d.label} (${i + 1})`} onClick={() => setDisplayStyle(d.id)}>
             {d.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="seg" role="group" aria-label="Display options">
+        {DISPLAY_TOGGLES.map((t) => (
+          <button key={t.id} type="button" className={`small ${effects[t.id] ? 'on' : ''}`} aria-pressed={effects[t.id]} title={`${t.hint}; picking a style resets it`} data-testid={`display-${t.id}`} onClick={() => setDisplayOption(t.id, !effects[t.id])}>
+            {t.label}
           </button>
         ))}
       </div>
