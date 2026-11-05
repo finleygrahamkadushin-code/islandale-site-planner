@@ -5,6 +5,7 @@ import { CURVED_SHAPES } from '../buildings/footprint'
 import { massPoly, type Mass } from '../buildings/masses'
 import { layoutOpenings } from '../buildings/openingLayout'
 import type { SupportParams } from '../buildings/supportParams'
+import { crossingHoles } from '../interiors/wallCrossings'
 import { buildWallShell, edgeMesh, joinByEdge, wallDecorByEdge, wallThicknessFt, type EdgeMesh, type WallShell } from '../buildings/wallShell'
 import { paintedColour, type BuildingLook, type MassSite, type MeshHandlers } from './buildingLook'
 import { Foundation } from './Foundation'
@@ -39,6 +40,7 @@ const finishKey = (f: WallFinish) => `${f.kind ?? ''}|${f.color}|${f.tint ?? ''}
 /** An enclosed mass: thick walls with the openings cut through, framed openings, its roof, and posts or a skirt down to the slope. */
 export function WallMass({
   m,
+  params,
   look,
   site,
   supports,
@@ -46,6 +48,8 @@ export function WallMass({
   highlight = null,
 }: {
   readonly m: Mass
+  /** The cabin's params, for the interior doorways that sit in this mass's walls. */
+  readonly params: Record<string, unknown>
   readonly look: BuildingLook
   readonly site: MassSite
   readonly supports: SupportParams
@@ -64,7 +68,12 @@ export function WallMass({
   const finishes = poly.map((_, e) => wallFinish(look, mi, e))
   const glassKey = finishes.map((f) => (f.kind === 'glass' ? 'g' : '-')).join('')
   const thickness = useMemo(() => (e: number) => wallThicknessFt(glassKey[e] === 'g' ? 'glass' : null), [glassKey])
-  const shell = useMemo(() => buildWallShell(poly, m.h, openings, { cap: !roofsOff, thicknessFt: thickness }), [poly, m.h, openings, roofsOff, thickness])
+  // interior doorways where this wall runs across another part's floor, cut through as well
+  const crossings = useMemo(() => crossingHoles(params, mi, thickness, m.h), [params, mi, thickness, m.h])
+  const shell = useMemo(
+    () => buildWallShell(poly, m.h, openings, { cap: !roofsOff, thicknessFt: thickness, extraHoles: crossings }),
+    [poly, m.h, openings, roofsOff, thickness, crossings],
+  )
   const decor = useMemo(
     () => (glassKey.includes('g') ? wallDecorByEdge(poly, m.h, (e) => (glassKey[e] === 'g' ? 'glass' : null), openings, { thicknessFt: thickness }) : []),
     [poly, m.h, openings, glassKey, thickness],
