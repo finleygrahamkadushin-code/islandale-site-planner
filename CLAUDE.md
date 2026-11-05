@@ -17,18 +17,18 @@ Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + Rea
 
 ```
 src/
-  app/          home, layout, routing
-  store/        plan data, undo/redo, selection, locks, visibility
-  site/         terrain, parcel, setbacks, tide, sun (Islandale data lives here)
-  buildings/    one feature: core model at the top (masses, footprint, outline, organic, geom, slab, BuildingMesh),
-                then walls/ roofs/ openings/ rails/ stairs/ decks/ foundation/ paint/ parts/, each holding
-                its maths, its 3D meshes and its panels, with tests beside the files
-  scene/        lights, materials, display styles, cameras, post-processing; shared scene plumbing only
-  ui/           toolbar, inspector, layers panel, tooltips, tour
-  tools/        select, move, rotate, measure, place, paint
-  export/       images, PDF sheets, glTF
-data/islandale/ terrain grid, parcel, schemes A–D (JSON)
+  app/          the app shell (App.tsx, styles)
+  store/        shared core: plan data, undo/redo, selection, locks, saving, and the action slices
+  buildings/    feature (map inside): walls/ roofs/ openings/ rails/ stairs/ decks/ foundation/ paint/ parts/
+  site/         feature (map inside): the lot at the top, then earthworks/ objects/ environment/
+  paths/        feature (map inside): path pieces at the top, then connect/ route/ junctions/
+  interiors/    feature (map inside): the floor-plan model at the top, then editor/ furniture/ scene3d/
+  export/       planFile.ts (plan download) and sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/
+  scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
+  ui/           shared UI only: top bar, side panel, inspector shell, layers, history, fields, shortcuts
+data/islandale/ terrain grid, parcel, schemes (JSON, extracted from the old planner)
 legacy/         the old planner and its patch scripts (read-only reference)
+tools/          map.sh (search the old planner), move-modules.mjs (move files and rewrite imports)
 ```
 
 ## Where to look (read only the section a task needs)
@@ -41,15 +41,15 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Terrain, parcel, contours, tide, sun, earthworks, pools, schemes, site objects | `src/site/` | `src/site/CLAUDE.md` |
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
-| Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` (+ `ui/sheets/`, `ui/DrawingSheets`, `scene/sheetCapture`, `sheetTarget`, `ElevationCapture`) | not yet |
-| Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | not yet |
-| Cameras, lights, display styles, effects, selection and drag gizmos, labels | `src/scene/` (shared) | not yet |
-| Top bar, side panel, inspector shell, layers, history, shortcuts | `src/ui/` (shared) | not yet |
+| Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
+| Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
+| Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
+| Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
 | Blender and Unreal export | `tools/export/`, `tools/blender/` (only on the `house-exterior-textures-3b6cc5` worktree for now) | `HANDOFF-blender-ue5.md` |
 
-A section marked "not yet" still has some of its files in `scene/` and `ui/`. When it is reorganised the way `buildings/` was, it gets its own `CLAUDE.md` map and its row here changes.
+`scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.
 
-Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/`, `site/` and `interiors/` are done; export follows). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
+Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/`, `site/`, `interiors/` and `export/sheets/` each have one, with a map). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
 
 ## The old planner (`legacy/islandale-planner.html`)
 

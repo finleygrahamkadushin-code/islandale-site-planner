@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { usePlanStore } from '../../store/planStore'
-import { onRoofHold, roofsHeld } from '../../scene/sheetCapture'
+import { onRoofHold, roofsHeld } from '../../export/sheets/elevation/sheetCapture'
 
 /** Whether roofs are left out of the 3D view: Roofs off is on, and no elevation capture is holding them on. */
 export function useRoofsOff(): boolean {

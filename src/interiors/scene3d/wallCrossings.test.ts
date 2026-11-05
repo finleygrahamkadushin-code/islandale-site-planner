@@ -3,7 +3,7 @@ import { buildingMasses } from '../../buildings/masses'
 import { buildWallShell, wallThicknessFt } from '../../buildings/walls/wallShell'
 import { massPoly } from '../../buildings/masses'
 import { layoutOpenings } from '../../buildings/openings/openingLayout'
-import { sheetBuildings } from '../../export/sheets/model'
+import { sheetBuildings } from '../../export/sheets/model/model'
 import { usePlanStore } from '../../store/planStore'
 import { crossingHoles } from './wallCrossings'
 

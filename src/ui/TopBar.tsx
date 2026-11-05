@@ -5,7 +5,7 @@ import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
-import { DrawingSheets } from './DrawingSheets'
+import { DrawingSheets } from '../export/sheets/DrawingSheets'
 import { LegacyPlanner } from './LegacyPlanner'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 

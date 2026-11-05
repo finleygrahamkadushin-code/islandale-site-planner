@@ -45,10 +45,10 @@ Every edit goes through `../store/interiorActions.ts` (`editFloor`, `addFloor`, 
 ## Talks to (open these only when the task crosses over)
 
 - **Uses:** `../store/types`, `planStore` and `interiorActions`; `../site/units`. From `../buildings/`: `masses` and `footprint` (the cabin's outline the envelope is built from), `walls/wallShell` (wall thickness), `openings/openingLayout` and `foundation/foundation`. The 3D view uses `../scene/Surface` and `buildingLook`.
-- **Used by:** `../export/sheets/` (`floorPlans`, `interiors`, `roomTables` and `model` draw floor plans and room tables), `../ui/sheets/RoomMarks.tsx`, `../buildings/BuildingMesh.tsx` (mounts `InteriorMesh`), `../buildings/walls/WallMass.tsx` (`wallCrossings`), `../app/App.tsx` (mounts the editor), and `../ui/Inspector.tsx` and `useKeyboardShortcuts.ts` (open it). The sheets import `format.ts` too. If you change an exported function's signature, search these for its callers.
+- **Used by:** `../export/sheets/` (`model/interiors`, `model/model`, `plan/floorPlans`, `plan/RoomMarks` and `tables/roomTables` draw floor plans and room tables), `../buildings/BuildingMesh.tsx` (mounts `InteriorMesh`), `../buildings/walls/WallMass.tsx` (`wallCrossings`), `../app/App.tsx` (mounts the editor), and `../ui/Inspector.tsx` and `useKeyboardShortcuts.ts` (open it). The sheets import `format.ts` too. If you change an exported function's signature, search these for its callers.
 
 ## Checks for this section
 
-- **Unit tests:** `npx vitest run src/interiors src/store/interior.test.ts src/export/sheets/interiors.test.ts` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root. `tsc -p .` checks nothing.
+- **Unit tests:** `npx vitest run src/interiors src/store/interior.test.ts src/export/sheets/model/interiors.test.ts` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root. `tsc -p .` checks nothing.
 - **Browser tests:** `e2e/interiors.spec.ts`, which opens every Scheme C cabin's plan, edits a room, adds a door and a bed, goes upstairs, views it in 3D with the roof off, and checks locks and undo (about 3 minutes). If floor plans on the drawing sheets could change, also run `e2e/sheets.spec.ts`.
 - The old planner is the reference for behaviour. Files name the legacy piece they port (`INT.model`, `INT.geom`, `int2/render.js`, `int2/walls3d.js` and so on), so find them with `tools/map.sh find NAME`.
