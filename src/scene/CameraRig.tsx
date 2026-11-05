@@ -3,9 +3,12 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Box3, Raycaster, Vector2, Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
+import { useFocusRequest } from './cameraFocus'
 import { onGround } from './frame'
 
 const DURATION_S = 0.9
+/** How far from an object F leaves the camera, metres. */
+const FOCUS_DISTANCE_M = 18
 
 interface Controls {
   target: Vector3
@@ -40,6 +43,20 @@ export function CameraRig() {
       t: 0,
     }
   }, [request, controls, camera, site, setEnvironment])
+
+  // F or "Fly to the selection": keep the view direction, come to about 18 m from the object
+  const focus = useFocusRequest((s) => s.request)
+  useEffect(() => {
+    if (!focus || !controls) return
+    let target: Vector3 | null = null
+    scene.traverse((o) => {
+      if (!target && o.userData.objectId === focus.id) target = o.getWorldPosition(new Vector3())
+    })
+    if (!target) return
+    const t = target as Vector3
+    const back = camera.position.clone().sub(controls.target).normalize().multiplyScalar(FOCUS_DISTANCE_M)
+    flight.current = { from: camera.position.clone(), to: t.clone().add(back), fromT: controls.target.clone(), toT: t.clone(), t: 0 }
+  }, [focus, controls, camera, scene])
 
   useEffect(() => {
     // probes for end-to-end tests, side-by-side screenshots and the console

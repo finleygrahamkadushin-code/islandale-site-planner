@@ -3,6 +3,8 @@ import { usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
 import { partKey, TURN_KEYS } from '../buildings/parts/partKeys'
 import { toolKey } from '../tools/toolKeys'
+import { viewKey } from '../layout/viewKeys'
+import { useOverlay } from '../layout/Overlays'
 import { useInteriorView } from '../interiors/editor/interiorView'
 
 const NUDGE_FT = 1
@@ -35,12 +37,29 @@ export function useKeyboardShortcuts(): void {
         usePlanStore.temporal.getState().redo()
         return
       }
+      // Cmd/Ctrl+K: command search; ? : the shortcuts sheet; while either is open it takes the keys (4B)
+      const overlay = useOverlay.getState()
+      if (mod && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        overlay.setOpen(overlay.open === 'commands' ? null : 'commands')
+        return
+      }
+      if (overlay.open) return
+      if (!mod && e.key === '?') {
+        e.preventDefault()
+        overlay.setOpen('help')
+        return
+      }
       // the interior editor takes every other key while it is open
       if (useInteriorView.getState().objectId) return
       // Cmd/Ctrl+D duplicates the selection (and keeps the browser from bookmarking)
       if (mod && e.key.toLowerCase() === 'd') {
         e.preventDefault()
         if (s.selection.length) s.duplicateObjects(s.selection)
+        return
+      }
+      if (!mod && viewKey(e, s)) {
+        e.preventDefault()
         return
       }
       if (!mod && toolKey(e, s)) {

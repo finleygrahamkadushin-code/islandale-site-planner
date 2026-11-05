@@ -422,3 +422,27 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .align-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .align-row .tool-button { width: 32px; height: 32px; border-color: var(--line); }
 .align-row .tool-button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+/* Command search and the shortcuts sheet (4B) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.dialog-overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.45); }
+.dialog {
+  position: fixed; left: 50%; top: 14vh; transform: translateX(-50%); z-index: 21;
+  width: min(560px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; overscroll-behavior: contain;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--fg);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+.dialog-title { margin: 0; padding: 14px 16px 0; font-size: 16px; }
+.command-input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 14px 16px; font-size: 15px; background: transparent; }
+.command-input:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.command-list { padding: 6px; }
+.command-empty { padding: 12px; }
+.command-group [cmdk-group-heading] { padding: 8px 10px 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.command-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.command-item[data-selected='true'] { background: var(--tool-on-bg); }
+.command-item kbd, .help-row kbd { padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; font: 12px/1.6 ui-monospace, monospace; color: var(--muted); }
+.help-sheet { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 16px; }
+.help-sheet h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+.help-sheet dl { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.help-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: baseline; font-size: 13px; }
+.help-row dd { margin: 0; }

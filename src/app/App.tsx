@@ -8,6 +8,7 @@ import { InteriorEditor } from '../interiors/editor/InteriorEditor'
 import { ToolStrip } from '../tools/ToolStrip'
 import { ModeChip } from '../tools/ModeChip'
 import { BottomBar } from '../layout/BottomBar'
+import { Overlays } from '../layout/Overlays'
 
 export function App() {
   useKeyboardShortcuts()
@@ -24,6 +25,7 @@ export function App() {
       </div>
       <InteriorEditor />
       <Toast />
+      <Overlays />
     </div>
   )
 }

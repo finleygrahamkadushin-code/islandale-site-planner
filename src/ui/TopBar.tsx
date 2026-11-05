@@ -8,6 +8,7 @@ import { HistoryMenu } from './HistoryMenu'
 import { DrawingSheets } from '../export/sheets/DrawingSheets'
 import { LegacyPlanner } from './LegacyPlanner'
 import { TaskTabs } from '../layout/TaskTabs'
+import { useOverlay } from '../layout/Overlays'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
@@ -134,6 +135,14 @@ export function TopBar() {
       </div>
 
       <HistoryMenu />
+      <div className="seg" role="group" aria-label="Search and help">
+        <button type="button" onClick={() => useOverlay.getState().setOpen('commands')} title="Search every action and setting (⌘K / Ctrl+K)" data-testid="open-commands">
+          Search
+        </button>
+        <button type="button" onClick={() => useOverlay.getState().setOpen('help')} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" data-testid="open-help">
+          ?
+        </button>
+      </div>
 
       {/* the built app runs as the hosted home, which also serves the old planner next to it */}
       {import.meta.env.PROD && (
