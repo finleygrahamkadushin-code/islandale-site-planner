@@ -1,5 +1,5 @@
 import { FURNITURE } from './furniture'
-import type { FurnitureBase } from './types'
+import type { FurnitureBase } from '../types'
 
 /**
  * Bathroom fixtures (old ext:fixtures): size presets for showers, tubs and

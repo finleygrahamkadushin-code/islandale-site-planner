@@ -19,7 +19,7 @@ import { useObjectInteraction } from '../scene/useObjectInteraction'
 import { useEarthworks } from '../site/earthworks/useEarthworks'
 import { useRailWorld } from './rails/useRailWorld'
 import { WallMass } from './walls/WallMass'
-import { InteriorMesh } from '../scene/InteriorMesh'
+import { InteriorMesh } from '../interiors/scene3d/InteriorMesh'
 import { useShallow } from 'zustand/react/shallow'
 
 const NO_WELLS: readonly TreeWell[] = []

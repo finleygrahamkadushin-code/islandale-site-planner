@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
-import type { Selection } from '../../interiors/edits'
-import { envelopeOf, type Envelope } from '../../interiors/envelope'
-import { FURNITURE, symbol } from '../../interiors/furniture'
-import * as G from '../../interiors/geom'
-import type { Pt } from '../../interiors/geom'
-import { openingGeom, partitionSegments, roomInfo } from '../../interiors/rooms'
-import { ROOM_COLORS, WALL, type Floor, type Furniture, type FurnitureBase, type Opening, type Room } from '../../interiors/types'
-import { fmtArea, fmtLen } from './format'
+import type { Selection } from '../edits'
+import { envelopeOf, type Envelope } from '../envelope'
+import { FURNITURE, symbol } from '../furniture/furniture'
+import * as G from '../geom'
+import type { Pt } from '../geom'
+import { openingGeom, partitionSegments, roomInfo } from '../rooms'
+import { ROOM_COLORS, WALL, type Floor, type Furniture, type FurnitureBase, type Opening, type Room } from '../types'
+import { fmtArea, fmtLen } from '../format'
 
 /**
  * One floor of a cabin drawn as a plan (old int2/render.js, editor mode):

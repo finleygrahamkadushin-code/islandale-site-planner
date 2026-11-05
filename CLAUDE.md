@@ -40,7 +40,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Cabins, decks, porches, stairs, ramps, rails, roofs, walls, openings, supports, paint | `src/buildings/` | `src/buildings/CLAUDE.md` |
 | Terrain, parcel, contours, tide, sun, earthworks, pools, schemes, site objects | `src/site/` | `src/site/CLAUDE.md` |
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
-| Rooms, furniture, interior plan editor | `src/interiors/` (+ `scene/InteriorMesh`, `ui/interior/`, `store/interiorActions`) | not yet |
+| Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` (+ `ui/sheets/`, `ui/DrawingSheets`, `scene/sheetCapture`, `sheetTarget`, `ElevationCapture`) | not yet |
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | not yet |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels | `src/scene/` (shared) | not yet |
@@ -49,7 +49,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 
 A section marked "not yet" still has some of its files in `scene/` and `ui/`. When it is reorganised the way `buildings/` was, it gets its own `CLAUDE.md` map and its row here changes.
 
-Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/` and `site/` are done; interiors and export follow). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
+Organise by feature, not by layer: a feature's maths, meshes, panels and tests live together in its own folder (`buildings/`, `paths/`, `site/` and `interiors/` are done; export follows). `store/` stays the core: the plan store, undo, saving, locks, and the action slices it is built from. Move files with `node tools/move-modules.mjs moves.json [--dry]`, which `git mv`s them and rewrites every relative import. Never give two files in one folder names that differ only in case (`Foundation.tsx` and `foundation.ts`), because macOS disks treat them as the same name.
 
 ## The old planner (`legacy/islandale-planner.html`)
 

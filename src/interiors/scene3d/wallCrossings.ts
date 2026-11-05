@@ -5,14 +5,14 @@
  * wall is the part's exterior wall, built whole by its shell, so without a
  * hole the doorway is walled shut. These are the holes to cut through it.
  */
-import { signedArea, type LocalPoint } from '../buildings/footprint'
-import { pointInPolygon } from '../buildings/foundation/foundation'
-import { buildingMasses, buildingToMass, massBuildingPoly, massPoly, massToBuilding } from '../buildings/masses'
-import type { WallHole } from '../buildings/walls/wallShell'
+import { signedArea, type LocalPoint } from '../../buildings/footprint'
+import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { buildingMasses, buildingToMass, massBuildingPoly, massPoly, massToBuilding } from '../../buildings/masses'
+import type { WallHole } from '../../buildings/walls/wallShell'
 import { STOREY_FT } from './interior3d'
-import { readFloors } from './model'
-import { openingGeom } from './rooms'
-import type { OpeningKind } from './types'
+import { readFloors } from '../model'
+import { openingGeom } from '../rooms'
+import type { OpeningKind } from '../types'
 
 /** Head height of each kind above its floor, and a window's sill (as the interior partitions cut them). */
 const HEADS: Readonly<Record<OpeningKind, number>> = { door: 6.75, slider: 6.75, open: 7, window: 7 }

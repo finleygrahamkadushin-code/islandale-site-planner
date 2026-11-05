@@ -1,10 +1,10 @@
 import { useEffect, useMemo } from 'react'
 import { ExtrudeGeometry, Quaternion, Shape, Vector3, type BufferGeometry } from 'three'
-import { interior3d, type Bar3, type Box3, type Slab, type Wedge3 } from '../interiors/interior3d'
-import type { DisplayStyle } from '../store/types'
-import { M_PER_FT } from '../site/units'
-import type { MeshHandlers } from './buildingLook'
-import { Surface } from './Surface'
+import { interior3d, type Bar3, type Box3, type Slab, type Wedge3 } from './interior3d'
+import type { DisplayStyle } from '../../store/types'
+import { M_PER_FT } from '../../site/units'
+import type { MeshHandlers } from '../../scene/buildingLook'
+import { Surface } from '../../scene/Surface'
 
 const SHEET_SKIP = { sheetSkip: true } as const
 

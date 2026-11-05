@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { Selection } from '../../interiors/edits'
-import type { OpeningKind } from '../../interiors/types'
+import type { Selection } from '../edits'
+import type { OpeningKind } from '../types'
 
 /**
  * The interior editor's view state: which cabin and floor is open, the

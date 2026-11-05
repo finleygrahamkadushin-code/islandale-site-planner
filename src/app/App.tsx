@@ -4,7 +4,7 @@ import { SidePanel } from '../ui/SidePanel'
 import { Toast } from '../ui/Toast'
 import { ViewStrip } from '../ui/ViewStrip'
 import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
-import { InteriorEditor } from '../ui/interior/InteriorEditor'
+import { InteriorEditor } from '../interiors/editor/InteriorEditor'
 
 export function App() {
   useKeyboardShortcuts()

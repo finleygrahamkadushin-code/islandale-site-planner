@@ -1,11 +1,11 @@
-import { num } from '../buildings/footprint'
-import { envelopeOf } from './envelope'
-import { FURNITURE, furnitureCorners, isStairType, STAIR_RISERS } from './furniture'
-import * as G from './geom'
-import type { Pt } from './geom'
-import { readFloors } from './model'
-import { openingGeom, partitionSegments } from './rooms'
-import { WALL, type Floor, type Furniture } from './types'
+import { num } from '../../buildings/footprint'
+import { envelopeOf } from '../envelope'
+import { FURNITURE, furnitureCorners, isStairType, STAIR_RISERS } from '../furniture/furniture'
+import * as G from '../geom'
+import type { Pt } from '../geom'
+import { readFloors } from '../model'
+import { openingGeom, partitionSegments } from '../rooms'
+import { WALL, type Floor, type Furniture } from '../types'
 
 /**
  * A cabin's interior in 3D (old int2/walls3d.js): partition walls with

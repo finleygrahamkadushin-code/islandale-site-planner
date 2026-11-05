@@ -1,4 +1,4 @@
-import { symbol } from '../../interiors/furniture'
+import { symbol } from '../../interiors/furniture/furniture'
 import { wallThicknessFt } from '../../buildings/walls/wallShell'
 import type { SheetFloor, SheetInteriorOpening, SheetPartition } from '../../export/sheets/types'
 import type { Pen } from './planLayout'

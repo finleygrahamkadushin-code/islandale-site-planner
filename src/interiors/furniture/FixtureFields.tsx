@@ -1,7 +1,7 @@
-import { applyPreset, CURBS, DRAINS, fixtureNotes, heightOf, presetOf, presetsFor, resetToStandard, SHOWER_DOORS, showerOpts, withShowerOption, type ShowerOptions } from '../../interiors/fixtures'
-import { FURNITURE } from '../../interiors/furniture'
-import type { Furniture, FurnitureBase } from '../../interiors/types'
-import { FeetInchesField } from '../FeetInchesField'
+import { applyPreset, CURBS, DRAINS, fixtureNotes, heightOf, presetOf, presetsFor, resetToStandard, SHOWER_DOORS, showerOpts, withShowerOption, type ShowerOptions } from './fixtures'
+import { FURNITURE } from './furniture'
+import type { Furniture, FurnitureBase } from '../types'
+import { FeetInchesField } from '../../ui/FeetInchesField'
 
 const FIXTURES = new Set(['shower', 'tub', 'vanity', 'toilet'])
 const LABELS: Readonly<Record<string, string>> = { curbed: 'Curbed', curbless: 'Curbless', centre: 'Centre', linear: 'Linear', none: 'None', screen: 'Glass screen', sliding: 'Sliding glass' }

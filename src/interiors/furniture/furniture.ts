@@ -1,7 +1,7 @@
-import * as G from './geom'
-import type { Pt } from './geom'
-import type { Furniture, FurnitureBase } from './types'
-import { WALL } from './types'
+import * as G from '../geom'
+import type { Pt } from '../geom'
+import type { Furniture, FurnitureBase } from '../types'
+import { WALL } from '../types'
 
 /**
  * The furniture catalogue and its plan symbols, ported from the old

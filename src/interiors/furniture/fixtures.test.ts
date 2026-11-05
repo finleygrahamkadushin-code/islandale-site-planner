@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { accessibleRoom, applyPreset, fixtureDefaults, fixtureNotes, heightOf, presetOf, resetToStandard, rollIn, showerOpts } from './fixtures'
-import type { FurnitureBase } from './types'
+import type { FurnitureBase } from '../types'
 
 const piece = (type: string, w: number, d: number, extra: Partial<FurnitureBase> = {}): FurnitureBase => ({ type, x: 0, z: 0, rot: 0, w, d, mirror: false, ...extra })
 

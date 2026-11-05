@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import schemes from '../../data/islandale/schemes.json'
-import * as G from './geom'
+import schemes from '../../../data/islandale/schemes.json'
+import * as G from '../geom'
 import { interior3d, segmentPieces, stairPieces, STOREY_FT, wallHeight } from './interior3d'
 
 type Obj = { name: string } & Record<string, unknown>

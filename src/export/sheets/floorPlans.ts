@@ -1,5 +1,5 @@
 import { floorAtLevel } from '../../interiors/envelope'
-import { STOREY_FT } from '../../interiors/interior3d'
+import { STOREY_FT } from '../../interiors/scene3d/interior3d'
 import { boundsOf } from './model'
 import { partPoints } from './parts'
 import type { SheetBuilding, SheetFloor, SheetPart } from './types'
