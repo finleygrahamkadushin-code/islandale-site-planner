@@ -78,8 +78,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
   const refocus = (patch: Partial<PaintFocus>) => setPaintFocus({ ...focus, ...patch })
 
   return (
-    <details className="exterior" open data-testid="ext-panel">
-      <summary>Exterior</summary>
+    <div className="exterior" data-testid="ext-panel">
       <div className="row between">
         <span className="muted small">
           Element <b data-testid="ext-target">{elementLabel(host === 'deck' ? o.name || 'Deck' : partName(m, focus.mass), part, curved ? null : focus.edge)}</b>
@@ -192,7 +191,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
         </button>
       </div>
       <p className="muted small">{HINT}</p>
-    </details>
+    </div>
   )
 }
 

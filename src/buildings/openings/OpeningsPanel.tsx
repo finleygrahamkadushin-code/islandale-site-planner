@@ -6,6 +6,7 @@ import { FIT, asKind, type CutData, type FitNote, type PlacedOpening } from './o
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import { FeetInchesField } from '../../ui/FeetInchesField'
 import { formatFeetInches } from '../../ui/feetInches'
+import { InspectorSection } from '../../ui/InspectorSection'
 
 const KINDS = [
   { id: 'window', label: 'Window' },
@@ -56,10 +57,15 @@ export function OpeningsPanel({ id }: { readonly id: string }) {
   }
 
   return (
-    <details className="openings" open>
-      <summary>
-        Openings <span className="muted small">{cuts.length}</span>
-      </summary>
+    <InspectorSection
+      id="openings"
+      className="openings"
+      title={
+        <>
+          Openings <span className="muted small">{cuts.length}</span>
+        </>
+      }
+    >
       <div className="grid2">
         {enclosed.length > 1 && (
           <label className="field">
@@ -134,7 +140,7 @@ export function OpeningsPanel({ id }: { readonly id: string }) {
       <p className="muted small">
         Openings keep {formatFeetInches(FIT.cornerFt)} from corners, {formatFeetInches(FIT.gapFt)} apart and {formatFeetInches(FIT.headFt)} under the eave. Lengths take 2' 9", 33 in or 2.75.
       </p>
-    </details>
+    </InspectorSection>
   )
 }
 

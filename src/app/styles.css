@@ -404,3 +404,18 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 }
 .bottom-row > * { pointer-events: auto; }
 .bottom-row .viewstrip, .bottom-row .bottombar { position: static; max-width: none; }
+
+/* the inspector's collapsible headings (4B) */
+.inspector .stats { color: var(--muted); font-variant-numeric: tabular-nums; }
+.inspector-section { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.section-trigger {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 32px; padding: 4px 2px;
+  border: 0; border-radius: 4px; text-align: left; font-weight: 600;
+}
+.section-trigger:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.section-trigger:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.section-chevron { flex: none; color: var(--muted); transition: transform 0.12s; }
+.section-trigger[data-state='open'] .section-chevron { transform: rotate(90deg); }
+.section-title { display: flex; align-items: baseline; gap: 6px; }
+.section-body { display: flex; flex-direction: column; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .section-chevron { transition: none; } }

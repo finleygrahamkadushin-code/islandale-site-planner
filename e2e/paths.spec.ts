@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openSection } from './inspector'
 
 /**
  * Phase 5C done-when: connect the parking pad to every cabin with path
@@ -65,6 +66,7 @@ test('connect the parking pad to every cabin; pieces meet flush and the route ch
       return s.plan.order.find((k: string) => s.plan.objects[k].name === n)
     }, name)
     await store(page, 'select', [id])
+    await openSection(page, 'levels')
     const levels = page.getByRole('region', { name: 'Levels & junctions' })
     await expect(levels.locator('li', { hasText: /to .*·.*flush/ }).first()).toBeVisible()
   }

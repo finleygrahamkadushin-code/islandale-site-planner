@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { num } from '../buildings/footprint'
 import { ftToM, mToFt } from '../site/units'
@@ -14,6 +15,8 @@ import { ExteriorPanel } from '../buildings/paint/ExteriorPanel'
 import { RoofFields, ShapeFields } from './ShapeFields'
 import { PAD_TYPES } from '../buildings/parts/shapeEdits'
 import { buildingMasses } from '../buildings/masses'
+import { InspectorSection, useOpenSections } from './InspectorSection'
+import { selectionStats } from './selectionStats'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -26,6 +29,12 @@ export function Inspector() {
 
 function SingleInspector({ id }: { readonly id: string }) {
   const o = usePlanStore((s) => s.plan.objects[id])
+  const terrain = usePlanStore((s) => s.site.terrain)
+  // Paint mode works through the Exterior panel, which sits under Look: open it when Paint turns on
+  const painting = usePlanStore((s) => s.painting)
+  useEffect(() => {
+    if (painting) useOpenSections.getState().setOpen('look', true)
+  }, [painting])
   const locked = usePlanStore((s) => isObjectLocked(s, id))
   const layerLocked = usePlanStore((s) => (o ? s.layers[layerOf(o)].locked : false))
   const part = usePlanStore(pickedPartOf)
@@ -43,6 +52,7 @@ function SingleInspector({ id }: { readonly id: string }) {
   const color = typeof o.params.color === 'string' ? o.params.color : '#b8b0a0'
   const dis = locked
   const sizeable = o.type !== 'bridge'
+  const stats = selectionStats(o, terrain)
   return (
     <section className="panel inspector" aria-label="Inspector">
       <header>
@@ -50,58 +60,81 @@ function SingleInspector({ id }: { readonly id: string }) {
         <div className="muted small">
           {TYPE_NAMES[o.type] ?? o.type} · {LAYER_NAMES[layerOf(o)]}
         </div>
-      </header>
-      {picked !== null && <PartInspector id={id} mass={picked} />}
-      {picked === null && (
-        <div className="grid2">
-          <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
-          <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
-          <NumField label="Rotation" unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
-          <NumField label="Height" unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
-          {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
-          {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
+        <div className="stats small" data-testid="selection-stats">
+          {Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor {stats.floorFt.toFixed(1)} ft · ground {stats.lowestGroundFt.toFixed(1)} ft NAVD88
         </div>
-      )}
-      {picked === null && o.type === 'house' && (
-        <>
-          <ShapeFields p={o.params} pad={false} disabled={dis} set={(patch) => a.params(id, patch)} />
-          <RoofFields m={buildingMasses(o.params)[0]} disabled={dis} set={(patch) => a.params(id, patch)} />
-        </>
-      )}
-      {picked === null && PAD_TYPES.has(o.type) && typeof o.params.kind !== 'string' && (
-        <ShapeFields p={o.params} pad cars={o.type === 'pad'} disabled={dis} set={(patch) => a.params(id, patch)} />
-      )}
-      {picked === null && (
-        <label className="row">
-          <span>Colour</span>
-          <input type="color" value={color} disabled={dis} onChange={(e) => a.params(id, { color: e.target.value })} />
-        </label>
-      )}
-      <label className="row">
-        <input type="checkbox" checked={o.locked} onChange={(e) => a.setLocked(id, e.target.checked)} />
-        <span>Locked{layerLocked ? ' (layer is locked too)' : ''}</span>
-      </label>
-      <label className="row">
-        <input type="checkbox" checked={o.labelVisible} onChange={(e) => a.setLabelVisible(id, e.target.checked)} />
-        <span>Show name</span>
-      </label>
-      <div className="actions">
-        <button onClick={() => a.setHidden(id, true)}>Hide</button>
-        <button className="danger" disabled={dis} onClick={() => a.del([id])}>
-          Delete
-        </button>
-      </div>
-      {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
+        {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
+      </header>
       {o.type === 'house' && (
         <button data-testid="open-interior" onClick={() => useInteriorView.getState().open(id)}>
-          Interior: rooms and furniture
+          Interior: rooms and furniture (I)
         </button>
       )}
-      {o.type === 'pad' && <PathPiecePanel o={o} />}
+      {picked !== null && <PartInspector id={id} mass={picked} />}
+      {picked === null && (
+        <InspectorSection id="placement" title="Placement">
+          <div className="grid2">
+            <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
+            <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
+            <NumField label="Rotation" unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
+          </div>
+        </InspectorSection>
+      )}
+      {picked === null && (
+        <InspectorSection id="size" title="Size and shape">
+          <div className="grid2">
+            <NumField label="Height" unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
+            {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
+            {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
+          </div>
+          {o.type === 'house' && <ShapeFields p={o.params} pad={false} disabled={dis} set={(patch) => a.params(id, patch)} />}
+          {PAD_TYPES.has(o.type) && typeof o.params.kind !== 'string' && (
+            <ShapeFields p={o.params} pad cars={o.type === 'pad'} disabled={dis} set={(patch) => a.params(id, patch)} />
+          )}
+        </InspectorSection>
+      )}
+      {picked === null && o.type === 'house' && (
+        <InspectorSection id="roof" title="Roof">
+          <RoofFields m={buildingMasses(o.params)[0]} disabled={dis} set={(patch) => a.params(id, patch)} />
+        </InspectorSection>
+      )}
+      {o.type === 'pad' && (
+        <InspectorSection id="path" title="Path piece">
+          <PathPiecePanel o={o} />
+        </InspectorSection>
+      )}
+      <InspectorSection id="look" title="Look">
+        {picked === null && (
+          <label className="row">
+            <span>Colour</span>
+            <input type="color" value={color} disabled={dis} onChange={(e) => a.params(id, { color: e.target.value })} />
+          </label>
+        )}
+        {(o.type === 'house' || o.type === 'deck') && <ExteriorPanel id={id} />}
+      </InspectorSection>
       {o.type === 'house' && <OpeningsPanel id={id} />}
       {(o.type === 'house' || o.type === 'deck') && <RailingsPanel id={id} />}
-      {(o.type === 'house' || o.type === 'deck') && <ExteriorPanel id={id} />}
-      {(o.type === 'house' || o.type === 'deck') && <LevelsPanel o={o} />}
+      {(o.type === 'house' || o.type === 'deck') && (
+        <InspectorSection id="levels" title="Levels and junctions">
+          <LevelsPanel o={o} />
+        </InspectorSection>
+      )}
+      <InspectorSection id="visibility" title="Visibility and lock">
+        <label className="row">
+          <input type="checkbox" checked={o.locked} onChange={(e) => a.setLocked(id, e.target.checked)} />
+          <span>Locked{layerLocked ? ' (layer is locked too)' : ''}</span>
+        </label>
+        <label className="row">
+          <input type="checkbox" checked={o.labelVisible} onChange={(e) => a.setLabelVisible(id, e.target.checked)} />
+          <span>Show name</span>
+        </label>
+        <div className="actions">
+          <button onClick={() => a.setHidden(id, true)}>Hide</button>
+          <button className="danger" disabled={dis} onClick={() => a.del([id])}>
+            Delete
+          </button>
+        </div>
+      </InspectorSection>
     </section>
   )
 }

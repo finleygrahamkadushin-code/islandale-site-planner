@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openSection } from './inspector'
 
 /** Phase 5A: Scheme C's parts can be picked, resized, added and removed, and each rail edge switched, with undo and locks. */
 
@@ -216,6 +217,7 @@ test('hiding a cabin with a part picked takes its chips, grip and knob away with
   await store(page, 'pickPart', { objectId: id, mass: 3 })
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 10), id)
   await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
+  await openSection(page, 'visibility')
   await page.locator('section.inspector').getByRole('button', { name: 'Hide', exact: true }).click()
   await expect(overlay).toHaveCount(0)
   expect(await page.evaluate(() => (window as any).islandale.store.getState().pickedPart)).toBeNull()

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openSection } from './inspector'
 
 /**
  * Phase 5D done-when, second half: any wall, roof or rail can be repainted
@@ -16,6 +17,8 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
   await page.evaluate(() => (window as any).islandale.store.getState().loadScheme('C'))
   await page.evaluate((id) => (window as any).islandale.store.getState().select([id]), PROW)
+  // the Exterior panel sits under the inspector's Look heading (4B)
+  await openSection(page, 'look')
   await expect(page.getByTestId('ext-panel')).toBeVisible()
 })
 

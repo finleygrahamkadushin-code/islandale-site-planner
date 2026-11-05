@@ -23,7 +23,7 @@ export interface LotFacts {
 const SIMPLE_COVER = new Set(['shed', 'shop'])
 
 /** Square feet of ground under one object's buildings and decks (0 for anything else). */
-function coverOf(o: PlanObject): number {
+export function coverOf(o: PlanObject): number {
   if (o.type === 'house') return buildingMasses(o.params).reduce((sum, m) => sum + ringArea(massBuildingPoly(m)), 0)
   if (o.type === 'deck') return ringArea(massBuildingPoly(deckObjectMass(o.params)))
   if (SIMPLE_COVER.has(o.type)) return num(o.params.w, 0) * num(o.params.d, 0)

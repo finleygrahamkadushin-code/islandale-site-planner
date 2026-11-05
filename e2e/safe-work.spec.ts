@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openSection } from './inspector'
 
 /** Phase 3C lost-work drills for the new app. */
 
@@ -87,7 +88,8 @@ test('the Openings panel adds and resizes a window as undoable steps, and a lock
   })
   const cuts = () => page.evaluate((id) => ((window as any).islandale.store.getState().plan.objects[id].params.cuts ?? []).length as number, id)
   const before = await cuts()
-  const panel = page.locator('details.openings')
+  await openSection(page, 'openings')
+  const panel = page.locator('.inspector-section.openings')
   await expect(panel).toBeVisible()
   await panel.getByRole('button', { name: '+ Window' }).click()
   expect(await cuts()).toBe(before + 1)

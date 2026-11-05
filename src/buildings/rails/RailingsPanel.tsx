@@ -7,6 +7,7 @@ import { objectRails } from './railSite'
 import { useRailWorld } from './useRailWorld'
 import { isObjectLocked, pickedPartOf, usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'
+import { InspectorSection } from '../../ui/InspectorSection'
 
 const STATES: readonly RailState[] = ['on', 'off', 'auto']
 const STYLE_LABELS: Record<RailStyle, string> = { wood: 'wood', steel: 'steel', cable: 'cable', glass: 'glass', none: 'none (hidden)' }
@@ -31,10 +32,15 @@ export function RailingsPanel({ id }: { readonly id: string }) {
   const railable = deck ? [] : masses.flatMap((m, i) => (i > 0 && isRailable(m) ? [i] : []))
   if (!deck && !railable.length) return null
   return (
-    <details className="railings" open>
-      <summary>
-        Railings <span className="muted small">{mi === null ? '' : deck ? o.name : railTarget(masses[mi], mi)}</span>
-      </summary>
+    <InspectorSection
+      id="railings"
+      className="railings"
+      title={
+        <>
+          Railings <span className="muted small">{mi === null ? '' : deck ? o.name : railTarget(masses[mi], mi)}</span>
+        </>
+      }
+    >
       {mi === null ? (
         <>
           <p className="muted small">Pick a deck or porch to set its railings (or click it again in 3D):</p>
@@ -49,7 +55,7 @@ export function RailingsPanel({ id }: { readonly id: string }) {
       ) : (
         <RailEdges o={o} m={masses[mi]} mi={mi} locked={locked} />
       )}
-    </details>
+    </InspectorSection>
   )
 }
 
