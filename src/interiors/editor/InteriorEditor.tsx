@@ -7,6 +7,8 @@ import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import { InteriorPanel } from './InteriorPanel'
 import { useInteriorView, type InteriorTool } from './interiorView'
 import { PlanCanvas } from './PlanCanvas'
+import { Tip } from '../../guide/Tip'
+import { useConfirm } from '../../guide/confirm'
 
 const TOOLS: readonly { readonly id: InteriorTool; readonly label: string; readonly key: string }[] = [
   { id: 'select', label: 'Select', key: 'V' },
@@ -117,41 +119,46 @@ export function InteriorEditor() {
         <strong>Interior · {o.name}</strong>
         <nav className="int-floors" aria-label="Floors">
           {floors.map((f, i) => (
-            <button
-              key={i}
-              className={i === fi ? 'on' : ''}
-              onClick={() => v.setFloor(i)}
-              onDoubleClick={() => {
-                const name = window.prompt('Floor name', f.name)
-                if (name) a.renameFloor(o.id, i, name)
-              }}
-              title="Double-click to rename"
-            >
-              {f.name}
-            </button>
+            <Tip key={i} label="Double-click to rename">
+              <button
+                className={i === fi ? 'on' : ''}
+                onClick={() => v.setFloor(i)}
+                onDoubleClick={() => {
+                  const name = window.prompt('Floor name', f.name)
+                  if (name) a.renameFloor(o.id, i, name)
+                }}
+              >
+                {f.name}
+              </button>
+            </Tip>
           ))}
           {floors.length < 2 && (
-            <button
-              disabled={locked}
-              title={blocked ?? 'Add an upper floor'}
-              data-testid="add-floor"
-              onClick={() => {
-                const i = a.addFloor(o.id)
-                if (i != null) v.setFloor(i)
-              }}
-            >
-              + Upper floor
-            </button>
+            <Tip label={blocked ?? 'Add an upper floor'}>
+              <button
+                disabled={locked}
+                data-testid="add-floor"
+                onClick={() => {
+                  const i = a.addFloor(o.id)
+                  if (i != null) v.setFloor(i)
+                }}
+              >
+                + Upper floor
+              </button>
+            </Tip>
           )}
           {fi >= 1 && (
             <button
               disabled={locked}
-              onClick={() => {
-                if (window.confirm(`Remove ${floors[fi].name} and everything on it?`)) {
-                  a.removeFloor(o.id, fi)
-                  v.setFloor(0)
-                }
-              }}
+              data-testid="remove-floor"
+              onClick={() =>
+                useConfirm.getState().request(
+                  { title: `Remove ${floors[fi].name}?`, body: 'Everything on this floor goes too. You can undo this.', confirmLabel: 'Remove' },
+                  () => {
+                    a.removeFloor(o.id, fi)
+                    v.setFloor(0)
+                  },
+                )
+              }
             >
               Remove floor
             </button>
@@ -159,9 +166,11 @@ export function InteriorEditor() {
         </nav>
         <nav className="int-tools" aria-label="Tools">
           {TOOLS.map((t) => (
-            <button key={t.id} className={v.tool === t.id ? 'on' : ''} onClick={() => v.setTool(t.id)} title={`${t.label} (${t.key})`} data-testid={`tool-${t.id}`}>
-              {t.label}
-            </button>
+            <Tip key={t.id} label={t.label} keyHint={t.key}>
+              <button className={v.tool === t.id ? 'on' : ''} onClick={() => v.setTool(t.id)} data-testid={`tool-${t.id}`}>
+                {t.label}
+              </button>
+            </Tip>
           ))}
         </nav>
         <label className="int-snap">

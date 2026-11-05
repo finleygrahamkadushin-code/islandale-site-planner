@@ -15,6 +15,7 @@ import { MeasureTables } from './tables/MeasureTables'
 import { planLayout, PlanSheet } from './plan/PlanSheet'
 import { FoundationSheet } from './foundation/FoundationSheet'
 import { hasSupports } from './plan/planLayout'
+import { Tip } from '../../guide/Tip'
 
 interface Props {
   readonly onClose: () => void
@@ -132,7 +133,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
           <Check label="Furniture" on={show.furniture} onChange={() => toggle('furniture')} title="The furniture and fixtures from the interior plan" />
           <Check label="Supports" on={show.supports} onChange={() => toggle('supports')} title="A foundation plan after the floor plans: what each part stands on (posts, piers and piles at their size, beams dashed, a mast or stilts), with one spacing chain per row of posts" />
         </fieldset>
-        <button onClick={() => window.print()} disabled={!shown.length || drawing} title={drawing ? 'Waiting for the elevations to finish drawing' : undefined}>
+        <button onClick={() => window.print()} disabled={!shown.length || drawing}>
           {drawing ? 'Drawing elevations…' : 'Print'}
         </button>
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
@@ -165,12 +166,13 @@ export function DrawingSheets({ onClose, opener }: Props) {
 }
 
 function Check({ label, on, onChange, title }: { readonly label: string; readonly on: boolean; readonly onChange: () => void; readonly title?: string }) {
-  return (
-    <label className="sheets-check" title={title}>
+  const box = (
+    <label className="sheets-check">
       <input type="checkbox" checked={on} onChange={onChange} aria-label={label} />
       <span>{label}</span>
     </label>
   )
+  return title ? <Tip label={title}>{box}</Tip> : box
 }
 
 interface FitProps {

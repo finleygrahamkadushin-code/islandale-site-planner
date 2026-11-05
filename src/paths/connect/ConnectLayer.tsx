@@ -4,6 +4,7 @@ import { usePlanStore } from '../../store/planStore'
 import { toScene } from '../../scene/frame'
 import { ScreenChip, STOP_EVENTS, LAYER } from '../../scene/ScreenChip'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
+import { Tip } from '../../guide/Tip'
 
 /** Targets closer than this (m) to one already shown are left out, so a door and the deck edge in front of it show one chip. */
 const MERGE_M = 0.6
@@ -37,9 +38,11 @@ export function ConnectLayer() {
         const on = t === connecting.A || t === connecting.B
         return (
           <ScreenChip key={i} position={toScene(t.x, t.n, t.z + 0.1)} layer={LAYER.plus}>
-            <button type="button" className={`connect-chip${on ? ' on' : ''}`} title={t.label} data-testid={`connect-target-${i}`} data-label={t.label} {...STOP_EVENTS} onClick={() => pick(t)}>
-              {on ? (t === connecting.A ? 'A' : 'B') : '●'}
-            </button>
+            <Tip label={t.label}>
+              <button type="button" className={`connect-chip${on ? ' on' : ''}`} aria-label={t.label} data-testid={`connect-target-${i}`} data-label={t.label} {...STOP_EVENTS} onClick={() => pick(t)}>
+                {on ? (t === connecting.A ? 'A' : 'B') : '●'}
+              </button>
+            </Tip>
           </ScreenChip>
         )
       })}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { Tip } from '../../guide/Tip'
 import {
   applyPreset,
   BRUSH_FIELDS,
@@ -83,9 +84,11 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
         <span className="muted small">
           Element <b data-testid="ext-target">{elementLabel(host === 'deck' ? o.name || 'Deck' : partName(m, focus.mass), part, curved ? null : focus.edge)}</b>
         </span>
-        <button type="button" className={painting ? 'on' : ''} data-testid="paint-mode" title="Click walls, roofs, rails… in 3D to pick them (P)" onClick={() => setPainting(!painting)}>
-          Paint mode
-        </button>
+        <Tip label="Click walls, roofs, rails… in 3D to pick them" keyHint="P">
+          <button type="button" className={painting ? 'on' : ''} data-testid="paint-mode" onClick={() => setPainting(!painting)}>
+            Paint mode
+          </button>
+        </Tip>
       </div>
       <div className="grid2">
         {host === 'building' && (
@@ -147,9 +150,11 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
           </span>
           <span className="row">
             <ColourInput key={`${look.color}|${focusKey}`} value={look.color} disabled={locked} onCommit={(color) => write({ color })} />
-            <button type="button" className="small" disabled={locked} title="Drop this colour override" onClick={() => write({ color: null })}>
-              ×
-            </button>
+            <Tip label="Drop this colour override">
+              <button type="button" className="small" disabled={locked} aria-label="Drop this colour override" onClick={() => write({ color: null })}>
+                ×
+              </button>
+            </Tip>
           </span>
         </label>
       </div>
@@ -172,9 +177,11 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
         <ul className="ext-list">
           {rows.map((r) => (
             <li key={r.key} className="row between" data-testid="ext-row">
-              <button type="button" className="link" title="Focus this element" onClick={() => (setPaintFocus({ objectId: id, part: r.part, mass: r.mi ?? 0, edge: r.edge }), setPaintScope(r.scope))}>
-                {r.label}
-              </button>
+              <Tip label="Focus this element">
+                <button type="button" className="link" onClick={() => (setPaintFocus({ objectId: id, part: r.part, mass: r.mi ?? 0, edge: r.edge }), setPaintScope(r.scope))}>
+                  {r.label}
+                </button>
+              </Tip>
               <span className="muted small">{r.text}</span>
               <button type="button" className="small" disabled={locked} aria-label={`Remove override ${r.label}`} onClick={() => change((q) => resetExt(q, r.key))}>
                 ×

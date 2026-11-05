@@ -7,6 +7,7 @@ import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import { FeetInchesField } from '../../ui/FeetInchesField'
 import { formatFeetInches } from '../../ui/feetInches'
 import { InspectorSection } from '../../ui/InspectorSection'
+import { Tip } from '../../guide/Tip'
 
 const KINDS = [
   { id: 'window', label: 'Window' },
@@ -205,9 +206,11 @@ function OpeningRow({ op, cut, wallLength, notes, focused, disabled, onFocus, on
             Centre
           </button>
         )}
-        <button disabled={disabled} onClick={onAlign} title="Give every other opening on this part the same head height">
-          Align heads
-        </button>
+        <Tip label="Give every other opening on this part the same head height">
+          <button disabled={disabled} onClick={onAlign}>
+            Align heads
+          </button>
+        </Tip>
         <button disabled={disabled} onClick={onDuplicate}>
           Duplicate
         </button>

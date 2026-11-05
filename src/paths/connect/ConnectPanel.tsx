@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { connectPlan, type ConnectOption } from './connectPlan'
 import { usePlanStore } from '../../store/planStore'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
+import { Tip } from '../../guide/Tip'
 
 const M_TO_FT = 1 / 0.3048
 
@@ -49,9 +50,11 @@ export function ConnectPanel() {
           </p>
           <div className="connect-options">
             {plan.options.map((op) => (
-              <button key={op.id} className={`${op.ok ? 'ok' : 'fail'}${plan.best === op.id ? ' on' : ''}`} disabled={op.disabled || !op.specs.length} title={op.why} data-testid={`connect-${op.id}`} onClick={() => build(op)}>
-                <b>{op.title}</b> <span className="small">{op.label}</span>
-              </button>
+              <Tip key={op.id} label={op.why}>
+                <button className={`${op.ok ? 'ok' : 'fail'}${plan.best === op.id ? ' on' : ''}`} disabled={op.disabled || !op.specs.length} data-testid={`connect-${op.id}`} onClick={() => build(op)}>
+                  <b>{op.title}</b> <span className="small">{op.label}</span>
+                </button>
+              </Tip>
             ))}
           </div>
         </>

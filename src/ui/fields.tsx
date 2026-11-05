@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 /** Text input that commits on blur or Enter, so typing is not an undo step per keystroke; empty is refused unless allowed. */
 export function TextField({ label, value, disabled, allowEmpty, onCommit }: { label: string; value: string; disabled?: boolean; allowEmpty?: boolean; onCommit: (v: string) => void }) {
@@ -28,7 +28,7 @@ export function NumField({
   onCommit,
   onClear,
 }: {
-  label: string
+  label: ReactNode
   unit: string
   value: number
   disabled?: boolean

@@ -11,6 +11,10 @@ import { TaskTabs } from '../layout/TaskTabs'
 import { useOverlay } from '../layout/Overlays'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 import { DISPLAY_TOGGLES, useDisplayEffects } from '../scene/displayOptions'
+import { CircleHelp } from 'lucide-react'
+import { Tip } from '../guide/Tip'
+import { ModeSwitch } from '../guide/ModeSwitch'
+import { useConfirm } from '../guide/confirm'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -48,118 +52,137 @@ export function TopBar() {
   useTopBarBottom(bar)
 
   const byId = (id: string) => schemes.find((s) => s.id === id)
-  const onReset = () => {
-    if (window.confirm('Replace the current plan with Scheme C as saved in the old planner? You can undo this.')) loadScheme(CURRENT_SCHEME_ID)
-  }
+  const onReset = () =>
+    useConfirm.getState().request(
+      { title: 'Go back to Scheme C?', body: 'This replaces the current plan with Scheme C as saved in the old planner. You can undo this.', confirmLabel: 'Reset' },
+      () => loadScheme(CURRENT_SCHEME_ID),
+    )
 
   return (
     <header className="topbar" ref={bar}>
       <h1>Islandale</h1>
       <TaskTabs />
-      <label className="field">
-        <span className="muted">Scheme</span>
-        <select
-          value={plan.schemeId ?? ''}
-          onChange={(e) => e.target.value && loadScheme(e.target.value)}
-          title="Load a scheme (replaces the plan; undo to go back)"
-        >
-          {!plan.schemeId && <option value="">Imported plan</option>}
-          <optgroup label="Current">
-            <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
-          </optgroup>
-          <optgroup label="Prow variants">
-            {CURRENT_VARIANT_IDS.map((id) => (
-              <option key={id} value={id}>
-                {byId(id)?.name}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Old designs">
-            {ARCHIVED_SCHEME_IDS.map((id) => (
-              <option key={id} value={id}>
-                {byId(id)?.name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-      </label>
+      <Tip label="Load a scheme (replaces the plan; undo to go back)">
+        <label className="field">
+          <span className="muted">Scheme</span>
+          <select value={plan.schemeId ?? ''} onChange={(e) => e.target.value && loadScheme(e.target.value)}>
+            {!plan.schemeId && <option value="">Imported plan</option>}
+            <optgroup label="Current">
+              <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
+            </optgroup>
+            <optgroup label="Prow variants">
+              {CURRENT_VARIANT_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {byId(id)?.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Old designs">
+              {ARCHIVED_SCHEME_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {byId(id)?.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </label>
+      </Tip>
 
       <div className="seg" role="group" aria-label="Undo and redo">
-        <button onClick={() => usePlanStore.temporal.getState().undo()} disabled={!canUndo} title="Undo (⌘Z)">
-          Undo
-        </button>
-        <button onClick={() => usePlanStore.temporal.getState().redo()} disabled={!canRedo} title="Redo (⇧⌘Z)">
-          Redo
-        </button>
+        <Tip label="Undo" keyHint="⌘Z">
+          <button onClick={() => usePlanStore.temporal.getState().undo()} disabled={!canUndo}>
+            Undo
+          </button>
+        </Tip>
+        <Tip label="Redo" keyHint="⇧⌘Z">
+          <button onClick={() => usePlanStore.temporal.getState().redo()} disabled={!canRedo}>
+            Redo
+          </button>
+        </Tip>
       </div>
 
       <div className="seg" role="group" aria-label="Display style">
         <span className="muted">Style</span>
         {DISPLAY_STYLES.map((d, i) => (
-          <button key={d.id} className={displayStyle === d.id ? 'on' : ''} title={`${d.label} (${i + 1})`} onClick={() => setDisplayStyle(d.id)}>
-            {d.label}
-          </button>
+          <Tip key={d.id} label={d.label} keyHint={String(i + 1)}>
+            <button className={displayStyle === d.id ? 'on' : ''} aria-pressed={displayStyle === d.id} onClick={() => setDisplayStyle(d.id)}>
+              {d.label}
+            </button>
+          </Tip>
         ))}
       </div>
 
+      <ModeSwitch />
+
       <div className="seg" role="group" aria-label="Display options">
         {DISPLAY_TOGGLES.map((t) => (
-          <button key={t.id} type="button" className={`small ${effects[t.id] ? 'on' : ''}`} aria-pressed={effects[t.id]} title={`${t.hint}; picking a style resets it`} data-testid={`display-${t.id}`} onClick={() => setDisplayOption(t.id, !effects[t.id])}>
-            {t.label}
-          </button>
+          <Tip key={t.id} label={`${t.hint}; picking a style resets it`}>
+            <button type="button" className={`small ${effects[t.id] ? 'on' : ''}`} aria-pressed={effects[t.id]} data-testid={`display-${t.id}`} onClick={() => setDisplayOption(t.id, !effects[t.id])}>
+              {t.label}
+            </button>
+          </Tip>
         ))}
       </div>
 
       <div className="seg" role="group" aria-label="Labels">
         <span className="muted">Labels</span>
         {LABEL_MODES.map((m) => (
-          <button key={m.id} className={labelMode === m.id ? 'on' : ''} onClick={() => setLabelMode(m.id)}>
+          <button key={m.id} className={labelMode === m.id ? 'on' : ''} aria-pressed={labelMode === m.id} onClick={() => setLabelMode(m.id)}>
             {m.label}
           </button>
         ))}
       </div>
 
       <div className="seg" role="group" aria-label="Plan file">
-        <button onClick={downloadPlanFile} title="Download the plan as a JSON file">
-          Export
-        </button>
-        <button onClick={() => fileInput.current?.click()} title="Load a plan from a JSON file">
-          Import
-        </button>
+        <Tip label="Download the plan as a JSON file">
+          <button onClick={downloadPlanFile}>Export</button>
+        </Tip>
+        <Tip label="Load a plan from a JSON file">
+          <button onClick={() => fileInput.current?.click()}>Import</button>
+        </Tip>
         <input
           ref={fileInput}
           type="file"
           accept="application/json,.json"
           hidden
+          aria-label="Plan file to import"
           onChange={(e) => {
             const f = e.target.files?.[0]
             if (f) void importPlanFile(f)
             e.target.value = ''
           }}
         />
-        <button onClick={onReset} title="Back to Scheme C as saved in the old planner">
-          Reset
-        </button>
-        <button ref={sheetsButton} onClick={() => setSheetsOpen(true)} title="Floor plans and elevations to scale, with every dimension, for drawing by hand">
-          Sheets
-        </button>
+        <Tip label="Back to Scheme C as saved in the old planner">
+          <button onClick={onReset} data-testid="reset-plan">
+            Reset
+          </button>
+        </Tip>
+        <Tip label="Floor plans and elevations to scale, with every dimension, for drawing by hand">
+          <button ref={sheetsButton} onClick={() => setSheetsOpen(true)}>
+            Sheets
+          </button>
+        </Tip>
       </div>
 
       <HistoryMenu />
       <div className="seg" role="group" aria-label="Search and help">
-        <button type="button" onClick={() => useOverlay.getState().setOpen('commands')} title="Search every action and setting (⌘K / Ctrl+K)" data-testid="open-commands">
-          Search
-        </button>
-        <button type="button" onClick={() => useOverlay.getState().setOpen('help')} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" data-testid="open-help">
-          ?
-        </button>
+        <Tip label="Search every action and setting" keyHint="⌘K">
+          <button type="button" onClick={() => useOverlay.getState().setOpen('commands')} data-testid="open-commands">
+            Search
+          </button>
+        </Tip>
+        <Tip label="Help, the tour and keyboard shortcuts" keyHint="?">
+          <button type="button" className="icon-only" onClick={() => useOverlay.getState().setOpen('help')} aria-label="Help and keyboard shortcuts" data-testid="open-help">
+            <CircleHelp size={16} aria-hidden="true" />
+          </button>
+        </Tip>
       </div>
 
       {/* the built app runs as the hosted home, which also serves the old planner next to it */}
       {import.meta.env.PROD && (
-        <button onClick={() => setLegacyOpen(true)} title="The old planner, sharing the hosted home">
-          Old planner
-        </button>
+        <Tip label="The old planner, sharing the hosted home">
+          <button onClick={() => setLegacyOpen(true)}>Old planner</button>
+        </Tip>
       )}
       {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
       {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} opener={sheetsButton.current} />}
@@ -168,14 +191,14 @@ export function TopBar() {
         <span className="readonly" data-testid="read-only">
           {READ_ONLY_TEXT[readOnly]}
           {readOnly === 'other-tab' && (
-            <button onClick={() => void activeTabLock()?.takeOver()} title="Move editing to this tab; the other tab saves and becomes read-only">
-              Take over editing
-            </button>
+            <Tip label="Move editing to this tab; the other tab saves and becomes read-only">
+              <button onClick={() => void activeTabLock()?.takeOver()}>Take over editing</button>
+            </Tip>
           )}
         </span>
       )}
 
-      <span className={`muted save ${saveStatus}`} data-testid="save-status">
+      <span className={`muted save ${saveStatus}`} data-testid="save-status" aria-live="polite">
         {SAVE_TEXT[saveStatus]}
       </span>
     </header>

@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { usePlanStore } from '../store/planStore'
 import { commandsFor, type Command as Cmd } from './commands'
 import { SHORTCUT_GROUPS } from './shortcuts'
+import { useTour } from '../guide/tour'
 
 /** Which overlay is open: command search (Cmd/Ctrl+K) or the Help sheet (?). View state. */
 export const useOverlay = create<{ readonly open: 'commands' | 'help' | null; readonly setOpen: (o: 'commands' | 'help' | null) => void }>((set) => ({
@@ -46,6 +47,19 @@ function CommandMenu() {
 function HelpSheet() {
   return (
     <div className="help-sheet" data-testid="help-sheet">
+      <div className="help-tour">
+        <span>New here? A five-step tour shows how to look around, pick, move, lock and save.</span>
+        <button
+          type="button"
+          data-testid="take-tour"
+          onClick={() => {
+            useOverlay.getState().setOpen(null)
+            useTour.getState().start()
+          }}
+        >
+          Take the tour
+        </button>
+      </div>
       {SHORTCUT_GROUPS.map((g) => (
         <section key={g.title}>
           <h3>{g.title}</h3>
@@ -74,7 +88,7 @@ export function Overlays() {
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className={`dialog ${open === 'help' ? 'help-dialog' : 'command-dialog'}`} aria-describedby={undefined}>
-          <Dialog.Title className={open === 'help' ? 'dialog-title' : 'sr-only'}>{open === 'help' ? 'Keyboard shortcuts' : 'Search actions and settings'}</Dialog.Title>
+          <Dialog.Title className={open === 'help' ? 'dialog-title' : 'sr-only'}>{open === 'help' ? 'Help and keyboard shortcuts' : 'Search actions and settings'}</Dialog.Title>
           {open === 'commands' && <CommandMenu />}
           {open === 'help' && <HelpSheet />}
         </Dialog.Content>

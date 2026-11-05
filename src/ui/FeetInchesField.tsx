@@ -38,7 +38,7 @@ export function FeetInchesField({ label, value, disabled, min = 0, max = Infinit
   }
 
   return (
-    <label className={`field ft-in${error ? ' bad' : ''}`} title={error ?? undefined}>
+    <label className={`field ft-in${error ? ' bad' : ''}`}>
       <span className="muted small">{label}</span>
       <input
         value={draft}

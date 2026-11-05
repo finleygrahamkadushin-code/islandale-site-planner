@@ -2,6 +2,8 @@ import { num } from '../buildings/footprint'
 import type { Mass } from '../buildings/masses'
 import { BUILDING_SHAPES, carsPatch, changes, extraField, extraPatch, PAD_SHAPES, ROOF_FINISHES, ROOF_OPTIONS, roofPatch, shapePatch, type Option } from '../buildings/parts/shapeEdits'
 import { NumField } from './fields'
+import { useBeginner } from '../guide/mode'
+import { Term } from '../guide/Term'
 
 type Patch = Readonly<Record<string, unknown>>
 
@@ -19,7 +21,8 @@ interface ShapeProps {
 /** Footprint shape and its one extra field (taper, skew, bend or point), legacy sh-shape/sh-taper and pd-shape/pd-taper. */
 export function ShapeFields({ p, pad, cars = false, disabled, set }: ShapeProps) {
   const shape = typeof p.shape === 'string' ? p.shape : 'rect'
-  const extra = extraField(shape)
+  // Beginner keeps the footprint and hides its fine-tuning field (taper, skew, bend, point); the value is kept
+  const extra = useBeginner() ? null : extraField(shape)
   const w = num(p.w, 10)
   const put = (patch: Patch) => changes(p, patch) && set(patch)
   return (
@@ -51,14 +54,19 @@ export function RoofFields({ m, disabled, set }: { readonly m: Mass; readonly di
     if (changes(cur, patch)) set(patch)
   }
   const curled = m.roof === 'shell' || m.roof === 'vault'
+  // Beginner shows the roof's shape and finish; ridge, pitch, overhang and curl keep their values, hidden
+  const beginner = useBeginner()
   return (
     <div className="grid2" data-testid="roof-fields">
-      <Select label="Roof" value={m.roof} options={ROOF_OPTIONS.map((r) => ({ value: r, label: r }))} disabled={disabled} onChange={(v) => put('roof', v)} testId="roof-select" />
-      {m.roof !== 'none' && (
+      <Select label={beginner ? 'Roof shape' : 'Roof'} value={m.roof} options={ROOF_OPTIONS.map((r) => ({ value: r, label: r }))} disabled={disabled} onChange={(v) => put('roof', v)} testId="roof-select" />
+      {m.roof !== 'none' && beginner && (
+        <Select label="Finish" value={m.roofMat ?? ''} options={ROOF_FINISHES} disabled={disabled} onChange={(v) => put('roofMat', v)} testId="roof-finish" />
+      )}
+      {m.roof !== 'none' && !beginner && (
         <>
           <Select label="Ridge runs" value={m.ridge} options={[{ value: 'x', label: 'Along width' }, { value: 'z', label: 'Along depth' }]} disabled={disabled} onChange={(v) => put('ridge', v)} />
-          <NumField label="Pitch" unit=":12" value={m.pitch} min={1} disabled={disabled} onCommit={(v) => put('pitch', String(v))} />
-          <NumField label="Overhang" unit="ft" value={m.overhang} min={0} disabled={disabled} onCommit={(v) => put('overhang', String(v))} />
+          <NumField label={<Term term="pitch">Pitch</Term>} unit=":12" value={m.pitch} min={1} disabled={disabled} onCommit={(v) => put('pitch', String(v))} />
+          <NumField label={<Term term="overhang">Overhang</Term>} unit="ft" value={m.overhang} min={0} disabled={disabled} onCommit={(v) => put('overhang', String(v))} />
           <Select label="Finish" value={m.roofMat ?? ''} options={ROOF_FINISHES} disabled={disabled} onChange={(v) => put('roofMat', v)} testId="roof-finish" />
           {curled && <NumField label="Shell curl" unit="0–1" value={m.curl ?? 0.5} min={0} step={0.05} digits={2} disabled={disabled} onCommit={(v) => put('curl', String(v))} onClear={() => put('curl', '')} />}
         </>

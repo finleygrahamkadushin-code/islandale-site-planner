@@ -1,5 +1,6 @@
 import { usePlanStore } from '../store/planStore'
 import { SAVED_VIEWS } from '../scene/views'
+import { Tip } from '../guide/Tip'
 
 /** Saved camera views along the bottom of the 3D view, and the Roofs off switch. */
 export function ViewStrip() {
@@ -10,13 +11,17 @@ export function ViewStrip() {
   return (
     <nav className="viewstrip" aria-label="Saved views">
       {SAVED_VIEWS.map((v) => (
-        <button key={v.id} className={current === v.id ? 'on' : ''} title={v.hint} onClick={() => requestView(v.id)}>
-          {v.label}
-        </button>
+        <Tip key={v.id} label={v.hint}>
+          <button className={current === v.id ? 'on' : ''} onClick={() => requestView(v.id)}>
+            {v.label}
+          </button>
+        </Tip>
       ))}
-      <button className={roofsOff ? 'on' : ''} aria-pressed={roofsOff} title="Hide the roofs to see the rooms inside" data-testid="roofs-off" onClick={() => setRoofsOff(!roofsOff)}>
-        Roofs off
-      </button>
+      <Tip label="Hide the roofs to see the rooms inside">
+        <button className={roofsOff ? 'on' : ''} aria-pressed={roofsOff} data-testid="roofs-off" onClick={() => setRoofsOff(!roofsOff)}>
+          Roofs off
+        </button>
+      </Tip>
     </nav>
   )
 }

@@ -33,7 +33,7 @@ export function Scene() {
   const setDrag = useLiveDrag((s) => s.setDrag)
   const target = onGround(site.terrain, 0, 0)
   return (
-    <div className="viewport">
+    <div className="viewport" data-tour="view">
     <LabelLayer />
     <PartHud drag={drag} />
     <PaintHud />

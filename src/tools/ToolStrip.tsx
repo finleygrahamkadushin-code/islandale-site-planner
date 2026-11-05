@@ -1,6 +1,5 @@
-import type { ReactNode } from 'react'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import * as Tooltip from '@radix-ui/react-tooltip'
+import { Tip } from '../guide/Tip'
 import { Magnet, MousePointer2, Paintbrush, Ruler, SquarePlus, Spline, type LucideIcon } from 'lucide-react'
 import { usePlanStore } from '../store/planStore'
 import { toolOf, type ToolId } from '../store/toolActions'
@@ -23,20 +22,6 @@ const TOOLS: readonly ToolButton[] = [
   { id: 'connect', label: 'Connect two ends with a walk, ramp, boardwalk or stair', keyHint: 'C', Icon: Spline, testId: 'connect-tool' },
   { id: 'measure', label: 'Measure between two points', keyHint: 'M', Icon: Ruler, testId: 'tool-measure' },
 ]
-
-/** One tooltip: the control's name and its key, shown on hover and on keyboard focus. */
-function Tip({ label, keyHint, children }: { readonly label: string; readonly keyHint: string; readonly children: ReactNode }) {
-  return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content className="tool-tip" side="right" sideOffset={8}>
-          {label} <kbd>{keyHint}</kbd>
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  )
-}
 
 /**
  * The left tool strip (4A, 4B): the current tab's tools as one group (one
@@ -64,11 +49,11 @@ export function ToolStrip() {
   }
 
   return (
-    <Tooltip.Provider delayDuration={300}>
+    <>
       <nav className="toolstrip" aria-label="Tools">
         <ToggleGroup.Root type="single" orientation="vertical" value={shown} onValueChange={choose} aria-label="Current tool" className="toolstrip-group">
           {TOOLS.filter((t) => tabTools.includes(t.id)).map(({ id, label, keyHint, Icon, testId }) => (
-            <Tip key={id} label={label} keyHint={keyHint}>
+            <Tip key={id} label={label} keyHint={keyHint} side="right">
               <ToggleGroup.Item value={id} aria-label={label} className="tool-button" data-testid={testId}>
                 <Icon size={18} aria-hidden="true" />
               </ToggleGroup.Item>
@@ -76,14 +61,14 @@ export function ToolStrip() {
           ))}
         </ToggleGroup.Root>
         <hr className="toolstrip-rule" />
-        <Tip label={snap ? 'Snap is on: 1 ft moves, 5° turns (hold Shift to drag freely)' : 'Snap is off'} keyHint="S">
+        <Tip side="right" label={snap ? 'Snap is on: 1 ft moves, 5° turns (hold Shift to drag freely)' : 'Snap is off'} keyHint="S">
           <button type="button" className="tool-button" aria-pressed={snap} aria-label="Snap to the 1 ft grid and 5° turns" data-testid="tool-snap" onClick={() => setSnap(!snap)}>
             <Magnet size={18} aria-hidden="true" />
           </button>
         </Tip>
       </nav>
       {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
-    </Tooltip.Provider>
+    </>
   )
 }
 

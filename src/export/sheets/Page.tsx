@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { tileDrawing } from './tiles'
 import { MARGIN_IN, PAPERS, SCALE_LABEL, TITLE_IN, type PaperId, type Scale, type Tile } from './types'
 import { ptToFt } from './svgDims'
+import { Tip } from '../../guide/Tip'
 
 /** What every sheet of one drawing shares in its title strip. */
 export interface SheetInfo {
@@ -44,10 +45,12 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
           <span>Islandale Site Planner</span>
         </div>
         <div className="sheet-title-checks">
-          <div className="sheet-inch" title="Measure this with a ruler: it should be exactly 1 inch">
-            <span className="sheet-inch-bar" style={{ width: '1in' }} />
-            <span>1 in</span>
-          </div>
+          <Tip label="Measure this with a ruler: it should be exactly 1 inch">
+            <div className="sheet-inch">
+              <span className="sheet-inch-bar" style={{ width: '1in' }} />
+              <span>1 in</span>
+            </div>
+          </Tip>
           <ScaleBar scale={scale} />
         </div>
         {northDeg !== null && <NorthArrow deg={northDeg} />}

@@ -179,7 +179,7 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 .ph-grip:hover, .ph-knob:hover { transform: scale(1.2); }
 .aa-wrap { position: relative; }
 .aa-chip {
-  display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%;
   border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--panel) 90%, transparent);
   color: var(--accent); font: 700 15px/1 ui-monospace, monospace;
 }
@@ -446,3 +446,44 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .help-sheet dl { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .help-row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: baseline; font-size: 13px; }
 .help-row dd { margin: 0; }
+
+/* Beginner (4C): glossary words, the confirm dialog, the tour card, and focus rings on every control */
+:root {
+  --tour-bg: var(--panel);
+  --primary-bg: var(--accent);
+  --primary-fg: #0b1620;
+}
+button:focus-visible, select:focus-visible, input:focus-visible, [tabindex='0']:focus-visible, summary:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+button.primary { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); font-weight: 600; }
+button.primary:hover:not(:disabled) { border-color: var(--fg); }
+.icon-only { display: inline-grid; place-items: center; min-width: 32px; min-height: 28px; padding: 0 6px; }
+.layer button.icon, .layer span.icon { display: inline-grid; place-items: center; min-width: 28px; min-height: 28px; padding: 0; }
+.term { text-decoration: underline dotted color-mix(in srgb, var(--fg) 55%, transparent); text-underline-offset: 3px; cursor: help; border-radius: 2px; }
+.tool-tip { max-width: 280px; line-height: 1.4; }
+.confirm-dialog { top: 22vh; width: min(420px, calc(100vw - 32px)); }
+.confirm-body { margin: 8px 16px 0; color: var(--muted); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 16px; }
+.confirm-actions button { min-height: 32px; }
+.help-tour { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.help-tour button { flex: none; min-height: 32px; }
+.tour-card {
+  z-index: 15; width: min(300px, calc(100vw - 32px)); padding: 12px 14px;
+  border: 1px solid var(--accent); border-radius: 10px; background: var(--tour-bg); color: var(--fg);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+.tour-arrow { fill: var(--accent); }
+.tour-count { margin: 0; }
+.tour-title { margin: 2px 0 4px; font-size: 15px; }
+.tour-text { margin: 0; font-size: 13px; line-height: 1.45; }
+.tour-actions { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.tour-actions button { min-height: 32px; }
+.tour-spacer { flex: 1; }
+.tour-skip { border-color: transparent; color: var(--muted); padding-left: 2px; }
+.tour-skip:hover:not(:disabled) { color: var(--fg); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+/* above every full-screen view (interior editor 40, old planner 50, drawing sheets 60), so their tooltips and questions show */
+.dialog-overlay { z-index: 70; }
+.dialog { z-index: 71; }
+.tool-tip { z-index: 80; }

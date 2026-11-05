@@ -6,6 +6,8 @@ import { toolKey } from '../tools/toolKeys'
 import { viewKey } from '../layout/viewKeys'
 import { useOverlay } from '../layout/Overlays'
 import { useInteriorView } from '../interiors/editor/interiorView'
+import { requestDelete } from '../guide/confirm'
+import { useConfirm } from '../guide/confirm'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
@@ -44,7 +46,7 @@ export function useKeyboardShortcuts(): void {
         overlay.setOpen(overlay.open === 'commands' ? null : 'commands')
         return
       }
-      if (overlay.open) return
+      if (overlay.open || useConfirm.getState().ask) return
       if (!mod && e.key === '?') {
         e.preventDefault()
         overlay.setOpen('help')
@@ -84,7 +86,7 @@ export function useKeyboardShortcuts(): void {
       if (!s.selection.length) return
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
-        s.deleteObjects(s.selection)
+        requestDelete(s.selection)
         return
       }
       const step = ftToM(e.shiftKey ? NUDGE_SHIFT_FT : NUDGE_FT)

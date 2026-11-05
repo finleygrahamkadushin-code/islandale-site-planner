@@ -9,6 +9,7 @@ import { inGroup, type PartFrame } from '../parts/partFrame'
 import { objectRails } from './railSite'
 import { LAYER, ScreenChip, STOP_EVENTS } from '../../scene/ScreenChip'
 import { useRailWorld } from './useRailWorld'
+import { Tip } from '../../guide/Tip'
 
 /** Rail chips sit this far out from the edge midpoint on screen (legacy RAIL_PX). */
 const RAIL_PX = 22
@@ -47,19 +48,20 @@ export function RailChips({ o, frame, picked }: Props) {
         const bad = r.required && !r.drawn
         return (
           <ScreenChip key={r.i} position={inGroup(frame, e.mid, e.z + LIFT_M)} normal={e.n} px={RAIL_PX} layer={LAYER.rail}>
-            <button
-              type="button"
-              className={`rail-chip${r.drawn ? ' on' : ''}${bad ? ' bad' : ''}`}
-              data-testid={`rail-chip-${mi}-${r.i}`}
-              title={railChipTitle(m, r)}
-              {...STOP_EVENTS}
-              onClick={(ev) => {
-                ev.stopPropagation()
-                setRail(o.id, mi, r.i, cycle(r.state))
-              }}
-            >
-              {railChipLabel(r.state)}
-            </button>
+            <Tip label={railChipTitle(m, r)}>
+              <button
+                type="button"
+                className={`rail-chip${r.drawn ? ' on' : ''}${bad ? ' bad' : ''}`}
+                data-testid={`rail-chip-${mi}-${r.i}`}
+                {...STOP_EVENTS}
+                onClick={(ev) => {
+                  ev.stopPropagation()
+                  setRail(o.id, mi, r.i, cycle(r.state))
+                }}
+              >
+                {railChipLabel(r.state)}
+              </button>
+            </Tip>
           </ScreenChip>
         )
       })}

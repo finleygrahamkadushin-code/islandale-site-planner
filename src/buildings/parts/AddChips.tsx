@@ -6,6 +6,7 @@ import { addPartAt } from './addPart'
 import { openArea, placeMenu } from '../../scene/menuPlace'
 import { inGroup, type PartFrame } from './partFrame'
 import { LAYER, ScreenChip, STOP_EVENTS } from '../../scene/ScreenChip'
+import { Tip } from '../../guide/Tip'
 
 /** The + chip sits this far out from the edge midpoint on screen, beyond the rail chip (legacy PLUS_PX). */
 const PLUS_PX = 44
@@ -64,16 +65,18 @@ export function AddChips({ o, frame, picked }: Props) {
         return (
           <ScreenChip key={key} position={inGroup(frame, e.mid, e.z + LIFT_M)} normal={e.n} px={PLUS_PX} layer={shown === key ? LAYER.menu : LAYER.plus}>
             <div className="aa-wrap" {...STOP_EVENTS}>
-              <button
-                type="button"
-                className={`aa-chip${shown === key ? ' on' : ''}`}
-                data-testid={`add-chip-${mi}-${e.i}`}
-                title={`Add to ${label}`}
-                aria-expanded={shown === key}
-                onClick={() => setOpen(shown === key ? null : key)}
-              >
-                +
-              </button>
+              <Tip label={`Add to ${label}`}>
+                <button
+                  type="button"
+                  className={`aa-chip${shown === key ? ' on' : ''}`}
+                  data-testid={`add-chip-${mi}-${e.i}`}
+                  aria-label={`Add to ${label}`}
+                  aria-expanded={shown === key}
+                  onClick={() => setOpen(shown === key ? null : key)}
+                >
+                  +
+                </button>
+              </Tip>
               {shown === key && (
                 <AddMenu label={label}>
                   {kinds.map((k) => (

@@ -49,14 +49,16 @@ interface Props {
   readonly title: ReactNode
   readonly className?: string
   readonly testId?: string
+  /** A first-run tour step points here (data-tour). */
+  readonly tourAnchor?: string
   readonly children: ReactNode
 }
 
-export function InspectorSection({ id, title, className, testId, children }: Props) {
+export function InspectorSection({ id, title, className, testId, tourAnchor, children }: Props) {
   const open = useOpenSections((s) => s.open.includes(id))
   const setOpen = useOpenSections((s) => s.setOpen)
   return (
-    <Collapsible.Root open={open} onOpenChange={(on) => setOpen(id, on)} className={`inspector-section${className ? ` ${className}` : ''}`} data-testid={testId}>
+    <Collapsible.Root open={open} onOpenChange={(on) => setOpen(id, on)} className={`inspector-section${className ? ` ${className}` : ''}`} data-testid={testId} data-tour={tourAnchor}>
       <Collapsible.Trigger className="section-trigger" data-testid={`section-${id}`}>
         <ChevronRight size={14} aria-hidden="true" className="section-chevron" />
         <span className="section-title">{title}</span>

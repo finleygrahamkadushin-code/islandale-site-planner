@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent, typ
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from 'three'
 import { siteToLocal, type LocalPoint } from '../buildings/footprint'
 import type { PlanObject } from '../store/types'
+import { Tip } from '../guide/Tip'
 
 /** Nothing changes until the pointer has moved this far (legacy). */
 const THRESHOLD_PX = 3
@@ -99,36 +100,38 @@ export function DragHandle({ o, view, y, begin, className, testId, title, cursor
   }
 
   return (
-    <button
-      type="button"
-      className={className}
-      data-testid={testId}
-      title={title}
-      onPointerEnter={(e) => cursor && (e.currentTarget.style.cursor = cursor())}
-      onPointerDown={(e) => {
-        e.stopPropagation()
-        if (e.button !== 0) return
-        const p = pointerLocal(e.clientX, e.clientY, camera, dom, o, y)
-        const session = p && begin(p)
-        if (!session) return
-        e.currentTarget.setPointerCapture(e.pointerId)
-        live.current = { session, o, y, x0: e.clientX, y0: e.clientY, moved: false }
-        window.addEventListener('keydown', onKey, true)
-      }}
-      onPointerMove={(e) => {
-        const l = live.current
-        if (!l) return
-        e.stopPropagation()
-        if (!l.moved && Math.hypot(e.clientX - l.x0, e.clientY - l.y0) < THRESHOLD_PX) return
-        l.moved = true
-        const p = pointerLocal(e.clientX, e.clientY, camera, dom, l.o, l.y)
-        if (p) l.session.move(p, e.shiftKey)
-      }}
-      onPointerUp={(e) => finish(e, true)}
-      onPointerCancel={(e) => finish(e, false)}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {children}
-    </button>
+    <Tip label={title}>
+      <button
+        type="button"
+        className={className}
+        data-testid={testId}
+        aria-label={title}
+        onPointerEnter={(e) => cursor && (e.currentTarget.style.cursor = cursor())}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          if (e.button !== 0) return
+          const p = pointerLocal(e.clientX, e.clientY, camera, dom, o, y)
+          const session = p && begin(p)
+          if (!session) return
+          e.currentTarget.setPointerCapture(e.pointerId)
+          live.current = { session, o, y, x0: e.clientX, y0: e.clientY, moved: false }
+          window.addEventListener('keydown', onKey, true)
+        }}
+        onPointerMove={(e) => {
+          const l = live.current
+          if (!l) return
+          e.stopPropagation()
+          if (!l.moved && Math.hypot(e.clientX - l.x0, e.clientY - l.y0) < THRESHOLD_PX) return
+          l.moved = true
+          const p = pointerLocal(e.clientX, e.clientY, camera, dom, l.o, l.y)
+          if (p) l.session.move(p, e.shiftKey)
+        }}
+        onPointerUp={(e) => finish(e, true)}
+        onPointerCancel={(e) => finish(e, false)}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </button>
+    </Tip>
   )
 }

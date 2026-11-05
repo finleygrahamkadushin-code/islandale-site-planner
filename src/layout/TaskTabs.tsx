@@ -1,5 +1,6 @@
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Hammer, Map as MapIcon, Presentation, Sofa, type LucideIcon } from 'lucide-react'
+import { Tip } from '../guide/Tip'
 import { TAB_HINTS, TAB_IDS, TAB_LABELS, useTaskTab, type TaskTab } from './tabs'
 
 const ICONS: Readonly<Record<TaskTab, LucideIcon>> = { site: MapIcon, build: Hammer, interior: Sofa, present: Presentation }
@@ -26,21 +27,21 @@ export function TaskTabs() {
         const Icon = ICONS[id]
         const on = id === tab
         return (
-          <button
-            key={id}
-            id={`task-tab-${id}`}
-            type="button"
-            role="tab"
-            aria-selected={on}
-            tabIndex={on ? 0 : -1}
-            title={TAB_HINTS[id]}
-            className="task-tab"
-            data-testid={`tab-${id}`}
-            onClick={() => setTab(id)}
-          >
-            <Icon size={16} aria-hidden="true" />
-            {TAB_LABELS[id]}
-          </button>
+          <Tip key={id} label={TAB_HINTS[id]}>
+            <button
+              id={`task-tab-${id}`}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              tabIndex={on ? 0 : -1}
+              className="task-tab"
+              data-testid={`tab-${id}`}
+              onClick={() => setTab(id)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {TAB_LABELS[id]}
+            </button>
+          </Tip>
         )
       })}
     </div>

@@ -6,6 +6,9 @@ import { LIBRARY, type LibraryGroup } from '../tools/library'
 import { useLibraryOpen } from '../tools/libraryOpen'
 import { useOpenSections, type SectionId } from '../ui/InspectorSection'
 import { useInteriorView } from '../interiors/editor/interiorView'
+import { requestDelete } from '../guide/confirm'
+import { useGuideMode } from '../guide/mode'
+import { useTour } from '../guide/tour'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -81,12 +84,15 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'show-all', group: 'Plan', label: 'Show everything', run: () => get().showAll() },
     { id: 'undo', group: 'Plan', label: 'Undo', keys: '⌘Z', run: () => usePlanStore.temporal.getState().undo() },
     { id: 'redo', group: 'Plan', label: 'Redo', keys: '⇧⌘Z', run: () => usePlanStore.temporal.getState().redo() },
+    { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
+    { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
+    { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
   ]
   if (s.selection.length) {
     cmds.push(
       { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: '⌘D', run: () => get().duplicateObjects(get().selection) },
       { id: 'fly-to', group: 'Selection', label: 'Fly to the selection', keys: 'F', run: () => useFocusRequest.getState().flyTo(get().selection[0]) },
-      { id: 'delete', group: 'Selection', label: 'Delete the selection', keys: 'Delete', run: () => get().deleteObjects(get().selection) },
+      { id: 'delete', group: 'Selection', label: 'Delete the selection', keys: 'Delete', run: () => requestDelete(get().selection) },
     )
   }
   const one = s.selection.length === 1 ? s.plan.objects[s.selection[0]] : undefined

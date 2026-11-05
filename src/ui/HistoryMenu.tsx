@@ -3,6 +3,7 @@ import { activeAutosave } from '../store/autosave'
 import { readSavedText } from '../store/persistence'
 import { usePlanStore } from '../store/planStore'
 import type { HistoryEntry } from '../store/history'
+import { Tip } from '../guide/Tip'
 
 const timeOf = (iso: string) => {
   const d = new Date(iso)
@@ -47,9 +48,11 @@ export function HistoryMenu() {
 
   return (
     <div className="history">
-      <button onClick={toggle} className={open ? 'on' : ''} aria-expanded={open} title="The last 20 saves">
-        History
-      </button>
+      <Tip label="The last 20 saves">
+        <button onClick={toggle} className={open ? 'on' : ''} aria-expanded={open}>
+          History
+        </button>
+      </Tip>
       {open && (
         <div className="history-list" role="menu" data-testid="history-list">
           {entries.length === 0 && <p className="muted small">No saves yet.</p>}
@@ -62,9 +65,11 @@ export function HistoryMenu() {
                 <button onClick={() => restore(e)} role="menuitem">
                   Restore
                 </button>
-                <button onClick={() => download(e)} title="Download this save as a plan file">
-                  ↓
-                </button>
+                <Tip label="Download this save as a plan file">
+                  <button onClick={() => download(e)} aria-label="Download this save as a plan file">
+                    ↓
+                  </button>
+                </Tip>
               </span>
             </div>
           ))}

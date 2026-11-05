@@ -9,10 +9,14 @@ import { ToolStrip } from '../tools/ToolStrip'
 import { ModeChip } from '../tools/ModeChip'
 import { BottomBar } from '../layout/BottomBar'
 import { Overlays } from '../layout/Overlays'
+import { TipProvider } from '../guide/Tip'
+import { ConfirmDialog } from '../guide/ConfirmDialog'
+import { TourCard } from '../guide/TourCard'
 
 export function App() {
   useKeyboardShortcuts()
   return (
+    <TipProvider>
     <div className="app">
       <TopBar />
       <Scene />
@@ -26,6 +30,9 @@ export function App() {
       <InteriorEditor />
       <Toast />
       <Overlays />
+      <ConfirmDialog />
+      <TourCard />
     </div>
+    </TipProvider>
   )
 }

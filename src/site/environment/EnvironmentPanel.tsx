@@ -1,6 +1,7 @@
 import { SEASONS, sunPosition } from './sun'
 import { usePlanStore } from '../../store/planStore'
 import { HOUR_RANGE, TIDE_RANGE_FT } from '../../store/types'
+import { Tip } from '../../guide/Tip'
 
 const fmtHour = (h: number): string => {
   const hh = Math.floor(h)
@@ -35,9 +36,11 @@ export function EnvironmentPanel() {
         <input type="range" min={HOUR_RANGE.min} max={HOUR_RANGE.max} step={0.25} value={env.hour} aria-label="Time of day" onChange={(e) => setEnvironment({ hour: Number(e.target.value) })} />
       </label>
       <label className="field">
-        <span className="muted small" title="Water level in feet above the NAVD88 datum. Mean higher high water at Lopez is about 8 ft.">
-          Tide <em>{env.tideFt.toFixed(1)} ft</em>
-        </span>
+        <Tip label="Water level in feet above the NAVD88 datum. Mean higher high water at Lopez is about 8 ft.">
+          <span className="muted small" tabIndex={0}>
+            Tide <em>{env.tideFt.toFixed(1)} ft</em>
+          </span>
+        </Tip>
         <input type="range" min={TIDE_RANGE_FT.min} max={TIDE_RANGE_FT.max} step={0.2} value={env.tideFt} aria-label="Tide level" onChange={(e) => setEnvironment({ tideFt: Number(e.target.value) })} />
       </label>
     </section>

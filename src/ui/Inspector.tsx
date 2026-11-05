@@ -29,6 +29,10 @@ import { PAD_TYPES } from '../buildings/parts/shapeEdits'
 import { buildingMasses } from '../buildings/masses'
 import { InspectorSection, useOpenSections } from './InspectorSection'
 import { selectionStats } from './selectionStats'
+import { requestDelete } from '../guide/confirm'
+import { useBeginner } from '../guide/mode'
+import { Term } from '../guide/Term'
+import { Tip } from '../guide/Tip'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -51,10 +55,11 @@ function SingleInspector({ id }: { readonly id: string }) {
   const layerLocked = usePlanStore((s) => (o ? s.layers[layerOf(o)].locked : false))
   const part = usePlanStore(pickedPartOf)
   const picked = part?.objectId === id ? part.mass : null
+  const beginner = useBeginner()
   const a = usePlanStore(
     useShallow((s) => ({
       rename: s.renameObject, move: s.moveObject, rotate: s.rotateObject, resize: s.resizeObject,
-      params: s.setObjectParams, setLocked: s.setLocked, setLabelVisible: s.setLabelVisible, setHidden: s.setHidden, del: s.deleteObjects,
+      params: s.setObjectParams, setLocked: s.setLocked, setLabelVisible: s.setLabelVisible, setHidden: s.setHidden,
     })),
   )
   if (!o) return null
@@ -73,7 +78,7 @@ function SingleInspector({ id }: { readonly id: string }) {
           {TYPE_NAMES[o.type] ?? o.type} · {LAYER_NAMES[layerOf(o)]}
         </div>
         <div className="stats small" data-testid="selection-stats">
-          {Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor {stats.floorFt.toFixed(1)} ft · ground {stats.lowestGroundFt.toFixed(1)} ft NAVD88
+          {Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor {stats.floorFt.toFixed(1)} ft · ground {stats.lowestGroundFt.toFixed(1)} ft <Term term="navd88">NAVD88</Term>
         </div>
         {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
       </header>
@@ -84,18 +89,19 @@ function SingleInspector({ id }: { readonly id: string }) {
       )}
       {picked !== null && <PartInspector id={id} mass={picked} />}
       {picked === null && (
-        <InspectorSection id="placement" title="Placement">
+        <InspectorSection id="placement" title="Placement" tourAnchor="placement">
+          {beginner && <p className="muted small">East and North are feet from the centre of the lot. Or drag it in the view.</p>}
           <div className="grid2">
             <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
             <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
-            <NumField label="Rotation" unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
+            <NumField label={beginner ? 'Turned' : 'Rotation'} unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
           </div>
         </InspectorSection>
       )}
       {picked === null && (
         <InspectorSection id="size" title="Size and shape">
           <div className="grid2">
-            <NumField label="Height" unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
+            <NumField label={beginner ? (o.type === 'house' ? 'How tall the walls are' : 'How tall') : 'Height'} unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
             {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
             {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
           </div>
@@ -132,8 +138,8 @@ function SingleInspector({ id }: { readonly id: string }) {
         </InspectorSection>
       )}
       <InspectorSection id="visibility" title="Visibility and lock">
-        <label className="row">
-          <input type="checkbox" checked={o.locked} onChange={(e) => a.setLocked(id, e.target.checked)} />
+        <label className="row" data-tour="lock">
+          <input type="checkbox" checked={o.locked} data-testid="object-locked" onChange={(e) => a.setLocked(id, e.target.checked)} />
           <span>Locked{layerLocked ? ' (layer is locked too)' : ''}</span>
         </label>
         <label className="row">
@@ -142,7 +148,7 @@ function SingleInspector({ id }: { readonly id: string }) {
         </label>
         <div className="actions">
           <button onClick={() => a.setHidden(id, true)}>Hide</button>
-          <button className="danger" disabled={dis} onClick={() => a.del([id])}>
+          <button className="danger" disabled={dis} onClick={() => requestDelete([id])} data-testid="delete-object">
             Delete
           </button>
         </div>
@@ -153,7 +159,6 @@ function SingleInspector({ id }: { readonly id: string }) {
 
 function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
   const setLocked = usePlanStore((s) => s.setLocked)
-  const del = usePlanStore((s) => s.deleteObjects)
   const names = usePlanStore(useShallow((s) => ids.map((id) => s.plan.objects[id]?.name ?? '')))
   return (
     <section className="panel inspector" aria-label="Inspector">
@@ -169,7 +174,7 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
       <div className="actions">
         <button onClick={() => ids.forEach((id) => setLocked(id, true))}>Lock all selected</button>
         <button onClick={() => ids.forEach((id) => setLocked(id, false))}>Unlock</button>
-        <button className="danger" onClick={() => del(ids)}>
+        <button className="danger" onClick={() => requestDelete(ids)}>
           Delete
         </button>
       </div>
@@ -193,18 +198,24 @@ function AlignButtons({ ids }: { readonly ids: readonly string[] }) {
   return (
     <div className="align-row" role="group" aria-label="Align and distribute">
       {ALIGN.map(({ mode, label, Icon }) => (
-        <button key={mode} type="button" className="tool-button" aria-label={label} title={label} data-testid={`align-${mode}`} onClick={() => align(ids, mode)}>
-          <Icon size={16} aria-hidden="true" />
-        </button>
+        <Tip key={mode} label={label}>
+          <button type="button" className="tool-button" aria-label={label} data-testid={`align-${mode}`} onClick={() => align(ids, mode)}>
+            <Icon size={16} aria-hidden="true" />
+          </button>
+        </Tip>
       ))}
       {ids.length > 2 && (
         <>
-          <button type="button" className="tool-button" aria-label="Space evenly east-west" title="Space evenly east-west" data-testid="distribute-x" onClick={() => spread(ids, 'x')}>
-            <AlignHorizontalDistributeCenter size={16} aria-hidden="true" />
-          </button>
-          <button type="button" className="tool-button" aria-label="Space evenly north-south" title="Space evenly north-south" data-testid="distribute-n" onClick={() => spread(ids, 'n')}>
-            <AlignVerticalDistributeCenter size={16} aria-hidden="true" />
-          </button>
+          <Tip label="Space evenly east-west">
+            <button type="button" className="tool-button" aria-label="Space evenly east-west" data-testid="distribute-x" onClick={() => spread(ids, 'x')}>
+              <AlignHorizontalDistributeCenter size={16} aria-hidden="true" />
+            </button>
+          </Tip>
+          <Tip label="Space evenly north-south">
+            <button type="button" className="tool-button" aria-label="Space evenly north-south" data-testid="distribute-n" onClick={() => spread(ids, 'n')}>
+              <AlignVerticalDistributeCenter size={16} aria-hidden="true" />
+            </button>
+          </Tip>
         </>
       )}
     </div>
