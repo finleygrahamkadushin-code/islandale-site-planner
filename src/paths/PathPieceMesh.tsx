@@ -6,7 +6,7 @@ import { toScene } from '../scene/frame'
 import { toGeometry } from '../scene/meshData'
 import { Surface } from '../scene/Surface'
 import { useDisplayStyle } from '../scene/useDisplayStyle'
-import { useEarthworks } from '../scene/useEarthworks'
+import { useEarthworks } from '../site/earthworks/useEarthworks'
 import { useObjectInteraction } from '../scene/useObjectInteraction'
 
 /** A ramp, stair, landing or boardwalk path piece (old walkMesh), built from its end levels and the ground. */

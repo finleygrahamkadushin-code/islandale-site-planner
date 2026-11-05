@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import type { RetainingWall } from '../site/earthworks'
-import { reedGeometry, waterGeometry } from './PondMesh'
-import { retainingWallGeometry } from './RetainingWalls'
+import type { RetainingWall } from '../site/earthworks/earthworks'
+import { reedGeometry, waterGeometry } from '../site/objects/PondMesh'
+import { retainingWallGeometry } from '../site/earthworks/RetainingWalls'
 
 const octagon = Array.from({ length: 8 }, (_, i): readonly [number, number] => [3 * Math.cos((i * Math.PI) / 4), 2 * Math.sin((i * Math.PI) / 4)])
 

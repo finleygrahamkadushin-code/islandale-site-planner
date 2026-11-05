@@ -1,5 +1,5 @@
 import type { PlanObject } from '../store/types'
-import type { Ground } from '../site/earthworks'
+import type { Ground } from '../site/earthworks/earthworks'
 import { pieceEnds, pieceLength } from './pieces'
 import type { SnapTarget } from './targets'
 

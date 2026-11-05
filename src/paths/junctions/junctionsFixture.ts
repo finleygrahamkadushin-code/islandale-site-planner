@@ -1,5 +1,5 @@
 import { railOwner } from '../../buildings/rails/railWorld'
-import type { Ground } from '../../site/earthworks'
+import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
 

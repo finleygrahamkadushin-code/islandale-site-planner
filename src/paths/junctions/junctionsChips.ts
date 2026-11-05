@@ -1,4 +1,4 @@
-import type { Ground } from '../../site/earthworks'
+import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import type { ObjectId, PlanObject } from '../../store/types'
 import { isFlush, LEVEL_M, type Junction } from './junctions'

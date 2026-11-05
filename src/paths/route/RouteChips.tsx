@@ -3,7 +3,7 @@ import { useRouteReport } from './RoutePanels'
 import { usePlanStore } from '../../store/planStore'
 import { toScene } from '../../scene/frame'
 import { LAYER, ScreenChip } from '../../scene/ScreenChip'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 /** A chip over each path piece that fails the accessible-route check, with its first issue (old failing-piece chips). */
 export function RouteChips() {

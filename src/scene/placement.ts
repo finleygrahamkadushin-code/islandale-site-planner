@@ -4,7 +4,7 @@ import { ftToM } from '../site/units'
 import { localToSite, num, siteFootprint, type LocalPoint } from '../buildings/footprint'
 import { buildingBounds, buildingMasses, massBuildingPoly } from '../buildings/masses'
 import type { SitePoint } from '../site/types'
-import { earthSpec, opReach, pondDepthM, pondLevelOf, type Cut, type EarthOp, type Ground } from '../site/earthworks'
+import { earthSpec, opReach, pondDepthM, pondLevelOf, type Cut, type EarthOp, type Ground } from '../site/earthworks/earthworks'
 import type { PlanObject } from '../store/types'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */

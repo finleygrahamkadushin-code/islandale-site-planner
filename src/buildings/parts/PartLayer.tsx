@@ -8,7 +8,7 @@ import { partFrame } from './partFrame'
 import { PartHandles } from './PartHandleMesh'
 import { PartOutline } from './PartOutline'
 import { RailChips } from '../rails/RailChips'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 interface Props {
   readonly o: PlanObject

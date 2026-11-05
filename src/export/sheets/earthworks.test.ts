@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { siteToLocal, type LocalPoint } from '../../buildings/footprint'
 import { earthOps } from '../../scene/placement'
-import { siteEarthworks } from '../../site/earthworks'
+import { siteEarthworks } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import { mToFt } from '../../site/units'
 import type { PlanObject } from '../../store/types'

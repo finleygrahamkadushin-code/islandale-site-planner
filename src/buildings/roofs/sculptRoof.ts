@@ -1,5 +1,5 @@
 import { ShapeUtils, Vector2 } from 'three'
-import { seededRandom } from '../../scene/treeShapes'
+import { seededRandom } from '../../site/objects/treeShapes'
 import { isRoofFinish, type RoofFinish } from '../paint/finishes'
 import { pointInPolygon } from '../foundation/foundation'
 import type { LocalPoint } from '../footprint'

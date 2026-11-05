@@ -47,7 +47,7 @@ Every change goes through a store action, so it is undoable and respects locks:
 
 ## Talks to (open these only when the task crosses over)
 
-- **Uses:** `../store/types` and `planStore`, and `../site/types`, `earthworks`, `terrain` and `schemes` (ground under a piece). From `../buildings/`: `footprint` and `masses` (a building's walls and wings), `rails/railWorld` and `railRules` (rails open where a path lands), and `parts/partFrame` and `attach` (wing tops and edges to land on). From `../scene/`: `useEarthworks`, `frame`, `ScreenChip`, `placement`, `Surface` and `useDisplayStyle`.
+- **Uses:** `../store/types` and `planStore`, and `../site/types`, `terrain`, `schemes` and `earthworks/` (ground under a piece). From `../buildings/`: `footprint` and `masses` (a building's walls and wings), `rails/railWorld` and `railRules` (rails open where a path lands), and `parts/partFrame` and `attach` (wing tops and edges to land on). From `../site/earthworks/`: `useEarthworks`. From `../scene/`: `frame`, `ScreenChip`, `placement`, `Surface` and `useDisplayStyle`.
 - **Used by:** `../scene/Scene.tsx` (mounts the route, connect and junction layers), `../scene/PlanObjects.tsx` (draws pieces), `../ui/SidePanel.tsx` and `Inspector.tsx` (panels), `../store/pathActions.ts` and `planStore.ts`, and `../buildings/parts/LevelsPanel.tsx`. If you change an exported function's signature, search these for its callers.
 - **Watch for:** rails on decks open where a path piece lands. That logic lives in `../buildings/rails/railWorld.ts`, so a change to piece ends or targets can move rails.
 

@@ -13,7 +13,7 @@ import { DeckMass } from './OpenMass'
 import { baseElevation } from '../../scene/placement'
 import { objectRailSite } from '../rails/railSite'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { useObjectInteraction } from '../../scene/useObjectInteraction'
 import { useRailWorld } from '../rails/useRailWorld'
 

@@ -15,7 +15,7 @@ import {
   type Landing,
 } from './railOpenings'
 import { edgeFree, isRailable, resolveEdges, type EdgeOpenings, type EdgeRail } from './railRules'
-import { groundWithCuts, type Ground } from '../../site/earthworks'
+import { groundWithCuts, type Ground } from '../../site/earthworks/earthworks'
 import { ftToM } from '../../site/units'
 import type { RailDrawQuery } from '../../store/railResolver'
 import type { PlanObject } from '../../store/types'

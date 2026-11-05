@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { loadIslandaleTerrain } from '../../site/islandale'
-import { groundWithCuts } from '../../site/earthworks'
+import { groundWithCuts } from '../../site/earthworks/earthworks'
 import { loadSchemes, schemeById } from '../../site/schemes'
 import { planFromScheme } from '../../store/fromLegacy'
 import type { PlanObject } from '../../store/types'

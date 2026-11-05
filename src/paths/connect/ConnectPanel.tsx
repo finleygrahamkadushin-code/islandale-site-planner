@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { connectPlan, type ConnectOption } from './connectPlan'
 import { usePlanStore } from '../../store/planStore'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 const M_TO_FT = 1 / 0.3048
 

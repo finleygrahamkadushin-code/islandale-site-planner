@@ -1,6 +1,6 @@
 import { buildingMasses, partName } from '../../buildings/masses'
 import { railOwner, surfaceZ } from '../../buildings/rails/railWorld'
-import type { Ground } from '../../site/earthworks'
+import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
 import { isFlush, LEVEL_M, sameJunction, type Junction } from './junctions'

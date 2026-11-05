@@ -1,6 +1,6 @@
 import { CURVED_SHAPES } from '../../buildings/footprint'
 import { buildingMasses } from '../../buildings/masses'
-import type { Ground } from '../../site/earthworks'
+import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import type { ObjectId, PlanObject } from '../../store/types'
 import { LEVEL_M, TOL_M, type HostEdge, type Junction } from './junctions'

@@ -1,7 +1,7 @@
 import { signedArea, siteToLocal, localToSite, type LocalPoint } from '../../buildings/footprint'
 import { earthOps } from '../../scene/placement'
 import { isoSegments, type Field } from '../../site/contours'
-import { opReach, signedDistance, siteEarthworks, WALL_THICKNESS_M, type BuildingEarthOp, type EarthField, type EarthOp, type SiteEarthworks } from '../../site/earthworks'
+import { opReach, signedDistance, siteEarthworks, WALL_THICKNESS_M, type BuildingEarthOp, type EarthField, type EarthOp, type SiteEarthworks } from '../../site/earthworks/earthworks'
 import { elevationAt } from '../../site/terrain'
 import type { SitePoint, Terrain } from '../../site/types'
 import { mToFt } from '../../site/units'

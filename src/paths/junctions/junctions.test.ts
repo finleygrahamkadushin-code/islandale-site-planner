@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { loadIslandaleTerrain } from '../../site/islandale'
 import { loadSchemes, schemeById } from '../../site/schemes'
-import { groundWithCuts } from '../../site/earthworks'
+import { groundWithCuts } from '../../site/earthworks/earthworks'
 import { sunkCuts } from '../../scene/placement'
 import { planFromScheme } from '../../store/fromLegacy'
 import { isFlush, junctionsFor, type HostEdge } from './junctions'

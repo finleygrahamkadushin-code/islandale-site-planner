@@ -3,7 +3,7 @@ import { snapTargets, type SnapTarget } from '../targets'
 import { usePlanStore } from '../../store/planStore'
 import { toScene } from '../../scene/frame'
 import { ScreenChip, STOP_EVENTS, LAYER } from '../../scene/ScreenChip'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 /** Targets closer than this (m) to one already shown are left out, so a door and the deck edge in front of it show one chip. */
 const MERGE_M = 0.6

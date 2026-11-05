@@ -8,7 +8,7 @@ import { toScene } from '../../scene/frame'
 import { LAYER, ScreenChip } from '../../scene/ScreenChip'
 import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
-import { useEarthworks } from '../../scene/useEarthworks'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 /**
  * Where paths meet buildings (old join-geom and junction chips): door

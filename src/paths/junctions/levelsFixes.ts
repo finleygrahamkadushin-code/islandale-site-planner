@@ -1,5 +1,5 @@
 import { wingSlots } from '../../buildings/masses'
-import type { Ground } from '../../site/earthworks'
+import type { Ground } from '../../site/earthworks/earthworks'
 import type { ObjectId, PlanObject } from '../../store/types'
 import type { LevelFix, LevelReport } from './levels'
 import { pieceEnds } from '../pieces'

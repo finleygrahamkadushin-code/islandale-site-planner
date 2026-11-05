@@ -1,5 +1,5 @@
 import { localToSite, type LocalPoint } from '../../buildings/footprint'
-import { groundWithCuts, type Ground } from '../../site/earthworks'
+import { groundWithCuts, type Ground } from '../../site/earthworks/earthworks'
 import { elevationAt } from '../../site/terrain'
 import type { Terrain } from '../../site/types'
 import { ftToM, mToFt } from '../../site/units'
