@@ -18,6 +18,7 @@ import { PaintHud } from '../buildings/paint/PaintHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
 import { MeasureLayer } from '../tools/MeasureLayer'
+import { BoxSelectLayer } from '../tools/useBoxSelect'
 import { ConnectLayer } from '../paths/connect/ConnectLayer'
 import { JunctionLayer } from '../paths/junctions/JunctionLayer'
 import { RouteChips } from '../paths/route/RouteChips'
@@ -50,6 +51,7 @@ export function Scene() {
       <PlanObjects drag={drag} />
       <PlaceGhost />
       <MeasureLayer />
+      <BoxSelectLayer />
       <ConnectLayer />
       <JunctionLayer />
       <RouteChips />

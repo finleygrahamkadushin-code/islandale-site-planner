@@ -419,3 +419,6 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .section-title { display: flex; align-items: baseline; gap: 6px; }
 .section-body { display: flex; flex-direction: column; gap: 10px; }
 @media (prefers-reduced-motion: reduce) { .section-chevron { transition: none; } }
+.align-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.align-row .tool-button { width: 32px; height: 32px; border-color: var(--line); }
+.align-row .tool-button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }

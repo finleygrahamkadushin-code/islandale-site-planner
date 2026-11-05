@@ -6,7 +6,12 @@ import type { PlanObject } from '../store/types'
 export interface DragState {
   readonly id: string
   readonly patch: (o: PlanObject) => Partial<PlanObject>
+  /** A group drag (4B): every object here follows with the same patch, `id` the one under the pointer. */
+  readonly group?: readonly string[]
 }
+
+/** Whether a live drag moves this object (it is the one dragged, or in the dragged group). */
+export const dragMoves = (drag: DragState | null, id: string): boolean => !!drag && (drag.id === id || !!drag.group?.includes(id))
 
 /**
  * The one live edit, if any (view state, never saved or undone). The scene

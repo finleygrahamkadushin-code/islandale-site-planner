@@ -11,6 +11,8 @@ import { snapPoint } from './snap'
 const DRAG_SLOP_PX = 4
 
 interface Live {
+  /** A group drag: the selection's unlocked objects, all moved by the same offset. */
+  readonly group: readonly string[] | null
   readonly x0: number
   readonly n0: number
   readonly hitX: number
@@ -44,7 +46,10 @@ export function useDragMove(o: PlanObject) {
       if (controls) controls.enabled = true
       window.removeEventListener('keydown', onKey, true)
       useLiveDrag.getState().setDrag(null)
-      if (commit && l?.at) usePlanStore.getState().transformObject(o.id, { position: l.at })
+      if (!commit || !l?.at) return
+      const s = usePlanStore.getState()
+      if (l.group) s.nudgeObjects(l.group, l.at.x - l.x0, l.at.n - l.n0)
+      else s.transformObject(o.id, { position: l.at })
     },
     [controls, o.id, onKey],
   )
@@ -67,12 +72,14 @@ export function useDragMove(o: PlanObject) {
     (e: ThreeEvent<PointerEvent>) => {
       if (e.button !== 0) return
       const s = usePlanStore.getState()
-      const only = s.selection.length === 1 && s.selection[0] === o.id
-      if (!only || toolOf(s) !== 'select' || o.type === 'bridge' || isObjectLocked(s, o.id) || pickedPartOf(s)?.objectId === o.id) return
+      // the dragged object must be selected; with several selected, the whole unlocked selection moves (4B)
+      if (!s.selection.includes(o.id) || toolOf(s) !== 'select' || isObjectLocked(s, o.id) || pickedPartOf(s)?.objectId === o.id) return
+      const group = s.selection.length > 1 ? s.selection.filter((id) => !isObjectLocked(s, id)) : null
+      if (!group && o.type === 'bridge') return
       plane.constant = -e.point.y
       ;(e.target as Element).setPointerCapture(e.pointerId)
       if (controls) controls.enabled = false
-      live.current = { x0: o.position.x, n0: o.position.n, hitX: e.point.x, hitZ: e.point.z, px: e.nativeEvent.clientX, py: e.nativeEvent.clientY, at: null }
+      live.current = { group, x0: o.position.x, n0: o.position.n, hitX: e.point.x, hitZ: e.point.z, px: e.nativeEvent.clientX, py: e.nativeEvent.clientY, at: null }
       window.addEventListener('keydown', onKey, true)
     },
     [o, controls, plane, onKey],
@@ -88,7 +95,9 @@ export function useDragMove(o: PlanObject) {
       const free = { x: l.x0 + (hit.x - l.hitX), n: l.n0 - (hit.z - l.hitZ) }
       const at = usePlanStore.getState().snap && !e.shiftKey ? snapPoint(free) : free
       l.at = at
-      useLiveDrag.getState().setDrag({ id: o.id, patch: () => ({ position: at }) })
+      const dx = at.x - l.x0
+      const dn = at.n - l.n0
+      useLiveDrag.getState().setDrag({ id: o.id, group: l.group ?? undefined, patch: (p) => ({ position: { x: p.position.x + dx, n: p.position.n + dn } }) })
       return true
     },
     [o.id, plane, hit],

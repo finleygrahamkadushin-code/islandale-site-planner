@@ -9,7 +9,7 @@ import type { Terrain } from '../site/types'
 import { routePoints } from '../buildings/decks/BridgeMesh'
 import { baseElevation, heightM } from './placement'
 import { toScene } from './frame'
-import type { DragState } from './editing'
+import { dragMoves, type DragState } from './editing'
 import { labelElements } from './labelRegistry'
 
 /** Projects each labelled object's anchor to the screen every frame and moves its DOM label there. */
@@ -23,7 +23,7 @@ export function LabelProjector({ drag }: { readonly drag: DragState | null }) {
     for (const [id, el] of labelElements) {
       const stored = s.plan.objects[id]
       if (!stored) continue
-      const o = drag?.id === id ? { ...stored, ...drag.patch(stored) } : stored
+      const o = drag && dragMoves(drag, id) ? { ...stored, ...drag.patch(stored) } : stored
       const [x, y, z] = labelAnchor(o, s.site.terrain)
       v.set(x, y, z).project(camera)
       if (v.z > 1) {

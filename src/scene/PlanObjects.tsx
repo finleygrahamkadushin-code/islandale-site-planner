@@ -13,14 +13,14 @@ import { PoolMesh } from '../site/objects/PoolMesh'
 import { ShedMesh } from '../site/objects/ShedMesh'
 import { PondMesh } from '../site/objects/PondMesh'
 import { pieceKind } from '../paths/pieces'
-import type { DragState } from './editing'
+import { dragMoves, type DragState } from './editing'
 
 export function PlanObjects({ drag }: { readonly drag: DragState | null }) {
   const ids = usePlanStore(useShallow((s) => s.plan.order.filter((id) => isObjectVisible(s, id))))
   return (
     <group name="plan">
       {ids.map((id) => (
-        <PlanObjectView key={id} id={id} drag={drag?.id === id ? drag : null} />
+        <PlanObjectView key={id} id={id} drag={dragMoves(drag, id) ? drag : null} />
       ))}
     </group>
   )

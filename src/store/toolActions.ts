@@ -1,6 +1,7 @@
 import { libraryItem, buildLibraryObject } from '../tools/library'
 import { snapDeg, snapPoint } from '../tools/snap'
 import { measureOf, withMeasurement, type MeasurePoint } from '../tools/measure'
+import { alignedPositions, distributedPositions, type AlignMode, type Axis } from '../tools/arrange'
 import type { Ground } from '../paths/pieces'
 import type { Terrain } from '../site/types'
 import { elevationAt } from '../site/terrain'
@@ -49,6 +50,10 @@ export interface ToolActions {
   /** Escape: drop the half-made measurement, keeping the tool on. */
   readonly dropMeasurePoint: () => void
   readonly clearMeasurements: () => void
+  /** Line up the selection's footprint edges or centres as one undo step; locked objects stay put. */
+  readonly alignObjects: (ids: readonly ObjectId[], mode: AlignMode) => void
+  /** Spread the selection's centres evenly along one axis as one undo step; locked objects stay put. */
+  readonly distributeObjects: (ids: readonly ObjectId[], axis: Axis) => void
 }
 
 export interface ToolContext {
@@ -66,6 +71,21 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
   const layerLocked = (o: Pick<PlanObject, 'type' | 'params'>): string | null => {
     const layer = layerOf(o)
     return get().layers[layer].locked ? `${LAYER_NAMES[layer]} are locked` : null
+  }
+
+  /** Move the movable objects to new positions as one undo step (path pieces settle); a toast names what stayed put. */
+  const arrange = (ids: readonly ObjectId[], place: (objs: readonly PlanObject[]) => Record<ObjectId, { x: number; n: number }>) => {
+    if (!writable()) return
+    const s = get()
+    const objs = ids.map((id) => s.plan.objects[id]).filter((o): o is PlanObject => !!o)
+    if (objs.length < 2) return
+    const at = place(objs)
+    const movable = objs.filter((o) => !isLocked(o.id))
+    if (movable.length < objs.length) s.showToast('Locked objects stay where they are')
+    if (!movable.length) return
+    const objects = { ...s.plan.objects }
+    for (const o of movable) objects[o.id] = settledPiece({ ...o, position: { ...at[o.id] } }, s.plan, terrain, ground)
+    set({ plan: { ...s.plan, objects } })
   }
 
   return {
@@ -90,6 +110,8 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
       if (get().measuring) set({ measuring: { a: null } })
     },
     clearMeasurements: () => set({ measurements: [] }),
+    alignObjects: (ids, mode) => arrange(ids, (objs) => alignedPositions(objs, mode)),
+    distributeObjects: (ids, axis) => arrange(ids, (objs) => distributedPositions(objs, axis)),
     setSnap: (snap) => set({ snap }),
 
     placeItem: (itemId, at, rotation) => {

@@ -1,4 +1,16 @@
 import { useEffect } from 'react'
+import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalDistributeCenter,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalDistributeCenter,
+  type LucideIcon,
+} from 'lucide-react'
+import type { AlignMode } from '../tools/arrange'
 import { useShallow } from 'zustand/react/shallow'
 import { num } from '../buildings/footprint'
 import { ftToM, mToFt } from '../site/units'
@@ -153,6 +165,7 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
           <li key={ids[i]}>{n}</li>
         ))}
       </ul>
+      <AlignButtons ids={ids} />
       <div className="actions">
         <button onClick={() => ids.forEach((id) => setLocked(id, true))}>Lock all selected</button>
         <button onClick={() => ids.forEach((id) => setLocked(id, false))}>Unlock</button>
@@ -161,5 +174,39 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
         </button>
       </div>
     </section>
+  )
+}
+
+const ALIGN: readonly { readonly mode: AlignMode; readonly label: string; readonly Icon: LucideIcon }[] = [
+  { mode: 'west', label: 'Align west edges', Icon: AlignStartVertical },
+  { mode: 'centre-x', label: 'Align centres east-west', Icon: AlignCenterVertical },
+  { mode: 'east', label: 'Align east edges', Icon: AlignEndVertical },
+  { mode: 'north', label: 'Align north edges', Icon: AlignStartHorizontal },
+  { mode: 'centre-n', label: 'Align centres north-south', Icon: AlignCenterHorizontal },
+  { mode: 'south', label: 'Align south edges', Icon: AlignEndHorizontal },
+]
+
+/** Align and distribute for several selected objects (4B): each is one undo step, and locked objects stay put. */
+function AlignButtons({ ids }: { readonly ids: readonly string[] }) {
+  const align = usePlanStore((s) => s.alignObjects)
+  const spread = usePlanStore((s) => s.distributeObjects)
+  return (
+    <div className="align-row" role="group" aria-label="Align and distribute">
+      {ALIGN.map(({ mode, label, Icon }) => (
+        <button key={mode} type="button" className="tool-button" aria-label={label} title={label} data-testid={`align-${mode}`} onClick={() => align(ids, mode)}>
+          <Icon size={16} aria-hidden="true" />
+        </button>
+      ))}
+      {ids.length > 2 && (
+        <>
+          <button type="button" className="tool-button" aria-label="Space evenly east-west" title="Space evenly east-west" data-testid="distribute-x" onClick={() => spread(ids, 'x')}>
+            <AlignHorizontalDistributeCenter size={16} aria-hidden="true" />
+          </button>
+          <button type="button" className="tool-button" aria-label="Space evenly north-south" title="Space evenly north-south" data-testid="distribute-n" onClick={() => spread(ids, 'n')}>
+            <AlignVerticalDistributeCenter size={16} aria-hidden="true" />
+          </button>
+        </>
+      )}
+    </div>
   )
 }

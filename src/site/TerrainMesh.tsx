@@ -4,6 +4,7 @@ import type { BufferGeometry } from 'three'
 import type { Terrain as TerrainData } from './types'
 import { usePlanStore } from '../store/planStore'
 import { usePointerGround } from './pointer'
+import { useBoxSelect } from '../tools/useBoxSelect'
 import { buildPatchGeometry, buildTerrainGeometry, colourTerrain } from './terrainGeometry'
 import { grass, perMetre } from '../scene/textures'
 import { useEarthworks } from './earthworks/useEarthworks'
@@ -52,13 +53,28 @@ const groundClick = (e: ThreeEvent<MouseEvent>) => {
   }
   if (!s.placing) return
   e.stopPropagation()
-  const { item, rotation } = s.placing
+  const { item, rotation, at } = s.placing
   s.placeItem(item, { x: e.point.x, n: -e.point.z }, rotation)
+  // Shift-click places one and stays in Place (4B), as the old planner did
+  if (e.nativeEvent.shiftKey) s.setPlacing({ item, rotation, at })
 }
 
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
+  const box = useBoxSelect()
+  const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (!box.onPointerMove(e)) groundMove(e)
+  }
   return (
-    <mesh geometry={geometry} receiveShadow name={name} onPointerMove={groundMove} onPointerLeave={groundLeave} onClick={groundClick}>
+    <mesh
+      geometry={geometry}
+      receiveShadow
+      name={name}
+      onPointerDown={box.onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={box.onPointerUp}
+      onPointerLeave={groundLeave}
+      onClick={groundClick}
+    >
       {style === 'realistic' ? (
         <meshStandardMaterial key="real" vertexColors map={map} roughness={1} metalness={0} />
       ) : (
