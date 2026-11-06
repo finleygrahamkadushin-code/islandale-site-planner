@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done** on branch `claude/phase-6c-blender-renders`, renders sent, not merged (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -21,6 +21,19 @@ Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C plan
     - Gable ends (mass-wide wall cladding wholly above the wall tops) are tagged `gable`, not `wall`, because they don't lie on the footprint outline and the checker requires every wall mesh to. They keep `wallKind` and colour. **6C:** add `gable` to `styles.json` (in each building's `parts` and in `defaults.parts`) so gables wear the wall material; until then they keep the app's colour.
     - A ceiling drawn where a mass has no roof is `cap`.
     - Colours of non-building pieces (trees, pads, terrain) follow the display style on screen, so export from Realistic.
+
+- **6C done** (Nov 6, branch `claude/phase-6c-blender-renders`, not merged).
+  - **Results:** all 9 cameras render (1920×1080, 128 samples, June 17:00, about 8 minutes on the Mac's GPU), and every house is in its material, gables included. `check_export.py` still exits 0. The only meshes left in the app's colour are interiors, trees and caps.
+  - **Fixes:** the deck-step rails and tree wells are tagged in the app, and the exporter inherits a group's part tag. Gables wear the wall. Each close-up camera tries the biggest wall faces in turn, which gives the twin pod its close-up. Fixes from the review: the export check fails a walled mass that has no wall meshes; close-ups skip interior and decor walls; camera names are unique and render file names safe.
+  - **New doc:** `tools/blender/README.md`.
+  - **Deliberate change from the plan:** displacement is on for 8 cameras. It is **off for the prow close-up**, because true displacement tears the kurinuki wall into shards: the app's walls are loose triangles with T-junctions round the openings, and they crack apart when displaced. Ledgestone and rigidized bronze hold up.
+  - **For 6D (from the renders):**
+    - Concrete path-step blocks fill the foreground of the lantern and wedge hero shots, because the hero camera only checks its ray to the building, not the frame.
+    - Thin white seams show on the ground where the terrain patch meets the terrain.
+    - The wedge close-up looks at plain upper stucco, not the wainscot.
+    - Kurinuki needs welded, T-junction-free walls (or a remesh) before true displacement.
+    - There's no visible sea in the aerial.
+    - Trees.
 
 ## What's left
 
@@ -50,7 +63,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 | --- | --- | --- | --- |
 | **6A · Save the pipeline** ✅ done Nov 6 (branch `claude/phase-6a-save-pipeline`) | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
 | **6B · 3D model export** ✅ done Nov 6 (branch `claude/phase-6b-model-export`) | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
-| **6C · Blender on the new export** | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
+| **6C · Blender on the new export** ✅ done Nov 6 (branch `claude/phase-6c-blender-renders`) | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
 | **6D · Art direction** | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |
 | **6E · Bake textures for Unreal** | `tools/blender/bake_textures.py`: one seamless 6 m tile per material (BaseColor, ORM, Height, Normal) plus `materials.json` | Medium | Every material bakes with seam metrics under the threshold; a tiled preview of each is sent to Finley |
 | **6F · Unreal scene export** | `tools/blender/export_unreal.py`: a `.glb` per group (terrain, sea, earthworks, site, trees, each building) with UV0 in tiles, plus `scene.json` (sun, tide, cameras, wainscot and terrain blends, axes) | Medium | The files open in UE 5.8 with north and ground contact right |
@@ -157,7 +170,7 @@ Removed: `tools/export-legacy/`, once Blender's check passes on the new file (th
 - **The in-app download has no git commit** (the browser doesn't know it). Instead it records the app version and the plan's name and time; the headless script adds the commit.
 - **It works on the plan as it is now,** including unsaved changes and hidden layers left out, and changes nothing. It is not an action, so nothing goes on the undo stack.
 
-## 6C in detail: Blender on the new export (plan, waiting for Finley's OK)
+## 6C in detail: Blender on the new export (done Nov 6)
 
 **Goal:** all 9 renders of Scheme C come out of Blender from 6B's export, with each house in its material. Branch `claude/phase-6c-blender-renders`, from `main` (18ada9b).
 

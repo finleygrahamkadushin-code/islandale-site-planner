@@ -92,6 +92,6 @@ A module that fails to import is skipped, and named if one of its keys is asked 
 
 - **The first Cycles render in a new process can take about 5 minutes** while Metal kernels compile. Later renders are fast.
 - **Don't run two heavy Cycles jobs at once** on the Metal GPU. Close-ups with `--true-displacement` are the memory hogs (dicing rate 1.5, at most 7 subdivisions).
-- **Kurinuki and ledgestone** only really read as carved with displacement on.
+- **Kurinuki and ledgestone** only really read as carved with displacement on. **But kurinuki tears with displacement** on the new app's walls: they are loose triangles with T-junctions round the openings, so they crack apart. Render kurinuki close-ups without `--true-displacement` until 6D welds them.
 - **Wainscot material names** carry the absolute top Z, for example `M_Stucco_over_M_LedgestoneCool_9.13`.
 - **The swatch test cabin's window** shows a thin diagonal line. It comes from the test scene and appears only in swatches.
