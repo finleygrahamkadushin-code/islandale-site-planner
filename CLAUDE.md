@@ -54,7 +54,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
 | Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
-| Blender renders and Unreal export: procedural materials, `styles.json`, the scene builder, the export checker | `tools/blender/` (fed by `tools/export/export_scene.mjs`) | `HANDOFF-blender-ue5.md` |
+| Blender renders and Unreal export: procedural materials, `styles.json`, the scene builder, the export checker | `tools/blender/` (fed by `tools/export/export_scene.mjs`) | `tools/blender/README.md`; the Unreal steps in `HANDOFF-blender-ue5.md` |
 
 `scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.
 

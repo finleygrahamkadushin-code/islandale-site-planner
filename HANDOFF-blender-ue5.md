@@ -1,6 +1,6 @@
 # Islandale → Blender → Unreal Engine 5: handoff plan
 
-> **Update, Nov 6 2026 (Phase 6A):** this work is now committed in the main repo on branch `claude/phase-6a-save-pipeline`. Phase 6B replaced the old planner's exporter: `tools/export/export_scene.mjs` now drives the **new app** (its Export 3D model, `src/export/model3d/`), in the same file contract, and the old exporter is gone. Commands below are updated; where the text below talks about the old exporter's internals (`page_export.js`, `glb.mjs`), read `src/export/model3d/`. The text below is the original Nov 2 handoff, unchanged; the reference photos in `build/3d/reference/` were not copied.
+> **Update, Nov 6 2026 (Phase 6A):** this work is now committed in the main repo on branch `claude/phase-6a-save-pipeline`. **For running the pipeline, read `tools/blender/README.md` (Phase 6C);** this note is kept for its history and the Unreal steps. Phase 6B replaced the old planner's exporter: `tools/export/export_scene.mjs` now drives the **new app** (its Export 3D model, `src/export/model3d/`), in the same file contract, and the old exporter is gone. Commands below are updated; where the text below talks about the old exporter's internals (`page_export.js`, `glb.mjs`), read `src/export/model3d/`. The text below is the original Nov 2 handoff, unchanged; the reference photos in `build/3d/reference/` were not copied.
 
 **Read this first.** The work below is **not committed**. It exists only in this git worktree:
 
