@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done** (6B approved Nov 6; both on branches, not merged yet) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done** on branch `claude/phase-6c-blender-renders`, renders sent, not merged (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -21,6 +21,19 @@ Status: **6A and 6B done** (6B approved Nov 6; both on branches, not merged yet)
     - Gable ends (mass-wide wall cladding wholly above the wall tops) are tagged `gable`, not `wall`, because they don't lie on the footprint outline and the checker requires every wall mesh to. They keep `wallKind` and colour. **6C:** add `gable` to `styles.json` (in each building's `parts` and in `defaults.parts`) so gables wear the wall material; until then they keep the app's colour.
     - A ceiling drawn where a mass has no roof is `cap`.
     - Colours of non-building pieces (trees, pads, terrain) follow the display style on screen, so export from Realistic.
+
+- **6C done** (Nov 6, branch `claude/phase-6c-blender-renders`, not merged).
+  - **Results:** all 9 cameras render (1920×1080, 128 samples, June 17:00, about 8 minutes on the Mac's GPU), and every house is in its material, gables included. `check_export.py` still exits 0. The only meshes left in the app's colour are interiors, trees and caps.
+  - **Fixes:** the deck-step rails and tree wells are tagged in the app, and the exporter inherits a group's part tag. Gables wear the wall. Each close-up camera tries the biggest wall faces in turn, which gives the twin pod its close-up. Fixes from the review: the export check fails a walled mass that has no wall meshes; close-ups skip interior and decor walls; camera names are unique and render file names safe.
+  - **New doc:** `tools/blender/README.md`.
+  - **Deliberate change from the plan:** displacement is on for 8 cameras. It is **off for the prow close-up**, because true displacement tears the kurinuki wall into shards: the app's walls are loose triangles with T-junctions round the openings, and they crack apart when displaced. Ledgestone and rigidized bronze hold up.
+  - **For 6D (from the renders):**
+    - Concrete path-step blocks fill the foreground of the lantern and wedge hero shots, because the hero camera only checks its ray to the building, not the frame.
+    - Thin white seams show on the ground where the terrain patch meets the terrain.
+    - The wedge close-up looks at plain upper stucco, not the wainscot.
+    - Kurinuki needs welded, T-junction-free walls (or a remesh) before true displacement.
+    - There's no visible sea in the aerial.
+    - Trees.
 
 ## What's left
 
@@ -50,7 +63,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 | --- | --- | --- | --- |
 | **6A · Save the pipeline** ✅ done Nov 6 (branch `claude/phase-6a-save-pipeline`) | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
 | **6B · 3D model export** ✅ done Nov 6 (branch `claude/phase-6b-model-export`) | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
-| **6C · Blender on the new export** | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
+| **6C · Blender on the new export** ✅ done Nov 6 (branch `claude/phase-6c-blender-renders`) | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
 | **6D · Art direction** | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |
 | **6E · Bake textures for Unreal** | `tools/blender/bake_textures.py`: one seamless 6 m tile per material (BaseColor, ORM, Height, Normal) plus `materials.json` | Medium | Every material bakes with seam metrics under the threshold; a tiled preview of each is sent to Finley |
 | **6F · Unreal scene export** | `tools/blender/export_unreal.py`: a `.glb` per group (terrain, sea, earthworks, site, trees, each building) with UV0 in tiles, plus `scene.json` (sun, tide, cameras, wainscot and terrain blends, axes) | Medium | The files open in UE 5.8 with north and ground contact right |
@@ -71,7 +84,7 @@ This is what the Blender importer (`tools/blender/islandale3d/importer.py`) alre
 - **Manifest:** `<slug>.manifest.json`, with every plan object's params, the sun, the tide and the saved cameras.
 - **Clean meshes:** no selection gizmos, chips or labels in the file.
 
-## 6B in detail: 3D model export (plan, waiting for Finley's OK)
+## 6B in detail: 3D model export (done Nov 6)
 
 **Goal:** an **Export 3D model** button and command in the new app that downloads `<slug>.glb` and `<slug>.manifest.json` in the contract above, and `tools/export/export_scene.mjs`, which does the same headless so Blender can be fed without clicking. Branch `claude/phase-6b-model-export`, cut from `main` after 6A is merged.
 
@@ -156,6 +169,45 @@ Removed: `tools/export-legacy/`, once Blender's check passes on the new file (th
 - **Meadows and boulders** come out as `t: meadow` and `t: boulder`. The importer files them under "Other" until 6C gives them materials.
 - **The in-app download has no git commit** (the browser doesn't know it). Instead it records the app version and the plan's name and time; the headless script adds the commit.
 - **It works on the plan as it is now,** including unsaved changes and hidden layers left out, and changes nothing. It is not an action, so nothing goes on the undo stack.
+
+## 6C in detail: Blender on the new export (done Nov 6)
+
+**Goal:** all 9 renders of Scheme C come out of Blender from 6B's export, with each house in its material. Branch `claude/phase-6c-blender-renders`, from `main` (18ada9b).
+
+### What a dry run on 6B's file already shows (Nov 6)
+
+- **Builds:** `build_scene.py` builds the scene in 4 s. Every house gets its own material: kurinuki on the prow (17 meshes), warm ledgestone on the lantern, rigidized bronze on the twin pod, and stucco over a ledgestone wainscot on the elders' wedge.
+- **Only 8 cameras, not 9:** the twin pod has no **detail** camera. `_detail_view` in `staging.py` found no clear view of its biggest outward wall face.
+- **144 of 583 meshes keep the app's colour.** Most of that is intended:
+  - **Rooms inside** (108: furniture, partitions, interior headers and sills): intended, they keep the planner's colours.
+  - **Gable ends** (9, tagged `gable` in 6B): `styles.json` doesn't know the part yet, so they don't wear the wall material.
+  - **The prow's deck steps** (15, tagged only by type, `house`): the sloped flight rails and the concrete tree-well ring in `buildings/decks/DeckStepsMesh.tsx` carry no `part`. This is the one gap in the app.
+  - **Trees** (8): no tree material yet. Nicer trees are part of 6D.
+  - **Ceilings at the wall tops** (`cap`, 4): hidden under the roofs.
+- **Nothing in `tools/blender` reads the old planner's extra fields** (`massKind`, `matColor`, `species` …), so the importer needs no change for the new file.
+
+### Order of work (one commit each)
+
+1. **Tag the deck steps in the app.** The flight rails become `part: 'rail'` and the tree-well ring `part: 'foundation'`, in `DeckStepsMesh.tsx`. This also lets Paint mode paint them, as rails and foundation; today a click on them paints nothing. A unit test and the paint e2e cover it. This is the only change under `src/`.
+2. **Gables wear the wall.** `styling.py` resolves `gable` the way it resolves `wall` (the building's own `parts.gable`, else its `parts.wall`, else the wall kind), and the wainscot rule leaves gables plain, since they sit above the wainscot.
+3. **The ninth camera.** Find why the twin pod's detail view is refused (blocked ray, inner faces, or the deck around it) and fix `_detail_view`, without moving the 8 cameras that already work.
+4. **A light review of the agent-written code** (`check_export.py`, `importer.py`, `styling.py`, `staging.py`, `uv.py`; the HANDOFF asked for it). Fix real bugs only, each as its own commit, and list the rest as notes. The 27 materials are not reworked: their look is 6D.
+5. **`tools/blender/README.md`:** the pipeline, the three commands (export, check, build and render), the material contract, how to add a material, and the gotchas from the HANDOFF. `HANDOFF-blender-ue5.md` then points to it for everything but the Unreal steps.
+6. **Render.** All 9 cameras at 1920×1080, 128 samples, June 17:00, with `--true-displacement` so the kurinuki and ledgestone break the silhouette. If the GPU runs out of memory on a close-up, that camera alone is rendered without displacement, and the README says so. Renders go to `build/3d/renders/` (gitignored) and are sent to you with a contact sheet.
+
+### Done when
+
+- `check_export.py` still exits 0 on Scheme C.
+- `build_scene.py --render` writes 9 PNGs.
+- Every house is in its material, gables included, and the only meshes left in the app's colour are interiors, trees and caps.
+- You have the renders.
+
+### Decisions (say if you disagree)
+
+- **Displacement on** for the final renders (slower, but the carving reads). Off stays the default for quick runs.
+- **Sun and time:** June 17:00, the pipeline's default (az 272°, el 30°), not the app's saved time (September 14:00). The low west light is what the materials were tuned for. `--season` and `--hour` still change it.
+- **Trees stay as the app draws them** until 6D.
+- **Renders are not committed** (they're under `build/`). If you want a few kept, they can go in `docs/renders/`.
 
 ## Decisions (say if you disagree)
 

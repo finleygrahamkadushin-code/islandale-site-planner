@@ -52,7 +52,7 @@ export function DeckStepsMesh({ poly, steps, wells, look, site, handlers }: Prop
         const h = top + 0.05 - g0
         if (h <= 0.05) return null
         return (
-          <mesh key={i} position={[ftToM(well.x), g0 + h / 2, ftToM(well.z)]} receiveShadow>
+          <mesh key={i} position={[ftToM(well.x), g0 + h / 2, ftToM(well.z)]} receiveShadow userData={WELL_DATA}>
             <cylinderGeometry args={[ftToM(well.r), ftToM(well.r), h, 48, 1, true]} />
             <Surface kind="concrete" style={style} color={STONE} />
           </mesh>
@@ -62,6 +62,10 @@ export function DeckStepsMesh({ poly, steps, wells, look, site, handlers }: Prop
     </>
   )
 }
+
+/** Part tags (read by Paint's hit test and the 3D export): the concrete ring round a tree well, the flight's rails. */
+const WELL_DATA = { part: 'foundation' } as const
+const FLIGHT_RAIL_DATA = { part: 'rail' } as const
 
 /** A sloped handrail and guard down each open end of the flight (legacy deckStepsMesh rails). */
 function FlightRails({ chain, run, fall, look }: { readonly chain: readonly LocalPoint[]; readonly run: number; readonly fall: number; readonly look: BuildingLook }) {
@@ -81,7 +85,7 @@ function FlightRails({ chain, run, fall, look }: { readonly chain: readonly Loca
         const at = (u: number, y: number): [number, number, number] => [x0 + n[0] * runM * u, -fall * u + y, z0 + n[1] * runM * u]
         const posts = Math.max(2, Math.round(runM / RAIL_POST_GAP_M) + 1)
         return (
-          <group key={e}>
+          <group key={e} userData={FLIGHT_RAIL_DATA}>
             {RAIL_HEIGHTS_M.map((y, j) => (
               <Segment key={j} a={at(0, y)} b={at(1, y)} size={j ? 0.04 : 0.06}>
                 <Surface kind="wood" style={look.style} />

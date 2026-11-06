@@ -53,7 +53,10 @@ function liveScene(): Scene {
   const cladding = new Mesh(new BoxGeometry(1, 2, 0.2), paint('#9b6b43'))
   cladding.position.y = 1
   cladding.userData = { part: 'wall', massWide: true }
-  mass.add(wall, roof, pick, edges, gable, cladding)
+  const flight = new Group()
+  flight.userData = { part: 'rail' }
+  flight.add(new Mesh(new BoxGeometry(), paint('#6e5236')))
+  mass.add(wall, roof, pick, edges, gable, cladding, flight)
   const rooms = new Group()
   rooms.userData = { sheetSkip: true }
   const bed = new Mesh(new BoxGeometry(), paint('#aa8866'))
@@ -93,7 +96,8 @@ describe('collectModel', () => {
       'Twin Pod #h1|roof|m0|2',
       'Twin Pod #h1|gable|m0|3',
       'Twin Pod #h1|wall|m0|4',
-      'Twin Pod #h1|furniture|5',
+      'Twin Pod #h1|rail|m0|5',
+      'Twin Pod #h1|furniture|6',
     ])
     const e1 = objects.children[0].children[1] as Mesh
     expect(e1.geometry.getAttribute('position').count).toBe(6)
@@ -111,8 +115,12 @@ describe('collectModel', () => {
     expect(objects.children[0].children[4].userData).toMatchObject({ part: 'wall', decor: true })
   })
 
+  test('a mesh takes the part tag of the nearest group above it', () => {
+    expect(objects.children[0].children[5].userData).toMatchObject({ part: 'rail', partSrc: 'planner', railStyle: 'wood' })
+  })
+
   test('tags the rooms inside as interior, or leaves them out', () => {
-    expect((objects.children[0].children[5] as Mesh).userData).toMatchObject({ interior: true })
+    expect((objects.children[0].children[6] as Mesh).userData).toMatchObject({ interior: true })
     const without = collectModel(liveScene(), plan, { interiors: false }).scene.getObjectByName('Twin Pod #h1')!
     expect(without.children.some((c) => c.userData.interior)).toBe(false)
   })

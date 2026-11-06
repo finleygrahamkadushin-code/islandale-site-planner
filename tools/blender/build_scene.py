@@ -10,6 +10,7 @@ camera in build/3d/renders/. The sun follows the planner's model for 48.46 deg N
 --allow-missing lets a material that styles.json names but no module defines yet wear the UV grid instead of failing."""
 import argparse
 import pathlib
+import re
 import sys
 import time
 
@@ -91,7 +92,7 @@ def main(argv):
             if a.only.lower() not in cam.name.lower():
                 continue
             bpy.context.scene.camera = cam
-            path = renders / (cam.name.removeprefix("CAM ").replace(" ", "_").lower() + ".png")
+            path = renders / (re.sub(r"[^\w.-]+", "_", cam.name.removeprefix("CAM ")).lower() + ".png")
             bpy.context.scene.render.filepath = str(path)
             t1 = time.time()
             try:
