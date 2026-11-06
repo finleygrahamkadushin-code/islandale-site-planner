@@ -73,7 +73,6 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 
 - **At check-in A for each part:** OK the plans.
 - **SketchUp:** open 6B's `.glb` in SketchUp when you can. It isn't installed here; if it can't open the file, 6B adds an `.obj` download.
-- **6J:** say yes or no to adding `three-gpu-pathtracer`.
 - **Installs:** an external SSD before 6E, and Xcode before 6G if Unreal asks for it (see "What needs installing").
 - **Reference photos:** say whether your three reference photos should be kept somewhere (they're only in the old textures worktree's `build/`, which isn't in git).
 - **GitHub Pages:** still open, and nothing is published until you ask.
@@ -96,8 +95,8 @@ The Mac is a MacBook Pro M4 Pro with 24 GB of memory, a 16-core GPU, macOS 15.7.
 | The repo's npm packages | everything in `src/` | ✅ after `npm ci` | run `npm ci` in a new worktree; old worktrees had stale `node_modules` |
 | Blender 5.2 LTS | 6E, 6F, the renders | ✅ 5.2.2 LTS | nothing; its own Python (with numpy) runs every script, so no separate Python install |
 | Unreal Engine 5.8 | 6F's check, 6G | ✅ 5.8.4, with `UnrealEditor-Cmd` and the Python script plugin | **6G:** enable the Python Editor Script Plugin and Interchange in the project (both ship with the engine) |
-| **Xcode + Metal toolchain** | 6G: Unreal compiles its Metal shaders with it | ❌ only the Command Line Tools; no `metal` compiler | **Probably needed before 6G.** Install Xcode from the App Store (~15 GB), open it once, then run `xcodebuild -downloadComponent MetalToolchain`. 6G's plan checks first whether UE 5.8 starts without it |
-| `three-gpu-pathtracer` (npm) | 6J | ❌ not a dependency | **6J, with your OK:** `npm install three-gpu-pathtracer` (MIT licence) |
+| **Xcode + Metal toolchain** | 6G: Unreal compiles its Metal shaders with it | ❌ only the Command Line Tools; no `metal` compiler. The App Store page was opened Nov 6 | **You:** click Get in the App Store (~15 GB, your Apple ID), open Xcode once and accept the licence. **Then I run** `sudo xcode-select -s /Applications/Xcode.app` (asks for your password) and `xcodebuild -downloadComponent MetalToolchain`, and check `xcrun -f metal` |
+| `three-gpu-pathtracer` (npm, MIT) | 6J | ✅ added Nov 6 on branch `claude/phase-6j-render-button`: 0.0.24 with `xatlas-web` 0.1.0 | nothing; 6J starts from that branch. 0.0.24 is the newest that takes three 0.186 and drei's `three-mesh-bvh` 0.8.3 (0.0.25+ need `three-mesh-bvh` 0.9, which would mean upgrading drei) |
 | SketchUp + a glTF importer extension | the last check of 6B | ❌ not installed | **Optional:** only if you want the `.glb` in SketchUp. Otherwise Blender and Twinmotion open it |
 | Twinmotion 2026.2 | optional quick looks at the `.glb` | ✅ installed | nothing |
 | **External SSD** (1–2 TB, USB-C / Thunderbolt) | `build/3d/`: bakes (a few GB), the Unreal project (tens of GB) | — | **Recommended before 6E–6G**; 91 GB free will run short. An SSD, not a USB stick (too slow and wears out). Keep the code on GitHub, never on the drive only |
