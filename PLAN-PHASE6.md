@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done** on branch `claude/phase-6c-blender-renders`, renders sent, not merged (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -208,6 +208,45 @@ Removed: `tools/export-legacy/`, once Blender's check passes on the new file (th
 - **Sun and time:** June 17:00, the pipeline's default (az 272°, el 30°), not the app's saved time (September 14:00). The low west light is what the materials were tuned for. `--season` and `--hour` still change it.
 - **Trees stay as the app draws them** until 6D.
 - **Renders are not committed** (they're under `build/`). If you want a few kept, they can go in `docs/renders/`.
+
+## 6D in detail: art direction (plan, waiting for Finley's OK)
+
+**Goal:** one look pass on the 6C renders, until you sign them off. Branch `claude/phase-6d-art-direction`, from `main` (2e404a5).
+
+### What looking into the 6C renders found
+
+| What you see | Why | Fix |
+|---|---|---|
+| Concrete-looking blocks with a wheel under them, in front of the lantern and wedge hero shots | They are the **parked cars** on the drop-off pad. The app doesn't tag them, so the export calls them `pad`, and Blender dresses them in gravel | Tag the cars `car` in the app (`site/objects/ParkedCars.tsx`), which leaves them in the app's colours, as the old exporter did. The hero cameras also stop framing a car right in front of the lens |
+| Thin white lines on the ground | **A 6B bug.** The app draws one earthworks patch per reshaped area and cuts a hole in the terrain for each. The exporter looks the patch up by name, which returns only the first one, so the other holes show as gaps | `collect.ts` takes every `terrain-patch` and every `retaining-walls` group. A unit test with two patches covers it, and `check_export` gets a "no holes" count |
+| The kurinuki wall tears with displacement | The app's walls are loose triangles with T-junctions round the openings, so displacement cracks them apart | Weld the wall meshes before subdividing (merge by distance, then remove the T-junctions by triangle fan splits) in `styling.true_displacement`. If that doesn't hold, kurinuki uses bump plus a small displacement scale instead |
+| The wedge close-up shows plain upper stucco | `_detail_view` aims at the centre of the biggest face, above the 0.9 m stone base | Aim the close-up 1.2 m above the bottom of the face, so a wainscot shows. Walls without one look the same |
+| No sea in the aerial | The aerial looks from the bay toward the land | Swing it so the shoreline and the water are in the frame |
+| Low-poly trees in flat colour | Trees have no material | Bark and leaf materials (two new keys) on the app's tree shapes; madrone bark is red-brown and peeling. New tree geometry waits for later |
+
+### The look pass (your notes go here)
+
+The original 6D list was sun, sky and AgX, meadow colour, stucco brightness, and nicer trees. From the 6C renders I'd propose:
+- **The meadow:** a touch warmer and drier.
+- **Stucco:** brought down a little, so it doesn't clip in the late sun.
+- **Colour management:** AgX "Medium High Contrast".
+- **Everything else as it is.**
+
+**Tell me what you want changed in the renders.** That list replaces mine.
+
+### Order of work (one commit each)
+
+1. Earthworks: export every patch and retaining wall, with a test. (Fixes 6B; merges first.)
+2. The cars tagged `car`.
+3. Weld before displacement, or the kurinuki fallback.
+4. The close-up height, and the aerial framing.
+5. Bark and leaf materials.
+6. The look pass.
+7. Re-export, `check_export`, re-render all 9 with displacement on, and send them with a contact sheet and a before/after of the 6C set.
+
+### Done when
+
+You sign off on the renders.
 
 ## Decisions (say if you disagree)
 
