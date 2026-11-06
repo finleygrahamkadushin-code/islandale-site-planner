@@ -161,6 +161,31 @@ describe('plan store', () => {
     store().setDisplayStyle('realistic')
   })
 
+  describe('clear plan', () => {
+    test('removes every object as one undo step and leaves a blank plan', () => {
+      store().select([firstId()])
+      store().clearPlan()
+      expect(store().plan.order).toHaveLength(0)
+      expect(Object.keys(store().plan.objects)).toHaveLength(0)
+      expect(store().plan.schemeId).toBeNull()
+      expect(store().selection).toEqual([])
+      history().undo()
+      expect(store().plan.order).toHaveLength(17)
+      expect(store().plan.schemeId).toBe('C')
+    })
+
+    test('keeps locked objects and objects on locked layers', () => {
+      const id = firstId()
+      store().setLocked(id, true)
+      store().setLayer('trees', { locked: true })
+      const trees = store().plan.order.filter((o) => isObjectLocked(store(), o) && o !== id)
+      store().clearPlan()
+      expect(store().plan.order).toEqual(expect.arrayContaining([id, ...trees]))
+      expect(store().plan.order).toHaveLength(1 + trees.length)
+      store().setLayer('trees', { locked: false })
+    })
+  })
+
   test('rotation is normalised to (-180, 180]', () => {
     expect(normalizeDeg(370)).toBe(10)
     expect(normalizeDeg(-190)).toBe(170)
