@@ -239,6 +239,9 @@ def dress(site, styles_path, allow_missing=False):
                 terrain_mat = terrain_material(sty.material(s["terrain"]), sty.material(shore["material"]),
                                                shore["below_m"], shore["blend_m"])
             mat = terrain_mat
+        elif it.kind == "tree":
+            spec = s.get("trees", {}).get(it.part or "")
+            mat = sty.material(spec) if spec else None
         elif it.kind in ("site", "earthworks", "water"):
             spec = sty.site_spec(it)
             mat = sty.material(spec) if spec else None

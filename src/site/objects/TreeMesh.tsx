@@ -12,6 +12,10 @@ import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { barkColour, buildTree, speciesOf, treeSeed } from './treeShapes'
 
 /** A tree by species (madrone, fir, cedar, alder) inside its legacy canopy width and height. */
+/** Part tags the 3D export reads, so Blender can give the trunk bark and the crown leaves. */
+const BARK_DATA = { part: 'bark' } as const
+const CROWN_DATA = { part: 'crown' } as const
+
 export function TreeMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
   const { ground } = useEarthworks()
@@ -31,10 +35,10 @@ export function TreeMesh({ o }: { readonly o: PlanObject }) {
   const glow = selected ? 1 : hovered ? 0.4 : 0
   return (
     <group position={position} userData={{ objectId: o.id }}>
-      <mesh geometry={shape.bark} castShadow {...handlers}>
+      <mesh geometry={shape.bark} castShadow userData={BARK_DATA} {...handlers}>
         <Surface kind="trunk" style={style} color={barkColour(species)} />
       </mesh>
-      <mesh geometry={shape.crown} castShadow receiveShadow {...handlers}>
+      <mesh geometry={shape.crown} castShadow receiveShadow userData={CROWN_DATA} {...handlers}>
         <Surface kind="canopy" style={style} color={leaf} glow={glow} vertexColors />
       </mesh>
     </group>

@@ -41,6 +41,7 @@
   },
   "site": {
     "terrain": "meadow",
+    "trees": { "_why": "the app's low-poly madrones: red peeling bark on the trunk and limbs, glossy evergreen leaves on the crown", "bark": "madrone_bark", "crown": "leaves" },
     "shore": { "material": "beach", "below_m": 3.0, "blend_m": 0.8 },
     "earthworks": "meadow",
     "retaining": "ledgestone_cool",
