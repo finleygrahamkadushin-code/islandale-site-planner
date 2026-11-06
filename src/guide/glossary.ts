@@ -11,6 +11,9 @@ export const GLOSSARY = {
   contour: 'A line joining ground of the same height; close lines mean steep ground.',
   berm: 'A raised bank of earth, built up to shape the ground or hold back water.',
   coverage: 'Lot coverage: how much of the lot is under roofs and decks.',
+  'top-of-bank': 'Where the shore bank levels off; on the east shore the shoreline setback is measured from here, not from the water.',
+  'lot-width': 'Lot-width rule: buildings may cover at most half the lot width through their most seaward point (40 ft on a lot under 80 ft wide).',
+  'tree-zone': 'Tree protection zone: no trees may be removed within 35 ft of the water, and only some from 35 to 110 ft.',
   'accessible-route': 'A path someone in a wheelchair can use: firm, wide enough and no steeper than 1 in 12.',
 } as const
 

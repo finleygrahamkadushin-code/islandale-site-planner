@@ -5,6 +5,7 @@ import { Inspector } from './Inspector'
 import { LayersPanel } from './LayersPanel'
 import { EnvironmentPanel } from '../site/environment/EnvironmentPanel'
 import { LegendPanel, LotFactsPanel } from '../site/SitePanels'
+import { SetbacksPanel } from '../site/rules/SetbacksPanel'
 import { ConnectPanel } from '../paths/connect/ConnectPanel'
 import { RoutePanel } from '../paths/route/RoutePanels'
 import { TabPanel } from '../layout/TaskTabs'
@@ -35,6 +36,7 @@ export function SidePanel() {
       <TabPanel tabs={['site', 'build']}>{hasSelection && <Inspector />}</TabPanel>
       <TabPanel tabs={['site']}>
         {!hasSelection && <LotFactsPanel />}
+        {!hasSelection && <SetbacksPanel />}
         {!hasSelection && <LayersPanel />}
         <EnvironmentPanel />
         {!hasSelection && <LegendPanel />}

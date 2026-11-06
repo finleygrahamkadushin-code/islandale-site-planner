@@ -6,7 +6,6 @@ import { useBeginner } from '../guide/mode'
 import { Tip } from '../guide/Tip'
 import { Term } from '../guide/Term'
 
-const LATER_LAYERS = ['Setbacks'] as const
 const ICON = 15
 
 /** Eye and padlock per category, shown when nothing is selected. */
@@ -15,6 +14,8 @@ export function LayersPanel() {
   const setLayer = usePlanStore((s) => s.setLayer)
   const lockAll = usePlanStore((s) => s.lockAll)
   const showAll = usePlanStore((s) => s.showAll)
+  const setbacksShown = usePlanStore((s) => s.setbacks.shown)
+  const setSetbacks = usePlanStore((s) => s.setSetbacks)
   const siteLocked = usePlanStore((s) => s.siteLocked)
   const hiddenIds = usePlanStore(useShallow((s) => s.plan.order.filter((id) => s.plan.objects[id].hidden)))
   const setHidden = usePlanStore((s) => s.setHidden)
@@ -88,24 +89,21 @@ export function LayersPanel() {
           </span>
           <span className="muted small count">2 ft, darker every 10</span>
         </li>
-        {LATER_LAYERS.map((name) => (
-          <Tip key={name} label="Comes with the site rules in a later phase">
-            <li className="layer muted" tabIndex={0}>
-              <span className="icon" aria-hidden="true">
-                <Eye size={ICON} />
-              </span>
-              {!beginner && (
-                <span className="icon" aria-hidden="true">
-                  <LockOpen size={ICON} />
-                </span>
-              )}
-              <span>
-                <Term term="setback">{name}</Term>
-              </span>
-              <span className="small">later</span>
-            </li>
-          </Tip>
-        ))}
+        <li className="layer">
+          <button
+            className={`icon${setbacksShown ? '' : ' off'}`}
+            aria-label={`${setbacksShown ? 'Hide' : 'Show'} Setbacks`}
+            aria-pressed={!setbacksShown}
+            onClick={() => setSetbacks({ shown: !setbacksShown })}
+          >
+            {setbacksShown ? <Eye size={ICON} aria-hidden="true" /> : <EyeOff size={ICON} aria-hidden="true" />}
+          </button>
+          {!beginner && <span className="icon" />}
+          <span>
+            <Term term="setback">Setbacks</Term>
+          </span>
+          <span className="muted small count">ground tints, buffer line</span>
+        </li>
       </ul>
       {hiddenIds.length > 0 && (
         <div className="hidden-list">
