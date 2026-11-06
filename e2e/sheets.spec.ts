@@ -23,7 +23,8 @@ const sceneStats = (page: Page) => page.evaluate(() => (window as any).islandale
 
 async function open(page: Page) {
   await sheetsButton(page).click()
-  await expect(dialog(page)).toBeVisible()
+  // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
+  await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue('C-0')
 }
 
@@ -111,7 +112,8 @@ async function showScheme(page: Page, scheme: string, id: string, roofsOff = fal
 
 async function openOn(page: Page, id: string) {
   await sheetsButton(page).click()
-  await expect(dialog(page)).toBeVisible()
+  // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
+  await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue(id, { timeout: 60_000 })
 }
 

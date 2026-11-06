@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D approved (Finley, Nov 5 2026), built, look checked by Finley and merged into main. 4E in detail below, waiting for Finley's OK.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D approved (Finley, Nov 5 2026), built, look checked by Finley and merged into main. 4E approved (Finley, Nov 5 2026) and built on branch `phase-4e-polish`, waiting for Finley's look.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -289,7 +289,7 @@ Branch: `phase-4d-present`, from `main` after 4C.
 - **No key for Present yet:** P is Paint. Present is a button and a command; a key can be added if you want one.
 - **The done-when pictures:** saved under `test-results/` for you to look at, not committed, unless you'd like a committed baseline for later parts.
 
-## 4E in detail: Polish (waiting for Finley's OK)
+## 4E in detail: Polish (approved, built)
 
 Branch: `phase-4e-polish`, from `main` after 4D.
 
@@ -305,6 +305,12 @@ Branch: `phase-4e-polish`, from `main` after 4D.
 - **Contact shadows and Sketch outlines:** `src/scene/`.
 - **Themes and the narrow layout:** `src/app/` and `src/layout/`.
 - **The WebGPU test:** `src/scene/webgpu/`, loaded only with `?gpu=1`.
+
+**Baseline on Finley's Mac (Apple M4 Pro, Chrome, production build served locally, Scheme C, Nov 5 2026):**
+- **First frame:** 0.68–0.79 s over three fresh loads (cache bypassed). The 3 s target is already met locally; what's left is the download size for the hosted home.
+- **At rest:** 119 fps (8.4 ms a frame) in Realistic and White model.
+- **Live drag of a cabin:** 40 fps (24.9 ms) in Realistic, 60 fps (16.7 ms) in White model. Realistic dragging is the one miss against the 50 fps target.
+- **A second copy of the view open** (such as a forgotten preview tab) cut the rest rate to 40 fps, so measurements are taken with one view open.
 
 ### Order of work
 
@@ -353,6 +359,18 @@ The parts are ordered so 4E can stop after any step with the app better than bef
       - The compass and scale bar move up out of the way.
     - **Touch:** controls are at least 40 px on touch screens.
     - **Interior editor:** its plan and panel stack, as the old one did under 760 px.
+
+### What 4E found (Nov 5 2026)
+
+- **Speed after step 2:** what loads before the first frame went from one 2.58 MB script (834 kB compressed) to about 625 kB compressed. three.js is its own 741 kB chunk; every other chunk is under 500 kB (`npm run check:bundle`). The drawing sheets, interior editor, command search, old planner frame and post-processing (158 kB compressed) load on first use or just after the first frame.
+- **A trap found on the way:** grouping libraries into chunks can make two chunks load each other in a loop, and then the built app crashes on start ("r is not a function") while the dev server and every e2e test still pass. `vite.config.ts` now only groups libraries whose imports stay among libraries, and `node scripts/hosted-build-check.mjs` (which loads the built app) is part of the checks for any chunk change.
+- **Dragging:** after step 2, a live drag on Scheme C holds 60 fps in Realistic and White model (median 16.7 ms, 95th percentile about 25 ms), so step 3 needed no React changes. The earlier 40 fps in Realistic couldn't be reproduced; a second copy of the 3D view open at the time is the likely cause.
+- **WebGPU test (`?gpu=1`, one sitting):**
+  - **Starts:** three.js r186's WebGPU renderer starts on the M4 Pro and runs its loop at 120 fps.
+  - **Draws nothing:** the view stayed black, even with the post-processing cut to the bare scene pass. The first frame took 3.1 s against WebGL's 0.7 s.
+  - **WebGL-only today:** drei's fat lines (`LineMaterial`, used by the parcel line, contours, foam, measurements and every Sketch outline: each needs `Line2NodeMaterial`), drei's `Sky`, `Environment` and `MeshReflectorMaterial`, and `@react-three/postprocessing`. GTAO in r186 also needs a separate normal pre-pass and an AO context on the scene pass.
+  - **Outcome:** the path didn't draw Scheme C, so it was taken out again. WebGL stays the only renderer.
+  - **A WebGPU switch means:** a TSL line material, a TSL sky and water, a TSL post-processing chain, and finding why the scene pass renders black.
 
 ### Done when
 
