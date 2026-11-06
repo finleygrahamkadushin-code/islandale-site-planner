@@ -34,6 +34,9 @@ function liveScene(): Scene {
   s.add(Object.assign(new Mesh(new BoxGeometry(), paint('#556b2f')), { name: 'terrain' }))
   s.add(Object.assign(new Mesh(new BoxGeometry(), paint('#3a6ea5')), { name: 'water' }))
   s.add(Object.assign(new Mesh(new BoxGeometry(), paint('#ff00ff')), { name: 'gizmo' }))
+  // the app draws one terrain patch per reshaped area
+  s.add(Object.assign(new Mesh(new BoxGeometry(), paint('#556b2f')), { name: 'terrain-patch' }))
+  s.add(Object.assign(new Mesh(new BoxGeometry(), paint('#556b2f')), { name: 'terrain-patch' }))
   const planGroup = Object.assign(new Group(), { name: 'plan' })
   const h = new Group()
   h.userData = { objectId: 'h1' }
@@ -128,6 +131,11 @@ describe('collectModel', () => {
   test('names site meshes under their root', () => {
     expect(names(scene.getObjectByName('Terrain')!)).toEqual(['Terrain|terrain|0'])
     expect(names(scene.getObjectByName('Water')!)).toEqual(['Water|water|0'])
+  })
+
+  test('takes every terrain patch, not just the first', () => {
+    expect(collectModel(liveScene(), plan, { interiors: false }).patches).toBe(2)
+    expect(names(scene.getObjectByName('Earthworks')!)).toEqual(['Earthworks|earthworks|0', 'Earthworks|earthworks|1'])
   })
 
   test('never changes the live scene', () => {

@@ -183,13 +183,17 @@ def main():
     }
     report["positions"], bad_pos = check_positions(man, exag)
     report["walls"], faces, followed, bad_walls = check_walls(man)
+    patches = sum(1 for o in objs if o.type == "MESH" and tag(o, "part") == "earthworks")
+    want_patches = (man.get("stats") or {}).get("terrainPatches")
+    holes = want_patches is not None and patches != want_patches    # every patch fills a hole in the terrain
+    report["terrain_patches"] = {"found": patches, "want": want_patches, "ok": not holes}
     report["summary"] = {"position_failures": bad_pos, "wall_mesh_failures": bad_walls, "wall_faces": faces, "wall_faces_followed": followed,
                          "wall_meshes": len(report["walls"])}
     text = json.dumps(report, indent=1, ensure_ascii=False)
     print(text)
     if a.json:
         a.json.write_text(text)
-    sys.exit(1 if bad_pos or bad_walls else 0)
+    sys.exit(1 if bad_pos or bad_walls or holes else 0)
 
 
 if __name__ == "__main__":

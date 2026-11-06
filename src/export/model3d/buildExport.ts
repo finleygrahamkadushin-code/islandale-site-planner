@@ -33,7 +33,7 @@ export async function buildModelExport(live: Object3D, state: PlanState, opts: M
     nodes: collected.nodes,
     slug,
     source: { scene: sceneName, from: opts.from ?? 'app', schemeId: plan.schemeId, exportedAt: new Date().toISOString(), displayStyle },
-    stats: { ...counts, objects: collected.nodes.length, bytes: glb.byteLength, skippedEmpty: collected.empty },
+    stats: { ...counts, objects: collected.nodes.length, bytes: glb.byteLength, skippedEmpty: collected.empty, terrainPatches: collected.patches },
   })
   return { slug, glb, manifest }
 }
