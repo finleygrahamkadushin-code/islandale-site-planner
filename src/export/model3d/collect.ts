@@ -149,23 +149,25 @@ interface Piece {
 /** Every drawn mesh of one object, with what its tags and the groups above it say. */
 function pieces(root: Object3D, opts: CollectOptions): Piece[] {
   const out: Piece[] = []
-  const walk = (x: Object3D, mi: number | undefined, interior: boolean) => {
+  const walk = (x: Object3D, mi: number | undefined, interior: boolean, part: string | undefined) => {
     if (!x.visible || isLineLike(x)) return
     const inside = interior || isInteriorRoot(x)
     if (x.userData.sheetSkip && !(inside && opts.interiors)) return
     const m = typeof x.userData.mass === 'number' ? (x.userData.mass as number) : mi
+    // a part tag holds for everything under it, as Paint's hit test reads it (paintHit.ts)
+    const p = typeof x.userData.part === 'string' ? (x.userData.part as string) : part
     if (isPaintedMesh(x)) {
       const ud = x.userData
       const interiorPart = inside ? ((ud.interiorPart as string | undefined) ?? 'furniture') : undefined
       out.push({
         mesh: x,
-        info: { part: ud.part as string | undefined, interiorPart, mi: m, massWide: ud.massWide === true, drawnHex: drawnHex(x) },
+        info: { part: p, interiorPart, mi: m, massWide: ud.massWide === true, drawnHex: drawnHex(x) },
         faceEdges: Array.isArray(ud.faceEdges) ? (ud.faceEdges as number[]) : undefined,
       })
     }
-    x.children.forEach((c) => walk(c, m, inside))
+    x.children.forEach((c) => walk(c, m, inside, p))
   }
-  walk(root, undefined, false)
+  walk(root, undefined, false, undefined)
   return out
 }
 
