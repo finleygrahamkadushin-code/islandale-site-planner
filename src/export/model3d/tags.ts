@@ -52,9 +52,10 @@ export function meshExtras(o: PlanObject, piece: PieceInfo, k: number): MeshExtr
   if (!piece.part) return { ...base, ...colour, part: o.type, partSrc: 'inferred' }
   const decor = piece.massWide ? { decor: true as const } : {}
   const host = PAINT_HOSTS[o.type]
-  if (!host || !isExtTagPart(piece.part)) return { ...base, ...colour, ...decor, part: piece.part, partSrc: 'planner' }
-  const r = extResolve(o.params as Record<string, unknown>, piece.mi ?? 0, piece.part, piece.ei ?? null, host)
+  const paintPart = piece.part === 'gable' ? 'wall' : piece.part
+  if (!host || !isExtTagPart(paintPart)) return { ...base, ...colour, ...decor, part: piece.part, partSrc: 'planner' }
+  const r = extResolve(o.params as Record<string, unknown>, piece.mi ?? 0, paintPart, piece.ei ?? null, host)
   const paint =
-    piece.part === 'wall' ? { wallKind: r.kind || 'painted' } : piece.part === 'roof' ? { roofMat: r.mat || 'plain' } : piece.part === 'rail' ? { railStyle: r.style || 'wood' } : {}
+    piece.part === 'wall' || piece.part === 'gable' ? { wallKind: r.kind || 'painted' } : piece.part === 'roof' ? { roofMat: r.mat || 'plain' } : piece.part === 'rail' ? { railStyle: r.style || 'wood' } : {}
   return { ...base, ...decor, ...paint, part: piece.part, partSrc: 'planner', color: r.color }
 }

@@ -47,7 +47,13 @@ function liveScene(): Scene {
   roof.userData = { part: 'roof' }
   const pick = new Mesh(new BoxGeometry(), new MeshStandardMaterial({ visible: false }))
   const edges = new Line(new BufferGeometry(), new LineBasicMaterial())
-  mass.add(wall, roof, pick, edges)
+  const gable = new Mesh(new BoxGeometry(1, 1, 0.2), paint('#9b6b43'))
+  gable.position.y = 4
+  gable.userData = { part: 'wall', massWide: true }
+  const cladding = new Mesh(new BoxGeometry(1, 2, 0.2), paint('#9b6b43'))
+  cladding.position.y = 1
+  cladding.userData = { part: 'wall', massWide: true }
+  mass.add(wall, roof, pick, edges, gable, cladding)
   const rooms = new Group()
   rooms.userData = { sheetSkip: true }
   const bed = new Mesh(new BoxGeometry(), paint('#aa8866'))
@@ -81,7 +87,14 @@ describe('collectModel', () => {
   })
 
   test('splits a wall mesh into one mesh per edge, leaves out lines and pick targets', () => {
-    expect(names(objects.children[0])).toEqual(['Twin Pod #h1|wall|m0|e0|0', 'Twin Pod #h1|wall|m0|e1|1', 'Twin Pod #h1|roof|m0|2', 'Twin Pod #h1|furniture|3'])
+    expect(names(objects.children[0])).toEqual([
+      'Twin Pod #h1|wall|m0|e0|0',
+      'Twin Pod #h1|wall|m0|e1|1',
+      'Twin Pod #h1|roof|m0|2',
+      'Twin Pod #h1|gable|m0|3',
+      'Twin Pod #h1|wall|m0|4',
+      'Twin Pod #h1|furniture|5',
+    ])
     const e1 = objects.children[0].children[1] as Mesh
     expect(e1.geometry.getAttribute('position').count).toBe(6)
     expect(e1.userData).toMatchObject({ part: 'wall', ei: 1, mi: 0, wallKind: 'cedar' })
@@ -93,8 +106,13 @@ describe('collectModel', () => {
     expect(e0.geometry.getAttribute('uv').getX(0)).toBeCloseTo(3.048)
   })
 
+  test('a gable end above the walls is "gable"; cladding down the walls stays "wall"', () => {
+    expect(objects.children[0].children[3].userData).toMatchObject({ part: 'gable', decor: true, wallKind: 'cedar' })
+    expect(objects.children[0].children[4].userData).toMatchObject({ part: 'wall', decor: true })
+  })
+
   test('tags the rooms inside as interior, or leaves them out', () => {
-    expect((objects.children[0].children[3] as Mesh).userData).toMatchObject({ interior: true })
+    expect((objects.children[0].children[5] as Mesh).userData).toMatchObject({ interior: true })
     const without = collectModel(liveScene(), plan, { interiors: false }).scene.getObjectByName('Twin Pod #h1')!
     expect(without.children.some((c) => c.userData.interior)).toBe(false)
   })

@@ -49,6 +49,10 @@ describe('meshExtras', () => {
     expect(meshExtras(lantern, { part: 'wall', mi: 0, massWide: true }, 0).decor).toBe(true)
   })
 
+  test('a gable end keeps its wall kind and stays decor', () => {
+    expect(meshExtras(lantern, { part: 'gable', mi: 0, massWide: true }, 0)).toMatchObject({ part: 'gable', wallKind: 'cedar', decor: true })
+  })
+
   test('rooms inside are interior; their walls are partitions', () => {
     expect(meshExtras(lantern, { interiorPart: 'wall', mi: 0 }, 0)).toMatchObject({ part: 'partition', interior: true })
     expect(meshExtras(lantern, { interiorPart: 'furniture' }, 0)).toMatchObject({ part: 'furniture', interior: true })

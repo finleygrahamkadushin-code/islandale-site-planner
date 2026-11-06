@@ -20,7 +20,13 @@ initTheme()
 // For end-to-end tests and debugging in the console.
 declare global {
   interface Window {
-    islandale: { store: typeof usePlanStore; camera?: () => number[]; renderInfo?: () => Record<string, unknown> }
+    islandale: {
+      store: typeof usePlanStore
+      camera?: () => number[]
+      renderInfo?: () => Record<string, unknown>
+      /** Export 3D model for tools/export/export_scene.mjs (set by ModelExportProbe). */
+      exportModel?: typeof import('./export/model3d/exportModel').exportModelForScript
+    }
   }
 }
 window.islandale = { store: usePlanStore, firstFrameMs, sampleFrames, liveDrag: useLiveDrag } as Window['islandale']

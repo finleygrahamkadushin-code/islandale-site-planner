@@ -17,7 +17,7 @@ import {
   type Object3D,
 } from 'three'
 import { CURVED_SHAPES } from '../../buildings/footprint'
-import { buildingMasses } from '../../buildings/masses'
+import { buildingMasses, type Mass } from '../../buildings/masses'
 import { M_PER_FT } from '../../site/units'
 import type { Plan, PlanObject } from '../../store/types'
 import { isLineLike, paints } from '../sheets/elevation/sheetTarget'
@@ -54,6 +54,8 @@ const LIVE = { terrain: 'terrain', patch: 'terrain-patch', retaining: 'retaining
 /** Object types whose uvs the app writes in feet. */
 const FEET_UV_TYPES = new Set(['house', 'deck', 'bridge', 'shed', 'shop'])
 const DEFAULT_ROUGHNESS = 0.86
+/** m: how far below the wall top a gable end may start. */
+const GABLE_TOL_M = 0.02
 const ROUND_M = 1e4
 const r4 = (v: number): number => Math.round(v * ROUND_M) / ROUND_M
 
@@ -181,15 +183,26 @@ function isInteriorRoot(x: Object3D): boolean {
  * A wall piece as the file wants it: a straight mass's walls one mesh per
  * outline edge (by the triangles' face edges), a curved mass's one wall
  * with ei 0; the ceiling drawn when there is no roof (a 'wall' with no
- * face edges) as 'cap'. Anything else passes through.
+ * face edges) as 'cap'; a gable end (mass-wide wall cladding entirely above
+ * the walls, so not on the outline) as 'gable', keeping its wall kind.
+ * Anything else passes through.
  */
 function wallParts(o: PlanObject, piece: Piece, g: BufferGeometry): { info: PieceInfo; geometry: BufferGeometry }[] {
   const { info } = piece
-  if (info.part !== 'wall' || info.interiorPart || info.massWide || o.type !== 'house') return [{ info, geometry: g }]
-  if (!piece.faceEdges) return [{ info: { ...info, part: 'cap' }, geometry: g }]
+  if (info.part !== 'wall' || info.interiorPart || o.type !== 'house') return [{ info, geometry: g }]
   const mass = buildingMasses(o.params as Record<string, unknown>)[info.mi ?? 0]
+  if (info.massWide) return [{ info: mass && isAboveWalls(g, mass) ? { ...info, part: 'gable' } : info, geometry: g }]
+  if (!piece.faceEdges) return [{ info: { ...info, part: 'cap' }, geometry: g }]
   if (mass && (CURVED_SHAPES as readonly string[]).includes(mass.shape)) return [{ info: { ...info, ei: 0 }, geometry: g }]
   return splitByFaceEdges(g, piece.faceEdges).map(({ edge, geometry }) => ({ info: { ...info, ei: edge }, geometry }))
+}
+
+/** A gable end: all of it above the mass's wall tops (in the node frame, whose origin is the building floor). */
+function isAboveWalls(g: BufferGeometry, mass: Mass): boolean {
+  const pos = g.getAttribute('position')
+  const top = (mass.lvl + mass.h) * M_PER_FT - GABLE_TOL_M
+  for (let i = 0; i < pos.count; i++) if (pos.getY(i) < top) return false
+  return pos.count > 0
 }
 
 // ---------- meshes and materials ----------
