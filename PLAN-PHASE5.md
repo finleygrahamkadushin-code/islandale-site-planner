@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). 5E merged into main and the hosted home republished (v6) Nov 6 2026. **The 5F detail (archive) is drafted below and waits for Finley's OK** (branch `claude/phase-5f-archive`). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -280,6 +280,121 @@ From the 5E row, narrowed to the site rules: every site-rule readout on the old 
 - **Rules off** comes from the loaded scheme (`schemeId`), so an edited copy of D stays rules off. There's no new field in the plan.
 - **Tints** show in Realistic and Diagram only; White model and Sketch keep the buffer line.
 - **Left for Phase 6:** the site plan sheet's setback and coverage notes (the old plan sheet's header lines), with the other site sheets.
+
+## 5F in detail: Archive (waiting for Finley's OK)
+
+Branch: `claude/phase-5f-archive`, from `main` at 81fcf91 (5E merged). This plan is drafted on it; the code follows on the same branch once it's approved.
+
+**New app only.** As Finley asked on Nov 5 2026, 5F doesn't run, read or change the old planner. The 5F row's "matches the old planner side by side" becomes: each scheme draws without errors in every saved view, its card says honestly what it is and how it does against the brief, and Finley judges the look from screenshots.
+
+**Already in the new app, so not rebuilt:**
+- **Every scheme loads:** the Scheme list in the top bar has C, its variants C2–C4, and an **Old designs** group (A, B, D–I, `ARCHIVED_SCHEME_IDS` in `src/site/schemes.ts`). Loading replaces the plan as one undo step.
+- **D–I draw as themselves (5D):** curved footprints, sculpted roofs, wall and roof materials, berms, ponds, pools, boulders, meadows, mast and stilt supports, truss and cable bridges. `e2e/old-designs.spec.ts` loads D–I and captures four saved views of each.
+- **Floor plans (5B):** C, C2–C4, A, B, D and G ship a floor plan for every cabin.
+- **Rules off (5E):** the code check greys out D, E and F, which carry `rulesOff`.
+- **Data:** every scheme has its `tag` and `blurb` in `data/islandale/schemes.json`. No screen shows them yet.
+
+**What's still missing** (from the gap list, checked against the app):
+- **Scheme cards:** the tag line and description are never shown, so there's no way to read what a scheme is before loading it.
+- **After loading:** the camera doesn't frame the new buildings, nothing is selected, and no message says what loaded.
+- **A and B:** never checked in a browser test. `old-designs.spec.ts` covers D–I only.
+- **Missing floor plans:** five cabins have none. F and I have no plan for any of their cabins, E is missing two and H one. The old planner made one automatically when a scheme loaded; the new app has no automatic room planning (left for later in 5B).
+
+**How each scheme does against the brief today** (new code check at the default setbacks, and the program budget):
+
+| Scheme | Enclosed sq ft | Fails |
+| --- | --- | --- |
+| C, C2, C3, C4 | 1,595–1,599 | Accessible route, path pieces, level floors |
+| A | 1,592 | Guards (Elders' bay cabin deck), route, path pieces, levels |
+| B | 1,491 | Lot width (62 of 57 ft), guards, route, path pieces, levels |
+| G | 1,517 | Route, path pieces, levels |
+| H | 1,505 | Guards (Family sleeping deck), route, path pieces, levels |
+| I | 1,215 | Route, path pieces |
+| D, E, F (rules off) | 2,411 / 3,390 / 2,576 | Shown greyed: setback, lot width, height (F), guards (E, F) |
+
+Every scheme fails the accessible-route row, because their walks are drawn as ribbons and pads, not as 5C path pieces. The cards will say so plainly rather than hide it.
+
+**New libraries:** none. The archive uses Radix Dialog, already in the app since 4B.
+
+**Where the code goes:**
+- **New folder `src/site/archive/`** (with a `CLAUDE.md` row group in `src/site/CLAUDE.md`):
+  - `schemeSummary.ts`: per scheme, the buildings, enclosed sq ft, code-check passes and fails, rules off, and how many cabins have floor plans. Pure, cached per scheme.
+  - `schemeThumb.ts`: a plan-view picture of a scheme as SVG paths (parcel, buffer line, building outlines, pads, trees). Pure.
+  - `SchemeThumb.tsx`, `SchemeCard.tsx`, `ArchiveDialog.tsx`: the cards and the dialog.
+- **Loading behaviour:** a small `loadSchemeAndFrame` helper in `src/site/archive/`, which calls the store's existing `loadScheme` and then the camera's existing focus request. No new store state.
+- **Wiring:** the top bar's Scheme group (`src/ui/TopBar.tsx`) and command search (`src/layout/commands.ts`).
+- **Tests:** beside each pure file, plus `e2e/archive.spec.ts`; A and B are added to `e2e/old-designs.spec.ts`.
+
+### Order of work
+
+1. **Scheme summaries.**
+   - **What:** for each scheme, without loading it: number of cabins, enclosed sq ft against 1,600, how many code-check rows pass and fail (by name), rules off, and cabins with and without a floor plan.
+   - **How:** reuse 5E's `codeCheck` and `programBudget` on `planFromScheme`, worked out once per scheme and cached (about 50 ms each, so all twelve take well under a second).
+2. **Plan thumbnails.**
+   - **What:** a small top-down picture of each scheme: the lot line, the shoreline buffer at the default setbacks, every cabin's walls and wings (from `siteFootprint` and the masses), pads and paths as light shapes, trees as dots, north up.
+   - **Why SVG, not a 3D render:** it's instant, costs nothing, reads at card size, and matches the drawing sheets' style. Colours come from CSS tokens, so both themes work.
+3. **The archive dialog.**
+   - **Opening it:** a **Designs…** button beside the Scheme list, and a "Browse designs" command.
+   - **Groups:** **The current scheme** (C, C2–C4), **Within the brief** (A, B, G, H, I) and **Dream schemes, rules off** (D, E, F).
+   - **Each card:**
+     - **Top:** the thumbnail, the name and the tag line.
+     - **Description:** the blurb, cut to three lines with "More".
+     - **Badges:** "Rules off", "Over 1,600 sq ft", and "N cabins without a floor plan".
+     - **Summary line:** "1,505 of 1,600 sq ft · code check: 7 pass, 4 fail".
+     - **Button:** **Open**.
+   - **Behaviour:** keyboard reachable, Escape closes, focus returns to the button that opened it. The current scheme's card is marked "Open now".
+4. **Opening a scheme.**
+   - **Confirm:** Open asks first, in the shared confirm dialog: "Open D · Nautilus & Kelp? This replaces your plan. You can undo this." It asks in Beginner and Advanced alike, because it replaces the whole plan.
+   - **Then:** the plan loads as one undo step (as it does today), the camera frames all of the scheme's buildings, the gathering building is selected, and a message names the scheme ("Opened H · Sod & Contour", plus "rules off: not checked against the brief" for D, E and F).
+   - **Same for the Scheme list:** choosing from the top-bar list frames, selects and shows the message too.
+5. **Cabins without a floor plan.**
+   - **What they show:** the Interior tab and the cabin's Interior button say "No floor plan yet: draw rooms with Room (B)", and the floor plan opens empty inside the walls, ready to draw.
+   - **No automatic rooms:** auto-fill stays in the gap list for later, as 5B decided. See the decisions.
+6. **A and B in the browser tests.**
+   - **What:** add A and B to `e2e/old-designs.spec.ts`, so they load with no errors and their four saved views are captured.
+   - **Then:** check their octagon, pyramid and butterfly roofs, splayed pods and L-plan in the browser, and fix anything that draws wrong in the part that owns it (`src/buildings/`).
+7. **Notes.**
+   - **PLAN.md:** each deliberate change goes under "Deliberate changes from the legacy file".
+   - **Gap list:** the scheme-card and archive rows are marked done.
+   - **Status:** the line at the top of this file says Phase 5 is complete, apart from what the decisions leave for later.
+
+Commits go in that order, each one leaving the app runnable. The app is checked in the browser after each step.
+
+**Legacy behaviours that change on purpose:**
+- **Cards in a dialog:** the archive is a dialog of cards with plan thumbnails and a live summary against the brief. The old planner listed schemes in its side panel.
+- **Asking first:** opening a scheme asks before replacing the plan, in both modes. The old planner replaced it at once.
+- **No automatic rooms:** cabins without a floor plan open empty instead of being planned automatically.
+
+### Done when
+
+- **Every scheme opens from the archive:** all twelve (C, C2–C4, A, B, D–I) open from their card in one undo step, frame the camera, select the gathering building and say what opened.
+- **Every scheme draws cleanly:** each draws with no console errors in all four saved views (the old-designs spec, now with A and B).
+- **The cards are honest:** each shows its tag line, description, thumbnail, rules off where it applies, and its enclosed sq ft and code-check result, matching what the Code check panel and Program budget show once it's open.
+- **Finley checks the look:** the saved-view pictures of A, B and D–I go to Finley, who judges them.
+
+### Tests first
+
+- **Summaries:** for each scheme, enclosed sq ft and the pass/fail counts match `programBudget` and `codeCheck` on the loaded plan; rules off for D, E and F; cabins without floor plans: E 2, F 5, H 1, I 3; the cache works.
+- **Thumbnails:** one path per cabin outline and pad, one dot per tree, the parcel ring closed, north up, and coordinates inside the view box for every scheme.
+- **Dialog (component test):** three groups in order, the current scheme's card marked, a "More" toggle, and Open asks before loading.
+- **Opening:** one undo step; undo brings the old plan back; the camera request names the scheme's buildings; the gathering building is selected; the message text.
+- **E2e** (`e2e/archive.spec.ts`, starting Advanced with the tour seen through `e2e/fresh.ts`):
+  - Open the archive, read H's card, open it, check the selection and the message, undo.
+  - Open F and see rules off.
+  - Open I and see "No floor plan yet" on a cabin.
+  - Keyboard only: Tab to Designs…, Enter, arrows to a card, Escape.
+- **Which specs run:** only the touched ones: `archive`, `old-designs` (about 6 minutes with A and B), `site-rules` and `layout`.
+- **Build check:** the dialog loads on first use like command search, so `node scripts/hosted-build-check.mjs` runs after the chunk change.
+- **Skills:** `web-design-guidelines` over the new dialog and cards before the done-when check.
+
+### Decisions (say if you disagree)
+
+- **No automatic floor plans:** F and I's cabins, two of E's and one of H's open with an empty floor plan to draw in, rather than 5F building room auto-fill (a large job, left for later in 5B). If you want auto-fill, it could be its own small part after 5F.
+- **Walks stay as drawn:** every scheme's walks stay ribbons and pads, so the route row fails for all of them. Rebuilding them as 5C path pieces would make the route check meaningful, but it changes the schemes' data. The cards just say "route not checked: walks aren't path pieces yet".
+- **Thumbnails are SVG plans,** not small 3D renders.
+- **The archive is a dialog** opened from Designs… beside the Scheme list, rather than a new task tab.
+- **Opening a scheme always asks first,** in both modes.
+- **The groups** are named "The current scheme", "Within the brief" and "Dream schemes, rules off".
 
 ## Appendix: full gap list (audit of Oct 29 2026)
 
