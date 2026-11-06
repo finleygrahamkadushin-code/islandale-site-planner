@@ -1,5 +1,5 @@
 import { usePlanStore } from '../store/planStore'
-import { readFloors } from '../interiors/model'
+import { hasFloorPlan, NO_PLAN_TEXT, readFloors } from '../interiors/model'
 import { usePresent } from '../present/present'
 import { useInteriorView } from '../interiors/editor/interiorView'
 
@@ -35,6 +35,11 @@ export function InteriorTabPanel() {
           {floors.length} {floors.length === 1 ? 'floor' : 'floors'} · {rooms} {rooms === 1 ? 'room' : 'rooms'}
         </span>
       </header>
+      {!hasFloorPlan(cabin.params) && (
+        <p className="muted small" data-testid="no-floor-plan">
+          {NO_PLAN_TEXT}
+        </p>
+      )}
       <button type="button" data-testid="open-interior" onClick={() => useInteriorView.getState().open(cabin.id)}>
         Open floor plan (I)
       </button>

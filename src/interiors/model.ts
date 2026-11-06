@@ -165,6 +165,14 @@ export const newFloor = (name = 'Main floor'): Floor => ({ name, rooms: [], open
  * empty main floor. The stored params are not changed; an edit writes the
  * migrated form back.
  */
+/** True when the cabin has a drawn floor plan: a stored floor with at least one room (5F). */
+export function hasFloorPlan(params: Record<string, unknown>): boolean {
+  return Array.isArray(params.floors) && params.floors.some((f) => isRecord(f) && Array.isArray(f.rooms) && f.rooms.length > 0)
+}
+
+/** What a cabin without a floor plan says (5F). */
+export const NO_PLAN_TEXT = 'No floor plan yet: draw rooms with Room (B).'
+
 export function readFloors(params: Record<string, unknown>): Floor[] {
   const stored = Array.isArray(params.floors) && params.floors.length ? (params.floors as unknown[]) : [newFloor()]
   const nextId = idCounter(stored)

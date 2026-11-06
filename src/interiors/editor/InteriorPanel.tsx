@@ -4,7 +4,7 @@ import * as E from '../edits'
 import { FURNITURE, FURNITURE_ORDER } from '../furniture/furniture'
 import { FixtureFields } from '../furniture/FixtureFields'
 import * as G from '../geom'
-import { readFloors } from '../model'
+import { readFloors, hasFloorPlan, NO_PLAN_TEXT } from '../model'
 import { cabinTypeOf, checkProgram, PROGRAMS } from '../program'
 import { accessibleRoom } from '../furniture/fixtures'
 import { floorStats } from '../rooms'
@@ -41,6 +41,11 @@ export function InteriorPanel({ o }: { readonly o: PlanObject }) {
   return (
     <aside className="int-side" aria-label="Interior panel">
       {locked && <p className="muted small">Locked: unlock the cabin to change its rooms.</p>}
+      {!hasFloorPlan(o.params) && (
+        <p className="muted small" data-testid="no-floor-plan">
+          {NO_PLAN_TEXT}
+        </p>
+      )}
       <Selected floor={floor} run={run} disabled={locked} accessibleIn={(roomName) => accessibleRoom(roomName, cabinType, o.name)} />
       <section className="panel">
         <h3>Rooms</h3>

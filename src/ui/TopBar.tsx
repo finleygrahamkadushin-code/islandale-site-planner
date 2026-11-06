@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState, useRef, type RefObjec
 import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
+import { openScheme, openSchemeNow } from '../site/archive/openScheme'
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
@@ -42,7 +43,6 @@ export function TopBar() {
   const schemes = usePlanStore((s) => s.schemes)
   const labelMode = usePlanStore((s) => s.labelMode)
   const setLabelMode = usePlanStore((s) => s.setLabelMode)
-  const loadScheme = usePlanStore((s) => s.loadScheme)
   const saveStatus = usePlanStore((s) => s.saveStatus)
   const readOnly = usePlanStore((s) => s.readOnly)
   const displayStyle = usePlanStore((s) => s.displayStyle)
@@ -62,17 +62,17 @@ export function TopBar() {
   const onReset = () =>
     useConfirm.getState().request(
       { title: 'Go back to Scheme C?', body: 'This replaces the current plan with Scheme C as saved in the old planner. You can undo this.', confirmLabel: 'Reset' },
-      () => loadScheme(CURRENT_SCHEME_ID),
+      () => openSchemeNow(CURRENT_SCHEME_ID),
     )
 
   return (
     <header className="topbar" ref={bar}>
       <h1>Islandale</h1>
       <TaskTabs />
-      <Tip label="Load a scheme (replaces the plan; undo to go back)">
+      <Tip label="Open a scheme (asks first; replaces the plan; undo to go back)">
         <label className="field">
           <span className="muted">Scheme</span>
-          <select value={plan.schemeId ?? ''} onChange={(e) => e.target.value && loadScheme(e.target.value)}>
+          <select value={plan.schemeId ?? ''} onChange={(e) => e.target.value && openScheme(e.target.value)}>
             {!plan.schemeId && <option value="">Imported plan</option>}
             <optgroup label="Current">
               <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
