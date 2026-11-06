@@ -57,7 +57,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 - **6G · Unreal import** (`tools/unreal/import_islandale.py`):
   - Master materials, one instance per material, Nanite meshes, and the level with sky, sun, fog and the cameras. Safe to run twice.
   - The UE 5.8 Python API is checked against the installed engine, not guessed.
-  - Its check-in A also settles two things: whether Xcode's Metal toolchain is needed, and whether the Mac's Unreal is enough or a Windows PC is worth it (see "What needs installing").
+  - Its check-in A also settles whether Xcode's Metal toolchain is needed (see "What needs installing").
   - Check-in B: a screenshot from each camera.
 - **6H · Site plan sheet:**
   - The lot, contours, buildings, walks, setback bands and the buffer line, with the 5E code-check and coverage notes, a north arrow and a scale bar, at true scale.
@@ -101,9 +101,3 @@ The Mac is a MacBook Pro M4 Pro with 24 GB of memory, a 16-core GPU, macOS 15.7.
 | SketchUp + a glTF importer extension | the last check of 6B | ❌ not installed | **Optional:** only if you want the `.glb` in SketchUp. Otherwise Blender and Twinmotion open it |
 | Twinmotion 2026.2 | optional quick looks at the `.glb` | ✅ installed | nothing |
 | **External SSD** (1–2 TB, USB-C / Thunderbolt) | `build/3d/`: bakes (a few GB), the Unreal project (tens of GB) | — | **Recommended before 6E–6G**; 91 GB free will run short. An SSD, not a USB stick (too slow and wears out). Keep the code on GitHub, never on the drive only |
-
-**A Windows PC:**
-- **Not needed for 6E–6J.** Decide at 6G's check-in A, after trying Unreal on the Mac.
-- **What would change the answer:** hardware ray-traced Lumen, Nanite tessellation (Unreal's way to carve the kurinuki and stone, as Blender's displacement does) and Unreal's path tracer work fully only on Windows with an NVIDIA card. If one of them turns out to be wanted, a loaner is only worth it with an RTX 4070 or better and 32 GB of memory.
-- **How it would work:** the PC would `git clone` the repo, install Node, Blender and UE 5.8, and get the big files (`build/3d/`) over the external SSD.
-
