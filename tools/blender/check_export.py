@@ -126,21 +126,31 @@ def ei_share(hits, faces, ei):
     return max(area, key=area.get), area.get(ei, 0.0) / total
 
 
+def tag(ob, key):
+    """A glTF extra, from the object or, failing that, its mesh data (Blender keeps both)."""
+    v = ob.get(key)
+    return ob.data.get(key) if v is None and ob.data else v
+
+
 def check_walls(man):
     rows, total_faces, total_followed, bad = [], 0, 0, 0
     for o in man["objects"]:
         for mass in o.get("masses", []):
-            if mass["wallEi"] == "none":
+            if mass.get("wallEi", "none") == "none" or not mass.get("outline"):
                 continue
             segs = outline_segments([mass["outline"]])
-            meshes = [ob for ob in bpy.data.objects if ob.type == "MESH" and ob.get("oid") == o["oid"]
-                      and ob.get("part") == "wall" and ob.get("mi") == mass["mi"] and not ob.get("interior")]
-            for ob in sorted(meshes, key=lambda b: b.get("k", 0)):
+            meshes = [ob for ob in bpy.data.objects if ob.type == "MESH" and tag(ob, "oid") == o["oid"]
+                      and tag(ob, "part") == "wall" and tag(ob, "mi") == mass["mi"] and not tag(ob, "interior")]
+            if not meshes:                                  # a walled mass with no wall mesh is a failure, not a pass
+                bad += 1
+                rows.append({"object": o["node"], "mi": mass["mi"], "missing_walls": True, "ok": False})
+                continue
+            for ob in sorted(meshes, key=lambda b: tag(b, "k") or 0):
                 faces = wall_faces(ob)
                 followed = apply_uv_meters(ob, outlines=[mass["outline"]])
                 hits = [seg_index(segs, c, nh) for c, nh, _ in faces]
                 on_line = [d for i, d in hits if d is not None and d < ON_LINE]
-                ei = ob.get("ei")
+                ei = tag(ob, "ei")
                 ei_ok, share = None, None
                 if mass["wallEi"] == "edge" and ei is not None:
                     top, share = ei_share(hits, faces, ei)
@@ -149,7 +159,7 @@ def check_walls(man):
                 zs = [(ob.matrix_world @ v.co).z for v in ob.data.vertices]
                 z0, z1 = min(zs), max(zs)
                 z_ok = abs(z0 - mass["base_z"]) < Z_TOL and abs(z1 - (mass["base_z"] + mass["height_m"])) < Z_TOL
-                is_decor = bool(ob.get("decor"))
+                is_decor = bool(tag(ob, "decor"))
                 ok = followed > 0 and (ei_ok is not False) and (z_ok or is_decor)
                 bad += not ok
                 total_faces += len(faces)
