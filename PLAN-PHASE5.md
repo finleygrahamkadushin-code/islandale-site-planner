@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and in progress, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **The 5E detail (site rules) is drafted below and waits for Finley's OK** (branch `claude/phase-5e-site-rules-5277e1`). Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -116,6 +116,170 @@ Geometry stays in one place: every outline comes from `localFootprint` / `siteFo
 Commits go in that order, each one leaving the app runnable. The app is checked in the browser after each step, and every deliberate change from the old planner goes into PLAN.md as it comes up.
 
 **Done when:** Schemes D–I look the way they do in the old planner from matching views (outside, roofs on), and any wall, roof or rail can be repainted, with undo and locks.
+
+## 5E in detail: Site rules (waiting for Finley's OK)
+
+Branch: `claude/phase-5e-site-rules-5277e1`, from `main` at 4175f41 (Phase 4 complete). This plan is drafted on it; the code follows on the same branch once it's approved.
+
+**What Phase 4 already took from 5E:** place, duplicate, snap, measure, Roofs off, the pointer's elevation readout, compass, legend, help, display toggles, PNG snapshot and the old keys. 5E keeps the site rules only.
+
+**Already in the new app, so not rebuilt:**
+- **Shoreline buffer line:** `src/site/buffer.ts` draws a fixed 35 ft line from the water (`SHORE_BUFFER_FT`). It has no bank offset and no slider.
+- **Lot facts:** `src/site/lotFacts.ts` gives lot area (20,847 sq ft), shoreline length and covered area with a coverage %, on the Site tab.
+- **Selection stats:** `src/ui/selectionStats.ts` gives area, floor elevation and lowest ground. It has no clearances.
+- **Accessible route and levels (5C):** `src/paths/route/` and `src/paths/junctions/` already check the route and the floor levels. The code check reuses them; it doesn't redo them.
+- **Rails (5A):** `src/buildings/rails/railRules.ts` already decides which edges need a guard and which are drawn. The guards row reads it.
+- **Placeholders:** a greyed-out "Setbacks" row in Layers (`LATER_LAYERS` in `src/ui/LayersPanel.tsx`) and a `setback` glossary word.
+
+**How the old planner does it** (found with `tools/map.sh`):
+- **Setbacks panel** (lines 689–699): three sliders. Shoreline setback from the top of bank (0–150 ft, step 5, default 35). Top of bank in from the east OHWM (0–80 ft, step 5, default 45). Side and rear lot lines (0–50 ft, step 1, default 10). Plus a "Shade tree protection zones" checkbox (on). They are saved in the layout as `setbacks: {shore, side, bank}`, and they aren't undo steps.
+- **Distance to the shore** (`nearestOnEdges`, line 788): ring edges 4–122 are shoreline. On the east, banked shore (edges 4–120, `EAST_END`) the bank offset is taken off the distance (`deff`). The gentle south-west shore (edges 121–122) is measured from the water.
+- **Ground tints** (`colorTerrain`, line 853):
+  - Inside the lot is green (`#a8c98a`), and outside it is darker and shaded by slope.
+  - The shoreline buffer band is `#e0a86c` and the side setback band `#d2bd8c`, each mixed in at 50 %.
+  - The tree zones add a dark green within 35 ft of the water and a light green from 35 to 110 ft (measured from the water, no bank offset).
+- **Program budget** (`enclosedSqft`, `coveredSqft`, `deckSqft`, `refreshProgram`, lines 8318–8340):
+  - **Enclosed:** the main mass times its floor count, plus closed wings.
+  - **Covered:** open wings that aren't stairs, ramps or decks.
+  - **Decks:** counted separately.
+  - **Limits:** a total against the 1,600 sq ft cap, a row per building, and a flag when any one building passes 800 sq ft.
+- **Code check** (`refreshCode`, line 8325, plus rows added by later blocks):
+
+  | Row | Rule |
+  | --- | --- |
+  | Shoreline setback | Any building mass (stairs, ramps and decks under 30 in left out) inside the buffer |
+  | Decks over 30 in in buffer | Standalone decks more than 30 in up with a corner inside the buffer |
+  | Lot-width rule | Buildings cover at most 50 % of the lot width through the most seaward point (40 ft if the lot is under 80 ft wide there); `lotWidthCheck` |
+  | Height ≤ 35 ft | Wall height plus roof rise plus lift (`maxHeightFt`). It's measured from the floor, though the hint says "above average grade" |
+  | Guards · IRC R312.1 | Every porch or deck edge more than 30 in up has a rail (per edge once rails are edited, `ext:rail-edit` `guardsRow`) |
+  | Rail clearance | Openings kept in rails at stairs, doors and paths (`ext:rail-clear` `clearanceSummary`) |
+  | Handrails · R311.7.8 / R311.8.3 | Stairs with 4 or more risers and ramps rising more than 6 in have a handrail |
+  | Tree zone 1 (0–35 ft) | What is built in it; for information, never red |
+  | Accessible route · ADA 402–405, and Path pieces | From `ext:walk-check` |
+  | Level floors & thresholds | From `ext:level-floors` |
+
+  A rules-off scheme (D, E and F carry `rulesOff`) greys out every verdict.
+- **Clearances** (`refreshSel`, line 1893; `rebuildClearance` and `drawLabels`, lines 2089–2104):
+  - **Inspector rows:** To nearest object, To shoreline (with "· N ft past bank" and "· inside buffer"), and To nearest lot line ("· inside setback", or "crosses the lot line").
+  - **In 3D:** a dashed line and a label from the nearest corner to the shore, the lot line and the nearest object. The shore and lot-line lines turn amber when inside.
+  - **Dimension labels:** each of the selection's four box edges is labelled in feet.
+  - **What it measures from:** the four corners of the building's bounding box (`corners`).
+
+**New libraries:** none. The lines use the fat-line pieces the measure tool already uses, and the labels use the shared label layer in `src/scene/`.
+
+**Where the code goes:**
+- **New folder `src/site/rules/`**, for the pure maths with tests beside it:
+  - `setbacks.ts`: the settings, their ranges and the distances.
+  - `program.ts`: the budget.
+  - `lotWidth.ts`: the lot-width rule.
+  - `height.ts`: building height.
+  - `codeCheck.ts`: one function from plan, site and setbacks to rows.
+  - `clearances.ts`: what the selection's lines and labels show.
+- **Panels, in the same folder:** `SetbacksPanel.tsx`, `ProgramPanel.tsx`, `CodeCheckPanel.tsx`, and `ClearanceMarks.tsx` (the 3D lines and labels). No two names differ only in case.
+- **Ground tints:** in `colourTerrain` (`src/site/terrainGeometry.ts`).
+- **Buffer line:** stays in `buffer.ts` and `SiteMarks.tsx`.
+- **Store:** `setbacks` is view state in `src/store/planStore.ts`, saved through `src/store/persistence.ts` like `environment`. Its type goes in `src/store/types.ts`.
+- **Wiring:** tab wiring in `src/layout/`, the Layers row in `src/ui/LayersPanel.tsx`, the inspector clearance line in `src/ui/selectionStats.ts`, and glossary words in `src/guide/glossary.ts`.
+- **The section map:** `src/site/CLAUDE.md` gets a "Site rules" row group.
+
+### Order of work
+
+1. **Capture the old planner's numbers first.**
+   - **The script:** a one-off Playwright script under `scripts/` opens `legacy/islandale-planner.html` and loads each scheme. It reads the code-check rows, the program budget, the lot coverage, and the selection rows for every building (to shore, to lot line, to nearest).
+   - **Settings:** it does this at the default setbacks and again at the strict reading (shoreline 50 ft).
+   - **The fixture:** the results are saved as `src/site/rules/legacyRules.fixture.json`. Every number in this part is tested against it.
+2. **Setback settings in the store.**
+   - **The fields:** `setbacks: { shoreFt: 35, bankFt: 45, sideFt: 10, treeZones: true }`, with the old ranges and steps, clamped like `clampEnvironment`.
+   - **Saving:** they're saved with the plan (file, autosave, hosted home) and aren't an undo step, as in the old planner and like sun and tide.
+   - **Old layouts:** a pasted old layout's `setbacks` comes across. A plan saved before 5E loads with the defaults.
+3. **Setback maths** (`setbacks.ts`, pure).
+   - **Distances:** to the shore (and past the bank, on edges 4–120 only), to the nearest side or rear lot line, and inside or outside the lot.
+   - **Port:** `nearestOnEdges` and `pointInLot` from the old planner.
+   - **Edge numbers:** the east-bank edge range is a named constant. A test checks it against the parcel ring, which is the old ring (131 points, shoreline edges 4–122).
+4. **Ground tints and the buffer line.**
+   - **Tints:** `colourTerrain` gets the lot, outside-the-lot, buffer, side-setback and tree-zone colours from the old planner. They go on top of the 4E gravel and wet sand, and under the earthworks tints.
+   - **When they redraw:** only when the setbacks or the tide change, never during a drag.
+   - **The buffer line:** follows the setting and the bank offset, so on the east shore it sits 80 ft from the water at the defaults.
+   - **Where they show:** the tints draw in Realistic and Diagram. White model and Sketch keep plain ground but keep the buffer line.
+5. **The Setbacks panel, Layers and legend.**
+   - **The panel:** on the Site tab, with the three sliders in feet, the tree-zone switch, and the old SJCC 18.50.540(C) note in short sentences. A **Strict (50 ft)** button sets the shoreline setback to 50 ft, and **Reset** goes back to 35 / 45 / 10.
+   - **Layers:** the "Setbacks" placeholder becomes a real eye that shows or hides the tints and the buffer line. It has no padlock, because nothing in it can be edited.
+   - **Legend:** gets the lot, outside the lot, buffer, side setback and the two tree zones.
+   - **Glossary:** gets "top of bank", "OHWM" (if it isn't there yet) and "lot-width rule".
+6. **Program budget** (`program.ts`, `ProgramPanel.tsx`).
+   - **What it counts:** enclosed, covered and deck square feet per building, as the old planner counts them. Upper floors come from `params.floors` (5B).
+   - **Where:** on the Build tab when nothing is selected, above Accessible route.
+   - **What it shows:** the total against 1,600 sq ft, a row per building, and the over-cap and over-800 flags in the warning colour.
+7. **Code check rows** (`codeCheck.ts`, `lotWidth.ts`, `height.ts`).
+   - **Rows:** every row in the table above, in the old order, each with a verdict (pass, fail or note) and the objects it names.
+   - **Reuse:** guards and rail clearance read the 5A rail resolver, and the route, path pieces and levels rows read the 5C checks.
+   - **Rules-off schemes:** for D, E and F (the plan's `schemeId` names one), every verdict becomes a grey note.
+8. **The Code check panel.**
+   - **Where:** on the Site tab, under Setbacks, titled "Code check · SJCC 18.50.540".
+   - **What it shows:** rows that fail, in the warning colour, and the old hint cut into short lines.
+   - **Rules off:** a rules-off scheme shows a line saying the scheme sets the brief aside.
+   - **Clicking a name:** each object named in a row is a button that selects it. The old planner had no links.
+   - **Speed:** the rows work out only while the panel is open, and again when the plan or setbacks change, not on every pointer move.
+   - **Command search:** gets "Code check", "Setbacks", "Strict setback" and "Show setbacks" / "Hide setbacks".
+9. **Clearances and dimension labels** (`clearances.ts`, `ClearanceMarks.tsx`).
+   - **In the inspector:** with one object selected, the stats line gets "To shore", "To lot line" and "To nearest", with "past bank", "inside buffer", "inside setback" and "crosses the lot line" as in the old planner.
+   - **In 3D:** a dashed line and label to each. They're amber when inside a setback and draw over the ground.
+   - **Dimension labels:** each outer edge of the selection's main box is labelled.
+   - **Units:** feet and inches (`32'-6"`).
+   - **What clearances measure from:** the outline the code check uses (every wall and wing, leaving out stairs, ramps and low decks), not the four bounding-box corners.
+   - **Hidden:** the marks are hidden in Present mode and while an interior plan is open.
+10. **Notes and maps.**
+    - **PLAN.md:** each deliberate change goes under "Deliberate changes from the legacy file" as it lands.
+    - **Maps:** `src/site/CLAUDE.md` and the root "Where to look" table get the site rules.
+    - **The gap list:** its rows for setbacks, the code check, the program budget, coverage, clearances and dimension labels are marked done.
+
+Commits go in that order, each one leaving the app runnable. The app is checked in the browser after each step.
+
+**Legacy behaviours that change on purpose** (each goes into PLAN.md):
+- **Units:** clearance and dimension labels read in feet and inches, not decimal feet.
+- **Clearances:** they measure from the real outline the code check uses, not the bounding-box corners. A kidney or a turned cabin reads closer to the truth, and the label and the code-check row always agree.
+- **Clicking a name:** objects named in code-check rows can be clicked to select them.
+- **Tints:** they show in Realistic and Diagram only.
+- **Setbacks layer:** it can hide the tints and the buffer line.
+- **Height row:** see the decision below; if Finley agrees, it measures from average grade.
+
+### Done when
+
+From the 5E row, narrowed to the site rules: every site-rule readout on the old planner's panels has a working match.
+- **Sliders:** moving a setback slider moves the ground tints, the buffer line, the clearance labels and the code check at once. The setting survives a reload and goes into the plan file.
+- **Code check:** shows the old planner's rows with the same verdicts for Scheme C and C2–C4 at the default and the strict setbacks. The height row is excepted if it changes on purpose. D, E and F show as rules off.
+- **Program budget:** gives the old planner's enclosed, covered and deck totals for every scheme.
+- **Clearances:** selecting a cabin shows its clearance lines and labels and its edge dimensions. Shore and lot-line distances match the fixture, except where the new outline is closer by design; those are listed in the test.
+- **Not edits:** none of these readouts is an undo step or edits the plan. The setbacks don't touch any locked object.
+
+### Tests first
+
+- **Settings:** defaults, clamping and steps; saved and loaded with the plan; an old layout's `setbacks` comes in; a pre-5E plan gets the defaults; never an undo step.
+- **Distances:** the bank offset applies on edges 4–120 and not on 121–122; points inside and outside the lot; numbers checked against the fixture.
+- **Tints:** a point in each band gets its colour; tree zones on and off; no rebuild during a drag.
+- **Buffer line:** it sits at shore plus bank on the east and at the shore distance on the south-west.
+- **Program:** enclosed, covered and deck square feet per building and in total for every scheme, against the fixture; an upper floor doubles the main mass; the flags at 1,600 and 800.
+- **Lot width and height:** the lot-width numbers for C and C2–C4 against the fixture; heights for a gable, a shell and a dome roof.
+- **Code check:** every row's verdict and text for C and C2–C4 at 35 and 50 ft, against the fixture; a rail switched off turns the guards row red; rules-off schemes grey everything.
+- **Clearances:** nearest object, shore and lot line for each Scheme C cabin; the warn states; dimension labels in feet and inches.
+- **E2e** (`e2e/site-rules.spec.ts`, starting Advanced with the tour seen through `e2e/fresh.ts`):
+  - Slide the shoreline setback to 50 ft and see the code-check row and a cabin's clearance label change; reload and find 50 ft.
+  - Select a cabin and see its lines and labels; click a name in a failing row and see it selected.
+  - Hide the Setbacks layer.
+  - Load Scheme D and see rules off.
+- **Which specs run:** with one worker the full e2e run takes about an hour, so only the specs this touches run: `site-rules`, `graphics` (tints in each style) and `old-designs` (rules off).
+- **Build check:** if a panel is lazy-loaded or a chunk changes, run `node scripts/hosted-build-check.mjs`, because the dev-server tests can't see a built-app crash.
+- **Skills:** `web-design-guidelines` over the new panels before the done-when check.
+
+### Decisions (say if you disagree)
+
+- **Setbacks aren't undo steps** and aren't held by the site lock. They're saved with the plan like sun and tide, as in the old planner. Making them undoable would put every slider drag on the undo stack.
+- **Where the panels go:** Setbacks and Code check on the Site tab; Program budget on the Build tab (with Accessible route). The old planner kept the budget under the schemes list.
+- **Height row:** measure from average grade (the mean ground under the outline), as SJCC and the old hint say. The old planner measured from the floor, so a cabin on a slope or on posts reads taller than before, and the old fixture can't check this row. If you'd rather keep the old number, say so and the row matches the old planner exactly.
+- **Lot coverage:** 4B's Lot facts counts every wall and wing, decks and porches included. The old planner counted only closed masses, standalone decks, sheds and shops (`footprintSqft`). I'd switch Lot facts to the old count so its % matches the old planner and the class brief, and show decks and porches in the Program budget instead.
+- **Rules off** comes from the loaded scheme (`schemeId`), so an edited copy of D stays rules off. There's no new field in the plan.
+- **Tints** show in Realistic and Diagram only; White model and Sketch keep the buffer line.
+- **Left for Phase 6:** the site plan sheet's setback and coverage notes (the old plan sheet's header lines), with the other site sheets.
 
 ## Appendix: full gap list (audit of Oct 29 2026)
 
