@@ -42,7 +42,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Task is about… | Go to | Map |
 |---|---|---|
 | Cabins, decks, porches, stairs, ramps, rails, roofs, walls, openings, supports, paint | `src/buildings/` | `src/buildings/CLAUDE.md` |
-| Terrain, parcel, contours, tide, sun, earthworks, pools, schemes, site objects | `src/site/` | `src/site/CLAUDE.md` |
+| Terrain, parcel, contours, tide, sun, earthworks, pools, schemes, site objects, site rules (setbacks, code check, program budget, clearances) | `src/site/` | `src/site/CLAUDE.md` |
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |

@@ -5,22 +5,33 @@ import type { Terrain as TerrainData } from './types'
 import { usePlanStore } from '../store/planStore'
 import { usePointerGround } from './pointer'
 import { useBoxSelect } from '../tools/useBoxSelect'
-import { buildPatchGeometry, buildTerrainGeometry, colourTerrain } from './terrainGeometry'
+import { buildPatchGeometry, buildTerrainGeometry, colourTerrain, type GroundRules } from './terrainGeometry'
 import { grass, perMetre } from '../scene/textures'
 import { useEarthworks } from './earthworks/useEarthworks'
 import { isPresenting } from '../present/present'
 import { STYLE_GROUND, useDisplayStyle } from '../scene/useDisplayStyle'
+import type { DisplayStyle } from '../store/types'
+
+/** Styles whose ground carries vertex colours (beach, lot and site-rule tints); White model and Sketch stay plain. */
+const TINTED: ReadonlySet<DisplayStyle> = new Set(['realistic', 'diagram'])
 
 /** The ground: the survey grid, with a fine patch wherever buildings and ponds reshape it (cuts, fills, berms, bowls). */
 export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   const style = useDisplayStyle()
   const tideFt = usePlanStore((s) => s.environment.tideFt)
+  const parcel = usePlanStore((s) => s.site.parcel)
+  const setbacks = usePlanStore((s) => s.setbacks)
   const { works } = useEarthworks()
   const rects = useMemo(() => works.fields.map((f) => f.rect), [works])
   const geometry = useMemo(() => buildTerrainGeometry(terrain, rects), [terrain, rects])
   const patches = useMemo(() => works.fields.map(buildPatchGeometry), [works])
   const grassMap = useMemo(() => perMetre(grass()), [])
-  useEffect(() => [geometry, ...patches].forEach((g) => colourTerrain(g, tideFt)), [geometry, patches, tideFt])
+  const tinted = TINTED.has(style)
+  // recolour only when the ground, tide, style or setbacks change (never during a drag)
+  useEffect(() => {
+    const rules: GroundRules | null = tinted && setbacks.shown ? { parcel, settings: { setbacks, rules: true } } : null
+    ;[geometry, ...patches].forEach((g) => colourTerrain(g, tideFt, rules))
+  }, [geometry, patches, tideFt, tinted, parcel, setbacks])
   useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => patches.forEach((g) => g.dispose()), [patches])
   return (
@@ -63,6 +74,8 @@ const groundClick = (e: ThreeEvent<MouseEvent>) => {
 
 function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
   const box = useBoxSelect()
+  // Diagram tints the ground only while the Setbacks layer is shown; otherwise it keeps its flat colour
+  const tinted = usePlanStore((s) => s.setbacks.shown)
   return (
     <mesh
       geometry={geometry}
@@ -75,6 +88,8 @@ function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeome
     >
       {style === 'realistic' ? (
         <meshStandardMaterial key="real" vertexColors map={map} roughness={1} metalness={0} />
+      ) : style === 'diagram' && tinted ? (
+        <meshStandardMaterial key="diagram" vertexColors roughness={1} metalness={0} />
       ) : (
         <meshStandardMaterial key={style} color={STYLE_GROUND[style]} roughness={1} metalness={0} />
       )}

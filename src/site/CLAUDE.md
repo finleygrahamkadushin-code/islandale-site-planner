@@ -16,6 +16,12 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | How the ground is cut, filled and benched | `earthworks/earthworksPasses.ts`, `earthworks/earthworksField.ts`; entry point `earthworks/earthworks.ts` |
 | Retaining walls along a cut | `earthworks/earthworksWalls.ts` (where they run), `earthworks/RetainingWalls.tsx` (draws them) |
 | Ground tints (mud, court, berm, wet margin, cut bank) | `earthworks/earthworksTint.ts` |
+| Site rules (5E): setback settings and distances to the shore (with the top-of-bank offset) and lot lines | `rules/setbacks.ts`; the settings are `setbacks` in `../store/planStore.ts`; the panel is `rules/SetbacksPanel.tsx` |
+| Lot, buffer, side-setback and tree-zone ground tints | `rules/tints.ts`, applied in `terrainGeometry.ts` (`colourTerrain`) from `TerrainMesh.tsx`; the buffer line is `buffer.ts` |
+| The outline the rules measure a building from | `rules/ruleOutline.ts` |
+| The code check (setback, lot width, height, guards, handrails, tree zone, route, levels) | `rules/codeCheck.ts` (entry), `rules/codeCheckRows.ts`, `rules/codeCheckRails.ts`, `rules/codeCheckPaths.ts`, `rules/lotWidth.ts`, `rules/height.ts`; panel `rules/CodeCheckPanel.tsx` |
+| Program budget (enclosed, covered, deck sq ft; 1,600 sq ft cap) and lot coverage | `rules/program.ts`, `rules/ProgramPanel.tsx`; coverage is `lotFacts.ts` (`coverageOf`) |
+| Clearances to shore, lot line and nearest object; dimension labels | `rules/clearances.ts`, `rules/ClearanceStats.tsx` (inspector), `rules/ClearanceMarks.tsx` (3D) |
 | Pond water level | `earthworks/earthworks.ts` (`pondLevel`), `earthworks/earthworksSpec.ts` (`pondLevelOf`) |
 | The ground everything else stands on, with earthworks applied | `earthworks/useEarthworks.ts` (used across buildings and paths) |
 | Trees: species, canopy shapes, colours | `objects/treeShapes.ts`, `objects/TreeMesh.tsx` |

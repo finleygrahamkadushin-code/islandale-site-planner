@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { loadIslandale } from './islandale'
 import { ringEdges } from './parcel'
 import { FT_PER_M } from './units'
-import { coveredSqFt, lotFacts } from './lotFacts'
+import { coverOf, coverageOf, coveredSqFt, lotFacts } from './lotFacts'
 import { planFromScheme } from '../store/fromLegacy'
 import { loadSchemes, schemeById } from './schemes'
 import type { PlanObject } from '../store/types'
@@ -40,5 +40,29 @@ describe('lot facts (4B)', () => {
     expect(base.coveredSqFt).toBeLessThan(base.lotSqFt)
     expect(base.coveragePct).toBeCloseTo((base.coveredSqFt / base.lotSqFt) * 100, 6)
     expect(lotFacts(site.parcel, [...objectsC, cabin(20, 16)]).coveredSqFt).toBeCloseTo(base.coveredSqFt + 320, 6)
+  })
+
+  test('coverage counts closed masses of a cabin, not porches, deck wings, stairs or upper floors', () => {
+    const wings = [
+      { kind: 'wall', w: 10, d: 10, dx: 15, dz: 0 },
+      { kind: 'porch', w: 8, d: 6, dx: 0, dz: 13 },
+      { kind: 'deck', w: 12, d: 8, dx: -16, dz: 0 },
+      { kind: 'stair', w: 4, d: 6, dx: 0, dz: -13 },
+    ]
+    const house: PlanObject = { ...cabin(20, 20), params: { w: 20, d: 20, h: 9, wings, floors: [{}, {}] } }
+    expect(coverageOf(house)).toBeCloseTo(500, 6)
+    expect(coverOf(house)).toBeCloseTo(500 + 48 + 96 + 24, 6)
+  })
+
+  test('standalone decks, sheds and shops still count in full', () => {
+    const deck: PlanObject = { ...cabin(12, 10), type: 'deck', params: { w: 12, d: 10 } }
+    const shed: PlanObject = { ...cabin(8, 10), type: 'shed', params: { w: 8, d: 10 } }
+    expect(coveredSqFt([deck, shed])).toBeCloseTo(200, 6)
+  })
+
+  test('Scheme C coverage leaves out its open wings', () => {
+    const before = objectsC.filter((o) => !o.hidden).reduce((sum, o) => sum + coverOf(o), 0)
+    const after = lotFacts(site.parcel, objectsC).coveredSqFt
+    expect(after).toBeLessThan(before)
   })
 })

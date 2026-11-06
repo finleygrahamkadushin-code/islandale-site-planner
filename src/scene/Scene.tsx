@@ -17,6 +17,7 @@ import { PaintHud } from '../buildings/paint/PaintHud'
 import { ChipLayer } from './ChipLayer'
 import { PlaceGhost } from './PlaceGhost'
 import { MeasureLayer } from '../tools/MeasureLayer'
+import { ClearanceMarks } from '../site/rules/ClearanceMarks'
 import { BoxSelectLayer, boxJustEnded } from '../tools/useBoxSelect'
 import { ConnectLayer } from '../paths/connect/ConnectLayer'
 import { JunctionLayer } from '../paths/junctions/JunctionLayer'
@@ -72,6 +73,7 @@ export function Scene() {
       <ContactShadows />
       <PlaceGhost />
       <MeasureLayer />
+      <ClearanceMarks />
       <BoxSelectLayer />
       <ConnectLayer />
       <JunctionLayer />

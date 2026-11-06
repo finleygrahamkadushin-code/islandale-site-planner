@@ -1,6 +1,7 @@
 import { BufferAttribute, BufferGeometry, Color } from 'three'
-import type { Terrain } from './types'
+import type { Parcel, Terrain } from './types'
 import { samplePosition } from './terrain'
+import { pointFacts, ruleColour, type PointFacts, type TintSettings } from './rules/tints'
 import { sampleTint, type CellRect, type EarthField } from './earthworks/earthworks'
 import { toScene } from '../scene/frame'
 
@@ -45,6 +46,7 @@ export function buildTerrainGeometry(t: Terrain, skip: readonly CellRect[] = [])
   geometry.setIndex(new BufferAttribute(indices.slice(0, q), 1))
   geometry.computeVertexNormals()
   geometry.computeBoundingSphere()
+  geometry.userData.grid = t
   return geometry
 }
 
@@ -110,27 +112,51 @@ const WET = [0.38, 0.36, 0.32] as const
 const BEACH_TOP_FT = 11
 const BLEND_FT = 1.5
 
+/** The site rules the ground shows (5E): the lot, and when `settings.rules` the setback bands and tree zones. */
+export interface GroundRules {
+  readonly parcel: Parcel
+  readonly settings: TintSettings
+}
+
 /**
  * Ground colours by elevation and tide: meadow on top, drier grass on the
  * slope, gravel beach below the high-water band, wet beach just above the water;
+ * with `rules`, the meadow takes the site-rule tints instead (lot, outside,
+ * buffer, side setback, tree zones), so the beach still reads below them;
  * then, on an earthworks patch, blended toward its berm, court, bank, mud or
  * wet-margin tint (legacy earthColor).
  */
-export function colourTerrain(geometry: BufferGeometry, tideFt: number): void {
+export function colourTerrain(geometry: BufferGeometry, tideFt: number, rules: GroundRules | null = null): void {
   const colors = geometry.getAttribute('color') as BufferAttribute
   const normals = geometry.getAttribute('normal') as BufferAttribute
   const positions = geometry.getAttribute('position') as BufferAttribute
   const tint = geometry.userData.tint as Float32Array | undefined
+  const facts = rules ? factsOf(geometry, rules.parcel) : null
   for (let k = 0; k < positions.count; k++) {
     const ft = positions.getY(k) / 0.3048
     const slope = 1 - normals.getY(k)
-    const grass = mix(GRASS, DRY_GRASS, smooth(0.05, 0.25, slope))
+    const grass = rules && facts ? ruleColour(facts[k], slope, rules.settings) : mix(GRASS, DRY_GRASS, smooth(0.05, 0.25, slope))
     const shore = mix(WET, BEACH, smooth(tideFt, tideFt + BLEND_FT, ft))
     const ground = mix(shore, grass, smooth(BEACH_TOP_FT - BLEND_FT, BEACH_TOP_FT + BLEND_FT, ft))
     const c = tint && tint[k * 4 + 3] > 0 ? mix(ground, tint.subarray(k * 4, k * 4 + 3), tint[k * 4 + 3]) : ground
     colors.setXYZ(k, c[0], c[1], c[2])
   }
   colors.needsUpdate = true
+}
+
+// Setback distances per vertex depend only on the parcel and the vertex, so they are worked out once:
+// per survey grid (its vertices never move, whatever the earthworks) and per earthworks patch.
+const gridFacts = new WeakMap<Terrain, { readonly parcel: Parcel; readonly facts: readonly PointFacts[] }>()
+
+function factsOf(geometry: BufferGeometry, parcel: Parcel): readonly PointFacts[] {
+  const grid = geometry.userData.grid as Terrain | undefined
+  const hit = grid ? gridFacts.get(grid) : (geometry.userData.facts as { parcel: Parcel; facts: readonly PointFacts[] } | undefined)
+  if (hit && hit.parcel === parcel) return hit.facts
+  const uv = geometry.getAttribute('uv') as BufferAttribute
+  const facts = Array.from({ length: uv.count }, (_, k) => pointFacts(parcel, uv.getX(k), uv.getY(k)))
+  if (grid) gridFacts.set(grid, { parcel, facts })
+  else geometry.userData.facts = { parcel, facts }
+  return facts
 }
 
 function smooth(a: number, b: number, x: number): number {

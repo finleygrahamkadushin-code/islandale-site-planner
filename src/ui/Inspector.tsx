@@ -29,6 +29,7 @@ import { PAD_TYPES } from '../buildings/parts/shapeEdits'
 import { buildingMasses } from '../buildings/masses'
 import { InspectorSection, useOpenSections } from './InspectorSection'
 import { selectionStats } from './selectionStats'
+import { ClearanceStats } from '../site/rules/ClearanceStats'
 import { requestDelete } from '../guide/confirm'
 import { useBeginner } from '../guide/mode'
 import { Term } from '../guide/Term'
@@ -80,6 +81,7 @@ function SingleInspector({ id }: { readonly id: string }) {
         <div className="stats small" data-testid="selection-stats">
           {Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor {stats.floorFt.toFixed(1)} ft · ground {stats.lowestGroundFt.toFixed(1)} ft <Term term="navd88">NAVD88</Term>
         </div>
+        <ClearanceStats id={id} />
         {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}
       </header>
       {o.type === 'house' && (

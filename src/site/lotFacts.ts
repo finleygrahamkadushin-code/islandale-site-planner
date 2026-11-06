@@ -7,9 +7,9 @@ import { FT_PER_M } from './units'
 
 /**
  * The lot facts the Site tab shows (4B, old site header stats and lot
- * coverage): the assessor lot area, the shoreline length, and the ground
- * covered by buildings and decks. Pure: parcel and objects in, square feet
- * and feet out.
+ * coverage): the assessor lot area, the shoreline length, and the building
+ * footprint that counts as lot coverage (see coverageOf). Pure: parcel and
+ * objects in, square feet and feet out.
  */
 
 export interface LotFacts {
@@ -30,9 +30,22 @@ export function coverOf(o: PlanObject): number {
   return 0
 }
 
-/** Ground covered by the visible buildings and decks, square feet. */
+/**
+ * Square feet one object counts towards lot coverage (5E, the old rule):
+ * a cabin's closed masses only (main walls and closed wings, ground area,
+ * not times floors), plus standalone decks, sheds and shops. Porches, deck
+ * wings, stairs and ramps on a cabin don't count.
+ */
+export function coverageOf(o: PlanObject): number {
+  if (o.type !== 'house') return coverOf(o)
+  return buildingMasses(o.params)
+    .filter((m) => !m.open)
+    .reduce((sum, m) => sum + ringArea(massBuildingPoly(m)), 0)
+}
+
+/** Ground the visible objects count towards lot coverage, square feet. */
 export function coveredSqFt(objects: readonly PlanObject[]): number {
-  return objects.filter((o) => !o.hidden).reduce((sum, o) => sum + coverOf(o), 0)
+  return objects.filter((o) => !o.hidden).reduce((sum, o) => sum + coverageOf(o), 0)
 }
 
 export function lotFacts(parcel: Parcel, objects: readonly PlanObject[]): LotFacts {

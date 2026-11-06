@@ -6,6 +6,8 @@ import { LayersPanel } from './LayersPanel'
 import { EnvironmentPanel } from '../site/environment/EnvironmentPanel'
 import { LegendPanel, LotFactsPanel } from '../site/SitePanels'
 import { SetbacksPanel } from '../site/rules/SetbacksPanel'
+import { ProgramPanel } from '../site/rules/ProgramPanel'
+import { CodeCheckPanel } from '../site/rules/CodeCheckPanel'
 import { ConnectPanel } from '../paths/connect/ConnectPanel'
 import { RoutePanel } from '../paths/route/RoutePanels'
 import { TabPanel } from '../layout/TaskTabs'
@@ -37,12 +39,14 @@ export function SidePanel() {
       <TabPanel tabs={['site']}>
         {!hasSelection && <LotFactsPanel />}
         {!hasSelection && <SetbacksPanel />}
+        {!hasSelection && <CodeCheckPanel />}
         {!hasSelection && <LayersPanel />}
         <EnvironmentPanel />
         {!hasSelection && <LegendPanel />}
       </TabPanel>
       <TabPanel tabs={['build']}>
         <ConnectPanel />
+        {!hasSelection && <ProgramPanel />}
         {!hasSelection && <RoutePanel />}
         {!hasSelection && <LayersPanel />}
       </TabPanel>

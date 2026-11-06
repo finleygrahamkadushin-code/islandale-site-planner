@@ -1,42 +1,58 @@
-import { pointInPolygon } from '../buildings/foundation/foundation'
 import { isoSegments, type IsoSegment } from './contours'
-import { isShorelineEdge } from './parcel'
+import { pointFacts } from './rules/tints'
 import type { Parcel } from './types'
+import { ftToM } from './units'
 
-/** Legacy default shoreline buffer (the sb-shore slider), feet. */
-export const SHORE_BUFFER_FT = 35
 const GRID_M = 0.5
 
-/**
- * The line inside the lot that stands `bufferM` back from the shoreline
- * (OHWM) edges: the iso-line of distance-to-shore over a fine grid, kept
- * to the lot.
- */
-export function shoreBufferLine(parcel: Parcel, bufferM: number): IsoSegment[] {
-  const ring = parcel.ring
-  const shore = ring.map((a, i) => [a, ring[(i + 1) % ring.length]] as const).filter((_, i) => isShorelineEdge(parcel, i))
-  if (!shore.length) return []
-  const xs = ring.map((p) => p[0])
-  const ns = ring.map((p) => p[1])
+interface ShoreGrid {
+  readonly nx: number
+  readonly ny: number
+  readonly x0: number
+  readonly n0: number
+  /** Plain distances to the banked east shore and the south-west shore, metres; NaN outside the lot. */
+  readonly dBank: Float64Array
+  readonly dShore: Float64Array
+}
+
+// the distances don't depend on the settings, so a slider only re-runs the cheap iso-line pass
+const grids = new WeakMap<Parcel, ShoreGrid>()
+
+function shoreGrid(parcel: Parcel): ShoreGrid {
+  const hit = grids.get(parcel)
+  if (hit) return hit
+  const xs = parcel.ring.map((p) => p[0])
+  const ns = parcel.ring.map((p) => p[1])
   const x0 = Math.min(...xs) - GRID_M
   const n0 = Math.min(...ns) - GRID_M
   const nx = Math.ceil((Math.max(...xs) - x0) / GRID_M) + 2
   const ny = Math.ceil((Math.max(...ns) - n0) / GRID_M) + 2
-  const dist = (x: number, n: number) => Math.min(...shore.map(([a, b]) => segDist(x, n, a[0], a[1], b[0], b[1])))
-  return isoSegments(
-    { nx, ny, x0, n0, spacing: GRID_M, at: (i, j) => {
-      const x = x0 + i * GRID_M
-      const n = n0 + j * GRID_M
-      return pointInPolygon(ring, x, n) ? dist(x, n) : NaN
-    } },
-    bufferM,
-  )
+  const dBank = new Float64Array(nx * ny)
+  const dShore = new Float64Array(nx * ny)
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const f = pointFacts(parcel, x0 + i * GRID_M, n0 + j * GRID_M)
+      dBank[j * nx + i] = f.inLot ? f.dBank : NaN
+      dShore[j * nx + i] = f.inLot ? f.dShore : NaN
+    }
+  }
+  const grid = { nx, ny, x0, n0, dBank, dShore }
+  grids.set(parcel, grid)
+  return grid
 }
 
-function segDist(px: number, pn: number, ax: number, an: number, bx: number, bn: number): number {
-  const dx = bx - ax
-  const dn = bn - an
-  const l2 = dx * dx + dn * dn || 1
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pn - an) * dn) / l2))
-  return Math.hypot(px - (ax + t * dx), pn - (an + t * dn))
+/**
+ * The shoreline buffer line inside the lot (5E): `shoreFt` back from the top
+ * of bank on the banked east shore (so shoreFt + bankFt from the water) and
+ * `shoreFt` from the water on the south-west shore. The iso-line of
+ * distance past the bank over a fine grid, kept to the lot.
+ */
+export function shoreBufferLine(parcel: Parcel, shoreFt: number, bankFt: number): IsoSegment[] {
+  const g = shoreGrid(parcel)
+  const bankM = ftToM(bankFt)
+  const at = (i: number, j: number) => {
+    const k = j * g.nx + i
+    return Math.min(g.dBank[k] - bankM, g.dShore[k])
+  }
+  return isoSegments({ nx: g.nx, ny: g.ny, x0: g.x0, n0: g.n0, spacing: GRID_M, at }, ftToM(shoreFt))
 }

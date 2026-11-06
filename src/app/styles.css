@@ -656,3 +656,9 @@ button.primary:hover:not(:disabled) { border-color: var(--fg); }
   button, select, input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), .task-tab, .section-trigger { min-height: 40px; }
   .icon-only, .layer button.icon, .theme-switch .icon-only { min-width: 40px; }
 }
+
+/* 5E site rules: over-limit totals and failing code-check rows */
+.facts dd.over { color: var(--danger); font-weight: 600; }
+.clearance-stats { margin: 4px 0 0; }
+.clearance-row dd { margin: 0; }
+.clearance-row.warn { color: var(--warn); font-weight: 600; }

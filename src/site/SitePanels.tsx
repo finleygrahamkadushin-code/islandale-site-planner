@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { usePlanStore } from '../store/planStore'
 import { lotFacts } from './lotFacts'
+import { TINT_LEGEND } from './rules/tints'
 import { EARTH_TINTS, type TintKind } from './earthworks/earthworksTint'
 import { BUFFER, STAKE } from './SiteMarks'
 import { PARCEL_LINE, SHORELINE_LINE } from './ParcelLine'
@@ -23,7 +24,7 @@ export function LotFactsPanel() {
         <dd>{sqft(facts.lotSqFt)}</dd>
         <dt>Shoreline</dt>
         <dd>{Math.round(facts.shorelineFt).toLocaleString('en-US')} ft</dd>
-        <dt>Covered by buildings and decks</dt>
+        <dt>Building footprint</dt>
         <dd>
           {sqft(facts.coveredSqFt)} · {facts.coveragePct.toFixed(1)} %
         </dd>
@@ -43,10 +44,11 @@ const TINT_LABELS: Readonly<Record<TintKind, string>> = {
 /** What the colours on the ground mean (old ground colour key). */
 export function LegendPanel() {
   const rows: readonly (readonly [string, string, 'fill' | 'line'])[] = [
+    ...TINT_LEGEND.map((r) => [r.colour, r.label, 'fill'] as const),
     ...(Object.keys(EARTH_TINTS) as TintKind[]).map((k) => [EARTH_TINTS[k], TINT_LABELS[k], 'fill'] as const),
     [PARCEL_LINE, 'Lot line', 'line'],
     [SHORELINE_LINE, 'Lot line along the water', 'line'],
-    [BUFFER, 'Shoreline buffer', 'line'],
+    [BUFFER, 'Shoreline buffer line', 'line'],
     [STAKE, 'Lot-corner stakes', 'fill'],
   ]
   return (
