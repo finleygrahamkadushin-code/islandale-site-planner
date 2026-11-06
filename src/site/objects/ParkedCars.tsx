@@ -34,6 +34,9 @@ interface ParkedCarsProps {
  * its width, each resting on the draped pad under its wheels. A click on a
  * car picks the pad.
  */
+/** The part tag the 3D export reads: the cars stay in their own colours, not the pad's surface (Blender styling). */
+const CARS_DATA = { part: 'car' } as const
+
 export function ParkedCars({ o, base, handlers, glow }: ParkedCarsProps) {
   const { drawnGround } = useEarthworks()
   const style = useDisplayStyle()
@@ -48,7 +51,7 @@ export function ParkedCars({ o, base, handlers, glow }: ParkedCarsProps) {
     return slots.map((cx) => carPose(cx, topAt))
   }, [slots, x, n, rot, base, top, drawnGround])
   return (
-    <group name="cars">
+    <group name="cars" userData={CARS_DATA}>
       {slots.map((cx, i) => (
         <Car key={i} x={cx} pose={poses[i]} style={style} handlers={handlers} glow={glow} />
       ))}
