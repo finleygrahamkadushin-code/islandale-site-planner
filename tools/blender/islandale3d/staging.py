@@ -14,6 +14,7 @@ DECLINATION = {"jun": 23.44, "sep": 0.0, "dec": -23.44}
 FT = 0.3048
 BURIED_PROBE, BURIED_TOL = 0.6, 0.3   # m: ground this far out from a wall face, this far above its foot, buries it
 DETAIL_LOOK_UP = 1.2           # m above the bottom of the wall the close-up aims at, so a wainscot is in frame
+HERO_FOOT_INSET = 0.6          # the hero view's corner checks sit this far out from the centre to the wall box's corners
 DETAIL_FACES = 12             # outward wall faces tried for a close-up, biggest first
 EYE = 1.65                    # m: camera height above the ground
 SUN_POWER = 4.0               # sun lamp irradiance (W/m2 in Blender's scale), matched to the sky's brightness below
@@ -159,18 +160,25 @@ def building_cameras(site, ground, tide, collection):
         others = [b for k, b in boxes.items() if k != oid]
         look = Vector((centre.x, centre.y, lo.z + (hi.z - lo.z) * 0.45))
         base = Vector((centre.x, centre.y, lo.z + BASE_CLEARANCE))        # the hero must see the building meet the ground
+        # first a view where nothing (a parked car, a tree) stands in front of the building's foot at its corners too,
+        # then, if there is none, one that only needs its centre and base in sight
+        feet = [Vector((centre.x + (x - centre.x) * HERO_FOOT_INSET, centre.y + (y - centre.y) * HERO_FOOT_INSET,
+                        lo.z + BASE_CLEARANCE)) for x in (lo.x, hi.x) for y in (lo.y, hi.y)]
         hero = None
-        for dist_k in (2.4, 3.0, 1.9):
-            for off in VIEW_TRIES:
-                a = math.radians(off)
-                d = Vector((front.x * math.cos(a) - front.y * math.sin(a), front.x * math.sin(a) + front.y * math.cos(a)))
-                xy = centre.xy + d * (radius * dist_k + 4.0)
-                gz = ground.z(xy.x, xy.y)
-                if gz is None or gz < tide + 0.3:
-                    continue
-                eye = Vector((xy.x, xy.y, gz + EYE))
-                if _clear_view(eye, (look, base), own, others, dg):
-                    hero = eye
+        for targets in ((look, base, *feet), (look, base)):
+            for dist_k in (2.4, 3.0, 1.9):
+                for off in VIEW_TRIES:
+                    a = math.radians(off)
+                    d = Vector((front.x * math.cos(a) - front.y * math.sin(a), front.x * math.sin(a) + front.y * math.cos(a)))
+                    xy = centre.xy + d * (radius * dist_k + 4.0)
+                    gz = ground.z(xy.x, xy.y)
+                    if gz is None or gz < tide + 0.3:
+                        continue
+                    eye = Vector((xy.x, xy.y, gz + EYE))
+                    if _clear_view(eye, targets, own, others, dg):
+                        hero = eye
+                        break
+                if hero:
                     break
             if hero:
                 break
