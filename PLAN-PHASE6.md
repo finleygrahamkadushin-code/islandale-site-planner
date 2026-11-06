@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A done; 6B planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done** (6B approved Nov 6; both on branches, not merged yet) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -12,6 +12,15 @@ Status: **6A done; 6B planned below, waiting for Finley's OK** (Nov 6 2026, bran
 ## Progress
 
 - **6A done** (Nov 6, branch `claude/phase-6a-save-pipeline`, not merged yet). `tools/blender/`, `tools/export-legacy/` and `HANDOFF-blender-ue5.md` are in the repo; `build/` and `__pycache__/` are ignored. One path changed: `tools/export-legacy/export_scene.mjs` read the old planner from the repo-root `index.html`, which in this repo is the new app's entry page, so it now reads `legacy/islandale-planner.html` (and its git-dirty check looks at that file). That file is not byte-identical to the old worktree's `index.html` (it has the later `ext:` blocks), and the legacy exporter was not run here.
+
+- **6B done** (Nov 6, branch `claude/phase-6b-model-export`, cut from the 6A branch since 6A isn't merged yet).
+  - **What's there:** the top bar's **3D model** button and the "Export 3D model" command download `c-prow-lantern.glb` (about 10 MB, 17 objects, 583 meshes, 84k triangles) and its manifest. `tools/export/export_scene.mjs` does the same headless in about 20 s. Code is in `src/export/model3d/` (map inside).
+  - **Checks:** `check_export.py` exits 0 on Scheme C (no position or wall failures, 33 wall meshes), `build_scene.py` builds the scene from it with every house in its material, and the unit and e2e tests pass. `tools/export-legacy/` is removed.
+  - **Not done:** opening the file in SketchUp (Finley); the glossary word for glTF was dropped, since the button's tooltip explains it and nothing else uses the word.
+  - **Deliberate changes from the plan:**
+    - Gable ends (mass-wide wall cladding wholly above the wall tops) are tagged `gable`, not `wall`, because they don't lie on the footprint outline and the checker requires every wall mesh to. They keep `wallKind` and colour. **6C:** add `gable` to `styles.json` (in each building's `parts` and in `defaults.parts`) so gables wear the wall material; until then they keep the app's colour.
+    - A ceiling drawn where a mass has no roof is `cap`.
+    - Colours of non-building pieces (trees, pads, terrain) follow the display style on screen, so export from Realistic.
 
 ## What's left
 
@@ -40,7 +49,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 | Part | What | Size | Done when |
 | --- | --- | --- | --- |
 | **6A · Save the pipeline** ✅ done Nov 6 (branch `claude/phase-6a-save-pipeline`) | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
-| **6B · 3D model export** | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
+| **6B · 3D model export** ✅ done Nov 6 (branch `claude/phase-6b-model-export`) | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
 | **6C · Blender on the new export** | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
 | **6D · Art direction** | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |
 | **6E · Bake textures for Unreal** | `tools/blender/bake_textures.py`: one seamless 6 m tile per material (BaseColor, ORM, Height, Normal) plus `materials.json` | Medium | Every material bakes with seam metrics under the threshold; a tiled preview of each is sent to Finley |

@@ -1,6 +1,6 @@
 # Islandale → Blender → Unreal Engine 5: handoff plan
 
-> **Update, Nov 6 2026 (Phase 6A):** this work is now committed in the main repo on branch `claude/phase-6a-save-pipeline`. Where this note says `tools/export/`, read **`tools/export-legacy/`**: it drives the old planner, which now lives at `legacy/islandale-planner.html`, and is kept only until Phase 6B's exporter for the new app replaces it (see `PLAN-PHASE6.md`). The text below is the original Nov 2 handoff, unchanged; the reference photos in `build/3d/reference/` were not copied.
+> **Update, Nov 6 2026 (Phase 6A):** this work is now committed in the main repo on branch `claude/phase-6a-save-pipeline`. Phase 6B replaced the old planner's exporter: `tools/export/export_scene.mjs` now drives the **new app** (its Export 3D model, `src/export/model3d/`), in the same file contract, and the old exporter is gone. Commands below are updated; where the text below talks about the old exporter's internals (`page_export.js`, `glb.mjs`), read `src/export/model3d/`. The text below is the original Nov 2 handoff, unchanged; the reference photos in `build/3d/reference/` were not copied.
 
 **Read this first.** The work below is **not committed**. It exists only in this git worktree:
 
@@ -63,8 +63,8 @@ The user also shared three reference photos, copied to `build/3d/reference/`:
 ## Commands (run from the worktree root)
 
 ```bash
-# 1. Export the planner scene (Playwright + headless Chromium; run `npm install` in tools/export once)
-node tools/export/export_scene.mjs --scheme "C · Prow & Lantern" --out build/3d/export
+# 1. Export the new app's scene (Playwright + headless Chromium from the repo's own node_modules; starts its own dev server)
+node tools/export/export_scene.mjs --scheme C --out build/3d/export
 
 # 2. Swatch one material on a test cabin (+ seamless-tiling check)
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/swatch.py -- \
