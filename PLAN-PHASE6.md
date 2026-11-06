@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D signed off and merged** (Nov 6) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D signed off and merged** (Nov 6); **the rest of Phase 6 is planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -47,14 +47,12 @@ Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done
 
 ## What's left
 
-1. **The Blender and Unreal pipeline**, started Nov 2 and never committed.
-   - **Where it is:** only in the worktree `house-exterior-textures-3b6cc5`, which is based on the old repo (206adaa).
-   - **What it has:** 27 procedural materials (kurinuki, offset ledgestone, rigidized metal, stucco over a stone wainscot, and more) and a Blender scene builder that renders 9 cameras.
-   - **The catch:** its exporter loads the **old planner**. Finley has said not to work on the old planner, so the pipeline needs a new exporter.
-2. **A 3D model export** from the new app, as glTF: for SketchUp, and as that new exporter for Blender.
-3. **A site plan sheet:** the lot with setbacks, the buffer, coverage and code-check notes (left from 5E).
-4. **Section sheets:** cuts through each building.
-5. **Photo-quality stills:** a Render button that path-traces the current view.
+1. ~~The Blender and Unreal pipeline saved into the repo~~ (6A, done).
+2. ~~A 3D model export from the new app~~ (6B, done; you still need to open the `.glb` in SketchUp).
+3. ~~Blender renders from the new export, art-directed~~ (6C and 6D, signed off).
+4. **Unreal:** bake the textures (6E), export the scene for Unreal (6F), and import it into UE 5.8 (6G).
+5. **In-app sheets:** a site plan sheet (6H) and section sheets (6I).
+6. **Photo-quality stills in the app:** a Render button (6J).
 
 ## Order: small parts, two tracks
 
@@ -257,6 +255,96 @@ The original 6D list was sun, sky and AgX, meadow colour, stucco brightness, and
 ### Done when
 
 You sign off on the renders.
+
+## The rest of Phase 6: who codes what, where, and when (plan, waiting for Finley's OK)
+
+Written Nov 6, after 6D was signed off. It covers 6E to 6J: how they split into sessions and branches, in what order, and where each one stops for you.
+
+### What's on this Mac already
+
+- **Unreal Engine 5.8** at `/Users/Shared/Epic Games/UE_5.8`, including `UnrealEditor-Cmd` for headless runs.
+- **Twinmotion 2026.2.**
+- **Blender 5.2.**
+- **Not installed:** SketchUp (needed for 6B's last check).
+- **Not added yet:** `three-gpu-pathtracer`. 6J adds it, and only with your OK, since it's a new dependency.
+
+### Three tracks, each in its own session and worktree
+
+The tracks never touch the same files, so they can run side by side. Within a track the parts go one after another, because each builds on the last.
+
+| Track | Parts, in order | Where the code goes | Session |
+|---|---|---|---|
+| **U · Unreal** | 6E → 6F → 6G | `tools/blender/` (`bake_textures.py`, `export_unreal.py`), `tools/unreal/` (new) | One session, worktree branch per part: `claude/phase-6e-bake`, `-6f-unreal-export`, `-6g-unreal-import` |
+| **S · Sheets** | 6H → 6I | `src/export/sheets/` (a `site/` and a `section/` folder, plus a line each in `DrawingSheets.tsx`) | One session: `claude/phase-6h-site-sheet`, then `claude/phase-6i-sections` |
+| **R · Render button** | 6J | `src/present/render/` (new), one button and one command (`src/ui/TopBar.tsx`, `src/layout/commands.ts`) | Its own session, started **after 6H is merged**, so the top bar and commands aren't edited by two tracks at once |
+
+This session stays the **coordinator**. It starts the track sessions, reads their notes, and merges into `main` only when you say so. Notes between sessions go in the shared notes folder, not in the repo.
+
+### When: the order of sittings
+
+1. **Sitting 1 (now):**
+   - Start Track U on 6E and Track S on 6H, side by side.
+   - Each writes its part's plan into this file and **stops for your OK** (check-in A).
+2. **Sitting 2:**
+   - With your OK, both code their part.
+   - 6E ends with a tiled preview of every baked material; 6H ends with a printed (PDF) site sheet. Both **stop for your review** (check-in B).
+3. **Sitting 3:**
+   - Merge whichever you sign off (check-in C), one at a time.
+   - Track U goes on to 6F, Track S to 6I, and Track R starts 6J.
+4. **Sittings 4 and on:** the same rhythm for 6F, 6I and 6J, then 6G last (the biggest part: the Unreal level).
+
+**About 6 sittings in all**, if each part takes one.
+
+### The check-ins (every part, every track)
+
+| | When | What you get | Nothing goes on until you say |
+|---|---|---|---|
+| **A · Plan** | Before any code | The part's plan in this file: files, tests, decisions. A short summary in chat | "OK", or your changes |
+| **B · Show** | Once it works | Renders, a tiled texture sheet, a printed sheet, a screenshot in UE, or a Render-button still: something to look at, not only test results | "Signed off", or notes (another round of B) |
+| **C · Merge** | After B | What would merge, that `main` hasn't moved, and that the tests pass on the merge | "Merge" (and "push", and "republish" for app parts) |
+
+- **Push:** each track session may push **its own branch** so the work is backed up on GitHub. Only you can say to push `main`.
+- **Hosted home:** republished only after an app part (6H, 6I, 6J) is merged, and only when you say.
+- **Something unexpected:** if a part needs a bigger change than its plan, a new dependency, or an edit outside its track's files, the session stops and asks.
+
+### Each part in brief (its full plan comes at check-in A)
+
+- **6E · Bake for Unreal** (`tools/blender/bake_textures.py`):
+  - Bakes one 6 m seamless tile per material: BaseColor, ORM, Height and Normal, at 2048 px. It also writes `materials.json`.
+  - Each map's seam is measured.
+  - Check-in B: a contact sheet of every tile, shown 2 × 2.
+  - The trees' new materials are included.
+- **6F · Unreal scene export** (`tools/blender/export_unreal.py`):
+  - Assembles the scene as `build_scene` does, with UV0 = UVMeters / 6, and exports one `.glb` per group (terrain, sea, earthworks, site, trees, each building). It also writes `scene.json`: sun, tide, cameras, axes, the wainscot and terrain blends.
+  - It also fixes the **lantern corner seam** left from 6D: a straight mass's walls are welded into one mesh per building before export.
+  - Check-in B: the files open in UE 5.8 with north and ground contact right.
+- **6G · Unreal import** (`tools/unreal/import_islandale.py`):
+  - Master materials, one instance per material, Nanite meshes, and the level with sky, sun, fog and the cameras. Safe to run twice.
+  - The UE 5.8 Python API is checked against the installed engine, not guessed.
+  - Check-in B: a screenshot from each camera.
+- **6H · Site plan sheet:**
+  - The lot, contours, buildings, walks, setback bands and the buffer line, with the 5E code-check and coverage notes, a north arrow and a scale bar, at true scale.
+  - Check-in B: a PDF at 1" = 20' on Tabloid, with the 5E numbers matching the app.
+- **6I · Section sheets:**
+  - One long and one cross section per building, with the cut chosen on its plan sheet. They show floor, walls, roof, the cut ground and openings, with heights in NAVD88.
+  - Check-in B: PDFs of every Scheme C building at 1/4" = 1'-0".
+- **6J · Render button:**
+  - `three-gpu-pathtracer` from the current camera or a saved view, with progress and Stop, saved as PNG. The live view stays as it is.
+  - Check-in B: a Golden hour still of Scheme C rendered on your Mac in a few minutes.
+
+### What I need from you along the way
+
+- **At check-in A for each part:** OK the plans.
+- **SketchUp:** open 6B's `.glb` in SketchUp when you can. It isn't installed here; if it can't open the file, 6B adds an `.obj` download.
+- **6J:** say yes or no to adding `three-gpu-pathtracer`.
+- **Reference photos:** say whether your three reference photos should be kept somewhere (they're only in the old textures worktree's `build/`, which isn't in git).
+- **GitHub Pages:** still open, and nothing is published until you ask.
+
+### Phase 6 is done when
+
+- The class deliverables come straight out of the app: plan, elevation, foundation, site and section sheets, PNG snapshots and Render-button stills.
+- Blender renders (done) and an Unreal level of Scheme C come out of `tools/`.
+- Everything is merged into `main`, and the hosted home carries the app parts.
 
 ## Decisions (say if you disagree)
 
