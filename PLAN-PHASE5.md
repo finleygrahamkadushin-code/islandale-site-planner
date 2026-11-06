@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). 5E merged into main and the hosted home republished (v6) Nov 6 2026. **The 5F detail (archive) is drafted below and waits for Finley's OK** (branch `claude/phase-5f-archive`). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). 5E merged into main and the hosted home republished (v6) Nov 6 2026. **5F (archive) approved by Finley Nov 6 2026 ("Yes, build it"), with the decisions as proposed, and in progress** (branch `claude/phase-5f-archive`). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -281,7 +281,7 @@ From the 5E row, narrowed to the site rules: every site-rule readout on the old 
 - **Tints** show in Realistic and Diagram only; White model and Sketch keep the buffer line.
 - **Left for Phase 6:** the site plan sheet's setback and coverage notes (the old plan sheet's header lines), with the other site sheets.
 
-## 5F in detail: Archive (waiting for Finley's OK)
+## 5F in detail: Archive (approved Nov 6 2026)
 
 Branch: `claude/phase-5f-archive`, from `main` at 81fcf91 (5E merged). This plan is drafted on it; the code follows on the same branch once it's approved.
 

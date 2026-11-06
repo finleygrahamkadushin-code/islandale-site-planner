@@ -1,7 +1,7 @@
 {
   "version": 1,
   "app": "islandale-site-planner",
-  "savedAt": "2026-10-28T02:17:14.109Z",
+  "savedAt": "2026-11-06T07:23:51.279Z",
   "plan": {
     "name": "C · Prow & Lantern",
     "siteId": "islandale",
@@ -2809,7 +2809,7 @@
     ]
   },
   "view": {
-    "labelMode": "all",
+    "labelMode": "none",
     "layers": {
       "buildings": {
         "visible": true,
@@ -2833,7 +2833,15 @@
       "hour": 16.75,
       "tideFt": 6.2
     },
+    "setbacks": {
+      "shoreFt": 35,
+      "bankFt": 45,
+      "sideFt": 10,
+      "treeZones": true,
+      "shown": true
+    },
     "displayStyle": "realistic",
-    "contours": null
+    "contours": null,
+    "displayOptions": {}
   }
 }
