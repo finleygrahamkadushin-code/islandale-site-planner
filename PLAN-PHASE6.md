@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D rendered, waiting for Finley's sign-off** (branch `claude/phase-6d-art-direction`) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D signed off and merged** (Nov 6) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -35,7 +35,7 @@ Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done
     - There's no visible sea in the aerial.
     - Trees.
 
-- **6D rendered** (Nov 6, branch `claude/phase-6d-art-direction`, not merged): all 9 cameras with displacement on, sent with a 6C/6D before-and-after. Waiting for Finley's sign-off.
+- **6D signed off by Finley and merged** (Nov 6): all 9 cameras with displacement on, sent with a 6C/6D before-and-after.
   - **Ground cracks (the white lines):** the cause wasn't missing patches. Every material with relief displaced the vertices of the export's loose triangles, and they cracked apart on slopes. Relief is now bump except on subdivided building meshes. Exporting every terrain patch, with `check_export` counting them back, was still worth fixing.
   - **Kurinuki:** it wasn't tearing. Raised 3.5 cm, it covered the door and the frames. True displacement now carves inward, so the prow close-up keeps displacement on and no weld was needed.
   - **Cars:** tagged `car` in the app, so they keep their colours. Hero views first look for one where the building's foot is clear at its corners.
@@ -74,7 +74,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 | **6A · Save the pipeline** ✅ done Nov 6 (branch `claude/phase-6a-save-pipeline`) | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
 | **6B · 3D model export** ✅ done Nov 6 (branch `claude/phase-6b-model-export`) | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
 | **6C · Blender on the new export** ✅ done Nov 6 (branch `claude/phase-6c-blender-renders`) | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
-| **6D · Art direction** | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |
+| **6D · Art direction** ✅ signed off Nov 6 | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |
 | **6E · Bake textures for Unreal** | `tools/blender/bake_textures.py`: one seamless 6 m tile per material (BaseColor, ORM, Height, Normal) plus `materials.json` | Medium | Every material bakes with seam metrics under the threshold; a tiled preview of each is sent to Finley |
 | **6F · Unreal scene export** | `tools/blender/export_unreal.py`: a `.glb` per group (terrain, sea, earthworks, site, trees, each building) with UV0 in tiles, plus `scene.json` (sun, tide, cameras, wainscot and terrain blends, axes) | Medium | The files open in UE 5.8 with north and ground contact right |
 | **6G · Unreal import** | `tools/unreal/import_islandale.py` (UE editor Python): master materials, one instance per material, Nanite meshes, the level with sky, sun, fog and cameras; safe to run twice | Medium to large | `/Game/Islandale/Maps/Islandale` opens with every house in its material, lit by the planner's sun; a screenshot from each camera is sent to Finley |
@@ -219,7 +219,7 @@ Removed: `tools/export-legacy/`, once Blender's check passes on the new file (th
 - **Trees stay as the app draws them** until 6D.
 - **Renders are not committed** (they're under `build/`). If you want a few kept, they can go in `docs/renders/`.
 
-## 6D in detail: art direction (rendered Nov 6, waiting for sign-off)
+## 6D in detail: art direction (signed off Nov 6)
 
 **Goal:** one look pass on the 6C renders, until you sign them off. Branch `claude/phase-6d-art-direction`, from `main` (2e404a5).
 
