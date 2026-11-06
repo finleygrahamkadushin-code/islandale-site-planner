@@ -44,7 +44,7 @@ export function bridgeItem(o: PlanObject): RouteItem | null {
     id: o.id,
     name: o.name || 'Bridge',
     kind: 'boardwalk',
-    widthFt: num(o.params.w, 6),
+    widthFt: num(o.params.w, 5),
     lengthM: s,
     ends: [
       { x: a[0], n: a[1], z: a[2], reach: 0 },

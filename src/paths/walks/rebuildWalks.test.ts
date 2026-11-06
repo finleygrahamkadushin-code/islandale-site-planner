@@ -69,12 +69,24 @@ describe('rebuilding walks as path pieces', () => {
     expect(rebuildWalks(r.plan, site.terrain, ground, (id) => id === lane.id).plan).toBe(r.plan) // nothing left to do
   })
 
-  test('route verdicts before and after, for the record', () => {
+  test('after a rebuild the route check names real reasons, never fewer routes, and every piece is a kinded piece', () => {
     for (const id of ['C', 'A', 'G', 'H', 'I']) {
       const p = planOf(id)
       const before = routeReport(objs(p), site.terrain, ground)
-      const after = routeReport(objs(rebuildWalks(p, site.terrain, ground).plan), site.terrain, ground)
-      console.log(id, `before ${before.summary.routesOk}/${before.summary.routes} pieces ${before.summary.n}-${before.summary.failing}`, `after ${after.summary.routesOk}/${after.summary.routes} pieces ${after.summary.n}-${after.summary.failing}`, '\n   ' + after.routes.map((r) => r.text).join('\n   '))
+      const rebuilt = rebuildWalks(p, site.terrain, ground).plan
+      const after = routeReport(objs(rebuilt), site.terrain, ground)
+      expect(after.summary.routesOk, id).toBeGreaterThanOrEqual(before.summary.routesOk)
+      expect(objs(rebuilt).filter(isWalkToRebuild), id).toHaveLength(0)
+    }
+    const c = routeReport(objs(rebuildWalks(planOf('C'), site.terrain, ground).plan), site.terrain, ground)
+    expect(c.routes.find((r) => /Gathering prow/.test(r.name))!.text).toMatch(/only by its stair/)
+  })
+
+  test('no two pieces share an id, and no piece is shorter than 5 cm', () => {
+    for (const s of loadSchemes()) {
+      const r = rebuildWalks(planFromScheme(s), site.terrain, ground).plan
+      expect(new Set(r.order).size, s.id).toBe(r.order.length)
+      for (const id of r.order) if (r.objects[id].params.rebuiltFrom) expect(Number(r.objects[id].params.w), s.id).toBeGreaterThan(0.15)
     }
   })
 })

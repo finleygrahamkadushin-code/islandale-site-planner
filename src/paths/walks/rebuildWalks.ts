@@ -23,6 +23,8 @@ export const WALK_MAX_SLOPE = 1 / 20
 export const RAMP_MAX_SLOPE = 1 / 12
 /** A ribbon bend closer than this to the last kept point is folded into the run, metres. */
 const MIN_RUN_M = ftToM(2)
+/** A run shorter than this (both ends pulled to one point) is dropped, metres. */
+const MIN_PIECE_M = 0.05
 
 /** Is this a walk to rebuild: a kindless path pad, not a water rill. */
 export function isWalkToRebuild(o: PlanObject): boolean {
@@ -100,7 +102,11 @@ function runPiece(o: PlanObject, a: SitePoint, b: SitePoint, ground: Ground, id:
 /** The pieces a walk's centreline becomes, in order from its first end to its last. */
 export function linePieces(o: PlanObject, line: readonly SitePoint[], ground: Ground): PlanObject[] {
   const runs = line.length - 1
-  return line.slice(1).map((b, k) => runPiece(o, line[k], b, ground, `${o.id}-p${k + 1}`, runs > 1 ? `${o.name} · ${k + 1}` : o.name))
+  return line
+    .slice(1)
+    .map((b, k) => ({ a: line[k], b, k }))
+    .filter(({ a, b }) => Math.hypot(b[0] - a[0], b[1] - a[1]) > MIN_PIECE_M)
+    .map(({ a, b, k }) => runPiece(o, a, b, ground, `${o.id}-p${k + 1}`, runs > 1 ? `${o.name} · ${k + 1}` : o.name))
 }
 
 /** The pieces one walk becomes on its own, without joining it to anything. */
@@ -203,7 +209,15 @@ export function rebuildWalks(plan: Plan, terrain: Terrain, ground: Ground, isLoc
     terrain,
     ground,
   )
-  const made = new Map(lines.map((l) => [l.o.id, linePieces(l.o, l.pts, ground).filter((p) => !(p.id in plan.objects))] as const))
+  const taken = new Set(Object.keys(plan.objects).filter((id) => !chosenIds.has(id)))
+  const fresh = (id: string) => {
+    let k = 2
+    let out = id
+    while (taken.has(out)) out = `${id}-${k++}`
+    taken.add(out)
+    return out
+  }
+  const made = new Map(lines.map((l) => [l.o.id, linePieces(l.o, l.pts, ground).map((p) => ({ ...p, id: fresh(p.id) }))] as const))
   const objects: Record<string, PlanObject> = Object.fromEntries(Object.entries(plan.objects).filter(([id]) => !chosenIds.has(id)))
   const order = plan.order.flatMap((id) => (made.has(id) ? made.get(id)!.map((p) => p.id) : [id]))
   for (const ps of made.values()) for (const p of ps) objects[p.id] = p
@@ -212,16 +226,34 @@ export function rebuildWalks(plan: Plan, terrain: Terrain, ground: Ground, isLoc
   return { plan: settled(next, [...made.values()].flat(), terrain, ground), walks: chosen.length, pieces, skipped }
 }
 
-/** Ramps and stairs take the level of what each end meets (a deck, a stair top), as a placed piece does. */
+/**
+ * Each piece's ends take the level of what they meet (a deck, a stair top), as
+ * a placed piece's do, and its kind is then chosen from those levels: a walk
+ * that meets a raised deck becomes a ramp or stairs rather than leaving a step.
+ */
 function settled(plan: Plan, made: readonly PlanObject[], terrain: Terrain, ground: Ground): Plan {
   const all = plan.order.map((id) => plan.objects[id])
   const objects = { ...plan.objects }
   for (const o of made) {
-    if (o.params.kind === 'walk') continue
-    const E = pieceEnds(o, ground)
+    // read the levels as a pinned piece would see them, then decide what it is
+    const asPinned: PlanObject = { ...o, params: { ...o.params, kind: o.params.kind === 'walk' ? 'ramp' : o.params.kind } }
+    const E = pieceEnds(asPinned, ground)
     const near = snapTargets(all, terrain, ground, o.id, [E.A, E.B])
-    const ends = refreshedEnds(o, ground, near)
-    if (ends && Object.keys(ends).length) objects[o.id] = { ...o, params: { ...o.params, ends: { ...(o.params.ends as object), ...ends } } }
+    const touched = refreshedEnds(asPinned, ground, near) ?? {}
+    const zA = touched.zA ?? E.gA
+    const zB = touched.zB ?? E.gB
+    const kind = kindFor(zB - zA, Math.hypot(E.B[0] - E.A[0], E.B[1] - E.A[1]))
+    const flat = touched.zA === undefined && touched.zB === undefined
+    if (kind === 'walk' && flat) {
+      objects[o.id] = { ...o, params: withoutEnds({ ...o.params, kind: 'walk' }) }
+      continue
+    }
+    objects[o.id] = { ...o, params: { ...o.params, kind, ends: { zA: round(zA, 4), zB: round(zB, 4) } } }
   }
   return { ...plan, objects }
+}
+
+const withoutEnds = (params: Record<string, unknown>): Record<string, unknown> => {
+  const { ends: _ends, ...rest } = params
+  return rest
 }

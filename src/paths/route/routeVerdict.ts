@@ -125,7 +125,8 @@ export function buildingRoutes(G: RouteGraph, pieces: ReadonlyMap<ObjectId, Piec
     const toFoot = feet.size ? search(G, sources, feet, () => true, false) : null
     if (toFoot) {
       const foot = [...feet].map((k) => G.nodes[k].anchor!).find(Boolean)
-      return { ...r, lengthM: toFoot.dist, failing: [], text: `${b.name}: only by its stair (${foot?.name ?? 'stair'}) — stairs are not an accessible route (${CITE.stair}); add a ramp` }
+      const failing = toFoot.pieces.filter((id) => kindOf.get(id) === 'stair' || (pieces.get(id) && !pieces.get(id)!.ok))
+      return { ...r, lengthM: toFoot.dist, failing, text: `${b.name}: only by its stair (${foot?.name ?? 'stair'}) — stairs are not an accessible route (${CITE.stair}); add a ramp` }
     }
     return { ...r, text: `${b.name}: no continuous route` }
   })
