@@ -157,14 +157,6 @@ export function cleanFloor(f: Floor | Raw, nextId: () => number): Floor {
 
 export const newFloor = (name = 'Main floor'): Floor => ({ name, rooms: [], openings: [], furniture: [] })
 
-/**
- * The cabin's floors as plan data, migrated from the old planner's older
- * forms the way its ensureFloors does: rectangle rooms {x, z, w, d} become
- * polygons fitted to the walls, and openings placed by side (n, e, s, w)
- * are anchored to the edge they sit on. A cabin with no floors gets an
- * empty main floor. The stored params are not changed; an edit writes the
- * migrated form back.
- */
 /** True when the cabin has a drawn floor plan: a stored floor with at least one room (5F). */
 export function hasFloorPlan(params: Record<string, unknown>): boolean {
   return Array.isArray(params.floors) && params.floors.some((f) => isRecord(f) && Array.isArray(f.rooms) && f.rooms.length > 0)
@@ -173,6 +165,14 @@ export function hasFloorPlan(params: Record<string, unknown>): boolean {
 /** What a cabin without a floor plan says (5F). */
 export const NO_PLAN_TEXT = 'No floor plan yet: draw rooms with Room (B).'
 
+/**
+ * The cabin's floors as plan data, migrated from the old planner's older
+ * forms the way its ensureFloors does: rectangle rooms {x, z, w, d} become
+ * polygons fitted to the walls, and openings placed by side (n, e, s, w)
+ * are anchored to the edge they sit on. A cabin with no floors gets an
+ * empty main floor. The stored params are not changed; an edit writes the
+ * migrated form back.
+ */
 export function readFloors(params: Record<string, unknown>): Floor[] {
   const stored = Array.isArray(params.floors) && params.floors.length ? (params.floors as unknown[]) : [newFloor()]
   const nextId = idCounter(stored)

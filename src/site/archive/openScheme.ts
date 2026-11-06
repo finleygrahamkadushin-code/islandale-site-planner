@@ -38,11 +38,14 @@ export function openSchemeNow(schemeId: string): boolean {
 }
 
 /** Ask before replacing the plan, then open the scheme. Asks in Beginner and Advanced alike. */
-export function openScheme(schemeId: string): void {
+export function openScheme(schemeId: string, beforeOpen?: () => void): void {
   const scheme = usePlanStore.getState().schemes.find((x) => x.id === schemeId)
   if (!scheme) return
   useConfirm.getState().request(
     { title: `Open ${scheme.name}?`, body: 'This replaces your plan. You can undo this.', confirmLabel: 'Open' },
-    () => openSchemeNow(schemeId),
+    () => {
+      beforeOpen?.()
+      openSchemeNow(schemeId)
+    },
   )
 }

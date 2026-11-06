@@ -21,6 +21,8 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | The outline the rules measure a building from | `rules/ruleOutline.ts` |
 | The code check (setback, lot width, height, guards, handrails, tree zone, route, levels) | `rules/codeCheck.ts` (entry), `rules/codeCheckRows.ts`, `rules/codeCheckRails.ts`, `rules/codeCheckPaths.ts`, `rules/lotWidth.ts`, `rules/height.ts`; panel `rules/CodeCheckPanel.tsx` |
 | Program budget (enclosed, covered, deck sq ft; 1,600 sq ft cap) and lot coverage | `rules/program.ts`, `rules/ProgramPanel.tsx`; coverage is `lotFacts.ts` (`coverageOf`) |
+| The Designs archive (5F): scheme cards, their summaries and plan thumbnails | `archive/ArchiveDialog.tsx` (shell, lazy), `archive/ArchiveBrowser.tsx` (groups), `archive/SchemeCard.tsx`, `archive/schemeSummary.ts`, `archive/thumbPaths.ts`, `archive/SchemeThumb.tsx` |
+| Opening a scheme: ask, load, frame, select the gathering building, message | `archive/openScheme.ts` (the top bar's Scheme list uses it too) |
 | Clearances to shore, lot line and nearest object; dimension labels | `rules/clearances.ts`, `rules/ClearanceStats.tsx` (inspector), `rules/ClearanceMarks.tsx` (3D) |
 | Pond water level | `earthworks/earthworks.ts` (`pondLevel`), `earthworks/earthworksSpec.ts` (`pondLevelOf`) |
 | The ground everything else stands on, with earthworks applied | `earthworks/useEarthworks.ts` (used across buildings and paths) |

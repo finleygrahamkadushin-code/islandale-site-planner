@@ -12,6 +12,7 @@ import { useTour } from '../guide/tour'
 import { usePresent } from '../present/present'
 import { useViewHud } from '../present/viewState'
 import { useTheme } from '../app/theme'
+import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -85,6 +86,7 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'theme-system', group: 'Display', label: 'System theme: follow this computer', run: () => useTheme.getState().setTheme('system') },
     ...SAVED_VIEWS.map((v) => ({ id: `view-${v.id}`, group: 'Views', label: v.label, run: () => get().requestView(v.id) })),
     ...TAB_IDS.map((t) => ({ id: `tab-${t}`, group: 'Tabs', label: `Go to ${TAB_LABELS[t]}`, run: () => tab(t) })),
+    { id: 'archive', group: 'Plan', label: 'Browse designs: every scheme, old and current', run: () => useArchiveOpen.getState().setOpen(true) },
     { id: 'setbacks-show', group: 'Site rules', label: s.setbacks.shown ? 'Hide setbacks' : 'Show setbacks', run: () => get().setSetbacks({ shown: !get().setbacks.shown }) },
     { id: 'setbacks-strict', group: 'Site rules', label: 'Strict setback: shoreline 50 ft', run: () => (tab('site'), get().setSetbacks({ shoreFt: 50 })) },
     { id: 'setbacks-panel', group: 'Site rules', label: 'Setbacks', run: () => tab('site') },

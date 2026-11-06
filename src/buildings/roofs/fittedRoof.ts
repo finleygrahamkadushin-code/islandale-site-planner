@@ -26,18 +26,22 @@ const ccw = (poly: P2[]): P2[] => (signedArea(poly) < 0 ? [...poly].reverse() : 
 /**
  * Port of the legacy polyRoofGeometry(): a faceted roof over any outline
  * (walls grown by the overhang), fanned from the mass centre, for gable,
- * hip, shed, butterfly and gambrel on plans that are not rectangles.
+ * hip, shed, butterfly and gambrel on plans that are not rectangles. The
+ * outline gets a point wherever an edge crosses a ridge, valley or hip line,
+ * so a trapezoid's slanted side still shows its gable peak or butterfly V
+ * (the legacy fan ran straight from corner to corner across them).
  */
 export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: number, ridge: 'x' | 'z', overhangFt: number): FittedRoof {
   const out = empty()
   const slope = Math.max(0, pitch) / 12
-  const P = ccw(toM(offsetOutline(poly, overhangFt)))
-  const xs = P.map((p) => p[0])
-  const zs = P.map((p) => p[1])
+  const ring = ccw(toM(offsetOutline(poly, overhangFt)))
+  const xs = ring.map((p) => p[0])
+  const zs = ring.map((p) => p[1])
   const hx = (Math.max(...xs) - Math.min(...xs)) / 2 || 1
   const hz = (Math.max(...zs) - Math.min(...zs)) / 2 || 1
   const cx = (Math.max(...xs) + Math.min(...xs)) / 2
   const cz = (Math.max(...zs) + Math.min(...zs)) / 2
+  const P = splitAtCreases(ring, creaseLines(type, ridge, cx, cz, hx, hz))
   const f = (x: number, z: number): number => {
     const a = ridge === 'z' ? x - cx : z - cz
     const b = ridge === 'z' ? hx : hz
@@ -60,6 +64,30 @@ export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: numbe
   }
   soffitAndFascia(out, P)
   return { ...out, rise: Math.max(c[1], ...top.map((q) => q[1])) }
+}
+
+/**
+ * The lines where a fitted roof folds, each as a function that is zero on the
+ * line: the ridge or valley of a gable, gambrel or butterfly, and the two hip
+ * lines of a hip (corner to corner of its box). A shed has none.
+ */
+function creaseLines(type: string, ridge: 'x' | 'z', cx: number, cz: number, hx: number, hz: number): ((p: P2) => number)[] {
+  if (type === 'shed') return []
+  if (type === 'hip' || type === 'pyramid') return [(p) => (p[0] - cx) / hx - (p[1] - cz) / hz, (p) => (p[0] - cx) / hx + (p[1] - cz) / hz]
+  return [(p) => (ridge === 'z' ? p[0] - cx : p[1] - cz)]
+}
+
+/** The outline with a new point wherever an edge crosses one of the lines, in order along each edge. */
+function splitAtCreases(P: readonly P2[], lines: readonly ((p: P2) => number)[]): P2[] {
+  return P.flatMap((a, i) => {
+    const b = P[(i + 1) % P.length]
+    const ts = lines
+      .map((g) => [g(a), g(b)] as const)
+      .filter(([ga, gb]) => (ga < 0 && gb > 0) || (ga > 0 && gb < 0))
+      .map(([ga, gb]) => ga / (ga - gb))
+      .sort((t1, t2) => t1 - t2)
+    return [a, ...ts.map((t): P2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])]
+  })
 }
 
 export interface ProwOptions {

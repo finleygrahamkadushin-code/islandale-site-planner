@@ -2,13 +2,15 @@ import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
 
 /**
- * Phase 5D done-when, first half: Schemes D–I load and draw every curved
- * cabin, sculpted roof, finish, earthwork and site object without errors,
- * and each saved view is captured for the side-by-side check against the
- * old planner (test-results/old-designs/<scheme>-<view>.png).
+ * Phase 5D done-when, first half: Schemes A, B and D–I load and draw every
+ * cabin (A and B's octagons, splayed pods, L-plan, pyramid and butterfly
+ * roofs; D–I's curved cabins and sculpted roofs), finish, earthwork and site
+ * object without errors, and each saved view is captured for the
+ * side-by-side check against the old planner
+ * (test-results/old-designs/<scheme>-<view>.png).
  */
 
-const SCHEMES = ['D', 'E', 'F', 'G', 'H', 'I'] as const
+const SCHEMES = ['A', 'B', 'D', 'E', 'F', 'G', 'H', 'I'] as const
 const VIEWS = ['Overview', 'From the water', 'Entry at the west notch', 'Golden hour'] as const
 
 function collectErrors(page: Page): string[] {
@@ -28,7 +30,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 for (const id of SCHEMES) {
-  test(`Scheme ${id} draws its curved cabins, roofs and site objects, and every saved view is captured`, async ({ page }) => {
+  test(`Scheme ${id} draws its cabins, roofs and site objects, and every saved view is captured`, async ({ page }) => {
     // software rendering in CI draws these schemes at a few frames a second
     test.setTimeout(300_000)
     const errors = collectErrors(page)

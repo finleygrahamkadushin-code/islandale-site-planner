@@ -7,13 +7,15 @@ import { useSplash } from '../present/viewState'
 export const loadSheets = () => import('../export/sheets/DrawingSheets')
 export const loadInteriorEditor = () => import('../interiors/editor/InteriorEditor')
 export const loadCommandMenu = () => import('../layout/CommandMenu')
+export const loadArchive = () => import('../site/archive/ArchiveBrowser')
 
 /** Wait this long after the first frame when the browser has no idle callback, ms. */
 const FALLBACK_DELAY_MS = 1500
 
 export function prefetchAfterFirstFrame(): void {
   const go = () => {
-    const run = () => void Promise.all([loadSheets(), loadInteriorEditor(), loadCommandMenu()]).catch(() => undefined)
+    const run = () =>
+      void Promise.all([loadSheets(), loadInteriorEditor(), loadCommandMenu(), loadArchive().then((m) => m.warmArchive())]).catch(() => undefined)
     if ('requestIdleCallback' in globalThis) globalThis.requestIdleCallback(run)
     else setTimeout(run, FALLBACK_DELAY_MS)
   }

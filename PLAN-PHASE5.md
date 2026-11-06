@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). 5E merged into main and the hosted home republished (v6) Nov 6 2026. **5F (archive) approved by Finley Nov 6 2026 ("Yes, build it"), with the decisions as proposed, and in progress** (branch `claude/phase-5f-archive`). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and built Nov 5 2026** (branch `claude/phase-5e-site-rules-5277e1`; four sections built in parallel, then checked by an overseer review). 5E merged into main and the hosted home republished (v6) Nov 6 2026. **5F (archive) approved by Finley Nov 6 2026 ("Yes, build it"), with the decisions as proposed, and built Nov 6 2026** (branch `claude/phase-5f-archive`; three parts built in parallel, then checked by an overseer review). The look of A, B and D–I waits for Finley's eye from the saved-view pictures. Left for later: automatic floor plans, and rebuilding the schemes' walks as path pieces. Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -319,7 +319,7 @@ Every scheme fails the accessible-route row, because their walks are drawn as ri
 **Where the code goes:**
 - **New folder `src/site/archive/`** (with a `CLAUDE.md` row group in `src/site/CLAUDE.md`):
   - `schemeSummary.ts`: per scheme, the buildings, enclosed sq ft, code-check passes and fails, rules off, and how many cabins have floor plans. Pure, cached per scheme.
-  - `schemeThumb.ts`: a plan-view picture of a scheme as SVG paths (parcel, buffer line, building outlines, pads, trees). Pure.
+  - `thumbPaths.ts` (renamed from `schemeThumb.ts` during the build, which would have differed from `SchemeThumb.tsx` only in case): a plan-view picture of a scheme as SVG paths (parcel, buffer line, building outlines, pads, trees). Pure.
   - `SchemeThumb.tsx`, `SchemeCard.tsx`, `ArchiveDialog.tsx`: the cards and the dialog.
 - **Loading behaviour:** a small `loadSchemeAndFrame` helper in `src/site/archive/`, which calls the store's existing `loadScheme` and then the camera's existing focus request. No new store state.
 - **Wiring:** the top bar's Scheme group (`src/ui/TopBar.tsx`) and command search (`src/layout/commands.ts`).
@@ -382,7 +382,7 @@ Commits go in that order, each one leaving the app runnable. The app is checked 
   - Open the archive, read H's card, open it, check the selection and the message, undo.
   - Open F and see rules off.
   - Open I and see "No floor plan yet" on a cabin.
-  - Keyboard only: Tab to Designs…, Enter, arrows to a card, Escape.
+  - Keyboard only: Tab to Designs…, Enter, Tab through the cards, Escape returns focus to Designs….
 - **Which specs run:** only the touched ones: `archive`, `old-designs` (about 6 minutes with A and B), `site-rules` and `layout`.
 - **Build check:** the dialog loads on first use like command search, so `node scripts/hosted-build-check.mjs` runs after the chunk change.
 - **Skills:** `web-design-guidelines` over the new dialog and cards before the done-when check.

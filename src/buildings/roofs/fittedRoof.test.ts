@@ -46,6 +46,47 @@ describe('roofs fitted to the outline', () => {
   })
 })
 
+describe('fitted roofs keep their creases where an outline edge crosses them', () => {
+  // the outline's points on the ring at the eave, and the roof height there
+  const ringHeights = (r: ReturnType<typeof polyRoof>) => vertices(r.roof).filter(([x, , z]) => Math.hypot(x, z) > 1e-6)
+  const trap: LocalPoint[] = [[-6, -8], [6, -8], [10, 8], [-10, 8]]
+
+  test('a butterfly on a trapezoid dips to its valley on both slanted sides, so the ends read as a V', () => {
+    const r = polyRoof(trap, 'butterfly', 6, 'x', 0)
+    const valley = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+    // one valley point on each slanted side, at the valley's height (0.25 m)
+    expect(new Set(valley.map(([x]) => Math.sign(x)))).toEqual(new Set([-1, 1]))
+    for (const [, y] of valley) expect(y).toBeCloseTo(0.25, 6)
+    // the end infill follows the V: nothing above the valley where the side crosses it
+    const infillAtValley = vertices(r.gables).filter(([, , z]) => Math.abs(z) < 1e-6)
+    expect(Math.max(...infillAtValley.map(([, y]) => y))).toBeCloseTo(0.25, 6)
+  })
+
+  test('a gable on a trapezoid peaks at its ridge on both slanted sides', () => {
+    const r = polyRoof(trap, 'gable', 6, 'x', 0)
+    const ridge = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+    expect(ridge.length).toBeGreaterThanOrEqual(2)
+    for (const [, y] of ridge) expect(y).toBeCloseTo(r.rise, 6)
+  })
+
+  test('a hip on a half-hexagon meets its hip lines on the chamfered edges', () => {
+    const half: LocalPoint[] = [[-13, -9], [13, -9], [13, 3], [6.5, 9], [-6.5, 9], [-13, 3]]
+    const r = polyRoof(half, 'hip', 5, 'x', 0)
+    // the outline's own six corners plus one point on each chamfer where a hip line crosses it
+    expect(triangleCount(r.roof)).toBe(8)
+  })
+
+  test("A's family pods and B's gathering fan draw their butterfly V at both ends", () => {
+    for (const [id, name] of [['A', 'Family pods'], ['B', 'Gathering fan']] as const) {
+      const m = mainOf(id, name)
+      const r = polyRoof(massPoly(m), m.roof, m.pitch, m.ridge, m.overhang)
+      const valley = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+      expect(new Set(valley.map(([x]) => x.toFixed(3))).size, `${id} ${name}`).toBe(2)
+      for (const [, y] of valley) expect(y).toBeCloseTo(0.25, 6)
+    }
+  })
+})
+
 describe('prow roofs', () => {
   test('the gathering prow rises at its pitch to the ridge and closes its back end with a gable', () => {
     const m = mainOf('C', 'Gathering prow')

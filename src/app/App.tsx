@@ -1,3 +1,4 @@
+import { ArchiveDialog } from '../site/archive/ArchiveDialog'
 import { Scene } from '../scene/Scene'
 import { TopBar } from '../ui/TopBar'
 import { SidePanel } from '../ui/SidePanel'
@@ -43,6 +44,7 @@ export function App() {
       )}
       <Toast />
       <Overlays />
+      <ArchiveDialog />
       <PresentBar />
       <ConfirmDialog />
       <TourCard />

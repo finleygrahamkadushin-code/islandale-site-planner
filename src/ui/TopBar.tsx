@@ -3,6 +3,7 @@ import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { openScheme, openSchemeNow } from '../site/archive/openScheme'
+import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
@@ -93,6 +94,11 @@ export function TopBar() {
             </optgroup>
           </select>
         </label>
+      </Tip>
+      <Tip label="Browse every scheme with its plan, description and how it does against the brief">
+        <button type="button" data-testid="open-archive" onClick={() => useArchiveOpen.getState().setOpen(true)}>
+          Designs…
+        </button>
       </Tip>
 
       <div className="seg" role="group" aria-label="Undo and redo">
