@@ -12,6 +12,7 @@ LAT = 48.46                   # deg: the planner's sun latitude
 SOLAR_NOON = 12.3             # h: the planner's local solar noon
 DECLINATION = {"jun": 23.44, "sep": 0.0, "dec": -23.44}
 FT = 0.3048
+DETAIL_FACES = 12             # outward wall faces tried for a close-up, biggest first
 EYE = 1.65                    # m: camera height above the ground
 SUN_POWER = 4.0               # sun lamp irradiance (W/m2 in Blender's scale), matched to the sky's brightness below
 SKY_STRENGTH = 0.35
@@ -178,9 +179,10 @@ def building_cameras(site, ground, tide, collection):
 
 
 def _detail_view(walls, centre, ground, own, others, dg):
-    """Eye and target for a close look at the building's biggest outward wall face, slightly off-square so relief shows.
+    """Eye and target for a close look at an outward wall face, slightly off-square so relief shows: the biggest face
+    with a clear view, trying up to DETAIL_FACES of them, biggest first (a wall facing a slope or a tree can't be seen).
     Faces whose normal points back toward the building's centre are its inner skin and are skipped."""
-    best = None
+    faces = []
     for ob in walls:
         mw = ob.matrix_world
         nm = mw.to_3x3().inverted_safe().transposed()
@@ -188,20 +190,17 @@ def _detail_view(walls, centre, ground, own, others, dg):
             n = (nm @ p.normal).normalized()
             if abs(n.z) > 0.3 or n.xy.dot((mw @ p.center).xy - centre.xy) <= 0:
                 continue
-            area = p.area * mw.to_3x3().determinant() ** (2 / 3)
-            if not best or area > best[0]:
-                best = (area, mw @ p.center, n)
-    if not best:
-        return None
-    _, c, n = best
-    side = Vector((-n.y, n.x, 0)).normalized()
-    for flip in (1, -1):
-        for dist in (3.4, 2.6, 4.5):
-            eye_xy = c.xy + n.xy * dist + side.xy * 1.1 * flip
-            gz = ground.z(eye_xy.x, eye_xy.y)
-            eye = Vector((eye_xy.x, eye_xy.y, max(c.z, (gz or c.z) + 1.4)))
-            if _clear_view(eye, (c,), own, others, dg):
-                return eye, c
+            faces.append((p.area * mw.to_3x3().determinant() ** (2 / 3), mw @ p.center, n))
+    faces.sort(key=lambda f: -f[0])
+    for _, c, n in faces[:DETAIL_FACES]:
+        side = Vector((-n.y, n.x, 0)).normalized()
+        for flip in (1, -1):
+            for dist in (3.4, 2.6, 4.5):
+                eye_xy = c.xy + n.xy * dist + side.xy * 1.1 * flip
+                gz = ground.z(eye_xy.x, eye_xy.y)
+                eye = Vector((eye_xy.x, eye_xy.y, max(c.z, (gz or c.z) + 1.4)))
+                if _clear_view(eye, (c,), own, others, dg):
+                    return eye, c
     return None
 
 
