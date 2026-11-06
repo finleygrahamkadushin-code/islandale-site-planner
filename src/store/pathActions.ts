@@ -1,3 +1,4 @@
+import { rebuildWalks as rebuildWalksPlan } from '../paths/walks/rebuildWalks'
 import { num } from '../buildings/footprint'
 import { refreshedEnds, snapSolve, type SnapResult } from '../paths/snap'
 import { DEFAULT_LENGTH, DEFAULT_SURFACE, DEFAULT_WIDTH, isPathPiece, pieceEnds, SURFACE_COLORS, type Ground, type PathKind } from '../paths/pieces'
@@ -59,6 +60,8 @@ export interface PathActions {
   readonly continuePiece: (id: ObjectId, end: 'A' | 'B') => ObjectId | null
   /** Add pieces and change objects as one undo step; refused whole if any object is locked. Returns the new ids. */
   readonly applyPathEdit: (adds: readonly NewPiece[], patches?: readonly ObjectPatch[]) => ObjectId[]
+  /** Replace every unlocked walk with path pieces joined to each other and to what they meet, as one undo step. Returns how many walks and pieces, or null when refused. */
+  readonly rebuildWalks: () => { readonly walks: number; readonly pieces: number; readonly skipped: readonly string[] } | null
 }
 
 export interface PathContext {
@@ -175,6 +178,23 @@ export function pathActions({ get, set, writable, editable, isLocked, terrain, g
         },
       ])
       return ids[0] ?? null
+    },
+    rebuildWalks: () => {
+      if (!writable()) return null
+      const s = get()
+      if (s.layers.paths.locked) {
+        s.showToast('Decks and paths are locked')
+        return null
+      }
+      const r = rebuildWalksPlan(s.plan, terrain, ground, isLocked)
+      const kept = r.skipped.length ? ` (${r.skipped.length} locked ${r.skipped.length === 1 ? 'walk' : 'walks'} left as ${r.skipped.length === 1 ? 'it was' : 'they were'})` : ''
+      if (!r.walks) {
+        s.showToast(r.skipped.length ? `Every walk is locked${kept}` : 'No walks to rebuild: they are path pieces already')
+        return r
+      }
+      set({ plan: r.plan, selection: [], pickedPart: null })
+      s.showToast(`Rebuilt ${r.walks} ${r.walks === 1 ? 'walk' : 'walks'} as ${r.pieces} path pieces${kept}. Undo to go back.`)
+      return r
     },
     applyPathEdit: (adds, patches = []) => {
       if (!writable()) return []

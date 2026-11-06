@@ -81,8 +81,8 @@ export function SchemeCard({
           <p className="muted small">Fails: {s.checks.failing.join(", ")}.</p>
         )}
         {!s.routeChecked && (
-          <p className="muted small">
-            Route not checked: its walks aren’t path pieces yet.
+          <p className="muted small" data-testid="route-if-rebuilt">
+            Its walks aren’t path pieces yet. If rebuilt: {s.routeIfRebuilt.ok} of {s.routeIfRebuilt.of} {s.routeIfRebuilt.of === 1 ? 'cabin has' : 'cabins have'} a step-free route.
           </p>
         )}
         <div className="row">

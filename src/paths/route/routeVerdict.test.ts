@@ -131,3 +131,10 @@ describe('Scheme C from the data', () => {
     expect(names).not.toContain('Lane · gravel')
   })
 })
+
+describe('a route that only reaches a stair wing (walks rebuilt)', () => {
+  test('says only by its stair, not no route', () => {
+    const [r] = verdictsFor([item('w', 'walk', 0, 6)], [anchor('drive', 'driveway', 0), { ...anchor('foot', 'wingfoot', 6), access: 'stair' }, anchor('door', 'door', 40)])
+    expect(r.text).toMatch(/only by its stair/)
+  })
+})

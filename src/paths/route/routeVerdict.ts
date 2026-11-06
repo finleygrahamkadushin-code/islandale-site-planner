@@ -120,6 +120,13 @@ export function buildingRoutes(G: RouteGraph, pieces: ReadonlyMap<ObjectId, Piec
         text: `${b.name}: only by stairs (${st.map(nameOf).join(', ')}) — stairs are not an accessible route (${CITE.stair}); use a ramp`,
       }
     }
+    // the walks reach the foot of one of its stair wings: say so, rather than "no route"
+    const feet = new Set(G.nodes.flatMap((nd, k) => (nd.anchor?.type === 'wingfoot' && nd.anchor.access === 'stair' && nd.anchor.building === b.id ? [k] : [])))
+    const toFoot = feet.size ? search(G, sources, feet, () => true, false) : null
+    if (toFoot) {
+      const foot = [...feet].map((k) => G.nodes[k].anchor!).find(Boolean)
+      return { ...r, lengthM: toFoot.dist, failing: [], text: `${b.name}: only by its stair (${foot?.name ?? 'stair'}) — stairs are not an accessible route (${CITE.stair}); add a ramp` }
+    }
     return { ...r, text: `${b.name}: no continuous route` }
   })
 }

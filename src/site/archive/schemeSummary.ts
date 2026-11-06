@@ -1,7 +1,11 @@
 import { hasFloorPlan } from '../../interiors/model'
 import { isPathPiece } from '../../paths/pieces'
 import { planFromScheme } from '../../store/fromLegacy'
-import { DEFAULT_SETBACKS, type PlanObject } from '../../store/types'
+import { DEFAULT_SETBACKS, type Plan, type PlanObject } from '../../store/types'
+import { rebuildWalks } from '../../paths/walks/rebuildWalks'
+import { routeReport } from '../../paths/route/routeVerdict'
+import { groundWithCuts } from '../earthworks/earthworks'
+import { sunkCuts } from '../../scene/placement'
 import { codeCheck } from '../rules/codeCheck'
 import { PROGRAM_CAP_SQFT, programBudget } from '../rules/program'
 import { CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS, type Scheme } from '../schemes'
@@ -39,6 +43,8 @@ export interface SchemeSummary {
   readonly cabinsWithoutPlan: number
   /** False while the scheme has no 5C path pieces, so the route row says nothing real. */
   readonly routeChecked: boolean
+  /** Once its walks are rebuilt as path pieces: how many cabins have a step-free route from the parking. */
+  readonly routeIfRebuilt: { readonly ok: number; readonly of: number }
 }
 
 const CURRENT_IDS: readonly string[] = [CURRENT_SCHEME_ID, ...CURRENT_VARIANT_IDS]
@@ -65,6 +71,16 @@ function checksOf(objects: readonly PlanObject[], site: Site): SchemeChecks {
   return { pass: count('pass'), fail: count('fail'), note: count('note'), failing: rows.filter((r) => r.verdict === 'fail').map((r) => r.label) }
 }
 
+/** The route verdicts the scheme would get with its walks rebuilt as path pieces (the plan's own rebuild, without saving it). */
+function rebuiltRoute(objects: readonly PlanObject[], site: Site): { ok: number; of: number } {
+  const ground = groundWithCuts(site.terrain, sunkCuts(objects, site.terrain))
+  const order = objects.map((o) => o.id)
+  const plan: Plan = { name: '', siteId: 'islandale', schemeId: null, objects: Object.fromEntries(objects.map((o) => [o.id, o])), order }
+  const rebuilt = rebuildWalks(plan, site.terrain, ground).plan
+  const rep = routeReport(rebuilt.order.map((id) => rebuilt.objects[id]), site.terrain, ground)
+  return { ok: rep.summary.routesOk, of: rep.summary.routes }
+}
+
 export function schemeSummary(scheme: Scheme, site: Site): SchemeSummary {
   const objects = schemeObjects(scheme)
   const cabins = objects.filter(isCabin)
@@ -82,6 +98,7 @@ export function schemeSummary(scheme: Scheme, site: Site): SchemeSummary {
     checks: checksOf(objects, site),
     cabinsWithoutPlan: cabins.filter((o) => !hasFloorPlan(o.params)).length,
     routeChecked: objects.some(isKindedPiece),
+    routeIfRebuilt: rebuiltRoute(objects, site),
   }
 }
 

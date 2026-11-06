@@ -686,3 +686,7 @@ button.primary:hover:not(:disabled) { border-color: var(--fg); }
 .thumb-ground { fill: color-mix(in srgb, var(--muted) 30%, transparent); stroke: none; }
 .thumb-building { fill: var(--fg); fill-opacity: 0.85; stroke: var(--panel); stroke-width: 0.5px; }
 .thumb-tree { fill: color-mix(in srgb, var(--ok) 70%, transparent); }
+
+/* rebuilding walks as path pieces */
+.rebuild-walks { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin: 6px 0; }
+.rebuild-walks p { margin: 0; }

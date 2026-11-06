@@ -1,4 +1,5 @@
-import { siteFootprint } from '../../buildings/footprint'
+import { num, siteFootprint } from '../../buildings/footprint'
+import { routePoints } from '../../buildings/decks/boardwalk'
 import type { Mass } from '../../buildings/masses'
 import { massSite, railOwner, surfaceZ } from '../../buildings/rails/railWorld'
 import type { Terrain } from '../../site/types'
@@ -24,10 +25,45 @@ const unit = (a: P2, b: P2): P2 => {
   return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
 }
 
-/** Every visible path piece as a route item. */
+/**
+ * A boardwalk bridge as a route item: its route points, with the deck level
+ * between them, judged by the same rules as a boardwalk piece (so a gentle
+ * one carries the route and a steep one fails). Bridges are railed.
+ */
+export function bridgeItem(o: PlanObject): RouteItem | null {
+  const pts = routePoints(o)
+  if (pts.length < 2) return null
+  let s = 0
+  const profile = pts.map((p, i) => {
+    if (i) s += Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1])
+    return { s, z: p[2], cross: 0 }
+  })
+  const a = pts[0]
+  const b = pts[pts.length - 1]
+  return {
+    id: o.id,
+    name: o.name || 'Bridge',
+    kind: 'boardwalk',
+    widthFt: num(o.params.w, 6),
+    lengthM: s,
+    ends: [
+      { x: a[0], n: a[1], z: a[2], reach: 0 },
+      { x: b[0], n: b[1], z: b[2], reach: 0 },
+    ],
+    profile,
+    rail: true,
+  }
+}
+
+/** Every visible path piece and bridge as a route item. */
 export function routeItems(objects: readonly PlanObject[], ground: Ground): RouteItem[] {
   return objects.flatMap((o): RouteItem[] => {
-    if (o.hidden || !isPathPiece(o)) return []
+    if (o.hidden) return []
+    if (o.type === 'bridge') {
+      const b = bridgeItem(o)
+      return b ? [b] : []
+    }
+    if (!isPathPiece(o)) return []
     const kindless = !o.params.kind
     // the old route check took kindless pads only up to 6 ft wide (lanes are 7)
     if (kindless && o.params.shape !== 'ribbon' && pieceWidth(o) > NARROW_FT) return []

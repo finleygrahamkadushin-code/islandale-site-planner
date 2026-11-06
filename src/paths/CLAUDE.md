@@ -17,6 +17,7 @@ Walks, ramps, stairs, landings and boardwalks laid as path pieces; the Connect t
 | Which buildings have an accessible route, and why not | `route/routeVerdict.ts`, `route/routeGraph.ts`, `route/routeCollect.ts` |
 | The Accessible route panel and failing-piece chips | `route/RoutePanels.tsx`, `route/RouteChips.tsx` |
 | One-click Fix for a failing piece | `route/routeFix.ts` |
+| Rebuilding a scheme's old walks (pads, lanes, ribbons) as joined path pieces | `walks/rebuildWalks.ts` (pure); the store action is `rebuildWalks` in `../store/pathActions.ts` |
 | Auto route: laying pieces from the driveway to a door | `route/routeAuto.ts`, `route/routeAutoPlan.ts` (switchbacks, runs), `route/routeAutoEmit.ts` (pieces out) |
 | Where something meets a building's edge (junctions) | `junctions/junctions.ts` (model), `junctions/junctionsSite.ts` (read from the plan) |
 | Threshold plates, filler strips, tabs, and the "6 in step" chips | `junctions/junctionsGeom.ts`, `junctions/junctionsChips.ts`, `junctions/JunctionLayer.tsx` |
@@ -25,7 +26,7 @@ Walks, ramps, stairs, landings and boardwalks laid as path pieces; the Connect t
 ## Folder map
 
 - **Top level (the core model):** `pieces.ts` (a piece read from its params), `pieceMesh.ts` and `PathPieceMesh.tsx` (3D), `targets.ts` and `snap.ts` (end snapping), `PathPanels.tsx` (library and fields).
-- **`connect/`:** the Connect tool. **`route/`:** the accessible-route check, its Fix and the auto route. **`junctions/`:** junctions and levels.
+- **`walks/`:** turning the old schemes' walks into path pieces. **`connect/`:** the Connect tool. **`route/`:** the accessible-route check, its Fix and the auto route. **`junctions/`:** junctions and levels.
 - Each folder holds its pure maths (`.ts`, tested), its scene chips or meshes and its panels. Tests sit beside their files; `route/routeTestKit.ts` and `junctions/junctionsFixture.ts` are shared test fixtures.
 
 ## Data: where a path piece keeps things

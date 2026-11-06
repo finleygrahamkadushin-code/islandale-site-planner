@@ -63,4 +63,11 @@ describe('scheme summaries', () => {
     again.forEach((s, i) => expect(s).toBe(all[i]))
     expect(schemeSummary(schemeById(schemes, 'C'), site)).toEqual(byId('C'))
   })
+
+  it('route if rebuilt: counted for every scheme, never more cabins than it has', () => {
+    for (const sum of schemeSummaries(loadSchemes(), site)) {
+      expect(sum.routeIfRebuilt.of, sum.id).toBe(sum.cabins)
+      expect(sum.routeIfRebuilt.ok, sum.id).toBeLessThanOrEqual(sum.cabins)
+    }
+  })
 })

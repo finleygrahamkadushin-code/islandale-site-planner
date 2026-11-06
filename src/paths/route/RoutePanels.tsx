@@ -1,3 +1,4 @@
+import { isWalkToRebuild } from '../walks/rebuildWalks'
 import { useMemo, useState } from 'react'
 import type { PieceSpec } from '../connect/connectSpec'
 import type { PieceSpec as RouteSpec } from './routeSpec'
@@ -38,6 +39,8 @@ export function RoutePanel() {
   const { ground } = useEarthworks()
   const houses = plan.order.map((id) => plan.objects[id]).filter((o) => o?.type === 'house' && !o.hidden)
   const [to, setTo] = useState('')
+  const rebuildWalks = usePlanStore((s) => s.rebuildWalks)
+  const walksLeft = plan.order.filter((id) => plan.objects[id] && isWalkToRebuild(plan.objects[id])).length
   const auto = () => {
     const objects = plan.order.map((id) => plan.objects[id])
     const driveway = objects.find((o) => !o.hidden && isDriveway(o))
@@ -68,6 +71,17 @@ export function RoutePanel() {
           </li>
         ))}
       </ul>
+      {walksLeft > 0 && (
+        <div className="rebuild-walks" data-testid="rebuild-walks">
+          <p className="muted small">
+            {walksLeft} {walksLeft === 1 ? 'walk is' : 'walks are'} drawn as plain pads, so the check can only guess where they start and stop. Rebuild them as path pieces
+            (walks, ramps and stairs, joined to the doors, decks and parking they meet) for a true verdict. Undo goes back.
+          </p>
+          <button type="button" onClick={() => rebuildWalks()}>
+            Rebuild walks as path pieces
+          </button>
+        </div>
+      )}
       {houses.length > 0 && (
         <div className="row">
           <select value={to} onChange={(e) => setTo(e.target.value)} aria-label="Auto route to">

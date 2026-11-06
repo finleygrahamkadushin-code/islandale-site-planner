@@ -15,9 +15,14 @@ export function RouteChips() {
       {[...rep.pieces].map(([id, v]) => {
         const o = plan.objects[id]
         if (!o || v.ok || !v.issues.length) return null
-        const E = pieceEnds(o, ground)
+        // from the route item's ends, so a bridge's chip sits on the bridge
+        const it = rep.graph.items.find((p) => p.id === id)
+        const [a, b] = it ? it.ends : (() => {
+          const E = pieceEnds(o, ground)
+          return [{ x: E.A[0], n: E.A[1], z: E.zA }, { x: E.B[0], n: E.B[1], z: E.zB }] as const
+        })()
         return (
-          <ScreenChip key={id} position={toScene((E.A[0] + E.B[0]) / 2, (E.A[1] + E.B[1]) / 2, Math.max(E.zA, E.zB) + 0.6)} layer={LAYER.rail}>
+          <ScreenChip key={id} position={toScene((a.x + b.x) / 2, (a.n + b.n) / 2, Math.max(a.z, b.z) + 0.6)} layer={LAYER.rail}>
             <span className="step-chip" data-testid="route-chip">
               {v.issues[0].short}
             </span>
