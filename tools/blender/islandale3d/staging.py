@@ -12,6 +12,8 @@ LAT = 48.46                   # deg: the planner's sun latitude
 SOLAR_NOON = 12.3             # h: the planner's local solar noon
 DECLINATION = {"jun": 23.44, "sep": 0.0, "dec": -23.44}
 FT = 0.3048
+BURIED_PROBE, BURIED_TOL = 0.6, 0.3   # m: ground this far out from a wall face, this far above its foot, buries it
+DETAIL_LOOK_UP = 1.2           # m above the bottom of the wall the close-up aims at, so a wainscot is in frame
 DETAIL_FACES = 12             # outward wall faces tried for a close-up, biggest first
 EYE = 1.65                    # m: camera height above the ground
 SUN_POWER = 4.0               # sun lamp irradiance (W/m2 in Blender's scale), matched to the sky's brightness below
@@ -20,7 +22,8 @@ HERO_LENS, DETAIL_LENS, AERIAL_LENS = 30, 35, 32
 DICING_RATE = 1.5             # px per micropolygon edge under adaptive subdivision
 MAX_SUBDIVISIONS = 7          # caps dicing on close-ups, which otherwise run the GPU out of memory
 BASE_CLEARANCE = 0.6          # m above the building's lowest point that the hero view must see
-AERIAL_OUT, AERIAL_UP = 0.85, 0.45   # aerial eye: this many building-group spans out over the bay, and up
+AERIAL_OUT, AERIAL_UP = 0.85, 0.45   # aerial eye: this many building-group spans up the slope from the cabins, and up
+AERIAL_LOOK_OUT = 0.35               # it looks this many spans past the cabins toward the water
 VIEW_TRIES = (35, -35, 60, -60, 10, -10, 100, -100, 150, -150, 180)   # deg off the building's front, in order of preference
 
 
@@ -185,19 +188,30 @@ def building_cameras(site, ground, tide, collection):
 
 def _detail_view(walls, centre, ground, own, others, dg):
     """Eye and target for a close look at an outward wall face, slightly off-square so relief shows: the biggest face
-    with a clear view, trying up to DETAIL_FACES of them, biggest first (a wall facing a slope or a tree can't be seen).
+    with a clear view and its foot above the ground, trying up to DETAIL_FACES of them, biggest first (a wall facing a
+    slope or a tree can't be seen; one sunk into the slope hides its foot and wainscot). On a wall with a wainscot it
+    aims DETAIL_LOOK_UP above the foot, so the stone base is in frame; elsewhere at the face's centre.
     Faces whose normal points back toward the building's centre are its inner skin and are skipped."""
     faces = []
     for ob in walls:
         mw = ob.matrix_world
         nm = mw.to_3x3().inverted_safe().transposed()
+        if not ob.data.vertices:
+            continue
+        foot = min((mw @ v.co).z for v in ob.data.vertices)             # the wall's foot, not its biggest triangle's
+        mats = ob.data.materials
+        wainscot = bool(mats and mats[0] and mats[0].get("is_blend"))  # a stone base: aim low enough to show it
         for p in ob.data.polygons:
             n = (nm @ p.normal).normalized()
             if abs(n.z) > 0.3 or n.xy.dot((mw @ p.center).xy - centre.xy) <= 0:
                 continue
-            faces.append((p.area * abs(mw.to_3x3().determinant()) ** (2 / 3), mw @ p.center, n))
-    faces.sort(key=lambda f: -f[0])
-    for _, c, n in faces[:DETAIL_FACES]:
+            c = mw @ p.center
+            gz = ground.z(c.x + n.x * BURIED_PROBE, c.y + n.y * BURIED_PROBE)
+            buried = gz is not None and gz > foot + BURIED_TOL      # its foot (and any wainscot) is under the slope
+            target = Vector((c.x, c.y, min(c.z, foot + DETAIL_LOOK_UP))) if wainscot else c
+            faces.append((buried, -p.area * abs(mw.to_3x3().determinant()) ** (2 / 3), target, n))
+    faces.sort(key=lambda f: (f[0], f[1]))
+    for _, _, c, n in faces[:DETAIL_FACES]:
         side = Vector((-n.y, n.x, 0)).normalized()
         for flip in (1, -1):
             for dist in (3.4, 2.6, 4.5):
@@ -210,7 +224,8 @@ def _detail_view(walls, centre, ground, own, others, dg):
 
 
 def aerial_camera(site, ground, tide, collection):
-    """From over the bay, looking back at the buildings: the direction where the ground falls lowest within 60 m."""
+    """From up the slope, looking over the buildings to the bay: the opposite of the direction where the ground falls
+    lowest within 60 m, so the shore and the water are in the frame behind the cabins."""
     groups = site.buildings()
     obs = [it.ob for items in groups.values() for it in items] or [it.ob for it in site.items]
     lo, hi = _bbox(obs)
@@ -225,8 +240,11 @@ def aerial_camera(site, ground, tide, collection):
             best = (z, d)
     d = best[1]
     span = max((hi - lo).xy.length, 30.0)
-    eye = Vector((centre.x + d.x * span * AERIAL_OUT, centre.y + d.y * span * AERIAL_OUT, tide + span * AERIAL_UP))
-    return _camera("CAM Aerial over the bay", eye, Vector((centre.x, centre.y, lo.z + 2)), AERIAL_LENS, collection)
+    back = Vector((centre.x - d.x * span * AERIAL_OUT, centre.y - d.y * span * AERIAL_OUT))
+    gz = ground.z(back.x, back.y)
+    eye = Vector((back.x, back.y, max(gz if gz is not None else lo.z, lo.z) + span * AERIAL_UP))
+    look = Vector((centre.x + d.x * span * AERIAL_LOOK_OUT, centre.y + d.y * span * AERIAL_LOOK_OUT, lo.z))
+    return _camera("CAM Aerial to the bay", eye, look, AERIAL_LENS, collection)
 
 
 def render_settings(res=(1920, 1080), samples=128):
