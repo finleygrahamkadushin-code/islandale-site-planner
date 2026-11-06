@@ -1,5 +1,7 @@
 # Islandale → Blender → Unreal Engine 5: handoff plan
 
+> **Update, Nov 6 2026 (Phase 6A):** this work is now committed in the main repo on branch `claude/phase-6a-save-pipeline`. Where this note says `tools/export/`, read **`tools/export-legacy/`**: it drives the old planner, which now lives at `legacy/islandale-planner.html`, and is kept only until Phase 6B's exporter for the new app replaces it (see `PLAN-PHASE6.md`). The text below is the original Nov 2 handoff, unchanged; the reference photos in `build/3d/reference/` were not copied.
+
 **Read this first.** The work below is **not committed**. It exists only in this git worktree:
 
 ```
