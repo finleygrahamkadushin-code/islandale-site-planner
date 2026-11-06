@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D rendered, waiting for Finley's sign-off** (branch `claude/phase-6d-art-direction`) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -34,6 +34,16 @@ Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done
     - Kurinuki needs welded, T-junction-free walls (or a remesh) before true displacement.
     - There's no visible sea in the aerial.
     - Trees.
+
+- **6D rendered** (Nov 6, branch `claude/phase-6d-art-direction`, not merged): all 9 cameras with displacement on, sent with a 6C/6D before-and-after. Waiting for Finley's sign-off.
+  - **Ground cracks (the white lines):** the cause wasn't missing patches. Every material with relief displaced the vertices of the export's loose triangles, and they cracked apart on slopes. Relief is now bump except on subdivided building meshes. Exporting every terrain patch, with `check_export` counting them back, was still worth fixing.
+  - **Kurinuki:** it wasn't tearing. Raised 3.5 cm, it covered the door and the frames. True displacement now carves inward, so the prow close-up keeps displacement on and no weld was needed.
+  - **Cars:** tagged `car` in the app, so they keep their colours. Hero views first look for one where the building's foot is clear at its corners.
+  - **Close-ups:** they prefer walls whose foot is above the ground, and aim 1.2 m above the foot on a wall with a wainscot, so the wedge shows its stone base. Wainscots are measured from where the walls leave the ground.
+  - **Aerial:** it looks from up the slope over the cabins to the bay ("CAM Aerial to the bay").
+  - **Trees:** the trunks (`bark`) and crowns (`crown`) are tagged in the app, with new `madrone_bark` and `leaves` materials. Both are seamless.
+  - **Look pass:** a drier meadow (Green Amount 0.24) and a slightly darker stucco (#dcd5c9). AgX "Medium High Contrast" was already on.
+  - **Still visible:** a thin light seam at the lantern's corners with displacement on, where each displaced ledgestone wall is its own mesh. That needs the export to keep a straight mass's walls in one mesh with per-face `ei`, or the walls welded across meshes. It's left for whoever picks up 6E, since baking doesn't need it.
 
 ## What's left
 
@@ -209,7 +219,7 @@ Removed: `tools/export-legacy/`, once Blender's check passes on the new file (th
 - **Trees stay as the app draws them** until 6D.
 - **Renders are not committed** (they're under `build/`). If you want a few kept, they can go in `docs/renders/`.
 
-## 6D in detail: art direction (plan, waiting for Finley's OK)
+## 6D in detail: art direction (rendered Nov 6, waiting for sign-off)
 
 **Goal:** one look pass on the 6C renders, until you sign them off. Branch `claude/phase-6d-art-direction`, from `main` (2e404a5).
 
