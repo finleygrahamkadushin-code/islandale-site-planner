@@ -6,14 +6,54 @@ It runs in the browser: Vite, TypeScript, React and [React Three Fiber](https://
 
 ## Run it
 
-You need Node 20.19+ or 22.12+ (it's developed on Node 24).
+### 1. Check you have Node
+
+Open a terminal and run:
+
+```bash
+node --version
+```
+
+You need **v20.19 or newer** (v22.12+ or v24 are fine; it's developed on Node 24). If the command isn't found or the version is older, install the LTS version from [nodejs.org](https://nodejs.org) and open a new terminal.
+
+### 2. Get the code
+
+```bash
+git clone https://github.com/finleygrahamkadushin-code/islandale-site-planner.git
+```
+
+```bash
+cd islandale-site-planner
+```
+
+### 3. Install the packages (first time only)
 
 ```bash
 npm install
+```
+
+Run it again only if `package.json` changes (for example after a `git pull`).
+
+### 4. Start the planner
+
+```bash
 npm run dev
 ```
 
-Then open http://localhost:5173.
+When the terminal prints `Local: http://localhost:5173/`, open **http://localhost:5173** in Chrome, Edge or Safari. The first load takes a few seconds while the 3D scene builds.
+
+Leave the terminal open: the planner runs only while `npm run dev` is running, and that's also what saves your work to disk (see [Where the plan is saved](#where-the-plan-is-saved)). Press **Ctrl+C** in the terminal to stop it.
+
+### If something goes wrong
+
+| Problem | Fix |
+|---|---|
+| `Port 5173 is already in use` | The planner is probably already running in another terminal; open http://localhost:5173 or stop that one. To use another port: `PORT=5180 npm run dev` |
+| `npm: command not found` or a Node version error | Install Node (step 1) and open a new terminal |
+| Errors after `git pull` | Run `npm install` again |
+| A blank page or "WebGL" message | Use a recent desktop browser with hardware acceleration turned on |
+
+### Other commands
 
 | Command | What it does |
 |---|---|
@@ -22,10 +62,13 @@ Then open http://localhost:5173.
 | `npx tsc -p tsconfig.app.json` | Type-checks the app (`tsc -p .` checks nothing) |
 | `npm run test:e2e` | Runs the browser tests (Playwright; slow, best run one spec at a time) |
 | `npm run build` | Type-checks and builds the static site into `dist/`, with the old planner beside it as `legacy.html` |
+| `npm run preview` | Serves the built `dist/` folder, to check a build before publishing |
 | `npm run extract` | Re-extracts the terrain, parcel and schemes from the old planner into `data/islandale/` |
 | `npm run plan:commit` | Commits the saved plan file |
 
-To open the old planner on its own while developing:
+### Running the old planner
+
+To open the old single-file planner on its own:
 
 ```bash
 python3 -m http.server 8777 --bind 127.0.0.1 --directory legacy
