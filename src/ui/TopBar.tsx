@@ -1,20 +1,24 @@
-import { useEffect, useState, useRef, type RefObject } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, useRef, type RefObject } from 'react'
 import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
-import { DrawingSheets } from '../export/sheets/DrawingSheets'
-import { LegacyPlanner } from './LegacyPlanner'
 import { TaskTabs } from '../layout/TaskTabs'
 import { useOverlay } from '../layout/Overlays'
 import { DISPLAY_STYLES, type LabelMode } from '../store/types'
 import { DISPLAY_TOGGLES, useDisplayEffects } from '../scene/displayOptions'
-import { CircleHelp } from 'lucide-react'
+import { CircleHelp, Ellipsis } from 'lucide-react'
 import { Tip } from '../guide/Tip'
 import { ModeSwitch } from '../guide/ModeSwitch'
 import { useConfirm } from '../guide/confirm'
+import { loadSheets } from '../app/prefetch'
+import { ThemeSwitch } from '../app/ThemeSwitch'
+
+// loaded on first use, so the first frame doesn't wait for them (4E)
+const DrawingSheets = lazy(() => loadSheets().then((m) => ({ default: m.DrawingSheets })))
+const LegacyPlanner = lazy(() => import('./LegacyPlanner').then((m) => ({ default: m.LegacyPlanner })))
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -33,6 +37,7 @@ const READ_ONLY_TEXT = {
 export function TopBar() {
   const [legacyOpen, setLegacyOpen] = useState(false)
   const [sheetsOpen, setSheetsOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const plan = usePlanStore((s) => s.plan)
   const schemes = usePlanStore((s) => s.schemes)
   const labelMode = usePlanStore((s) => s.labelMode)
@@ -50,6 +55,8 @@ export function TopBar() {
   const sheetsButton = useRef<HTMLButtonElement>(null)
   const bar = useRef<HTMLElement>(null)
   useTopBarBottom(bar)
+  const closeMore = useCallback(() => setMoreOpen(false), [])
+  useCloseOnOutside(bar, moreOpen, closeMore)
 
   const byId = (id: string) => schemes.find((s) => s.id === id)
   const onReset = () =>
@@ -110,8 +117,11 @@ export function TopBar() {
             </button>
           </Tip>
         ))}
+        <ThemeSwitch />
       </div>
 
+      {/* under 900 px these fold behind the More button; wider, the wrapper has no box of its own */}
+      <div className={`topbar-more${moreOpen ? ' open' : ''}`} id="topbar-more" data-testid="topbar-more">
       <ModeSwitch />
 
       <div className="seg" role="group" aria-label="Display options">
@@ -165,6 +175,23 @@ export function TopBar() {
       </div>
 
       <HistoryMenu />
+      {/* the built app runs as the hosted home, which also serves the old planner next to it */}
+      {import.meta.env.PROD && (
+        <Tip label="The old planner, sharing the hosted home">
+          <button onClick={() => setLegacyOpen(true)}>Old planner</button>
+        </Tip>
+      )}
+      </div>
+      <button
+        type="button"
+        className="topbar-more-toggle"
+        aria-expanded={moreOpen}
+        aria-controls="topbar-more"
+        onClick={() => setMoreOpen(!moreOpen)}
+        data-testid="topbar-more-toggle"
+      >
+        <Ellipsis size={16} aria-hidden="true" /> More
+      </button>
       <div className="seg" role="group" aria-label="Search and help">
         <Tip label="Search every action and setting" keyHint="⌘K">
           <button type="button" onClick={() => useOverlay.getState().setOpen('commands')} data-testid="open-commands">
@@ -178,14 +205,10 @@ export function TopBar() {
         </Tip>
       </div>
 
-      {/* the built app runs as the hosted home, which also serves the old planner next to it */}
-      {import.meta.env.PROD && (
-        <Tip label="The old planner, sharing the hosted home">
-          <button onClick={() => setLegacyOpen(true)}>Old planner</button>
-        </Tip>
-      )}
-      {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
-      {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} opener={sheetsButton.current} />}
+      <Suspense fallback={<span className="toast" role="status">Opening…</span>}>
+        {legacyOpen && <LegacyPlanner onClose={() => setLegacyOpen(false)} />}
+        {sheetsOpen && <DrawingSheets onClose={() => setSheetsOpen(false)} opener={sheetsButton.current} />}
+      </Suspense>
 
       {readOnly && (
         <span className="readonly" data-testid="read-only">
@@ -203,6 +226,25 @@ export function TopBar() {
       </span>
     </header>
   )
+}
+
+/** Close the More menu on a press outside the top bar or on Escape. */
+function useCloseOnOutside(bar: RefObject<HTMLElement | null>, open: boolean, close: () => void) {
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (!bar.current?.contains(e.target as Node)) close()
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [bar, open, close])
 }
 
 /**

@@ -74,6 +74,10 @@ export function textureFor(name: TextureName, unit: 'ft' | 'm'): Texture {
 
 const WHITE = '#f3f2ee'
 const SKETCH_LINE = '#2a2a2a'
+/** Sketch outlines (4E): slightly thicker, and only at creases sharper than this, so draped pads and curved walls don't show their facets. */
+const SKETCH_LINE_PX = 1.5
+const SKETCH_CREASE_DEG = 30
+const sketchEdges = { color: SKETCH_LINE, lineWidth: SKETCH_LINE_PX, threshold: SKETCH_CREASE_DEG } as const
 /** Legacy glass rail panes, #a9d6e2 at 30% opacity. */
 const RAIL_GLASS = '#a9d6e2'
 /** Legacy glass roofs and curtain walls, #b4d3dc / #8fbccb. */
@@ -114,7 +118,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} color={nonRealisticGlass(style)} roughness={0.3} />
-        {edges && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges {...sketchEdges} />}
       </>
     )
   }
@@ -126,7 +130,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} {...see} opacity={0.4} color={nonRealisticGlass(style)} roughness={0.3} />
-        {edges && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges {...sketchEdges} />}
       </>
     )
   }
@@ -138,7 +142,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
     return (
       <>
         <meshStandardMaterial {...lift} {...see} color={nonRealisticGlass(style)} roughness={0.3} />
-        {edges && <Edges color={SKETCH_LINE} />}
+        {edges && <Edges {...sketchEdges} />}
       </>
     )
   }
@@ -157,7 +161,7 @@ export function Surface({ kind, style, color, texture, textureUnit = 'ft', diagr
   return (
     <>
       <meshStandardMaterial {...lift} color={tone} roughness={1} metalness={0} emissive={emissive} emissiveIntensity={emissiveIntensity} />
-      {edges && kind !== 'canopy' && kind !== 'trunk' && <Edges color={SKETCH_LINE} threshold={20} />}
+      {edges && kind !== 'canopy' && kind !== 'trunk' && <Edges {...sketchEdges} />}
     </>
   )
 }

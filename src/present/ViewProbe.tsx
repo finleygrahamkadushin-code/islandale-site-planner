@@ -6,6 +6,7 @@ import { SAVED_VIEWS } from '../scene/views'
 import { facingNorth, headingDeg, looksStraightDown, metresPerPixel } from './viewMaths'
 import { useSplash, useViewHud } from './viewState'
 import { downloadBlob, snapshotName } from './snapshot'
+import { markFirstFrame } from '../scene/perfProbe'
 
 /** Changes smaller than these don't redraw the compass or scale bar. */
 const HEADING_STEP_DEG = 0.5
@@ -81,7 +82,10 @@ export function ViewProbe() {
     const ready = () => {
       if (done) return
       done = true
-      afterNextFrame(() => useSplash.getState().setReady())
+      afterNextFrame(() => {
+        markFirstFrame()
+        useSplash.getState().setReady()
+      })
     }
     const fallback = window.setTimeout(ready, SPLASH_FALLBACK_MS)
     gl.compileAsync(scene, camera).then(ready, ready)

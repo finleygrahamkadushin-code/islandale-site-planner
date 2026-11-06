@@ -11,6 +11,7 @@ import { useGuideMode } from '../guide/mode'
 import { useTour } from '../guide/tour'
 import { usePresent } from '../present/present'
 import { useViewHud } from '../present/viewState'
+import { useTheme } from '../app/theme'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -79,6 +80,9 @@ export function commandsFor(s: PlanState): Command[] {
     ...DISPLAY_STYLES.map((d, i) => ({ id: `style-${d.id}`, group: 'Display', label: d.label, keys: String(i + 1), run: () => get().setDisplayStyle(d.id) })),
     { id: 'roofs', group: 'Display', label: s.roofsOff ? 'Roofs on' : 'Roofs off', run: () => get().setRoofsOff(!get().roofsOff) },
     { id: 'contours', group: 'Display', label: 'Contours on or off', run: () => get().setContours(!(get().contours ?? get().displayStyle !== 'realistic')) },
+    { id: 'theme-light', group: 'Display', label: 'Light theme', run: () => useTheme.getState().setTheme('light') },
+    { id: 'theme-dark', group: 'Display', label: 'Dark theme', run: () => useTheme.getState().setTheme('dark') },
+    { id: 'theme-system', group: 'Display', label: 'System theme: follow this computer', run: () => useTheme.getState().setTheme('system') },
     ...SAVED_VIEWS.map((v) => ({ id: `view-${v.id}`, group: 'Views', label: v.label, run: () => get().requestView(v.id) })),
     ...TAB_IDS.map((t) => ({ id: `tab-${t}`, group: 'Tabs', label: `Go to ${TAB_LABELS[t]}`, run: () => tab(t) })),
     { id: 'lock-all', group: 'Plan', label: 'Lock all', run: () => get().lockAll(true) },

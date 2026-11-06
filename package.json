@@ -13,7 +13,8 @@
     "typecheck": "tsc -b",
     "extract": "node scripts/extract-legacy.mjs",
     "test:e2e": "playwright test",
-    "plan:commit": "git add data/plans/islandale.plan.json && git commit -m \"chore(plan): save the Islandale plan\" -- data/plans/islandale.plan.json"
+    "plan:commit": "git add data/plans/islandale.plan.json && git commit -m \"chore(plan): save the Islandale plan\" -- data/plans/islandale.plan.json",
+    "check:bundle": "vite build && node scripts/checkBundle.mjs"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "1.2.1",

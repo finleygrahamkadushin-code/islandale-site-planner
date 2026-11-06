@@ -23,6 +23,8 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | Pools and ponds | `objects/pool.ts`, `objects/PoolMesh.tsx`, `objects/PondMesh.tsx` |
 | Pads, lanes, drives, patios draped on the ground; sheds and shops | `objects/drape.ts`, `objects/ObjectMesh.tsx`, `objects/objectGeometry.ts`, `objects/ShedMesh.tsx` |
 | Sun position, sky, fog, tide water | `environment/sun.ts`, `environment/SceneEnvironment.tsx` |
+| How the sky warms and the haze colour by sun height (4E) | `environment/skyLook.ts` |
+| The foam line at the tide and the driftwood (4E) | `environment/shore.ts` (maths), `environment/ShoreMesh.tsx` (draws them); gravel and wet sand are ground colours in `terrainGeometry.ts` (`colourTerrain`) |
 | The Sun and tide panel (season, hour, tide) | `environment/EnvironmentPanel.tsx` |
 
 ## Folder map

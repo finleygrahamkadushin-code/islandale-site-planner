@@ -1,48 +1,18 @@
-import { useMemo } from 'react'
+import { lazy, Suspense } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Command } from 'cmdk'
 import { create } from 'zustand'
-import { usePlanStore } from '../store/planStore'
-import { commandsFor, type Command as Cmd } from './commands'
 import { SHORTCUT_GROUPS } from './shortcuts'
+import { loadCommandMenu } from '../app/prefetch'
 import { useTour } from '../guide/tour'
 
 /** Which overlay is open: command search (Cmd/Ctrl+K) or the Help sheet (?). View state. */
+// command search (cmdk) loads the first time it opens (4E)
+const CommandMenu = lazy(() => loadCommandMenu().then((m) => ({ default: m.CommandMenu })))
+
 export const useOverlay = create<{ readonly open: 'commands' | 'help' | null; readonly setOpen: (o: 'commands' | 'help' | null) => void }>((set) => ({
   open: null,
   setOpen: (open) => set({ open }),
 }))
-
-/** Command search (4B): every action and the selected object's settings, filtered as you type; Enter runs one and closes. */
-function CommandMenu() {
-  const setOpen = useOverlay((s) => s.setOpen)
-  const cmds = useMemo(() => commandsFor(usePlanStore.getState()), [])
-  const groups = useMemo(() => [...new Set(cmds.map((c) => c.group))], [cmds])
-  const run = (c: Cmd) => {
-    setOpen(null)
-    c.run()
-  }
-  return (
-    <Command label="Search actions and settings" className="command" loop>
-      <Command.Input className="command-input" placeholder="Search actions and settings…" autoFocus data-testid="command-input" />
-      <Command.List className="command-list">
-        <Command.Empty className="muted command-empty">Nothing matches. Try “lock”, “roof” or “golden”.</Command.Empty>
-        {groups.map((g) => (
-          <Command.Group key={g} heading={g} className="command-group">
-            {cmds
-              .filter((c) => c.group === g)
-              .map((c) => (
-                <Command.Item key={c.id} value={`${c.label} ${c.group}`} onSelect={() => run(c)} className="command-item" data-testid={`command-${c.id}`}>
-                  <span>{c.label}</span>
-                  {c.keys && <kbd>{c.keys}</kbd>}
-                </Command.Item>
-              ))}
-          </Command.Group>
-        ))}
-      </Command.List>
-    </Command>
-  )
-}
 
 function HelpSheet() {
   return (
@@ -89,7 +59,11 @@ export function Overlays() {
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className={`dialog ${open === 'help' ? 'help-dialog' : 'command-dialog'}`} aria-describedby={undefined}>
           <Dialog.Title className={open === 'help' ? 'dialog-title' : 'sr-only'}>{open === 'help' ? 'Help and keyboard shortcuts' : 'Search actions and settings'}</Dialog.Title>
-          {open === 'commands' && <CommandMenu />}
+          {open === 'commands' && (
+            <Suspense fallback={null}>
+              <CommandMenu />
+            </Suspense>
+          )}
           {open === 'help' && <HelpSheet />}
         </Dialog.Content>
       </Dialog.Portal>

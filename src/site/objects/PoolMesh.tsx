@@ -73,7 +73,7 @@ function Water({ style, color, opacity, sheet = false }: { readonly style: Displ
   return (
     <>
       <meshStandardMaterial color="#d7e2e6" roughness={0.4} transparent={sheet} opacity={sheet ? 0.6 : 1} side={side} />
-      {style === 'sketch' && !sheet && <Edges color="#2a2a2a" threshold={20} />}
+      {style === 'sketch' && !sheet && <Edges color="#2a2a2a" lineWidth={1.5} threshold={30} />}
     </>
   )
 }

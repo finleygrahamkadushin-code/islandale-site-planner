@@ -10,7 +10,6 @@ import { LabelLayer } from './LabelLayer'
 import { LabelProjector } from './LabelProjector'
 import { EditGizmos } from './EditGizmos'
 import { SceneEnvironment } from '../site/environment/SceneEnvironment'
-import { Effects } from './Effects'
 import { CameraRig } from './CameraRig'
 import { SheetCapture } from '../export/sheets/elevation/ElevationCapture'
 import { PartHud } from '../buildings/parts/PartHud'
@@ -25,7 +24,12 @@ import { RouteChips } from '../paths/route/RouteChips'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import { useLiveDrag } from './editing'
-import { useState } from 'react'
+import { ContactShadows } from './ContactShadows'
+import { lazy, Suspense, useState } from 'react'
+import { useSplash } from '../present/viewState'
+
+// AO, tone mapping and anti-aliasing arrive just after the first frame, so the view shows sooner (4E)
+const Effects = lazy(() => import('./Effects').then((m) => ({ default: m.Effects })))
 import { usePresent, isPresenting } from '../present/present'
 import { ViewProbe } from '../present/ViewProbe'
 import { CompassScale } from '../present/CompassScale'
@@ -45,6 +49,7 @@ export function Scene() {
   const [webgl] = useState(() => hasWebGL2())
   const presenting = usePresent((s) => s.presenting)
   const orbit = usePresent((s) => s.orbit)
+  const firstFrameDrawn = useSplash((s) => s.ready)
   if (!webgl) return <NoWebGL />
   return (
     <div className="viewport" data-tour="view">
@@ -64,6 +69,7 @@ export function Scene() {
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
       <PlanObjects drag={drag} />
+      <ContactShadows />
       <PlaceGhost />
       <MeasureLayer />
       <BoxSelectLayer />
@@ -72,7 +78,11 @@ export function Scene() {
       <RouteChips />
       <LabelProjector drag={drag} />
       {!presenting && <EditGizmos drag={drag} setDrag={setDrag} />}
-      <Effects />
+      {firstFrameDrawn && (
+        <Suspense fallback={null}>
+          <Effects />
+        </Suspense>
+      )}
       <CameraRig />
       <SheetCapture />
       <ViewProbe />

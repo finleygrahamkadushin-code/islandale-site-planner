@@ -10,6 +10,9 @@ import { STYLE_BACKGROUND, useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useDisplayEffects } from '../../scene/displayOptions'
 import { useSunHour } from '../../present/present'
 import { skyHour } from '../../present/sunTimeline'
+import { useSplash } from '../../present/viewState'
+import { ShoreMesh } from './ShoreMesh'
+import { skyLook } from './skyLook'
 
 const SUN_DISTANCE_M = 220
 const SHADOW_MARGIN_M = 25
@@ -62,7 +65,9 @@ export function SceneEnvironment() {
   }, [lot, tx, ty, tz])
 
   const realistic = style === 'realistic'
-  const bg = STYLE_BACKGROUND[style]
+  // Realistic: the fog and background take the sky's horizon colour, warmer as the sun gets low (4E)
+  const look = skyLook(sun.elevationDeg)
+  const bg = realistic ? look.horizon : STYLE_BACKGROUND[style]
   const sunColour = realistic ? `hsl(${28 + 22 * (1 - warm)}, ${85 * warm + 10}%, ${78 + 17 * (1 - warm)}%)` : '#ffffff'
   const sunIntensity = realistic ? (sun.elevationDeg > 0 ? 1.0 + 1.8 * daylight : 0.25) : style === 'diagram' ? 1.3 : 2.1
   const fill = realistic ? 0.12 + 0.18 * daylight : style === 'diagram' ? 1.7 : 1.75
@@ -73,9 +78,9 @@ export function SceneEnvironment() {
       <fog attach="fog" args={[bg, 260, 1400]} />
       {realistic && (
         <>
-          <Sky distance={4500} sunPosition={sunVec} turbidity={6} rayleigh={1.6} mieCoefficient={0.004} mieDirectionalG={0.85} />
+          <Sky distance={4500} sunPosition={sunVec} turbidity={look.turbidity} rayleigh={look.rayleigh} mieCoefficient={look.mieCoefficient} mieDirectionalG={0.85} />
           <Environment key={`${season}-${skyHour(hour)}`} frames={1} resolution={128} environmentIntensity={0.18 + 0.22 * daylight}>
-            <Sky sunPosition={sunVec} turbidity={6} rayleigh={1.6} mieCoefficient={0.004} mieDirectionalG={0.85} />
+            <Sky sunPosition={sunVec} turbidity={look.turbidity} rayleigh={look.rayleigh} mieCoefficient={look.mieCoefficient} mieDirectionalG={0.85} />
           </Environment>
         </>
       )}
@@ -92,13 +97,16 @@ export function SceneEnvironment() {
         shadow-normalBias={0.04}
       />
       <Water tideFt={tideFt} style={style} />
+      <ShoreMesh />
     </>
   )
 }
 
 function Water({ tideFt, style }: { readonly tideFt: number; readonly style: string }) {
   const y = ftToM(tideFt)
-  if (style === 'realistic') {
+  // the reflection renders the scene again every frame: it waits until the first frame is drawn (4E)
+  const firstFrameDrawn = useSplash((s) => s.ready)
+  if (style === 'realistic' && firstFrameDrawn) {
     return (
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]} receiveShadow name="water">
         <planeGeometry args={[WATER_SIZE_M, WATER_SIZE_M]} />

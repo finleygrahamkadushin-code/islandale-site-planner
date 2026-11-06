@@ -65,6 +65,22 @@ export function CameraRig() {
     w.islandale.camera = () => camera.position.toArray().map((v) => +v.toFixed(2))
     w.islandale.renderInfo = () => ({ ...gl.info.render, ...gl.info.memory, programs: gl.info.programs?.length })
     // meshes and triangles in the scene itself (renderInfo only sees the last post-processing pass)
+    // a named mesh's geometry id and vertex count, so a test can tell when it was rebuilt (4E)
+    w.islandale.meshInfo = (name: string) => {
+      const o = scene.getObjectByName(name) as Mesh | undefined
+      return o?.geometry ? { id: o.geometry.uuid, vertices: o.geometry.attributes.position?.count ?? 0, visible: o.visible } : null
+    }
+    // how many fat lines (Sketch outlines and the like) hang under objects with this name (4E)
+    w.islandale.linesUnder = (name: string) => {
+      let n = 0
+      scene.traverse((o) => {
+        if (o.name !== name) return
+        o.traverse((c) => {
+          if ((c as { isLine2?: boolean; isLineSegments2?: boolean }).isLineSegments2 || (c as { isLine2?: boolean }).isLine2) n++
+        })
+      })
+      return n
+    }
     w.islandale.sceneStats = () => {
       let meshes = 0
       let triangles = 0

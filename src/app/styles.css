@@ -6,6 +6,8 @@
   --line: #2a3038;
   --accent: #5fb3e6;
   --danger: #e06c6c;
+  --ok: #7cc48a;
+  --warn: #e0a458;
   color-scheme: dark;
 }
 html, body, #root { margin: 0; height: 100%; }
@@ -227,20 +229,20 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .int-rooms button { width: 100%; text-align: left; display: flex; align-items: center; gap: 6px; }
 .int-rooms .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
 .int-program .ok { color: var(--fg); }
-.int-program .miss { color: #e0a458; }
+.int-program .miss { color: var(--warn); }
 .int-stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin: 0; font-size: 12px; }
 .int-stats dd { margin: 0; text-align: right; }
 .int-library { display: flex; flex-wrap: wrap; gap: 4px; }
 .int-library button { font-size: 11px; padding: 2px 6px; }
 .fixture-note { margin: 0; }
-.fixture-note.ok { color: #7cc48a; }
-.fixture-note.bad { color: #e0a458; }
+.fixture-note.ok { color: var(--ok); }
+.fixture-note.bad { color: var(--warn); }
 .connect-chip { width: 18px; height: 18px; padding: 0; border-radius: 50%; display: grid; place-items: center; font: 700 10px/1 ui-monospace, monospace; border: 1.5px solid #d1581e; background: color-mix(in srgb, var(--panel) 85%, transparent); color: #d1581e; }
 .connect-chip:hover, .connect-chip.on { background: #d1581e; color: #fff; }
 .connect-options { display: flex; flex-direction: column; gap: 4px; }
 .connect-options button { text-align: left; display: flex; flex-direction: column; gap: 2px; }
-.connect-options button.ok b { color: #7cc48a; }
-.connect-options button.fail b { color: #e0a458; }
+.connect-options button.ok b { color: var(--ok); }
+.connect-options button.fail b { color: var(--warn); }
 .step-chip { font: 11px/1.2 ui-monospace, monospace; padding: 2px 7px; border-radius: 11px; white-space: nowrap; background: #e0a458; color: #1a1a1a; pointer-events: none; }
 
 /* Exterior panel and Paint mode (Phase 5D) */
@@ -541,4 +543,116 @@ button.primary:hover:not(:disabled) { border-color: var(--fg); }
 .no-webgl-card { max-width: 460px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
 .no-webgl-card h2 { margin: 0 0 8px; font-size: 17px; }
 .no-webgl-card p, .no-webgl-card ul { margin: 0 0 10px; line-height: 1.5; }
-@media (max-width: 720px) { .view-hud { right: 16px; } }
+
+/* Light theme (4E): the same tokens, light. Dark stays the default on :root. With no
+   choice made (System) the browser's setting decides; data-theme on <html> is a choice
+   (src/app/theme.ts). The two light blocks must stay identical: theme.test.ts checks
+   them and the contrast of every text pair in both themes. The 3D view keeps its
+   display styles; only panels, bars, dialogs, tooltips and the HUD change. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef0f2;
+    --panel: #fbfbfa;
+    --fg: #1b2026;
+    --muted: #555d66;
+    --line: #cfd4da;
+    --accent: #1d6aa3;
+    --danger: #b42a22;
+    --ok: #2d7a3d;
+    --warn: #9a5a0c;
+    --primary-fg: #ffffff;
+    --hud-north: #c43c2b;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef0f2;
+  --panel: #fbfbfa;
+  --fg: #1b2026;
+  --muted: #555d66;
+  --line: #cfd4da;
+  --accent: #1d6aa3;
+  --danger: #b42a22;
+  --ok: #2d7a3d;
+  --warn: #9a5a0c;
+  --primary-fg: #ffffff;
+  --hud-north: #c43c2b;
+  color-scheme: light;
+}
+.theme-switch { gap: 2px; margin-left: 4px; }
+.theme-switch .icon-only { min-width: 28px; }
+
+/* Narrow screens (4E): wider than 900 px nothing below applies, and the More wrapper has no box */
+.topbar-more { display: contents; }
+.topbar-more-toggle, .sheet-toggle { display: none; }
+@media (max-width: 899.98px) {
+  /* above the view HUD and the sheet, so the More menu opens over them */
+  .topbar { right: 12px; gap: 8px 10px; padding: 6px 8px; z-index: 4; }
+  .topbar .seg { flex-wrap: wrap; }
+  .topbar h1 { display: none; }
+  .task-tabs { flex-wrap: wrap; }
+  .task-tab { padding: 4px 9px; }
+  .topbar-more-toggle { display: inline-flex; align-items: center; gap: 4px; }
+  .topbar-more-toggle[aria-expanded="true"] { border-color: var(--accent); background: var(--tool-on-bg); }
+  /* the folded groups: a menu under the bar, on the right */
+  .topbar-more {
+    display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 6;
+    flex-direction: column; align-items: flex-start; gap: 10px;
+    width: max-content; max-width: calc(100vw - 24px); max-height: 60vh; overflow: auto; box-sizing: border-box;
+    padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  }
+  .topbar-more.open { display: flex; }
+  .topbar-more .history-list { position: static; width: auto; max-width: 100%; margin-top: 6px; box-shadow: none; }
+  .save { margin-left: 0; }
+
+  /* the side panel becomes a sheet along the bottom; its grab bar folds it down */
+  .side {
+    top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 45vh; gap: 8px;
+    padding: 0 8px 8px; box-sizing: border-box; pointer-events: auto; overscroll-behavior: contain;
+    border-top: 1px solid var(--line); border-radius: 12px 12px 0 0;
+    background: color-mix(in srgb, var(--panel) 96%, transparent); backdrop-filter: blur(8px);
+    box-shadow: 0 -8px 24px rgb(0 0 0 / 0.2);
+  }
+  .side .panel { border: 0; padding: 8px 4px; background: none; backdrop-filter: none; }
+  .side .panel + .panel { border-top: 1px solid var(--line); border-radius: 0; }
+  .side.folded > :not(.sheet-toggle) { display: none; }
+  .sheet-toggle {
+    position: sticky; top: 0; z-index: 1; flex: none;
+    display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+    width: calc(100% + 16px); margin: 0 -8px; min-height: 36px; padding: 6px 12px 4px;
+    border: 0; border-radius: 12px 12px 0 0; font-size: 12px; color: var(--muted);
+    background: color-mix(in srgb, var(--panel) 96%, transparent);
+  }
+  .sheet-toggle:hover:not(:disabled) { color: var(--fg); }
+  .sheet-grab { flex-basis: 100%; height: 0; display: flex; justify-content: center; }
+  .sheet-grab::before { content: ''; width: 40px; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--line); }
+
+  /* the tool strip runs along the bottom-left, just above the sheet */
+  .toolstrip { top: auto; bottom: calc(var(--sheet-height, 0px) + 8px); flex-direction: row; max-width: calc(100% - 24px); overflow-x: auto; }
+  .toolstrip-group { flex-direction: row; }
+  .toolstrip-rule { width: auto; height: auto; margin: 0 2px; border-top: 0; border-left: 1px solid var(--line); }
+  .library {
+    left: 12px; right: 12px; width: auto; max-width: 360px;
+    max-height: calc(100% - var(--topbar-bottom, 56px) - var(--sheet-height, 0px) - var(--tool-size) - 48px);
+  }
+  /* the saved views and the readout sit above the tool strip */
+  .bottom-row { right: 12px; bottom: calc(var(--sheet-height, 0px) + var(--tool-size) + 26px); }
+  .bottombar .muted { display: none; }
+  .part-hud { max-width: calc(100% - 24px); }
+  .view-hud { right: 12px; }
+}
+
+/* the interior editor stacks its plan above its panel, as the old planner did */
+@media (max-width: 759.98px) {
+  .int-body { flex-direction: column; }
+  .int-canvas { flex: 1; min-height: 0; }
+  .int-side { width: auto; max-height: 45vh; flex: none; border-left: 0; border-top: 1px solid var(--line); }
+}
+
+/* touch screens: every control at least 40 px */
+@media (pointer: coarse) {
+  :root { --tool-size: 40px; }
+  button, select, input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), .task-tab, .section-trigger { min-height: 40px; }
+  .icon-only, .layer button.icon, .theme-switch .icon-only { min-width: 40px; }
+}
