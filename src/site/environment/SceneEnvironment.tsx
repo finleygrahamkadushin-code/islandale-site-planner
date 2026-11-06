@@ -8,6 +8,8 @@ import { usePlanStore } from '../../store/planStore'
 import { onGround } from '../../scene/frame'
 import { STYLE_BACKGROUND, useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useDisplayEffects } from '../../scene/displayOptions'
+import { useSunHour } from '../../present/present'
+import { skyHour } from '../../present/sunTimeline'
 
 const SUN_DISTANCE_M = 220
 const SHADOW_MARGIN_M = 25
@@ -21,7 +23,9 @@ export function SceneEnvironment() {
   const style = useDisplayStyle()
   const { shadows } = useDisplayEffects()
   const site = usePlanStore((s) => s.site)
-  const { season, hour, tideFt } = usePlanStore((s) => s.environment)
+  const { season, tideFt } = usePlanStore((s) => s.environment)
+  // Present's sun animation previews an hour without changing the saved one (4D)
+  const hour = useSunHour()
   const light = useRef<DirectionalLight>(null)
 
   const lot = useMemo(() => {
@@ -70,7 +74,7 @@ export function SceneEnvironment() {
       {realistic && (
         <>
           <Sky distance={4500} sunPosition={sunVec} turbidity={6} rayleigh={1.6} mieCoefficient={0.004} mieDirectionalG={0.85} />
-          <Environment key={`${season}-${hour}`} frames={1} resolution={128} environmentIntensity={0.18 + 0.22 * daylight}>
+          <Environment key={`${season}-${skyHour(hour)}`} frames={1} resolution={128} environmentIntensity={0.18 + 0.22 * daylight}>
             <Sky sunPosition={sunVec} turbidity={6} rayleigh={1.6} mieCoefficient={0.004} mieDirectionalG={0.85} />
           </Environment>
         </>

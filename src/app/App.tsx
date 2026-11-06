@@ -12,12 +12,15 @@ import { Overlays } from '../layout/Overlays'
 import { TipProvider } from '../guide/Tip'
 import { ConfirmDialog } from '../guide/ConfirmDialog'
 import { TourCard } from '../guide/TourCard'
+import { PresentBar } from '../present/PresentBar'
+import { usePresent } from '../present/present'
 
 export function App() {
   useKeyboardShortcuts()
+  const presenting = usePresent((s) => s.presenting)
   return (
     <TipProvider>
-    <div className="app">
+    <div className={`app${presenting ? ' presenting' : ''}`}>
       <TopBar />
       <Scene />
       <ToolStrip />
@@ -30,6 +33,7 @@ export function App() {
       <InteriorEditor />
       <Toast />
       <Overlays />
+      <PresentBar />
       <ConfirmDialog />
       <TourCard />
     </div>

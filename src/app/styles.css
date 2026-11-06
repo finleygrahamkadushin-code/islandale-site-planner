@@ -487,3 +487,58 @@ button.primary:hover:not(:disabled) { border-color: var(--fg); }
 .dialog-overlay { z-index: 70; }
 .dialog { z-index: 71; }
 .tool-tip { z-index: 80; }
+
+/* Present (4D): the view alone, a control bar, the compass and scale bar, the splash, and the no-WebGL card */
+:root {
+  --glass: color-mix(in srgb, var(--panel) 78%, transparent);
+  --hud-ink: var(--fg);
+  --hud-north: #e0604e;
+}
+.app.presenting .topbar, .app.presenting .toolstrip, .app.presenting .library, .app.presenting .side,
+.app.presenting .bottom-row, .app.presenting .part-hud, .app.presenting .chips, .app.presenting .labels { display: none; }
+.app.presenting .tour-card { display: none; }
+.view-hud {
+  position: absolute; right: 304px; top: calc(var(--topbar-bottom, 56px) + 12px); z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none;
+}
+.app.presenting .view-hud { right: 20px; top: 20px; }
+.view-hud > * { pointer-events: auto; }
+.compass { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; border-color: var(--line); background: var(--glass); backdrop-filter: blur(8px); }
+.compass-ring { fill: none; stroke: color-mix(in srgb, var(--fg) 25%, transparent); stroke-width: 1; }
+.compass-north { fill: var(--hud-north); }
+.compass-south { fill: color-mix(in srgb, var(--fg) 55%, transparent); }
+.compass-n { fill: var(--hud-ink); font: 700 7px/1 -apple-system, sans-serif; text-anchor: middle; }
+.compass svg g { transform-box: view-box; transform-origin: 0 0; }
+.scale-bar { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; padding: 4px 8px; border-radius: 6px; background: var(--glass); backdrop-filter: blur(8px); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--hud-ink); }
+.scale-line { height: 6px; border: 2px solid var(--hud-ink); border-top: 0; box-sizing: border-box; }
+.present-bar {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  max-width: calc(100vw - 32px); padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--glass); backdrop-filter: blur(14px); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+.present-views { display: flex; flex-wrap: wrap; gap: 4px; }
+.present-views button { min-height: 36px; padding: 6px 14px; border-color: transparent; border-radius: 9px; font-size: 14px; }
+.present-views button.on { background: var(--tool-on-bg); border-color: var(--accent); color: var(--fg); }
+.present-views { justify-content: center; }
+.present-controls { display: flex; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+.present-controls .icon-only { min-width: 36px; min-height: 36px; border-radius: 9px; }
+.present-controls .icon-only.on { background: var(--tool-on-bg); border-color: var(--accent); color: var(--fg); }
+.present-clock { min-width: 128px; font-variant-numeric: tabular-nums; font-size: 13px; }
+.present-leave { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; border-radius: 9px; }
+.splash {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--panel) 92%, var(--accent)), var(--bg) 70%);
+  opacity: 1; transition: opacity 0.4s ease;
+}
+.splash.done { opacity: 0; }
+.splash-lot { width: 96px; height: 96px; }
+.splash-lot polygon { fill: color-mix(in srgb, var(--accent) 12%, transparent); stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; }
+.splash-name { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.04em; }
+.splash-status { margin: 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.no-webgl { display: grid; place-items: center; padding: 16px; background: var(--bg); }
+.no-webgl-card { max-width: 460px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.no-webgl-card h2 { margin: 0 0 8px; font-size: 17px; }
+.no-webgl-card p, .no-webgl-card ul { margin: 0 0 10px; line-height: 1.5; }
+@media (max-width: 720px) { .view-hud { right: 16px; } }

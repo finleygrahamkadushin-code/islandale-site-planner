@@ -1,5 +1,6 @@
 import { usePlanStore } from '../store/planStore'
 import { readFloors } from '../interiors/model'
+import { usePresent } from '../present/present'
 import { useInteriorView } from '../interiors/editor/interiorView'
 
 /**
@@ -47,7 +48,10 @@ export function PresentTabPanel() {
       <header>
         <strong>Present</strong>
       </header>
-      <p className="muted">Show the plan from the saved views along the bottom: Overview, From the water, Entry, Golden hour and Plan. Full-screen Present mode, with the sun moving through the day, comes in the next part.</p>
+      <p className="muted">Show the plan full screen with no editing controls: the saved views along the bottom, the sun moving from morning to golden hour, a slow orbit and a picture of any view. Escape leaves.</p>
+      <button type="button" className="primary" onClick={() => usePresent.getState().enter()} data-testid="start-presenting">
+        Start presenting
+      </button>
     </section>
   )
 }

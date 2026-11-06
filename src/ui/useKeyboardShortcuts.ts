@@ -7,6 +7,7 @@ import { viewKey } from '../layout/viewKeys'
 import { useOverlay } from '../layout/Overlays'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
+import { isPresenting, usePresent } from '../present/present'
 import { useConfirm } from '../guide/confirm'
 
 const NUDGE_FT = 1
@@ -26,6 +27,11 @@ export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return
+      // Present mode (4D): no editing keys; Escape leaves
+      if (isPresenting()) {
+        if (e.key === 'Escape') usePresent.getState().leave()
+        return
+      }
       const s = usePlanStore.getState()
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'z') {

@@ -9,6 +9,8 @@ import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
 import { useGuideMode } from '../guide/mode'
 import { useTour } from '../guide/tour'
+import { usePresent } from '../present/present'
+import { useViewHud } from '../present/viewState'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -87,6 +89,8 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
+    { id: 'present', group: 'Views', label: 'Present: full screen, no editing', run: () => usePresent.getState().enter() },
+    { id: 'snapshot', group: 'Views', label: 'Save a picture of this view', run: () => useViewHud.getState().snapshot() },
   ]
   if (s.selection.length) {
     cmds.push(

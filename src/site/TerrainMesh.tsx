@@ -8,6 +8,7 @@ import { useBoxSelect } from '../tools/useBoxSelect'
 import { buildPatchGeometry, buildTerrainGeometry, colourTerrain } from './terrainGeometry'
 import { grass, perMetre } from '../scene/textures'
 import { useEarthworks } from './earthworks/useEarthworks'
+import { isPresenting } from '../present/present'
 import { STYLE_GROUND, useDisplayStyle } from '../scene/useDisplayStyle'
 
 /** The ground: the survey grid, with a fine patch wherever buildings and ponds reshape it (cuts, fills, berms, bowls). */
@@ -45,6 +46,7 @@ const groundMove = (e: ThreeEvent<PointerEvent>) => {
 }
 const groundLeave = () => usePointerGround.getState().setAt(null)
 const groundClick = (e: ThreeEvent<MouseEvent>) => {
+  if (isPresenting()) return
   const s = usePlanStore.getState()
   if (s.measuring) {
     e.stopPropagation()
@@ -66,7 +68,7 @@ function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeome
       geometry={geometry}
       receiveShadow
       name={name}
-      onPointerDown={box.onPointerDown}
+      onPointerDown={(e) => !isPresenting() && box.onPointerDown(e)}
       onPointerMove={groundMove}
       onPointerLeave={groundLeave}
       onClick={groundClick}

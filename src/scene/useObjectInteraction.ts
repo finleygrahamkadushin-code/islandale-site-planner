@@ -5,6 +5,7 @@ import type { PlanObject } from '../store/types'
 import { massOf } from '../buildings/parts/partFrame'
 import { firstPaintHit, isPaintable } from '../buildings/paint/paintHit'
 import { usePaintHover } from '../buildings/paint/paintHover'
+import { usePresent } from '../present/present'
 import { useDragMove } from '../tools/useDragMove'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
@@ -17,6 +18,10 @@ const PICK_SLOP_PX = 4
  * element (wall, roof, rail…) the Exterior panel paints instead. With the
  * Select tool, dragging the selected object moves it (useDragMove).
  */
+const ignore = (): void => undefined
+/** Present mode (4D): objects take no clicks, hovers or drags. */
+const PRESENT_HANDLERS = { onClick: ignore, onPointerOver: ignore, onPointerMove: ignore, onPointerOut: ignore, onPointerDown: ignore, onPointerUp: ignore }
+
 export function useObjectInteraction(o: PlanObject) {
   const dragMove = useDragMove(o)
   const select = usePlanStore((s) => s.select)
@@ -78,6 +83,9 @@ export function useObjectInteraction(o: PlanObject) {
     document.body.style.cursor = ''
   }, [setHovered])
 
+  // Present mode (4D) shows the plan; nothing in it can be picked or dragged
+  const presenting = usePresent((s) => s.presenting)
+  if (presenting) return { selected, hovered, handlers: PRESENT_HANDLERS }
   return {
     selected,
     hovered,

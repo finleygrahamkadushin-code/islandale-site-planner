@@ -25,6 +25,16 @@ import { RouteChips } from '../paths/route/RouteChips'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
 import { useLiveDrag } from './editing'
+import { useState } from 'react'
+import { usePresent, isPresenting } from '../present/present'
+import { ViewProbe } from '../present/ViewProbe'
+import { CompassScale } from '../present/CompassScale'
+import { Splash } from '../present/Splash'
+import { NoWebGL } from '../present/NoWebGL'
+import { hasWebGL2 } from '../present/webgl'
+
+/** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
+const ORBIT_SPEED = 0.6
 
 export function Scene() {
   const site = usePlanStore((s) => s.site)
@@ -32,6 +42,10 @@ export function Scene() {
   const drag = useLiveDrag((s) => s.drag)
   const setDrag = useLiveDrag((s) => s.setDrag)
   const target = onGround(site.terrain, 0, 0)
+  const [webgl] = useState(() => hasWebGL2())
+  const presenting = usePresent((s) => s.presenting)
+  const orbit = usePresent((s) => s.orbit)
+  if (!webgl) return <NoWebGL />
   return (
     <div className="viewport" data-tour="view">
     <LabelLayer />
@@ -42,7 +56,7 @@ export function Scene() {
       camera={{ position: [target[0] + 32, target[1] + 26, target[2] + 40], fov: 45, near: 0.5, far: 8000 }}
       gl={{ antialias: false, toneMapping: NoToneMapping }}
       // a click on nothing clears the selection, but not the click that ends a box select
-      onPointerMissed={() => !boxJustEnded() && select([])}
+      onPointerMissed={() => !boxJustEnded() && !isPresenting() && select([])}
     >
       <SceneEnvironment />
       <Terrain terrain={site.terrain} />
@@ -57,13 +71,25 @@ export function Scene() {
       <JunctionLayer />
       <RouteChips />
       <LabelProjector drag={drag} />
-      <EditGizmos drag={drag} setDrag={setDrag} />
+      {!presenting && <EditGizmos drag={drag} setDrag={setDrag} />}
       <Effects />
       <CameraRig />
       <SheetCapture />
-      <OrbitControls makeDefault target={target} maxPolarAngle={Math.PI / 2 - 0.02} enableDamping />
+      <ViewProbe />
+      <OrbitControls
+        makeDefault
+        target={target}
+        maxPolarAngle={Math.PI / 2 - 0.02}
+        enableDamping
+        autoRotate={presenting && orbit}
+        autoRotateSpeed={ORBIT_SPEED}
+        // any drag stops the slow orbit
+        onStart={() => usePresent.getState().orbit && usePresent.getState().setOrbit(false)}
+      />
     </Canvas>
     <ChipLayer />
+    <CompassScale />
+    <Splash />
     </div>
   )
 }
