@@ -22,11 +22,14 @@ import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
 import {
   DEFAULT_ENVIRONMENT,
+  DEFAULT_SETBACKS,
+  SETBACK_RANGES,
   DEFAULT_LAYERS,
   HOUR_RANGE,
   TIDE_RANGE_FT,
   type DisplayStyle,
   type Environment,
+  type Setbacks,
   type LabelMode,
   type LayerId,
   type LayerState,
@@ -70,6 +73,8 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly labelMode: LabelMode
   readonly layers: Layers
   readonly environment: Environment
+  /** Site rules (5E): saved with the plan, not undone. */
+  readonly setbacks: Setbacks
   readonly displayStyle: DisplayStyle
   /** Occlusion, shadows and edges switched away from the style's defaults (saved, not undone; see effectiveDisplay). */
   readonly displayOptions: DisplayOptions
@@ -138,6 +143,7 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly lockAll: (locked: boolean) => void
   readonly showAll: () => void
   readonly setEnvironment: (patch: Partial<Environment>) => void
+  readonly setSetbacks: (patch: Partial<Setbacks>) => void
   readonly setDisplayStyle: (style: DisplayStyle) => void
   readonly setDisplayOption: (toggle: DisplayToggle, on: boolean) => void
   readonly setContours: (contours: boolean | null) => void
@@ -159,6 +165,7 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
     labelMode?: LabelMode
     layers?: Layers
     environment?: Environment
+    setbacks?: Setbacks
     displayStyle?: DisplayStyle
     contours?: boolean | null
     displayOptions?: DisplayOptions
@@ -256,6 +263,7 @@ export const usePlanStore = create<PlanState>()(
         labelMode: 'all',
         layers: DEFAULT_LAYERS,
         environment: DEFAULT_ENVIRONMENT,
+        setbacks: DEFAULT_SETBACKS,
         displayStyle: 'realistic',
         displayOptions: {},
         contours: null,
@@ -421,6 +429,7 @@ export const usePlanStore = create<PlanState>()(
           })),
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
         setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
+        setSetbacks: (patch) => set((s) => ({ setbacks: clampSetbacks({ ...s.setbacks, ...patch }) })),
         // a new style starts from its own defaults
         setDisplayStyle: (displayStyle) => set({ displayStyle, displayOptions: {} }),
         setDisplayOption: (toggle, on) => set((s) => ({ displayOptions: { ...s.displayOptions, [toggle]: on } })),
@@ -438,12 +447,13 @@ export const usePlanStore = create<PlanState>()(
         setReadOnly: (readOnly) => set({ readOnly }),
         setOpeningFocus: (openingFocus) => set({ openingFocus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
-        hydrate: ({ plan, labelMode, layers, environment, displayStyle, displayOptions, contours }) =>
+        hydrate: ({ plan, labelMode, layers, environment, setbacks, displayStyle, displayOptions, contours }) =>
           set({
             plan,
             labelMode: labelMode ?? get().labelMode,
             layers: layers ?? get().layers,
             environment: environment ? clampEnvironment(environment) : get().environment,
+            setbacks: setbacks ? clampSetbacks(setbacks) : get().setbacks,
             displayStyle: displayStyle ?? get().displayStyle,
             contours: contours === undefined ? get().contours : contours,
             displayOptions: displayOptions ?? get().displayOptions,
@@ -483,5 +493,18 @@ export function clampEnvironment(e: Environment): Environment {
     season: e.season,
     hour: clamp(e.hour, HOUR_RANGE.min, HOUR_RANGE.max),
     tideFt: clamp(e.tideFt, TIDE_RANGE_FT.min, TIDE_RANGE_FT.max),
+  }
+}
+
+/** Snap each setback to its slider's step and keep it in range. */
+export function clampSetbacks(b: Setbacks): Setbacks {
+  const fit = (v: number, r: { min: number; max: number; step: number }, dflt: number) =>
+    Number.isFinite(v) ? Math.max(r.min, Math.min(r.max, Math.round(v / r.step) * r.step)) : dflt
+  return {
+    shoreFt: fit(b.shoreFt, SETBACK_RANGES.shoreFt, DEFAULT_SETBACKS.shoreFt),
+    bankFt: fit(b.bankFt, SETBACK_RANGES.bankFt, DEFAULT_SETBACKS.bankFt),
+    sideFt: fit(b.sideFt, SETBACK_RANGES.sideFt, DEFAULT_SETBACKS.sideFt),
+    treeZones: b.treeZones !== false,
+    shown: b.shown !== false,
   }
 }

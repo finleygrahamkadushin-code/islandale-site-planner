@@ -8,6 +8,7 @@ describe('plan files', () => {
     labelMode: 'selected' as const,
     layers: { ...DEFAULT_LAYERS, trees: { visible: false, locked: true } },
     environment: { season: 'dec' as const, hour: 9.5, tideFt: 3 },
+    setbacks: { shoreFt: 50, bankFt: 40, sideFt: 12, treeZones: false, shown: true },
     displayStyle: 'white' as const,
     contours: true,
     displayOptions: { shadows: false },
@@ -19,6 +20,13 @@ describe('plan files', () => {
     expect(file.plan).toEqual(plan)
     expect(file.view).toEqual(view)
     expect(file.version).toBe(1)
+  })
+
+  test('a plan saved before 5E loads with the default setbacks', () => {
+    const plan = usePlanStore.getState().plan
+    const { setbacks: _drop, ...old } = view
+    const file = parsePlanFile(serializePlan(plan, old))
+    expect(file.view.setbacks).toEqual({ shoreFt: 35, bankFt: 45, sideFt: 10, treeZones: true, shown: true })
   })
 
   test('rejects files that are not plans', () => {

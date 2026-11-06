@@ -54,6 +54,33 @@ export interface Environment {
 }
 
 export const DEFAULT_ENVIRONMENT: Environment = { season: 'sep', hour: 14, tideFt: 6.2 }
+
+/**
+ * Site rules (5E): setbacks the ground tints, buffer line, clearances and
+ * code check read. View state: saved with the plan, never an undo step.
+ */
+export interface Setbacks {
+  /** Shoreline setback, feet, measured from the top of bank on the east shore and from the water on the south-west. */
+  readonly shoreFt: number
+  /** Top of bank, feet in from the east shore's OHWM. */
+  readonly bankFt: number
+  /** Side and rear lot lines, feet. */
+  readonly sideFt: number
+  /** Shade the tree protection zones (0–35 ft and 35–110 ft from the water). */
+  readonly treeZones: boolean
+  /** The Setbacks layer: ground tints and the buffer line shown. */
+  readonly shown: boolean
+}
+
+export const DEFAULT_SETBACKS: Setbacks = { shoreFt: 35, bankFt: 45, sideFt: 10, treeZones: true, shown: true }
+/** Slider ranges and steps, feet. */
+export const SETBACK_RANGES = {
+  shoreFt: { min: 0, max: 150, step: 5 },
+  bankFt: { min: 0, max: 80, step: 5 },
+  sideFt: { min: 0, max: 50, step: 1 },
+} as const
+/** The strict reading of SJCC 18.50.540(C). */
+export const STRICT_SHORE_FT = 50
 export const HOUR_RANGE = { min: 7, max: 19 } as const
 export const TIDE_RANGE_FT = { min: 0, max: 12 } as const
 

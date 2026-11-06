@@ -2,11 +2,13 @@ import { get as idbGet, set as idbSet } from 'idb-keyval'
 import { DISPLAY_TOGGLES, type DisplayOptions } from '../scene/displayOptions'
 import {
   DEFAULT_ENVIRONMENT,
+  DEFAULT_SETBACKS,
   DEFAULT_LAYERS,
   DISPLAY_STYLES,
   LAYER_IDS,
   type DisplayStyle,
   type Environment,
+  type Setbacks,
   type LabelMode,
   type Layers,
   type Plan,
@@ -25,6 +27,7 @@ export interface PlanFile {
     readonly labelMode: LabelMode
     readonly layers: Layers
     readonly environment?: Environment
+    readonly setbacks?: Setbacks
     readonly displayStyle?: DisplayStyle
     readonly contours?: boolean | null
     readonly displayOptions?: DisplayOptions
@@ -135,7 +138,15 @@ function validateView(raw: unknown): PlanFile['view'] {
   const displayStyle: DisplayStyle = DISPLAY_STYLES.some((d) => d.id === style) ? (style as DisplayStyle) : 'realistic'
   const contours = isRecord(raw) && typeof raw.contours === 'boolean' ? raw.contours : null
   const displayOptions = readDisplayOptions(isRecord(raw) ? raw.displayOptions : undefined)
-  return { labelMode, layers, environment, displayStyle, contours, displayOptions }
+  const sbRaw = isRecord(raw) && isRecord(raw.setbacks) ? raw.setbacks : {}
+  const setbacks: Setbacks = {
+    shoreFt: isNum(sbRaw.shoreFt) ? sbRaw.shoreFt : DEFAULT_SETBACKS.shoreFt,
+    bankFt: isNum(sbRaw.bankFt) ? sbRaw.bankFt : DEFAULT_SETBACKS.bankFt,
+    sideFt: isNum(sbRaw.sideFt) ? sbRaw.sideFt : DEFAULT_SETBACKS.sideFt,
+    treeZones: sbRaw.treeZones !== false,
+    shown: sbRaw.shown !== false,
+  }
+  return { labelMode, layers, environment, setbacks, displayStyle, contours, displayOptions }
 }
 
 /** A synchronous copy written as the tab closes, when an IndexedDB write may not finish. */

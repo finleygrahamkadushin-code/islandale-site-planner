@@ -1,6 +1,6 @@
 # Phase 5 plan: port the rest of the old planner
 
-Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **The 5E detail (site rules) is drafted below and waits for Finley's OK** (branch `claude/phase-5e-site-rules-5277e1`). Edit anything here; Claude Code reads this file before starting each part of Phase 5.
+Status: **5A approved Oct 29 2026 and built, ahead of Phase 4** (option 1 below). 5B approved and built Nov 2 2026 (branch `phase-5b-interiors`); 5C approved and built Nov 2 2026 (branch `phase-5c-paths`); 5D approved and built Nov 2 2026 (branch `phase-5d-shapes`). Phase 4 is complete (Nov 5 2026) and took 5E's tools. **5E (site rules) approved by Finley Nov 5 2026 ("ok i want you to do this"), with the decisions as proposed, and in progress** (branch `claude/phase-5e-site-rules-5277e1`). Finley: "you dont have to work on the old planner anymore just focus on the new one only", so 5E's step 1 (capturing the old planner's numbers) is dropped; tests check the new app's own maths. Edit anything here; Claude Code reads this file before starting each part of Phase 5.
 
 ## Why this plan
 
@@ -117,7 +117,7 @@ Commits go in that order, each one leaving the app runnable. The app is checked 
 
 **Done when:** Schemes D–I look the way they do in the old planner from matching views (outside, roofs on), and any wall, roof or rail can be repainted, with undo and locks.
 
-## 5E in detail: Site rules (waiting for Finley's OK)
+## 5E in detail: Site rules (approved Nov 5 2026)
 
 Branch: `claude/phase-5e-site-rules-5277e1`, from `main` at 4175f41 (Phase 4 complete). This plan is drafted on it; the code follows on the same branch once it's approved.
 
@@ -184,7 +184,7 @@ Branch: `claude/phase-5e-site-rules-5277e1`, from `main` at 4175f41 (Phase 4 com
 
 ### Order of work
 
-1. **Capture the old planner's numbers first.**
+1. **~~Capture the old planner's numbers first.~~** Dropped at Finley's request (Nov 5 2026): the old planner isn't run or changed. The tests below check the ported formulas with hand-worked cases instead of a fixture.
    - **The script:** a one-off Playwright script under `scripts/` opens `legacy/islandale-planner.html` and loads each scheme. It reads the code-check rows, the program budget, the lot coverage, and the selection rows for every building (to shore, to lot line, to nearest).
    - **Settings:** it does this at the default setbacks and again at the strict reading (shoreline 50 ft).
    - **The fixture:** the results are saved as `src/site/rules/legacyRules.fixture.json`. Every number in this part is tested against it.

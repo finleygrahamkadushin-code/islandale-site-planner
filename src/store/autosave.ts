@@ -154,6 +154,7 @@ export function startAutosave({
       state.labelMode !== prev.labelMode ||
       state.layers !== prev.layers ||
       state.environment !== prev.environment ||
+      state.setbacks !== prev.setbacks ||
       state.displayStyle !== prev.displayStyle ||
       state.displayOptions !== prev.displayOptions ||
       state.contours !== prev.contours
@@ -284,6 +285,7 @@ export const viewOf = (s: PlanState) => ({
   labelMode: s.labelMode,
   layers: s.layers,
   environment: s.environment,
+  setbacks: s.setbacks,
   displayStyle: s.displayStyle,
   contours: s.contours,
   displayOptions: s.displayOptions,

@@ -30,6 +30,7 @@ export async function importPlanFile(file: File): Promise<void> {
     s.setLabelMode(parsed.view.labelMode)
     for (const [id, layer] of Object.entries(parsed.view.layers)) s.setLayer(id as keyof typeof parsed.view.layers, layer)
     if (parsed.view.environment) s.setEnvironment(parsed.view.environment)
+    if (parsed.view.setbacks) s.setSetbacks(parsed.view.setbacks)
     if (parsed.view.displayStyle) s.setDisplayStyle(parsed.view.displayStyle)
     s.showToast(`Loaded ${parsed.plan.name}`)
   } catch (err) {
