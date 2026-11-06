@@ -11,12 +11,16 @@ import bpy
 
 from .materials import registry
 from .materials.common import node
+from mathutils import Vector
+
+from .staging import Ground
 from .uv import UV_MAP, apply_uv_meters
 
 MIX_OUTPUTS = (("Base Color", "RGBA"), ("Roughness", "FLOAT"), ("Metallic", "FLOAT"), ("Height", "FLOAT"), ("AO", "FLOAT"))
 PRINCIPLED = {"Base Color": "Base Color", "Roughness": "Roughness", "Metallic": "Metallic"}
 DISPLACE_MIN_RELIEF = 0.02     # m: below this, bump alone reads the same and subdivision only costs GPU memory
 DISPLACE_PARTS = ("wall", "header", "sill", "roof", "deck")   # the surfaces whose relief shows at building scale
+GROUND_PROBE = 0.6             # m outside a wall where the ground is read for its wainscot
 WELD_DIST = 0.0005             # m: weld coincident vertices before displacing so corners don't crack open
 
 
@@ -182,16 +186,36 @@ def assign(ob, mat):
     ob.data.materials.append(mat)
 
 
+def wainscot_bases(site):
+    """oid -> where a building's walls come out of the ground: the lowest, over its outer walls, of the wall foot or the
+    ground just outside it. A cabin set into the slope has its wall feet under the ground on every side, and a wainscot
+    measured from the feet would be buried; measured from here it shows."""
+    ground = Ground(site)
+    out = {}
+    for oid, items in site.buildings().items():
+        walls = [it.ob for it in items if it.part == "wall" and not it.props.get("interior") and it.ob.data.vertices]
+        if not walls:
+            continue
+        pts = [ob.matrix_world @ v.co for ob in walls for v in ob.data.vertices]
+        centre = Vector((sum(p.x for p in pts) / len(pts), sum(p.y for p in pts) / len(pts)))
+        bases = []
+        for ob in walls:
+            ws = [ob.matrix_world @ v.co for v in ob.data.vertices]
+            foot = min(p.z for p in ws)
+            mid = Vector((sum(p.x for p in ws) / len(ws), sum(p.y for p in ws) / len(ws)))
+            away = (mid - centre).normalized() if (mid - centre).length > 1e-6 else Vector((0.0, 0.0))
+            gz = ground.z(mid.x + away.x * GROUND_PROBE, mid.y + away.y * GROUND_PROBE)
+            bases.append(foot if gz is None else max(foot, gz))
+        out[oid] = min(bases)
+    return out
+
+
 def dress(site, styles_path, allow_missing=False):
     """UVs and materials for the whole site. Returns (report: material name -> meshes wearing it, the Styler).
     Interior partitions and furniture keep the planner's own colours."""
     sty = Styler(styles_path, allow_missing)
     outlines = {oid: [m["outline"] for m in o.get("masses", []) if m.get("outline")] for oid, o in site.objects.items()}
-    wall_base = {}
-    for oid, items in site.buildings().items():
-        zs = [min((it.ob.matrix_world @ v.co).z for v in it.ob.data.vertices) for it in items if it.part == "wall" and it.ob.data.vertices]
-        if zs:
-            wall_base[oid] = min(zs)
+    wall_base = wainscot_bases(site)
     report = {}
     s = sty.styles["site"]
     terrain_mat = None
@@ -215,13 +239,36 @@ def dress(site, styles_path, allow_missing=False):
                 terrain_mat = terrain_material(sty.material(s["terrain"]), sty.material(shore["material"]),
                                                shore["below_m"], shore["blend_m"])
             mat = terrain_mat
+        elif it.kind == "tree":
+            spec = s.get("trees", {}).get(it.part or "")
+            mat = sty.material(spec) if spec else None
         elif it.kind in ("site", "earthworks", "water"):
             spec = sty.site_spec(it)
             mat = sty.material(spec) if spec else None
         if mat is not None:
             assign(it.ob, mat)
             report[mat.name] = report.get(mat.name, 0) + 1
+    bump_only(report)
     return report, sty
+
+
+def bump_only(report):
+    """Relief as bump on every material dressed here. A material set to BOTH moves the vertices of any mesh it is on,
+    subdivided or not; the export's meshes are loose triangles whose UV frames differ from face to face on slopes, so
+    neighbouring triangles move apart and the sky shows through the cracks. true_displacement switches back to BOTH only
+    for the materials it subdivides."""
+    for name in report:
+        mat = bpy.data.materials.get(name)
+        if mat and mat.displacement_method == "BOTH":
+            mat.displacement_method = "BUMP"
+
+
+def carve_inward(mat):
+    """True displacement sinks the relief into the surface (its highest point on the face) instead of raising it: raised,
+    3.5 cm of kurinuki swallows the door, the window frames and the header, which sit flush with the wall."""
+    for n in mat.node_tree.nodes:
+        if n.type == "DISPLACEMENT":
+            n.inputs["Midlevel"].default_value = float(mat.get("is_relief_m", 0.0))
 
 
 def true_displacement(site, min_relief=DISPLACE_MIN_RELIEF):
@@ -242,5 +289,8 @@ def true_displacement(site, min_relief=DISPLACE_MIN_RELIEF):
         sub = it.ob.modifiers.new("Displace detail", "SUBSURF")
         sub.subdivision_type = "SIMPLE"
         sub.use_adaptive_subdivision = True
+        if mat.displacement_method != "BOTH":
+            mat.displacement_method = "BOTH"
+            carve_inward(mat)
         count += 1
     return count

@@ -39,7 +39,7 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 | `build_scene.py` | Builds the scene end to end: import, materials, sea, sun, cameras, and optionally render. |
 | `islandale3d/importer.py` | Imports the `.glb`, reads the manifest, and sorts every mesh into the Terrain, Water, Earthworks, Buildings (one collection per building), Site, Trees or Other collection. It indexes each mesh by its tags. |
 | `islandale3d/styling.py` | Gives each mesh its `UVMeters` map (`uv.py`) and its material from `styles.json`. Wainscots blend by world height, and the terrain blends to beach. Optionally adds true displacement. |
-| `islandale3d/staging.py` | The sun, using the planner's own model for 48.46° N; a sea out to the horizon at the tide; and the cameras: an aerial over the bay, plus a hero view and a wall close-up for each building. Also the Cycles settings. |
+| `islandale3d/staging.py` | The sun, using the planner's own model for 48.46° N; a sea out to the horizon at the tide; and the cameras: an aerial from up the slope over the cabins to the bay, plus a hero view and a wall close-up for each building. Also the Cycles settings. |
 | `islandale3d/uv.py` | World-scale UVs: 1 unit = 1 m. On walls, u runs along the mass outline (unbroken round curves and corners) and v is the world Z. Roofs run down the slope; flat faces use world x and y. |
 | `islandale3d/materials/` | The procedural materials, one module per family. |
 | `styles.json` | Which material each surface wears. |
@@ -64,11 +64,11 @@ A building mesh's material is found in this order:
 A part's entry can take three forms:
 - a material key;
 - `{"material": key, "params": {...}}` for a tuned copy;
-- for walls, `{"material": key, "wainscot": {"material": key, "height_m": 0.9}}`, a stone base under a plain wall. Gables stay plain.
+- for walls, `{"material": key, "wainscot": {"material": key, "height_m": 0.9}}`, a stone base under a plain wall. The base is measured from where the building's walls leave the ground (the wall foot, or the ground just outside it, whichever is higher, lowest over its walls), so a cabin set into the slope still shows it. Gables stay plain.
 
 Site surfaces are keyed by role (terrain, shore, earthworks, retaining, water, pads, bridge, deck).
 
-Three kinds of mesh keep the app's colours: the rooms inside (`interior`), the trees (6D) and the ceilings at the wall tops (`cap`, hidden under the roofs).
+Trees: `site.trees` gives the trunk (`bark`) and the crown (`crown`) their materials. Cars on a pad keep the app's colours, as do the rooms inside (`interior`) and the ceilings at the wall tops (`cap`, hidden under the roofs).
 
 ## The material contract (`islandale3d/materials/common.py`)
 
@@ -76,9 +76,12 @@ Three kinds of mesh keep the app's colours: the rooms inside (`interior`), the t
 - **Input:** first `Vector`, the UVMeters coordinates. Then the material's own tunables, including `Tile` (metres, default 6).
 - **Outputs:** Base Color, Roughness, Metallic, and Height (metres of relief, + outward). Optionally Alpha, Transmission, Emission Color and AO.
 - **Bakeable for Unreal:** the group must be a pure function of `Vector` and its inputs, with no Geometry, Texture Coordinate, Object Info, Attribute, AO, Bevel or Light Path nodes inside. It must also repeat exactly every `Tile`: noise goes through `torus4d`, and courses, boards and panels through `wrapped_cells`. `swatch.py --tile-test` measures the repeat (a mean under 0.01 counts as seamless).
-- **Relief:** `mat["is_relief_m"]` holds the largest relief; true displacement only applies where it is at least 2 cm.
+- **Relief:** `mat["is_relief_m"]` holds the largest relief.
+  - Relief renders as **bump** everywhere, except on the building meshes `--true-displacement` subdivides: walls, headers, sills, roofs and decks whose relief is at least 2 cm.
+  - The export's meshes are loose triangles, and a displaced material on an unsubdivided mesh cracks them apart (the white lines on the ground in 6C).
+  - True displacement **carves inward** from the face (midlevel = the relief), so a carved wall never covers the door, window frames or trim flush with it.
 
-**Material keys:** beach, board_batten, cedar, charred_wood, concrete, concrete_slab, copper_roof, deck_boards, flagstone, glass, glass_tinted, gravel, kurinuki, kurinuki_shino, ledgestone_cool, ledgestone_warm, meadow, rigidized_bronze, rigidized_metal, sod_roof, standing_seam, steel, stucco, timber, water, plus `uv_grid` for debugging.
+**Material keys:** beach, leaves, madrone_bark, board_batten, cedar, charred_wood, concrete, concrete_slab, copper_roof, deck_boards, flagstone, glass, glass_tinted, gravel, kurinuki, kurinuki_shino, ledgestone_cool, ledgestone_warm, meadow, rigidized_bronze, rigidized_metal, sod_roof, standing_seam, steel, stucco, timber, water, plus `uv_grid` for debugging.
 
 ### Adding a material
 
@@ -92,6 +95,6 @@ A module that fails to import is skipped, and named if one of its keys is asked 
 
 - **The first Cycles render in a new process can take about 5 minutes** while Metal kernels compile. Later renders are fast.
 - **Don't run two heavy Cycles jobs at once** on the Metal GPU. Close-ups with `--true-displacement` are the memory hogs (dicing rate 1.5, at most 7 subdivisions).
-- **Kurinuki and ledgestone** only really read as carved with displacement on. **But kurinuki tears with displacement** on the new app's walls: they are loose triangles with T-junctions round the openings, so they crack apart. Render kurinuki close-ups without `--true-displacement` until 6D welds them.
+- **Kurinuki and ledgestone** only really read as carved with displacement on.
 - **Wainscot material names** carry the absolute top Z, for example `M_Stucco_over_M_LedgestoneCool_9.13`.
 - **The swatch test cabin's window** shows a thin diagonal line. It comes from the test scene and appears only in swatches.

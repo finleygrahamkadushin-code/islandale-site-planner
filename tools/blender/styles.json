@@ -23,8 +23,8 @@
     "elders": {
       "_why": "the calm, accessible wedge: warm white stucco over a cool stacked-stone wainscot, like the user's second photo",
       "parts": {
-        "wall": { "material": "stucco", "wainscot": { "material": "ledgestone_cool", "height_m": 0.9 } },
-        "header": "stucco", "sill": "stucco", "trim": "steel", "roof": "standing_seam"
+        "wall": { "material": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "wainscot": { "material": "ledgestone_cool", "height_m": 0.9 } },
+        "header": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "sill": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "trim": "steel", "roof": "standing_seam"
       }
     }
   },
@@ -40,9 +40,10 @@
     "rail_styles": { "wood": "cedar", "steel": "steel", "cable": "steel", "glass": "glass", "none": null }
   },
   "site": {
-    "terrain": "meadow",
+    "terrain": { "material": "meadow", "params": { "Green Amount": 0.24 } },
+    "trees": { "_why": "the app's low-poly madrones: red peeling bark on the trunk and limbs, glossy evergreen leaves on the crown", "bark": "madrone_bark", "crown": "leaves" },
     "shore": { "material": "beach", "below_m": 3.0, "blend_m": 0.8 },
-    "earthworks": "meadow",
+    "earthworks": { "material": "meadow", "params": { "Green Amount": 0.24 } },
     "retaining": "ledgestone_cool",
     "water": "water",
     "pads": [

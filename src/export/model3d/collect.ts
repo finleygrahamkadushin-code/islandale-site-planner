@@ -47,6 +47,8 @@ export interface Collected {
   readonly meshes: number
   /** Pieces left out because they had no triangles. */
   readonly empty: number
+  /** Terrain patches drawn (each fills a hole in the terrain): check_export.py counts them back. */
+  readonly patches: number
 }
 
 export const ROOTS = ['Terrain', 'Earthworks', 'Water', 'Objects'] as const
@@ -67,8 +69,9 @@ export function collectModel(live: Object3D, plan: Plan, opts: CollectOptions): 
   const mat = materialCache()
   const counts = { meshes: 0, empty: 0 }
 
-  const addSite = (root: Group, prefix: string, src: Object3D | undefined, extras: Record<string, unknown>) => {
-    src?.traverseVisible((m) => {
+  // every object of a name: the app draws one terrain patch per reshaped area, and the terrain has a hole under each
+  const addSite = (root: Group, prefix: string, name: string, extras: Record<string, unknown>) => {
+    for (const src of live.getObjectsByProperty('name', name)) src.traverseVisible((m) => {
       if (!isPaintedMesh(m)) return
       const g = bake(m, m.matrixWorld, 1)
       if (!g) return void counts.empty++
@@ -77,10 +80,10 @@ export function collectModel(live: Object3D, plan: Plan, opts: CollectOptions): 
       counts.meshes++
     })
   }
-  addSite(roots.Terrain, 'Terrain', live.getObjectByName(LIVE.terrain), { part: 'terrain', partSrc: 'planner' })
-  addSite(roots.Earthworks, 'Earthworks', live.getObjectByName(LIVE.patch), { part: 'earthworks', partSrc: 'planner' })
-  addSite(roots.Earthworks, 'Earthworks', live.getObjectByName(LIVE.retaining), { part: 'retaining', partSrc: 'planner' })
-  addSite(roots.Water, 'Water', live.getObjectByName(LIVE.water), { part: 'water', partSrc: 'planner' })
+  addSite(roots.Terrain, 'Terrain', LIVE.terrain, { part: 'terrain', partSrc: 'planner' })
+  addSite(roots.Earthworks, 'Earthworks', LIVE.patch, { part: 'earthworks', partSrc: 'planner' })
+  addSite(roots.Earthworks, 'Earthworks', LIVE.retaining, { part: 'retaining', partSrc: 'planner' })
+  addSite(roots.Water, 'Water', LIVE.water, { part: 'water', partSrc: 'planner' })
 
   const nodes: ObjectNode[] = []
   for (const root of objectRoots(live.getObjectByName(LIVE.plan))) {
@@ -108,7 +111,8 @@ export function collectModel(live: Object3D, plan: Plan, opts: CollectOptions): 
     }
   }
   out.updateMatrixWorld(true)
-  return { scene: out, nodes, meshes: counts.meshes, empty: counts.empty }
+  const patches = roots.Earthworks.children.filter((c) => c.userData.part === 'earthworks').length
+  return { scene: out, nodes, meshes: counts.meshes, empty: counts.empty, patches }
 }
 
 // ---------- objects ----------
