@@ -9,6 +9,10 @@ Status: **draft, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-p
 - **Drawing sheets** (Nov 2, brought forward): true-scale floor plans, elevations, a foundation plan and tables, at 1/8", 1/4" or 1/2" = 1'-0", from the **Sheets** button.
 - **PNG snapshot** (4D): a picture of the current view, from the Present tab or command search.
 
+## Progress
+
+- **6A done** (Nov 6, branch `claude/phase-6a-save-pipeline`, not merged yet). `tools/blender/`, `tools/export-legacy/` and `HANDOFF-blender-ue5.md` are in the repo; `build/` and `__pycache__/` are ignored. One path changed: `tools/export-legacy/export_scene.mjs` read the old planner from the repo-root `index.html`, which in this repo is the new app's entry page, so it now reads `legacy/islandale-planner.html` (and its git-dirty check looks at that file). That file is not byte-identical to the old worktree's `index.html` (it has the later `ext:` blocks), and the legacy exporter was not run here.
+
 ## What's left
 
 1. **The Blender and Unreal pipeline**, started Nov 2 and never committed.
@@ -35,7 +39,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 
 | Part | What | Size | Done when |
 | --- | --- | --- | --- |
-| **6A · Save the pipeline** | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
+| **6A · Save the pipeline** ✅ done Nov 6 (branch `claude/phase-6a-save-pipeline`) | Copy `tools/blender/`, `tools/export/` (as `tools/export-legacy/`) and `HANDOFF-blender-ue5.md` from the old worktree onto a branch from `main`, plus the `.gitignore` lines for `build/`. No changes to the code itself. | Small (under an hour) | The pipeline is committed and merged, and the old worktree is no longer the only copy |
 | **6B · 3D model export** | An **Export 3D model** command and button writes a `.glb` and a manifest from the new app's scene, in the pipeline's contract (below), and `tools/export/export_scene.mjs` does the same headless against the dev server | Medium | Scheme C's `.glb` opens in Blender with Terrain, Earthworks, Water and Objects, every building mesh tagged, metres, north up; `check_export.py` passes; it also opens in SketchUp |
 | **6C · Blender on the new export** | Point `build_scene.py` at 6B's file, fix whatever the importer assumed about the old planner, and re-render all 9 cameras | Small to medium | All 9 renders of Scheme C come out with each house in its material (kurinuki prow, ledgestone lantern, bronze twin pod, stucco and stone elders' wedge), sent to Finley |
 | **6D · Art direction** | One look pass on Finley's notes from 6C: sun, sky and AgX, meadow colour, stucco brightness, nicer trees | Small (one sitting) | Finley signs off on the renders |

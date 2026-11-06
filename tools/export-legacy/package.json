@@ -1,0 +1,12 @@
+{
+  "name": "islandale-export",
+  "private": true,
+  "description": "Headless export of the site planner's 3D scene to glTF (.glb) + a JSON manifest, for Blender and then Unreal.",
+  "type": "module",
+  "scripts": {
+    "export": "node export_scene.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.64.1"
+  }
+}

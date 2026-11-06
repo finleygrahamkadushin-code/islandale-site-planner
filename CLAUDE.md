@@ -53,7 +53,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
 | Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
-| Blender and Unreal export | `tools/export/`, `tools/blender/` (only on the `house-exterior-textures-3b6cc5` worktree for now) | `HANDOFF-blender-ue5.md` |
+| Blender renders and Unreal export: procedural materials, `styles.json`, the scene builder, the export checker | `tools/blender/` (the old planner's exporter is `tools/export-legacy/` until 6B replaces it) | `HANDOFF-blender-ue5.md` |
 
 `scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.
 
