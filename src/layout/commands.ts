@@ -11,6 +11,7 @@ import { useGuideMode } from '../guide/mode'
 import { useTour } from '../guide/tour'
 import { usePresent } from '../present/present'
 import { useViewHud } from '../present/viewState'
+import { exportModel } from '../export/model3d/exportModel'
 import { useTheme } from '../app/theme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
@@ -103,6 +104,7 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
     { id: 'present', group: 'Views', label: 'Present: full screen, no editing', run: () => usePresent.getState().enter() },
     { id: 'snapshot', group: 'Views', label: 'Save a picture of this view', run: () => useViewHud.getState().snapshot() },
+    { id: 'export-3d', group: 'Plan', label: 'Export 3D model (.glb for Blender and SketchUp)', run: () => void exportModel().catch(() => undefined) },
   ]
   if (s.selection.length) {
     cmds.push(

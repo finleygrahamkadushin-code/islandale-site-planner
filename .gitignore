@@ -8,3 +8,5 @@ playwright-report/
 *.tsbuildinfo
 data/plans/.history/
 data/plans/*.tmp
+build/
+__pycache__/

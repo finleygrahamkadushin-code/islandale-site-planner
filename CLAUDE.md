@@ -27,7 +27,7 @@ src/
   layout/       feature (map inside): task tabs, bottom bar, command search, shortcuts sheet, view keys
   present/      feature (map inside): Present mode, the sun animation, compass and scale bar, splash, snapshot, WebGL check
   guide/        feature (map inside): Beginner / Advanced mode, the shared tooltip, glossary words, the confirm dialog, the first-run tour
-  export/       planFile.ts (plan download) and sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/
+  export/       planFile.ts (plan download); sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/; model3d/ (map inside): the .glb export
   scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
   ui/           shared UI only: top bar, side panel, inspector shell, layers, history, fields, shortcuts
 data/islandale/ terrain grid, parcel, schemes (JSON, extracted from the old planner)
@@ -46,6 +46,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
+| Export 3D model: the .glb and manifest for Blender and SketchUp, the headless export | `src/export/model3d/`, `tools/export/export_scene.mjs` | `src/export/model3d/CLAUDE.md` |
 | Tool strip, object library, placing, dragging, snapping, duplicate, Q / E / R turns, measuring, box select, align | `src/tools/` | `src/tools/CLAUDE.md` |
 | Task tabs, which panels each tab shows, bottom bar, command search, shortcuts sheet, view keys | `src/layout/` | `src/layout/CLAUDE.md` |
 | Beginner / Advanced, what Beginner hides, tooltips, glossary words, delete confirmation, the first-run tour | `src/guide/` | `src/guide/CLAUDE.md` |
@@ -53,7 +54,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
 | Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
-| Blender and Unreal export | `tools/export/`, `tools/blender/` (only on the `house-exterior-textures-3b6cc5` worktree for now) | `HANDOFF-blender-ue5.md` |
+| Blender renders and Unreal export: procedural materials, `styles.json`, the scene builder, the export checker | `tools/blender/` (fed by `tools/export/export_scene.mjs`) | `HANDOFF-blender-ue5.md` |
 
 `scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.
 

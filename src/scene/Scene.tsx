@@ -33,6 +33,7 @@ import { useSplash } from '../present/viewState'
 const Effects = lazy(() => import('./Effects').then((m) => ({ default: m.Effects })))
 import { usePresent, isPresenting } from '../present/present'
 import { ViewProbe } from '../present/ViewProbe'
+import { ModelExportProbe } from '../export/model3d/ModelExportProbe'
 import { CompassScale } from '../present/CompassScale'
 import { Splash } from '../present/Splash'
 import { NoWebGL } from '../present/NoWebGL'
@@ -88,6 +89,7 @@ export function Scene() {
       <CameraRig />
       <SheetCapture />
       <ViewProbe />
+      <ModelExportProbe />
       <OrbitControls
         makeDefault
         target={target}

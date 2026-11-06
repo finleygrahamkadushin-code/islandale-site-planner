@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState, useRef, type RefObject } from 'react'
 import { useStore } from 'zustand'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
+import { exportModel } from '../export/model3d/exportModel'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { openScheme, openSchemeNow } from '../site/archive/openScheme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
@@ -190,6 +191,11 @@ export function TopBar() {
         <Tip label="Floor plans and elevations to scale, with every dimension, for drawing by hand">
           <button ref={sheetsButton} onClick={() => setSheetsOpen(true)}>
             Sheets
+          </button>
+        </Tip>
+        <Tip label="The 3D model as a .glb file, with a manifest, for Blender and SketchUp">
+          <button onClick={() => void exportModel().catch(() => undefined)} data-testid="export-3d">
+            3D model
           </button>
         </Tip>
       </div>

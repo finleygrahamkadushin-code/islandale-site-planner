@@ -1,0 +1,56 @@
+{
+  "_doc": [
+    "Which material each surface wears in Blender (and Unreal). Values are material keys from tools/blender/islandale3d/materials.",
+    "Resolution for a building mesh: buildings[first pattern matching the object's name].parts[part] -> defaults.parts[part];",
+    "a wall falls back to defaults.wall_kinds[the planner's wall kind] before defaults.parts.wall; a roof to defaults.roof_mats[roof material].",
+    "A part may be a key, or {\"material\": key, \"params\": {...}} for a tuned variant, or for walls",
+    "{\"material\": key, \"wainscot\": {\"material\": key, \"height_m\": 0.9}} for a stone base below a plain upper wall.",
+    "Patterns match the planner object's name case-insensitively as a substring. Site surfaces are keyed by role."
+  ],
+  "buildings": {
+    "gathering prow": {
+      "_why": "the sculptural cabin with the curved prow: carved kurinuki clay walls, charred-wood trim, charcoal standing-seam roof",
+      "parts": { "wall": "kurinuki", "header": "kurinuki", "sill": "kurinuki", "trim": "charred_wood", "roof": "standing_seam" }
+    },
+    "family lantern": {
+      "_why": "the octagon: fully clad in warm offset ledgestone (the user's first photo) under a verdigris copper pyramid roof",
+      "parts": { "wall": "ledgestone_warm", "header": "ledgestone_warm", "sill": "ledgestone_warm", "trim": "steel", "roof": "copper_roof" }
+    },
+    "twin pod": {
+      "_why": "the small butterfly-roof pod: rigidized bronze diamond sheet (the user's third screenshot), dark steel trim",
+      "parts": { "wall": "rigidized_bronze", "header": "rigidized_bronze", "sill": "rigidized_bronze", "trim": "steel", "roof": "standing_seam" }
+    },
+    "elders": {
+      "_why": "the calm, accessible wedge: warm white stucco over a cool stacked-stone wainscot, like the user's second photo",
+      "parts": {
+        "wall": { "material": "stucco", "wainscot": { "material": "ledgestone_cool", "height_m": 0.9 } },
+        "header": "stucco", "sill": "stucco", "trim": "steel", "roof": "standing_seam"
+      }
+    }
+  },
+  "defaults": {
+    "parts": {
+      "wall": "cedar", "header": "cedar", "sill": "cedar", "trim": "steel", "roof": "standing_seam",
+      "deck": "deck_boards", "stair": "deck_boards", "ramp": "deck_boards", "post": "steel", "door": "charred_wood",
+      "glass": "glass", "foundation": "concrete", "slab": "concrete_slab",
+      "fascia": "steel", "structure": "timber"
+    },
+    "wall_kinds": { "cedar": "cedar", "board": "board_batten", "timber": "timber", "stone": "ledgestone_warm", "glass": "glass_tinted" },
+    "roof_mats": { "metal": "standing_seam", "copper": "copper_roof", "sod": "sod_roof", "glass": "glass" },
+    "rail_styles": { "wood": "cedar", "steel": "steel", "cable": "steel", "glass": "glass", "none": null }
+  },
+  "site": {
+    "terrain": "meadow",
+    "shore": { "material": "beach", "below_m": 3.0, "blend_m": 0.8 },
+    "earthworks": "meadow",
+    "retaining": "ledgestone_cool",
+    "water": "water",
+    "pads": [
+      { "match": "firepit|patio|flagstone", "material": "flagstone" },
+      { "match": "drive|parking|path|walk|lane", "material": "gravel" }
+    ],
+    "pad_default": "gravel",
+    "bridge": "deck_boards",
+    "deck": "deck_boards"
+  }
+}
