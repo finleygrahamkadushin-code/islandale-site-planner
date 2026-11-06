@@ -97,6 +97,9 @@ def terrain_material(meadow, beach, shore_z, blend_m):
     return blend_materials("M_Terrain", meadow, beach, factor)
 
 
+GABLE = "gable"                 # the 3D export's gable ends: styled as their building's wall
+
+
 class Styler:
     """Resolves styles.json entries to materials, building each library material once."""
 
@@ -142,12 +145,14 @@ class Styler:
         part = item.part or ""
         if part in own:
             return own[part]
+        if part == GABLE and "wall" in own:          # a gable end is wall cladding above the wall top
+            return own["wall"]
         return self.default_spec(item)
 
     def default_spec(self, item):
         """A part's material from the planner's wall kind, roof material or rail style, else defaults.parts."""
         d = self.styles["defaults"]
-        part = item.part or ""
+        part = "wall" if item.part == GABLE else (item.part or "")
         if part == "wall" and item.props.get("wallKind") in d["wall_kinds"]:
             return d["wall_kinds"][item.props["wallKind"]]
         if part == "roof" and item.props.get("roofMat") in d["roof_mats"]:
@@ -196,7 +201,9 @@ def dress(site, styles_path, allow_missing=False):
         mat = None
         if it.kind == "building" and not (it.props.get("interior") or it.part == "furniture"):
             spec = sty.building_spec(it)
-            if isinstance(spec, dict) and "wainscot" in spec:
+            if isinstance(spec, dict) and "wainscot" in spec and it.part == GABLE:
+                mat = sty.material(spec["material"])          # gables sit above the wainscot
+            elif isinstance(spec, dict) and "wainscot" in spec:
                 w = spec["wainscot"]
                 mat = wainscot_material(sty.material(spec["material"]), sty.material(w["material"]),
                                         wall_base.get(oid, 0.0) + w["height_m"])
