@@ -5,7 +5,7 @@
         [--season jun|sep|dec] [--hour 17] [--tide-ft 6.2] [--true-displacement] [--allow-missing] \
         [--render [--only <camera name part>] [--res 1920x1080] [--samples 128]]
 
-Writes the .blend (cameras: an aerial over the bay, and a hero and a wall close-up per building) and, with --render, a PNG per
+Writes the .blend (cameras: an aerial over the cabins to the bay, and a hero and a wall close-up per building) and, with --render, a PNG per
 camera in build/3d/renders/. The sun follows the planner's model for 48.46 deg N; the sea sits at the planner's tide.
 --allow-missing lets a material that styles.json names but no module defines yet wear the UV grid instead of failing."""
 import argparse

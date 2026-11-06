@@ -1,5 +1,5 @@
 """Light, sea and cameras for the site: the planner's own sun model (48.46 deg N), a sea to the horizon at the planner's tide,
-an aerial from over the bay, and for each building a three-quarter view and a close look at its main wall.
+an aerial over the cabins to the bay, and for each building a three-quarter view and a close look at its main wall.
 
 Azimuths are compass bearings (0 = north, 90 = east); Blender's sky texture uses the same convention for sun_rotation."""
 import math
