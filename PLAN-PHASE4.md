@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D approved (Finley, Nov 5 2026), built, look checked by Finley and merged into main. 4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D approved (Finley, Nov 5 2026), built, look checked by Finley and merged into main. 4E in detail below, waiting for Finley's OK.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -289,17 +289,97 @@ Branch: `phase-4d-present`, from `main` after 4C.
 - **No key for Present yet:** P is Paint. Present is a button and a command; a key can be added if you want one.
 - **The done-when pictures:** saved under `test-results/` for you to look at, not committed, unless you'd like a committed baseline for later parts.
 
-## 4E in outline: polish
+## 4E in detail: Polish (waiting for Finley's OK)
 
-- **Beach and shore:** a gravel and driftwood band along the shoreline, a foam line that moves with the tide, and wet sand above the water.
-- **Contact shadows** under each cabin, in every style.
-- **Sky:** warmer sunset colours and a subtle distance haze over Mud Bay.
-- **Sketch style:** cleaner, slightly thicker silhouettes, with no lines on terrain triangles.
-- **Faster first frame:**
-  - Precompile materials once (`gl.compile`), and load the reflection and post-processing after the first frame.
-  - Target: under 3 s on a fresh load.
-- **React tuning:** re-renders and bundle size (the build warns about chunks over 500 kB), following `vercel-react-best-practices`.
-- **WebGPU test** behind `?gpu=1`: move AO, tone mapping and the water to TSL nodes if it works, and stay on WebGL by default until it matches.
-- **Light theme** (with `theme-factory`) beside today's dark one.
-- **Narrow-screen layout:** for tablets and phones, as the old planner had.
-- **Rebuilding:** rebuild shore and shadow meshes only when the plan changes, never while something moves.
+Branch: `phase-4e-polish`, from `main` after 4D.
+
+**Where things stand (measured Nov 5 2026):**
+- **Bundle:** one 2.58 MB script (834 kB gzipped) holds the whole app, so the build warns about the 500 kB limit.
+- **First frame:** about 8 s from a fresh load to the first drawn frame. That's in the test browser, which draws in software, on the unbundled dev server. Step 1 measures it properly.
+- **TSL and WebGPU:** no TSL or WebGPU code exists yet. The effects (`@react-three/postprocessing`) and drei's `Sky` and `MeshReflectorMaterial` are WebGL-only, so the WebGPU step is a test, not a switch.
+
+**New library:** none expected. The fat outlines use three.js's own `LineSegments2`, and the WebGPU test uses `three/webgpu` and `three/tsl`, which ship with three.
+
+**Where the code goes:**
+- **Shore, sky and haze:** `src/site/environment/`.
+- **Contact shadows and Sketch outlines:** `src/scene/`.
+- **Themes and the narrow layout:** `src/app/` and `src/layout/`.
+- **The WebGPU test:** `src/scene/webgpu/`, loaded only with `?gpu=1`.
+
+### Order of work
+
+The parts are ordered so 4E can stop after any step with the app better than before. The speed work comes first because the new graphics add to the load.
+
+1. **Measure first.**
+   - **Probes:** a first-frame time on the splash's `ready`, and a frame-time probe during a drag.
+   - **Finley's numbers:** the production build in real Chrome on Finley's Mac, recorded in this plan as the baseline.
+2. **Faster first frame and bundle.**
+   - **Split the script:** three.js and drei in their own chunk, the app in another.
+   - **Load on first use:** the drawing sheets, the interior editor, the old planner frame, command search and the history list.
+   - **After the first frame:** the water's reflection and the post-processing (AO, SMAA) mount once the first frame is drawn, so the view appears sooner and sharpens a moment later.
+   - **Target:** the first frame in under 3 s on Finley's Mac; no chunk over 500 kB except three.js's own.
+3. **React tuning** (`vercel-react-best-practices`).
+   - **Profile:** a drag on Scheme C, to find what re-renders on every pointer move and fix the worst offenders. The plan store's wide selectors are the likely ones.
+   - **Target:** a drag stays at 50 fps or more on Finley's Mac (median frame time under 20 ms).
+4. **Contact shadows.**
+   - **What:** one soft contact shadow under every building, in every style. Drawn once for the whole lot, not per cabin.
+   - **When it redraws:** only when the plan changes, never while something is being dragged.
+5. **Beach and shore.**
+   - **Gravel and driftwood band:** along the parcel's shoreline edges, between low tide and the ordinary high water mark. Driftwood logs are placed from a fixed seed, so they don't move between loads.
+   - **Foam line:** where the water meets the ground at the current tide. It moves when the tide slider moves, with a gentle wash that stops under reduced motion.
+   - **Wet sand:** a darker band just above the water line, in the terrain's colours. Recoloured only when the tide changes.
+   - **Rebuilding:** like the shadows, only when the plan or tide changes.
+6. **Sky and haze.**
+   - **Sunset:** warmer colours in the hour before sunset.
+   - **Haze:** the fog's colour taken from the sky at the horizon, so distant water over Mud Bay fades into the sky instead of into grey.
+   - **Scope:** Realistic only; the other styles keep their flat backgrounds.
+7. **A cleaner Sketch style.**
+   - **Lines:** slightly thicker outlines (about 1.5 px, using three.js's fat lines rather than 1-px lines).
+   - **Terrain:** no lines on the terrain's triangles; contours stay.
+   - **Silhouettes:** only creases sharper than about 30° are drawn, so curved walls and the dome stop showing their facets.
+8. **WebGPU test behind `?gpu=1`.**
+   - **What it tries:** three.js's WebGPU renderer, with AO and tone mapping as TSL nodes, the water as a TSL material, and three's TSL sky in place of drei's `Sky`.
+   - **Time box:** one sitting.
+   - **Outcome:** a short write-up in this plan of what draws, what doesn't and how fast it is. The `?gpu=1` path stays only if it draws Scheme C correctly. WebGL stays the default either way.
+9. **Light theme** (`theme-factory`).
+   - **What:** a light set of the app's colour tokens for the panels and bars. The 3D view keeps its display styles.
+   - **Choosing:** it follows the system setting until you pick one, with a Light / Dark / System choice in the top bar's Style group, remembered per browser. This is how the old planner did it.
+   - **Contrast:** every token pair is checked at 4.5:1.
+10. **Narrow-screen layout,** for tablets and phones, as the old planner had.
+    - **Under 900 px:**
+      - The side panel becomes a sheet at the bottom that you can pull up.
+      - The top bar folds its groups into a menu.
+      - The tool strip runs along the bottom-left.
+      - The compass and scale bar move up out of the way.
+    - **Touch:** controls are at least 40 px on touch screens.
+    - **Interior editor:** its plan and panel stack, as the old one did under 760 px.
+
+### Done when
+
+- **Speed:** the scene shows in under 3 s on a fresh load (production build, Finley's Mac), and dragging stays smooth on Scheme C (50 fps or more).
+- **Shore and shadows:** they read in every display style.
+- **Themes and layout:** the light theme passes contrast, and the app works at phone (390 px) and tablet (768 px) widths with no sideways scrolling.
+
+### Tests first
+
+- **Bundle:** a build check that fails when a chunk other than three.js passes 500 kB.
+- **First frame:** an e2e bound. The test browser draws in software, so its limit is looser (under 6 s on the built app); the 3 s target is checked on Finley's Mac.
+- **Shore:**
+  - The band follows the shoreline edges.
+  - The foam line sits at the tide's height and moves with the tide.
+  - The wet band is above the water.
+  - Nothing rebuilds while dragging.
+- **Contact shadows:** they redraw on a plan change and not during a drag.
+- **Sky:** the sun's colour is warmer at golden hour than at noon, and the fog matches the horizon.
+- **Sketch:** terrain has no outline mesh, and the crease angle leaves a curved wall's facets unlined.
+- **Themes:** contrast of every token pair in both themes; the choice is remembered; System follows the browser.
+- **Narrow layout (e2e at 390 × 844 and 768 × 1024):** no sideways scroll; every tab, the inspector and the tool strip reachable; place and move a cabin by touch.
+- **Look:** the 4D pictures again, all five views in all four styles, sent to Finley.
+
+### Decisions (say if you disagree)
+
+- **Order:** speed first, then graphics, then WebGPU, then themes and layout. If 4E runs long, the light theme and the narrow layout can become a 4F.
+- **WebGPU is a test:** time-boxed, written up, and WebGL stays the default.
+- **TSL:** new effects that have to run inside today's WebGL post-processing (contact shadows, foam) use three's built-in materials and drei pieces rather than new shader code. TSL comes with the WebGPU switch, so there's one rewrite, not two.
+- **Light theme:** follows the system until chosen, as the old planner did. Light / Dark / System sits in the Style group.
+- **Narrow layout:** the side panel becomes a bottom sheet; nothing is removed on small screens.
