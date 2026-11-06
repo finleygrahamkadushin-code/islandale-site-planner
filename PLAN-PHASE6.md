@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **draft, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A done; 6B planned below, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -58,9 +58,95 @@ This is what the Blender importer (`tools/blender/islandale3d/importer.py`) alre
 - **Under `Objects`:** one node per plan object, named `<name> #<id>`.
 - **Mesh names:** under each object node, one mesh per drawn piece, named `<name> #<id>|<part>|m<mi>|e<ei>|<k>`.
 - **Mesh tags:** glTF extras `part`, `mi`, `ei`, `oid`, `t`, `wallKind`, `roofMat`, `railStyle`. The new app already tags every piece for Paint mode (5D), so this is a read-out, not new bookkeeping.
-- **Texture coordinates:** a `UVMeters` map, 1 unit = 1 m. On walls, u runs along the outline and v is the world Z.
+- **Texture coordinates:** Blender writes its own `UVMeters` map on import (`islandale3d/uv.py`, 1 unit = 1 m, on walls u along the mass outline and v = world Z), so the file needs none. 6B still writes `TEXCOORD_0` in metres, for SketchUp.
 - **Manifest:** `<slug>.manifest.json`, with every plan object's params, the sun, the tide and the saved cameras.
 - **Clean meshes:** no selection gizmos, chips or labels in the file.
+
+## 6B in detail: 3D model export (plan, waiting for Finley's OK)
+
+**Goal:** an **Export 3D model** button and command in the new app that downloads `<slug>.glb` and `<slug>.manifest.json` in the contract above, and `tools/export/export_scene.mjs`, which does the same headless so Blender can be fed without clicking. Branch `claude/phase-6b-model-export`, cut from `main` after 6A is merged.
+
+### What the Blender side really reads (checked against `importer.py`, `styling.py`, `build_scene.py` and `check_export.py`)
+
+- **The `.glb`:** four top-level nodes found by name: `Terrain`, `Earthworks`, `Water` and `Objects`.
+  - Under `Objects` there is one node per plan object, named `<name> #<id>`, with extras `{oid, name, t, x, n, rot, floor, grade}`. Its world origin must be `(x, n, floor)` and its turn about Z must be `rot` degrees counter-clockwise (`check_positions`, tolerance 1 mm and 0.01°).
+  - Under each object node are its meshes, named `<name> #<id>|<part>|m<mi>|e<ei>|<k>`, with extras `part, oid, objName, t, mi, ei, k`, plus `wallKind`, `roofMat` and `railStyle` where they apply, and `interior` and `decor` flags.
+  - Styling keys on: `t` (house, shop and shed are buildings; pad, bridge, deck, pool and others are site), the object's name (the `styles.json` patterns, such as "gathering prow"), `part`, `wallKind`, `roofMat` and `railStyle`.
+- **The manifest:**
+  - `exag`.
+  - `site.tide_ft`.
+  - `objects[]`, each with `node, oid, name, t, x, n, rot, floor`. Buildings also carry `masses[]`, each with `mi`, `outline` (closed polygon, world `[x, n]` metres), `wallEi` (`edge`, `perimeter` or `none`), `base_z` and `height_m`.
+  - Everything else in the old manifest (`parcel`, `sun`, `walls[]` per mass, `params`) is informative and kept for Unreal (6F).
+- **The wall check is the strict one.** Every exterior wall mesh must lie on its mass outline: its faces must be within 0.75 m and parallel. Its height range must be `base_z` to `base_z + height_m` within 2 cm, unless it is tagged `decor`. A straight mass has **one wall mesh per outline edge**, and its `ei` must be the edge carrying most of its area. A curved mass has one wall mesh with `ei 0`.
+- **The sun and cameras are not read from the manifest.** `build_scene.py` takes `--season` and `--hour` and makes its own 9 cameras. 6B still writes the sun and the saved views to the manifest, for Unreal.
+
+### Gaps between the new app and the contract, and how 6B closes them
+
+| Gap | Fix in 6B |
+| --- | --- |
+| Wall meshes are one per mass and carry `userData.faceEdges` (an edge index per triangle), not one mesh per edge | The exporter splits each straight mass's wall mesh by `faceEdges` into one mesh per edge, `ei` = that edge. A curved mass (`CURVED_SHAPES`) keeps one mesh, `ei 0`, `wallEi: 'perimeter'`. Gable and dome cladding (`massWide`) is tagged `decor` so the height check skips it |
+| Meshes carry only `part`; wall kind, roof material, rail style and colour live in the plan | Read them with `extResolve(params, mi, part, edge)`, the same call Paint mode uses, so the file can't disagree with what the app draws. `mi` comes from the nearest ancestor with `userData.mass` (`partFrame.ts`) |
+| No object-root names | Find each object by `userData.objectId`, the same walk the elevation sheets use (`sheetTarget.ts`) |
+| Scene is Y up, north = −Z (`frame.ts`) | Same as the old planner's glTF, so Blender's import gives X east, Y north, Z = NAVD88 with no change |
+| No vertical exaggeration in the new app | `exag` is always 1 (deliberate change, below) |
+| Earthworks are baked into the terrain | `Terrain` = the `terrain` mesh; `Earthworks` = `terrain-patch` (part `earthworks`) plus the retaining walls (part `retaining`), which is what `styling.site_spec` asks for |
+| UVs are in feet on walls and building polygons | Scale to metres when writing `TEXCOORD_0` |
+| Interiors are drawn at `scale = M_PER_FT` with `interiorPart` | Baked into the object frame like everything else; tagged `interior: true` (part `partition` or `furniture`), so Blender keeps their planner colours as before |
+| Clutter | Export only `terrain`, `terrain-patch`, `retaining-walls`, `water` and the `plan` group. Inside `plan`, skip `sheetSkip` subtrees, lines (`isLineLike`), invisible materials and anything with `raycast` off (the place ghost). Never touch contact shadows, parcel, site marks, shore foam, gizmos or handles. Chips and labels are DOM, so they never appear |
+
+### Files
+
+New feature folder `src/export/model3d/`, with its own `CLAUDE.md` map. Not `sheets/model/`, which is the sheets' own model.
+- `names.ts`: the slug (`C · Prow & Lantern` → `c-prow-lantern`, which `check_export.py` expects by default), node names and mesh names. Pure.
+- `tags.ts`: the extras for a drawn mesh, from its `userData`, its ancestors and `extResolve`. Pure, given the plan object.
+- `splitWalls.ts`: split a wall `BufferGeometry` by `faceEdges` into one geometry per edge. Pure.
+- `collect.ts`: walks the live scene into a clean `THREE.Scene` (new geometries baked into each object's frame, one `MeshStandardMaterial` per look, linear colours, metre UVs). It never changes the live scene.
+- `manifest.ts`: the manifest from the plan, terrain and environment. Pure. Same `format: 'islandale-export/1'` and `naming` block as the old one.
+- `glb.ts`: `GLTFExporter` (three 0.186's own `examples/jsm`, already installed) to a binary, then the old `finishJson` step: name each glTF mesh after its node and copy the node's extras onto it, so Blender puts them on the mesh data too. This is ported from `tools/export-legacy/glb.mjs`.
+- `ModelExportProbe.tsx`: sits in the Canvas next to `ViewProbe` and reads `gl` and `scene` with `useThree`. It answers a request counter in the view HUD store, the same way the PNG snapshot does.
+- `exportModel.ts`: puts the pieces together and downloads both files with `downloadBlob` (from `snapshot.ts`). It also sets `window.islandale.exportModel()`, which returns `{ glbBase64, manifest }` for the headless script.
+
+Edits:
+- `src/layout/commands.ts`: an `export-3d` command, "Export 3D model (.glb for Blender and SketchUp)".
+- `src/ui/TopBar.tsx`: a **3D model** button beside **Sheets**, with the shared tooltip.
+- `src/scene/Scene.tsx`: mount the probe.
+- `src/guide`: a glossary word for glTF.
+- `PLAN-PHASE6.md` and `PLAN.md`: the deliberate changes.
+
+Headless:
+- `tools/export/export_scene.mjs` uses the repo's own Playwright, so there is no separate `package.json`. It starts its own `npm run dev` with `PORT=5175` and `ISLANDALE_PLAN_DIR=build/3d/plan-home`, so it never touches Finley's saved plan, or attaches to a running server with `--url`.
+- In a fresh browser context it calls `store.loadScheme(id)` (default `C`) or loads `--plan file.json`, waits for the scene to settle (mesh and vertex counts stable, as before), then calls `exportModel()`. It adds `commit` and `dirty` from git, and writes to `build/3d/export/` (default).
+- Same flags as the old script, minus `--exag`.
+
+Removed: `tools/export-legacy/`, once Blender's check passes on the new file (the last commit of 6B). Its README lines in `HANDOFF-blender-ue5.md` get updated in the same commit.
+
+### Order of work (one commit each, the app runs after each)
+
+1. `names.ts`, `tags.ts` and `splitWalls.ts` with their unit tests (tests first).
+2. `manifest.ts` with tests on Scheme C: every building has masses, outlines are closed, `wallEi` is right for the curved prow, the numbers match the plan.
+3. `collect.ts` and `glb.ts`, with a Vitest test that builds a tiny scene (one house, one deck, one tree, a gizmo and a ghost) and checks names, extras, the frame and that the clutter is gone.
+4. The probe, the command and the button. An e2e spec (`e2e/model-export.spec.ts`) loads Scheme C, runs the command, catches the download and parses the `.glb`: the four roots, every `Objects` child named `<name> #<id>`, every building mesh with a `part`, no meshes outside the allowed roots.
+5. `tools/export/export_scene.mjs`. Then run it on Scheme C, then Blender:
+   `Blender -b --factory-startup -P tools/blender/check_export.py -- --glb build/3d/export/c-prow-lantern.glb`
+   Fix until it exits 0 (no position failures, no wall-mesh failures). Then remove `tools/export-legacy/`.
+6. Check in the browser, then send Finley the `.glb` to open in SketchUp.
+
+### Tests that decide done
+
+- `npm test`, the typecheck (`tsconfig.app.json`) and `npm run test:e2e -- model-export` pass.
+- **`check_export.py` exits 0 on Scheme C's export from the new app.** Its report goes in the PR.
+- `build_scene.py` runs on it without errors. The render pass is 6C, not 6B.
+- Finley opens the `.glb` in SketchUp; if that fails, see the SketchUp decision.
+
+### Decisions (say if you disagree)
+
+- **Exaggeration is fixed at 1.** The new app has no exaggeration slider, and Blender renders want true height. The manifest still says `exag: 1`, so the Blender code is unchanged.
+- **Walls are split per edge in the exporter, not in the app.** The app's one-mesh-per-mass walls stay as they are (fast to draw); only the file gets one mesh per edge.
+- **Interiors are in the file, tagged `interior`,** as before. A `--no-interiors` flag (and a checkbox later, if wanted) leaves them out for SketchUp.
+- **The water plane goes in** as `Water` (Blender replaces it with its own sea anyway); shore foam and driftwood stay out.
+- **Meadows and boulders** come out as `t: meadow` and `t: boulder`. The importer files them under "Other" until 6C gives them materials.
+- **The in-app download has no git commit** (the browser doesn't know it). Instead it records the app version and the plan's name and time; the headless script adds the commit.
+- **It works on the plan as it is now,** including unsaved changes and hidden layers left out, and changes nothing. It is not an action, so nothing goes on the undo stack.
 
 ## Decisions (say if you disagree)
 
