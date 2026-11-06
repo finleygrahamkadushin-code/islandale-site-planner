@@ -141,11 +141,13 @@ def building_cameras(site, ground, tide, collection):
     dg = bpy.context.evaluated_depsgraph_get()
     groups = site.buildings()
     boxes = {oid: _bbox([it.ob for it in items]) for oid, items in groups.items()}
+    used = set()
     for oid, items in groups.items():
         planner = site.objects.get(oid, {})
         name = planner.get("name") or items[0].props.get("objName") or f"Building {oid}"
         own = {it.ob for it in items}
-        walls = [it.ob for it in items if it.part == "wall"] or [it.ob for it in items]
+        walls = [it.ob for it in items if it.part == "wall" and not it.props.get("interior") and not it.props.get("decor")] \
+            or [it.ob for it in items]
         lo, hi = _bbox(walls)
         centre = (lo + hi) / 2
         radius = max((hi - lo).xy.length / 2, 3.0)
@@ -170,6 +172,9 @@ def building_cameras(site, ground, tide, collection):
             if hero:
                 break
         safe = name.replace("’", "").replace("'", "")
+        if safe in used:                                  # two buildings of one name keep a camera each
+            safe = f"{safe} {oid}"
+        used.add(safe)
         if hero:
             cams.append(_camera(f"CAM {safe}", hero, look, HERO_LENS, collection))
         detail = _detail_view(walls, centre, ground, own, others, dg)
@@ -190,7 +195,7 @@ def _detail_view(walls, centre, ground, own, others, dg):
             n = (nm @ p.normal).normalized()
             if abs(n.z) > 0.3 or n.xy.dot((mw @ p.center).xy - centre.xy) <= 0:
                 continue
-            faces.append((p.area * mw.to_3x3().determinant() ** (2 / 3), mw @ p.center, n))
+            faces.append((p.area * abs(mw.to_3x3().determinant()) ** (2 / 3), mw @ p.center, n))
     faces.sort(key=lambda f: -f[0])
     for _, c, n in faces[:DETAIL_FACES]:
         side = Vector((-n.y, n.x, 0)).normalized()
@@ -198,7 +203,7 @@ def _detail_view(walls, centre, ground, own, others, dg):
             for dist in (3.4, 2.6, 4.5):
                 eye_xy = c.xy + n.xy * dist + side.xy * 1.1 * flip
                 gz = ground.z(eye_xy.x, eye_xy.y)
-                eye = Vector((eye_xy.x, eye_xy.y, max(c.z, (gz or c.z) + 1.4)))
+                eye = Vector((eye_xy.x, eye_xy.y, max(c.z, (c.z if gz is None else gz) + 1.4)))
                 if _clear_view(eye, (c,), own, others, dg):
                     return eye, c
     return None
