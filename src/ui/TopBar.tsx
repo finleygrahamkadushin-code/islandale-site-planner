@@ -4,7 +4,7 @@ import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { openScheme, openSchemeNow } from '../site/archive/openScheme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
-import { usePlanStore } from '../store/planStore'
+import { BLANK_PLAN_NAME, usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
 import { TaskTabs } from '../layout/TaskTabs'
@@ -65,6 +65,15 @@ export function TopBar() {
       { title: 'Go back to Scheme C?', body: 'This replaces the current plan with Scheme C as saved in the old planner. You can undo this.', confirmLabel: 'Reset' },
       () => openSchemeNow(CURRENT_SCHEME_ID),
     )
+  const onClear = () =>
+    useConfirm.getState().request(
+      {
+        title: 'Clear the whole plan?',
+        body: 'This removes every cabin, path, tree and site object, leaving the bare lot. Locked objects stay. You can undo this.',
+        confirmLabel: 'Clear',
+      },
+      () => usePlanStore.getState().clearPlan(),
+    )
 
   return (
     <header className="topbar" ref={bar}>
@@ -74,7 +83,7 @@ export function TopBar() {
         <label className="field">
           <span className="muted">Scheme</span>
           <select value={plan.schemeId ?? ''} onChange={(e) => e.target.value && openScheme(e.target.value)}>
-            {!plan.schemeId && <option value="">Imported plan</option>}
+            {!plan.schemeId && <option value="">{plan.name === BLANK_PLAN_NAME ? BLANK_PLAN_NAME : 'Imported plan'}</option>}
             <optgroup label="Current">
               <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
             </optgroup>
@@ -171,6 +180,11 @@ export function TopBar() {
         <Tip label="Back to Scheme C as saved in the old planner">
           <button onClick={onReset} data-testid="reset-plan">
             Reset
+          </button>
+        </Tip>
+        <Tip label="Remove everything from the plan and start from the bare lot">
+          <button onClick={onClear} disabled={!!readOnly} data-testid="clear-plan">
+            Clear
           </button>
         </Tip>
         <Tip label="Floor plans and elevations to scale, with every dimension, for drawing by hand">

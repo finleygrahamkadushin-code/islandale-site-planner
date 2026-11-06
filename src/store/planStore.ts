@@ -20,6 +20,9 @@ import type { DisplayOptions, DisplayToggle } from '../scene/displayOptions'
 import type { PaintFocus, PaintScope } from './paintTypes'
 import type { SnapTarget } from '../paths/targets'
 import { isObjectLocked } from './selectors'
+
+/** Name a cleared plan takes. */
+export const BLANK_PLAN_NAME = 'Blank plan'
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_SETBACKS,
@@ -108,6 +111,8 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   // --- undoable: everything that changes `plan` -------------------------
   readonly loadScheme: (schemeId: string) => void
   readonly replacePlan: (plan: Plan) => void
+  /** Remove every object not locked (by itself or its layer), one undo step. The terrain and lot stay. */
+  readonly clearPlan: () => void
   readonly moveObject: (id: ObjectId, position: { x: number; n: number }) => void
   readonly rotateObject: (id: ObjectId, rotation: number) => void
   /** Move and rotate together as one undo step (the end of a gizmo drag). */
@@ -288,6 +293,15 @@ export const usePlanStore = create<PlanState>()(
         },
         replacePlan: (plan) => {
           if (writable()) set({ plan, selection: [], pickedPart: null })
+        },
+        clearPlan: () => {
+          if (!writable()) return
+          const s = get()
+          const kept = s.plan.order.filter((id) => isObjectLocked(s, id))
+          const keep = new Set(kept)
+          const objects = Object.fromEntries(Object.entries(s.plan.objects).filter(([id]) => keep.has(id)))
+          set({ plan: { ...s.plan, name: BLANK_PLAN_NAME, schemeId: null, objects, order: kept }, selection: [], pickedPart: null })
+          s.showToast(kept.length ? `Plan cleared. ${kept.length} locked ${kept.length === 1 ? 'object' : 'objects'} kept.` : 'Plan cleared')
         },
         // a path piece moved by hand snaps to what it lands on; turned, its end levels follow what it touches
         moveObject: (id, position) => edit(id, (o) => snapMoved({ ...o, position: { ...position } }, true)),
