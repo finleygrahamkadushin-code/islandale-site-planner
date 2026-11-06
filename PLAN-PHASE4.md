@@ -1,6 +1,6 @@
 # Phase 4 plan: tools, UI and beginner experience
 
-Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D in detail below, waiting for Finley's OK; 4E to come.** Claude Code reads this file before starting each part.
+Status: **split into parts 4A–4E (Finley's OK, Nov 4 2026). 4A approved Nov 4 2026, built and merged into main. 4B approved, built and merged into main. 4C approved (Finley, Nov 5 2026: "make 4c now using plan"), built and merged into main. 4D approved (Finley, Nov 5 2026) and built on branch `phase-4d-present`; 4E to come.** Claude Code reads this file before starting each part.
 
 ## Why this plan changed
 
@@ -229,7 +229,7 @@ Branch: `phase-4c-beginner`, from `main` after 4B.
 - **Tour steps:** five steps, and they point at real controls rather than showing a video or slides.
 - **Deleting:** Beginner asks before deleting; Advanced never does.
 
-## 4D in detail: Present (waiting for Finley's OK)
+## 4D in detail: Present (approved, built)
 
 Branch: `phase-4d-present`, from `main` after 4C.
 
