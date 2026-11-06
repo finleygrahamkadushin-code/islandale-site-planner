@@ -221,7 +221,27 @@ def dress(site, styles_path, allow_missing=False):
         if mat is not None:
             assign(it.ob, mat)
             report[mat.name] = report.get(mat.name, 0) + 1
+    bump_only(report)
     return report, sty
+
+
+def bump_only(report):
+    """Relief as bump on every material dressed here. A material set to BOTH moves the vertices of any mesh it is on,
+    subdivided or not; the export's meshes are loose triangles whose UV frames differ from face to face on slopes, so
+    neighbouring triangles move apart and the sky shows through the cracks. true_displacement switches back to BOTH only
+    for the materials it subdivides."""
+    for name in report:
+        mat = bpy.data.materials.get(name)
+        if mat and mat.displacement_method == "BOTH":
+            mat.displacement_method = "BUMP"
+
+
+def carve_inward(mat):
+    """True displacement sinks the relief into the surface (its highest point on the face) instead of raising it: raised,
+    3.5 cm of kurinuki swallows the door, the window frames and the header, which sit flush with the wall."""
+    for n in mat.node_tree.nodes:
+        if n.type == "DISPLACEMENT":
+            n.inputs["Midlevel"].default_value = float(mat.get("is_relief_m", 0.0))
 
 
 def true_displacement(site, min_relief=DISPLACE_MIN_RELIEF):
@@ -242,5 +262,8 @@ def true_displacement(site, min_relief=DISPLACE_MIN_RELIEF):
         sub = it.ob.modifiers.new("Displace detail", "SUBSURF")
         sub.subdivision_type = "SIMPLE"
         sub.use_adaptive_subdivision = True
+        if mat.displacement_method != "BOTH":
+            mat.displacement_method = "BOTH"
+            carve_inward(mat)
         count += 1
     return count
