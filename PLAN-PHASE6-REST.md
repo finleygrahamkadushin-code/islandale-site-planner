@@ -57,7 +57,6 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 - **6G · Unreal import** (`tools/unreal/import_islandale.py`):
   - Master materials, one instance per material, Nanite meshes, and the level with sky, sun, fog and the cameras. Safe to run twice.
   - The UE 5.8 Python API is checked against the installed engine, not guessed.
-  - Its check-in A also settles whether Xcode's Metal toolchain is needed (see "What needs installing").
   - Check-in B: a screenshot from each camera.
 - **6H · Site plan sheet:**
   - The lot, contours, buildings, walks, setback bands and the buffer line, with the 5E code-check and coverage notes, a north arrow and a scale bar, at true scale.
@@ -73,7 +72,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 
 - **At check-in A for each part:** OK the plans.
 - **SketchUp:** open 6B's `.glb` in SketchUp when you can. It isn't installed here; if it can't open the file, 6B adds an `.obj` download.
-- **Installs:** an external SSD before 6E, and Xcode before 6G if Unreal asks for it (see "What needs installing").
+- **Installs:** an external SSD before 6E (see "What needs installing").
 - **Reference photos:** say whether your three reference photos should be kept somewhere (they're only in the old textures worktree's `build/`, which isn't in git).
 - **GitHub Pages:** still open, and nothing is published until you ask.
 
@@ -85,7 +84,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 
 ## What needs installing (checked on this Mac, Nov 6)
 
-The Mac is a MacBook Pro M4 Pro with 24 GB of memory, a 16-core GPU, macOS 15.7.9, and about 91 GB free.
+The Mac is a MacBook Pro M4 Pro with 24 GB of memory, a 16-core GPU, macOS 27.2, and about 91 GB free before Xcode (about 15 GB less now).
 
 | What | Needed for | On this Mac | Do |
 |---|---|---|---|
@@ -95,7 +94,7 @@ The Mac is a MacBook Pro M4 Pro with 24 GB of memory, a 16-core GPU, macOS 15.7.
 | The repo's npm packages | everything in `src/` | ✅ after `npm ci` | run `npm ci` in a new worktree; old worktrees had stale `node_modules` |
 | Blender 5.2 LTS | 6E, 6F, the renders | ✅ 5.2.2 LTS | nothing; its own Python (with numpy) runs every script, so no separate Python install |
 | Unreal Engine 5.8 | 6F's check, 6G | ✅ 5.8.4, with `UnrealEditor-Cmd` and the Python script plugin | **6G:** enable the Python Editor Script Plugin and Interchange in the project (both ship with the engine) |
-| **Xcode + Metal toolchain** | 6G: Unreal compiles its Metal shaders with it | ❌ only the Command Line Tools; no `metal` compiler. The App Store page was opened Nov 6 | **You:** click Get in the App Store (~15 GB, your Apple ID), open Xcode once and accept the licence. **Then I run** `sudo xcode-select -s /Applications/Xcode.app` (asks for your password) and `xcodebuild -downloadComponent MetalToolchain`, and check `xcrun -f metal` |
+| Xcode 27.2 + Metal toolchain 27B47 | 6G: Unreal compiles its Metal shaders with it | ✅ installed Nov 6; licence accepted, `xcode-select` points at Xcode, `xcrun metal` compiles a test shader | nothing |
 | `three-gpu-pathtracer` (npm, MIT) | 6J | ✅ added Nov 6 on branch `claude/phase-6j-render-button`: 0.0.24 with `xatlas-web` 0.1.0 | nothing; 6J starts from that branch. 0.0.24 is the newest that takes three 0.186 and drei's `three-mesh-bvh` 0.8.3 (0.0.25+ need `three-mesh-bvh` 0.9, which would mean upgrading drei) |
 | SketchUp + a glTF importer extension | the last check of 6B | ❌ not installed | **Optional:** only if you want the `.glb` in SketchUp. Otherwise Blender and Twinmotion open it |
 | Twinmotion 2026.2 | optional quick looks at the `.glb` | ✅ installed | nothing |
