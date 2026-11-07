@@ -50,6 +50,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
   - Each map's seam is measured.
   - Check-in B: a contact sheet of every tile, shown 2 × 2.
   - The trees' new materials are included.
+  - **Full plan (check-in A): `PLAN-6E.md`.**
 - **6F · Unreal scene export** (`tools/blender/export_unreal.py`):
   - Assembles the scene as `build_scene` does, with UV0 = UVMeters / 6, and exports one `.glb` per group (terrain, sea, earthworks, site, trees, each building). It also writes `scene.json`: sun, tide, cameras, axes, the wainscot and terrain blends.
   - It also fixes the **lantern corner seam** left from 6D: a straight mass's walls are welded into one mesh per building before export.
