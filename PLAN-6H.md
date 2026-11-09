@@ -168,3 +168,10 @@ All seven as recommended: turned to fit with a North up checkbox; Site plan on b
 ## Check-in B (Nov 9)
 
 Signed off by Finley on the PDFs of Scheme C at 1" = 20'-0" and 1/16" = 1'-0" on Tabloid, north up, and Scheme E. Next is check-in C: merge only on Finley's word.
+
+## Follow-up fixes after an independent review (Nov 9)
+
+- **Print with no buildings:** the "no buildings" note no longer prints on a page of its own after the site plan, and a building with none of its sheets shown leaves no empty block that kept the site plan's last page from being the last.
+- **Notes that fit:** the notes column is measured as drawn; one that runs past the drawing area moves to a page of its own, and the fit line follows. The height estimate (which errs about 10% high) now only picks the paper to suggest for one page.
+- **Scale bar:** the site plan's 0–10–20–40–80 ft bar is chosen by the site scales (`isSiteScale`), not a size threshold.
+- **New tests:** the reshaped ground's contours reach the sheet (Scheme C's earthworks patch); every clearance dimension's drawn length reads as its figure, turned and north up, for C, D, E and H; in the browser, the notes are never cut off (C, H, G) and a plan with no buildings prints the site plan's pages and no more.

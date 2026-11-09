@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { memo, useId, useLayoutEffect, useRef } from 'react'
 import type { Ground, SiteEarthworks } from '../../../site/earthworks/earthworks'
 import type { Site } from '../../../site/types'
 import type { Environment, Plan, PlanObject, Setbacks } from '../../../store/types'
@@ -96,6 +96,10 @@ export function buildSiteSheet(input: SiteSheetInput, paper: PaperId, scale: Sit
 interface Props {
   readonly build: SiteSheetBuild
   readonly notes: SiteNotes
+  /** The notes column was measured running past the page beside the drawing: they take a page of their own. */
+  readonly notesTooTall: boolean
+  /** Told when the notes column, drawn beside the drawing, turns out taller than the page holds. */
+  readonly onNotesTooTall: () => void
   readonly paper: PaperId
   readonly scale: SiteScale
   readonly planName: string
@@ -133,8 +137,23 @@ function SiteDefs({ clipId, extent }: { readonly clipId: string; readonly extent
 }
 
 /** The site plan: the lot at a site scale with its notes beside it, or on a page of their own when the drawing needs the room. */
-export function SiteSheet({ build, notes, paper, scale, planName }: Props) {
-  const layout = fitNotes(build.layout, notes, paper, scale)
+/**
+ * Memoised: its props are the modal's memoised build and notes and plain
+ * values, so toggling a building sheet (Supports, Rooms …) doesn't redraw the
+ * site plan's thousands of lines.
+ */
+export const SiteSheet = memo(SiteSheetPages)
+
+function SiteSheetPages({ build, notes, notesTooTall, onNotesTooTall, paper, scale, planName }: Props) {
+  const layout = fitNotes(build.layout, notes, scale, notesTooTall)
+  const besideRef = useRef<HTMLDivElement>(null)
+  // measure the notes column as drawn: if it runs past the drawing area (which hides overflow), it goes to a page of its own
+  useLayoutEffect(() => {
+    const row = besideRef.current
+    const column = row?.querySelector<HTMLElement>('[data-testid=site-notes]')
+    const area = row?.closest<HTMLElement>('.sheet-draw')
+    if (column && area && column.getBoundingClientRect().height > area.clientHeight + 0.5) onNotesTooTall()
+  }, [build, notes, paper, scale, layout.mode, onNotesTooTall])
   const info: PageInfo = { paper, scale, planName, buildingName: SITE_ADDRESS, sheetTitle: 'Site plan', northDeg: layout.frame.northDeg }
   const notesPage = (
     <Page {...info} sheetTitle="Site plan · notes" northDeg={null} flow>
@@ -144,7 +163,7 @@ export function SiteSheet({ build, notes, paper, scale, planName }: Props) {
   if (layout.mode === 'beside') {
     return (
       <Page {...info}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: `${NOTES_GAP_IN}in`, width: '100%', height: '100%' }}>
+        <div ref={besideRef} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: `${NOTES_GAP_IN}in`, width: '100%', height: '100%' }}>
           <div style={{ alignSelf: 'center' }}>
             <DrawingSvg build={build} extent={layout.extent} scale={scale} />
           </div>

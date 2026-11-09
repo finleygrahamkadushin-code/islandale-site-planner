@@ -23,6 +23,9 @@ export const SCALE_LABEL: Readonly<Record<Scale, string>> = { 0.125: '1/8" = 1\'
 export type SiteScale = 0.05 | 0.0625
 export const SITE_SCALE_LABEL: Readonly<Record<SiteScale, string>> = { 0.05: '1" = 20\'-0"', 0.0625: '1/16" = 1\'-0"' }
 
+/** Whether a sheet is the site plan's, told by its scale: the site scales and the building scales are separate sets. */
+export const isSiteScale = (scale: number): scale is SiteScale => Object.prototype.hasOwnProperty.call(SITE_SCALE_LABEL, scale)
+
 /** Any scale a sheet is drawn at: a building's or the site plan's. */
 export type AnyScale = Scale | SiteScale
 const ALL_SCALE_LABEL: Readonly<Record<AnyScale, string>> = { ...SCALE_LABEL, ...SITE_SCALE_LABEL }

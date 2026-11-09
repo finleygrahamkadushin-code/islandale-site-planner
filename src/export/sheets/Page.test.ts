@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { scaleBarMarks } from './Page'
-import { scaleLabel } from './types'
+import { isSiteScale, scaleLabel } from './types'
 
 describe('scale bar and label', () => {
   test('building scales keep their marks; site scales run to 80 ft', () => {
@@ -9,6 +9,14 @@ describe('scale bar and label', () => {
     expect(scaleBarMarks(0.125)).toEqual([0, 4, 8, 16])
     expect(scaleBarMarks(0.05)).toEqual([0, 10, 20, 40, 80])
     expect(scaleBarMarks(0.0625)).toEqual([0, 10, 20, 40, 80])
+  })
+
+  test('a sheet is the site plan’s by its scale set, not by a threshold', () => {
+    expect(isSiteScale(0.05)).toBe(true)
+    expect(isSiteScale(0.0625)).toBe(true)
+    expect(isSiteScale(0.125)).toBe(false)
+    expect(isSiteScale(0.25)).toBe(false)
+    expect(isSiteScale(0.1)).toBe(false)
   })
 
   test('labels read as an architect writes them', () => {

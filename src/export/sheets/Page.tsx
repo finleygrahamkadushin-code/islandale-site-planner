@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { tileDrawing } from './tiles'
-import { MARGIN_IN, PAPERS, scaleLabel, TITLE_IN, type AnyScale, type PaperId, type Scale, type Tile } from './types'
+import { isSiteScale, MARGIN_IN, PAPERS, scaleLabel, TITLE_IN, type AnyScale, type PaperId, type Scale, type Tile } from './types'
 import { ptToFt } from './svgDims'
 import { Tip } from '../../guide/Tip'
 
@@ -64,11 +64,10 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
   )
 }
 
-/** The scale bar's marks, feet: 0–2–4–8 at 1/2", 0–4–8–16 at a building scale, 0–10–20–40–80 at a site scale. */
+/** The scale bar's marks, feet: on the site plan 0–10–20–40–80; on a building's sheets 0–2–4–8 at 1/2" and 0–4–8–16 otherwise. */
 export function scaleBarMarks(scale: AnyScale): readonly number[] {
-  if (scale >= 0.5) return [0, 2, 4, 8]
-  if (scale >= 0.125) return [0, 4, 8, 16]
-  return [0, 10, 20, 40, 80]
+  if (isSiteScale(scale)) return [0, 10, 20, 40, 80]
+  return scale === 0.5 ? [0, 2, 4, 8] : [0, 4, 8, 16]
 }
 
 /** A graphic scale drawn in paper points. */

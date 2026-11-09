@@ -68,15 +68,22 @@ describe('the notes column fits, or takes a page of its own', () => {
   test('Scheme C’s notes fit beside its drawing on Tabloid', () => {
     const notes = notesFor('C')
     expect(notesHeightIn(notes, 4.1)).toBeLessThan(11 - 1 - 0.9)
-    expect(fitNotes(siteLayout(model, 'tabloid', 0.05, false), notes, 'tabloid', 0.05).mode).toBe('beside')
+    expect(fitNotes(siteLayout(model, 'tabloid', 0.05, false), notes, 0.05, false).mode).toBe('beside')
+    expect(fitNotes(siteLayout(model, 'tabloid', 0.05, false), notes, 0.05, false).onePagePaper).toBe('tabloid')
   })
 
-  test('Scheme E’s long code check moves its notes to a page of their own', () => {
+  test('notes measured too tall beside the drawing move to a page of their own', () => {
     const notes = notesFor('E')
     const e = siteSheetModel(modelInputFor(planOf('E')))
     expect(notesHeightIn(notes, 4.1)).toBeGreaterThan(notesHeightIn(notesFor('C'), 4.1))
-    const l = fitNotes(siteLayout(e, 'tabloid', 0.05, false), notes, 'tabloid', 0.05)
+    const l = fitNotes(siteLayout(e, 'tabloid', 0.05, false), notes, 0.05, true)
     expect(l.mode).toBe('notesPage')
     expect(l.pages).toBe(2)
+    // and the estimate doesn't offer Tabloid as the one page that holds them
+    expect(l.onePagePaper).not.toBe('tabloid')
+  })
+
+  test('the estimate errs high: it is never under the column Chrome draws for Scheme C (7.76 in at 4.1 in wide)', () => {
+    expect(notesHeightIn(notesFor('C'), 4.1)).toBeGreaterThanOrEqual(7.76)
   })
 })

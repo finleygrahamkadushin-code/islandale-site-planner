@@ -1,13 +1,15 @@
 import { describe, expect, test } from 'vitest'
 import { clearanceRows } from '../../../ui/selectionStats'
+import { ftIn } from '../../../site/rules/clearances'
+import { M_PER_FT } from '../../../site/units'
 import { DEFAULT_ENVIRONMENT, DEFAULT_SETBACKS } from '../../../store/types'
 import { buildSiteSheet } from './SiteSheet'
 import { labelBox, polysOverlap, type PlacedLabel } from './siteLabels'
 import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
 
-const buildFor = (schemeId: string) => {
+const buildFor = (schemeId: string, northUp = false) => {
   const plan = planOf(schemeId)
-  return { plan, build: buildSiteSheet({ plan, site: SITE, setbacks: DEFAULT_SETBACKS, environment: DEFAULT_ENVIRONMENT, ...earthworksFor(objectsOf(plan)) }, 'tabloid', 0.05, false) }
+  return { plan, build: buildSiteSheet({ plan, site: SITE, setbacks: DEFAULT_SETBACKS, environment: DEFAULT_ENVIRONMENT, ...earthworksFor(objectsOf(plan)) }, 'tabloid', 0.05, northUp) }
 }
 
 describe.each(SCHEMES.map((s) => s.id))('site plan words · Scheme %s', (schemeId) => {
@@ -59,6 +61,18 @@ describe.each(SCHEMES.map((s) => s.id))('site plan words · Scheme %s', (schemeI
       const want = rows.find((r) => r.label === (c.kind === 'shore' ? 'To shore' : 'To lot line'))!.text
       // the drawing writes the same figure the inspector does, before its first word
       expect(want.startsWith(c.label!.text.split(' TO ')[0])).toBe(true)
+    }
+  })
+})
+
+describe.each([false, true])('clearance dimensions measure what they say · north up %s', (northUp) => {
+  test.each(['C', 'D', 'E', 'H'])('Scheme %s: each line is as long as its figure', (schemeId) => {
+    const { build } = buildFor(schemeId, northUp)
+    expect(build.annotations.clearances.length).toBeGreaterThan(0)
+    for (const c of build.annotations.clearances) {
+      const drawnFt = Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1])
+      // the figure before " TO", in the inspector's rounding, is the drawn line's length in the same rounding
+      expect(c.label!.text.split(' TO ')[0]).toBe(ftIn(drawnFt * M_PER_FT))
     }
   })
 })

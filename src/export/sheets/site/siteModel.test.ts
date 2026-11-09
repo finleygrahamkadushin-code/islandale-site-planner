@@ -2,9 +2,12 @@ import { describe, expect, test } from 'vitest'
 import { nearestLotLine, nearestShore, pointInLot } from '../../../site/rules/setbacks'
 import { ftToM } from '../../../site/units'
 import { DEFAULT_SETBACKS } from '../../../store/types'
-import { insidePoly } from './siteGeom'
+import { terrainContours } from '../../../site/contours'
+import { siteContours } from '../../../site/siteContours'
+import { distToSegment, insidePoly } from './siteGeom'
+import type { Pt } from '../svgDims'
 import { siteSheetModel } from './siteModel'
-import { modelInputFor, objectsOf, planOf, SITE } from './siteTestKit'
+import { earthworksFor, modelInputFor, objectsOf, planOf, SITE } from './siteTestKit'
 
 const planC = planOf('C')
 const model = siteSheetModel(modelInputFor(planC))
@@ -105,5 +108,37 @@ describe('site sheet model · Scheme C', () => {
     expect(model.treeZones.map((z) => z.ft)).toEqual([35, 110])
     const off = siteSheetModel(modelInputFor(planC, { ...DEFAULT_SETBACKS, treeZones: false }))
     expect(off.treeZones).toEqual([])
+  })
+})
+
+describe('the reshaped ground reaches the sheet · Scheme C', () => {
+  const { works, ground } = earthworksFor(objectsOf(planC))
+  const t = SITE.terrain
+  const rect = works.fields[0].rect
+  const inRect = (x: number, n: number) => {
+    const col = (x - t.x0) / t.spacing
+    const row = (n - t.n0) / t.spacing
+    return col > rect.c0 && col < rect.c1 && row > rect.r0 && row < rect.r1
+  }
+  const ft = (m: number) => m / ftToM(1)
+  // segments wholly inside the patch, as site-feet points
+  const inside = (lines: ReturnType<typeof terrainContours>) =>
+    lines.flatMap((l) => l.segments.filter(([x1, n1, x2, n2]) => inRect(x1, n1) && inRect(x2, n2)).map(([x1, n1, x2, n2]) => [[ft(x1), ft(n1)], [ft(x2), ft(n2)]] as [Pt, Pt]))
+  const cut = inside(siteContours(t, works, ground))
+  const survey = inside(terrainContours(t, ftToM(2)))
+  const near = (p: Pt, segs: readonly (readonly [Pt, Pt])[], tol: number) => segs.some(([a, b]) => distToSegment(p, a, b) <= tol)
+
+  test('inside the earthworks the contours are the cut ground’s, not the survey’s', () => {
+    expect(works.fields.length).toBeGreaterThan(0)
+    expect(cut.length).toBeGreaterThan(10)
+    // away from the building the reshaped ground is the survey, but round it a good run of lines goes where no survey contour does
+    const apart = cut.filter(([a, b]) => !near([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], survey, 0.5))
+    expect(apart.length).toBeGreaterThan(30)
+  })
+
+  test('and those lines are on the sheet', () => {
+    const drawn = model.contours.flatMap((c) => c.lines.flatMap((l) => l.slice(1).map((p, i) => [l[i], p] as [Pt, Pt])))
+    const apart = cut.filter(([a, b]) => !near([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], survey, 0.5))
+    for (const [a, b] of apart) expect(near([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], drawn, 0.1)).toBe(true)
   })
 })

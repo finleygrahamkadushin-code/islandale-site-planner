@@ -68,6 +68,12 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const siteResult = useMemo(() => (show.site ? attempt(() => buildSiteSheet(siteInput, paper, siteScale, northUp)) : null), [show.site, siteInput, paper, siteScale, northUp])
   const siteNotesResult = useMemo(() => (show.site ? attempt(() => siteNotes({ plan, site, setbacks, layers, routeGround: ground })) : null), [show.site, plan, site, setbacks, layers, ground])
   const siteBuild = siteResult?.ok && siteNotesResult?.ok ? { build: siteResult.value, notes: siteNotesResult.value } : null
+  // the notes column measured too tall beside the drawing, for this drawing and these notes (a new drawing or notes measures again)
+  const [tooTallFor, setTooTallFor] = useState<{ readonly build: unknown; readonly notes: unknown } | null>(null)
+  const notesTooTall = !!siteBuild && tooTallFor?.build === siteBuild.build && tooTallFor.notes === siteBuild.notes
+  const siteBuildValue = siteResult?.ok ? siteResult.value : null
+  const siteNotesValue = siteNotesResult?.ok ? siteNotesResult.value : null
+  const onNotesTooTall = useCallback(() => setTooTallFor({ build: siteBuildValue, notes: siteNotesValue }), [siteBuildValue, siteNotesValue])
   const siteFailed = (siteResult && !siteResult.ok) || (siteNotesResult && !siteNotesResult.ok)
   const picked = buildings.filter((b) => b.id === pick)
   const shown = pick === ALL ? buildings : picked.length ? picked : buildings.slice(0, 1)
@@ -183,7 +189,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
           Download measurements
         </button>
-        {siteBuild && <SiteFit build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} />}
+        {siteBuild && <SiteFit build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} notesTooTall={notesTooTall} />}
         <PaperFit buildings={shown} objects={objects} terrain={terrain} paper={paper} scale={scale} show={show} />
         <p className="sheets-hint">Print at 100% (Actual size), not Fit to page. Check the 1 inch bar on each sheet with a ruler.</p>
       </div>
@@ -195,11 +201,13 @@ export function DrawingSheets({ onClose, opener }: Props) {
         )}
         {siteBuild && (
           <div className="sheets-building" data-testid="site-sheet">
-            <SiteSheet build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} planName={plan.name} />
+            <SiteSheet build={siteBuild.build} notes={siteBuild.notes} notesTooTall={notesTooTall} onNotesTooTall={onNotesTooTall} paper={paper} scale={siteScale} planName={plan.name} />
           </div>
         )}
-        {!shown.length && <p className="sheets-empty">There are no buildings in this plan to draw.</p>}
-        {shown.map((b) => {
+        {/* print breaks a page after every sheet but the last child's last: so the empty note shows only with nothing else to print,
+            and a building with none of its sheets shown leaves no empty block after the site plan */}
+        {!shown.length && !siteBuild && <p className="sheets-empty">There are no buildings in this plan to draw.</p>}
+        {(show.plan || show.elevations || show.measurements ? shown : []).map((b) => {
           const sheet = { ...info, buildingName: b.name }
           const object = plan.objects[b.id]
           return (
