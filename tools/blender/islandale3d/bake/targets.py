@@ -28,12 +28,30 @@ class Target:
         return self.key if not self.params else {"material": self.key, "params": self.params}
 
 
+PARAM_DIGITS = 9                # numbers are compared and hashed rounded to this many decimals
+
+
+def canonical(value):
+    """Params in one canonical form: every number a float rounded to PARAM_DIGITS (so 1, 1.0 and 1.0000000001 agree),
+    lists and dicts canonicalised inside, everything else unchanged."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return round(float(value), PARAM_DIGITS) + 0.0
+    if isinstance(value, (list, tuple)):
+        return [canonical(v) for v in value]
+    if isinstance(value, dict):
+        return {k: canonical(v) for k, v in value.items()}
+    return value
+
+
 def variant_name(key: str, params: dict) -> str:
-    """The plain key, or key__<6 hex of a hash of the sorted params>: stable across runs, new when a param changes."""
+    """The plain key, or key__<6 hex of a hash of the canonical, sorted params>: stable across runs, new when a param
+    changes, and the same for 1 and 1.0."""
     if not params:
         return key
-    digest = hashlib.sha1(json.dumps(params, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:6]
-    return f"{key}__{digest}"
+    blob = json.dumps(canonical(params), sort_keys=True, separators=(",", ":"))
+    return f"{key}__{hashlib.sha1(blob.encode()).hexdigest()[:6]}"
 
 
 def split_spec(spec) -> tuple[str, dict]:
@@ -80,12 +98,17 @@ def _walk(styles: dict):
 
 
 def targets(styles: dict, extras: tuple = ()) -> list[Target]:
-    """One Target per distinct (key, params), in the order styles.json first names them."""
+    """One Target per distinct (key, params), in the order styles.json first names them. Raises if two different
+    (key, params) pairs would get the same set name."""
     out: dict[str, Target] = {}
     for where, spec in _walk(styles):
         key, params = split_spec(spec)
         name = variant_name(key, params)
-        out.setdefault(name, Target(name, key, params)).used_by.append(where)
+        have = out.setdefault(name, Target(name, key, params))
+        if have.key != key or canonical(have.params) != canonical(params):
+            raise ValueError(f"set name {name!r} would stand for two materials: {have.key} {have.params} "
+                             f"({have.used_by[0]}) and {key} {params} ({where})")
+        have.used_by.append(where)
     for key in extras:
         out.setdefault(key, Target(key, key, {}, ["library (--all)"]))
     return list(out.values())

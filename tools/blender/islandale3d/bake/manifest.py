@@ -34,9 +34,16 @@ def load(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def build(previous: dict, entries: dict, blends: dict, settings: dict, root: Path, blender_version: str) -> dict:
-    """Merge this run's entries over the previous file's (a --keys rerun keeps the other sets)."""
-    materials = {**previous.get("materials", {}), **entries}
+def _status(m: dict) -> str:
+    return m.get("status") or ("pass" if m.get("pass") else "fail")
+
+
+def build(previous: dict, entries: dict, current: list[str], blends: dict, settings: dict, root: Path,
+          blender_version: str) -> dict:
+    """This run's entries over the previous file's, keeping only the sets styles.json can reach now (`current`): a --keys
+    rerun keeps the other current sets, and a set nothing wears any more drops out (its folder stays on disk)."""
+    kept = {k: v for k, v in previous.get("materials", {}).items() if k in current}
+    materials = {**kept, **{k: v for k, v in entries.items() if k in current}}
     return {
         "version": VERSION,
         "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -45,8 +52,22 @@ def build(previous: dict, entries: dict, blends: dict, settings: dict, root: Pat
         "conventions": CONVENTIONS,
         "materials": dict(sorted(materials.items())),
         "blends": blends,
-        "failed": sorted(k for k, m in materials.items() if not m.get("pass")),
+        "failed": sorted(k for k, m in materials.items() if _status(m) == "fail"),
+        "unchecked": sorted(k for k, m in materials.items() if _status(m) == "unchecked"),
+        "missing": sorted(set(current) - set(materials)),
     }
+
+
+def pruned(previous: dict, current: list[str]) -> list[str]:
+    """Sets in the previous file that styles.json no longer reaches."""
+    return sorted(set(previous.get("materials", {})) - set(current))
+
+
+def exit_code(data: dict) -> int:
+    """1 if any current set fails, 2 if none fails but some are unchecked or missing, else 0."""
+    if data["failed"]:
+        return 1
+    return 2 if data["unchecked"] or data["missing"] else 0
 
 
 def write(path: Path, data: dict) -> None:

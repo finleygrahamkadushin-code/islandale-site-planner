@@ -83,24 +83,49 @@ def rewrite_previews(out: Path, name: str, entry: dict) -> dict:
                            encode.srgb_to_linear(bc_srgb), nrm, orm[..., 0])
 
 
-def _shift_checks(baker, check_shift: bool) -> dict:
-    """The half-tile check on each pass at CHECK_RES; a noise-floor re-render only for a pass that misses 0.01."""
-    if not check_shift:
-        return {}
+HEIGHT_PASS_CHANNELS = ("Height", "Alpha", "Transmission")
+
+
+def _checked_channels(pass_name: str, live: list[str]) -> list[int]:
+    """Which channels of a pass the shift check compares: all of colour and ORM (constants differ by 0, and the worst
+    channel counts); for the height pass only the outputs the material really has (Height, Alpha, Transmission)."""
+    if pass_name != "height":
+        return [0, 1, 2]
+    return [i for i, name in enumerate(HEIGHT_PASS_CHANNELS) if name in live]
+
+
+def shift_checks(baker) -> dict:
+    """The half-tile check on each pass at CHECK_RES; a noise-floor re-render only for a pass that misses the absolute
+    thresholds. A height pass with no live output (no relief, no opacity) has nothing to check and is left out."""
     out = {}
     half = baker.tile / 2.0
     for pass_name in ("color", "orm", "height"):
-        base, _ = baker.render(pass_name, CHECK_RES, 0.0, seed=0, samples=CHECK_SAMPLES)
+        base, live = baker.render(pass_name, CHECK_RES, 0.0, seed=0, samples=CHECK_SAMPLES)
+        chans = _checked_channels(pass_name, live)
+        if not chans:
+            continue
         shifted, _ = baker.render(pass_name, CHECK_RES, half, seed=0, samples=CHECK_SAMPLES)
-        if pass_name == "height":
-            base, shifted = base[..., :1], shifted[..., :1]
-        mean, p99 = seams.shift_difference(base, shifted)
+        base, shifted = base[..., chans], shifted[..., chans]
+        stats = seams.shift_stats(base, shifted)
         floor = None
-        if mean >= seams.SHIFT_MEAN_MAX:
+        if stats["mean"] >= seams.SHIFT_MEAN_MAX or stats["line"] >= seams.SHIFT_LINE_MAX:
             again, _ = baker.render(pass_name, CHECK_RES, 0.0, seed=1, samples=CHECK_SAMPLES)
-            floor = seams.noise_floor(base, again[..., :1] if pass_name == "height" else again)
-        out[pass_name] = seams.shift_report(mean, p99, floor)
+            floor = seams.diff_stats(base, again[..., chans])
+        names = live if pass_name == "color" else [
+            (("AO", "Roughness", "Metallic") if pass_name == "orm" else HEIGHT_PASS_CHANNELS)[c] for c in chans]
+        out[pass_name] = seams.shift_report(stats, floor, list(names))
     return out
+
+
+def judge(edge: dict, shift: dict | None) -> tuple[str, bool]:
+    """(status, pass): 'pass' only when every map wraps AND the shift check ran and passed; 'unchecked' when the edge
+    check passed but the shift check was skipped (--no-shift-check), which is never counted as a pass."""
+    edge_ok = all(e["edge_pass"] for e in edge.values())
+    if not edge_ok or (shift is not None and not all(c["shift_pass"] for c in shift.values())):
+        return "fail", False
+    if shift is None:
+        return "unchecked", False
+    return "pass", True
 
 
 def _constant_or_map(chan: np.ndarray) -> float | None:
@@ -136,7 +161,7 @@ def bake_set(mat, target: Target, out: Path, res: int, samples: int, height_samp
         bc_raw, _ = baker.render("color", res)
         orm_raw, orm_live = baker.render("orm", res)
         h_raw, h_live = baker.render("height", res, samples=height_samples)
-        checks = _shift_checks(baker, check_shift)
+        checks = shift_checks(baker) if check_shift else None
     finally:
         tile, relief, group_name = baker.tile, baker.relief, baker.src.node_tree.name
         baker.close()
@@ -176,13 +201,16 @@ def bake_set(mat, target: Target, out: Path, res: int, samples: int, height_samp
     for label, (img, bits) in files.items():
         encode.write_png(folder / f"{stem}_{label}.png", img, bits)
         maps[label] = f"{target.name}/{stem}_{label}.png"
+    stale = folder / f"{stem}_Opacity.png"
+    if "Opacity" not in files and stale.exists():
+        stale.unlink()                            # an earlier bake's opacity map, no longer true of this material
 
     edge = {label: seams.edge_report(img) for label, (img, _) in files.items()}
     lum = encode.luminance(bc_lin)
     albedo = {"mean": round(float(lum.mean()), 4), "p01": round(float(np.percentile(lum, 1)), 4),
               "p99": round(float(np.percentile(lum, 99)), 4)}
     previews = _write_previews(folder, {"BC": bc_srgb, "ORM": orm, "H": h01, "N": n_enc}, bc_lin, nrm, ao)
-    passed = all(e["edge_pass"] for e in edge.values()) and all(c["shift_pass"] for c in checks.values())
+    status, passed = judge(edge, checks)
     return {
         "key": target.key, "params": target.params, "blender_material": mat.name, "group": group_name,
         "tile_m": tile, "res": res, "relief_m": round(relief_eff, 6), "blender_relief_m": round(relief, 6),
@@ -190,8 +218,27 @@ def bake_set(mat, target: Target, out: Path, res: int, samples: int, height_samp
         "maps": maps, "constants": constants, "ao_source": ao_source,
         "outputs_baked": sorted(set(orm_live) | set(h_live) | {"Base Color"}),
         "height": hstats, "albedo_luminance": albedo,
-        "seams": {"edge": edge, "shift": checks}, "pass": passed,
+        "seams": {"edge": edge, "shift": checks or {}, "shift_checked": checks is not None},
+        "status": status, "pass": passed,
         "warnings": _warnings(albedo, hstats, relief, float(bc_raw.max())),
         "ue": ue_hints(target.key, relief_eff, hstats["face_h"], constants.get("Metallic", 1.0) > 0.0),
         "previews": previews, "used_by": target.used_by, "bake_s": round(time.time() - t0, 1),
     }
+
+
+def verify_set(mat, entry: dict, out: Path, check_shift: bool = True) -> dict:
+    """Re-run the seam checks on an already baked set without rebaking: the edge check on its PNGs as written, the shift
+    check with fresh renders at CHECK_RES. Returns the entry with new seams, status and pass."""
+    from .render import Baker
+
+    edge = {label: seams.edge_report(encode.read_png(out / rel)) for label, rel in entry["maps"].items()}
+    checks = None
+    if check_shift:
+        baker = Baker(mat, CHECK_SAMPLES)
+        try:
+            checks = shift_checks(baker)
+        finally:
+            baker.close()
+    status, passed = judge(edge, checks)
+    return {**entry, "seams": {"edge": edge, "shift": checks or {}, "shift_checked": checks is not None},
+            "status": status, "pass": passed}
