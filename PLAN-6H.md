@@ -164,3 +164,7 @@ All seven as recommended: turned to fit with a North up checkbox; Site plan on b
 - **Notes that are too tall** (a long code check, as in Scheme E) move to a page of their own even when the drawing would leave room beside it; the fit line says so. **Standalone decks** are named only where the name fits at a legible size, with no floor level, so a ring of small decks (Scheme E) doesn't crowd itself.
 - **After the code review:** a site plan that can't be built shows one line and leaves the building sheets working; turning a layer on or off redraws only the notes.
 - **Tests:** besides the planned ones, every scheme is checked for overprinting words and words off the drawing; the notes are compared against the real Lot facts, Program and Code check panels rendered for Scheme C.
+
+## Check-in B (Nov 9)
+
+Signed off by Finley on the PDFs of Scheme C at 1" = 20'-0" and 1/16" = 1'-0" on Tabloid, north up, and Scheme E. Next is check-in C: merge only on Finley's word.
