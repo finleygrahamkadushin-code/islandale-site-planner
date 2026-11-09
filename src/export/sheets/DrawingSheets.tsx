@@ -6,7 +6,7 @@ import { elevationView, sheetBuildings } from './model/model'
 import { SIDES } from './elevation/sides'
 import { tablesCsv } from './tables/table'
 import { smallestPaper, tileDrawing } from './tiles'
-import { PAPERS, SCALE_LABEL, type PaperId, type Scale, type SheetBuilding } from './types'
+import { PAPERS, SCALE_LABEL, SITE_SCALE_LABEL, type PaperId, type Scale, type SheetBuilding, type SiteScale } from './types'
 import { usePlanStore } from '../../store/planStore'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
@@ -16,6 +16,9 @@ import { planLayout, PlanSheet } from './plan/PlanSheet'
 import { FoundationSheet } from './foundation/FoundationSheet'
 import { hasSupports } from './plan/planLayout'
 import { Tip } from '../../guide/Tip'
+import { useEarthworks } from '../../site/earthworks/useEarthworks'
+import { buildSiteSheet, SiteSheet, type SiteSheetInput } from './site/SiteSheet'
+import { SiteFit } from './site/SiteFit'
 
 interface Props {
   readonly onClose: () => void
@@ -25,6 +28,7 @@ interface Props {
 
 const ALL = 'all'
 const SCALES = Object.keys(SCALE_LABEL).map(Number) as Scale[]
+const SITE_SCALES = Object.keys(SITE_SCALE_LABEL).map(Number) as SiteScale[]
 const PAPER_IDS = Object.keys(PAPERS) as PaperId[]
 
 /**
@@ -32,13 +36,21 @@ const PAPER_IDS = Object.keys(PAPERS) as PaperId[]
  * scale, shown as the printed sheets over the planner, for drawing by hand.
  */
 export function DrawingSheets({ onClose, opener }: Props) {
-  const { plan, terrain, selection } = usePlanStore(useShallow((s) => ({ plan: s.plan, terrain: s.site.terrain, selection: s.selection })))
+  const { plan, terrain, selection, site, setbacks, environment, layers } = usePlanStore(
+    useShallow((s) => ({ plan: s.plan, terrain: s.site.terrain, selection: s.selection, site: s.site, setbacks: s.setbacks, environment: s.environment, layers: s.layers })),
+  )
+  // the same reshaped ground the Code check and the 3D marks use, so the site sheet's numbers and contours match them
+  const { works, ground } = useEarthworks()
+  const siteInput = useMemo<SiteSheetInput>(() => ({ plan, site, setbacks, environment, layers, works, ground }), [plan, site, setbacks, environment, layers, works, ground])
+  const [siteScale, setSiteScale] = useState<SiteScale>(0.05)
+  const [northUp, setNorthUp] = useState(false)
   const objects = useMemo(() => plan.order.map((id) => plan.objects[id]).filter((o) => o !== undefined), [plan])
   const buildings = useMemo(() => sheetBuildings(objects, terrain), [objects, terrain])
   const [pick, setPick] = useState(() => selection.find((id) => buildings.some((b) => b.id === id)) ?? buildings[0]?.id ?? ALL)
   const [paper, setPaper] = useState<PaperId>('tabloid')
   const [scale, setScale] = useState<Scale>(0.25)
-  const [show, setShow] = useState({ plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
+  const [show, setShow] = useState({ site: true, plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
+  const siteBuild = useMemo(() => (show.site ? buildSiteSheet(siteInput, paper, siteScale, northUp) : null), [show.site, siteInput, paper, siteScale, northUp])
   const picked = buildings.filter((b) => b.id === pick)
   const shown = pick === ALL ? buildings : picked.length ? picked : buildings.slice(0, 1)
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
@@ -123,8 +135,22 @@ export function DrawingSheets({ onClose, opener }: Props) {
             ))}
           </select>
         </label>
+        {show.site && (
+          <label>
+            <span>Site scale</span>
+            <select value={siteScale} onChange={(e) => setSiteScale(Number(e.target.value) as SiteScale)} aria-label="Site plan scale">
+              {SITE_SCALES.map((s) => (
+                <option key={s} value={s}>
+                  {SITE_SCALE_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <fieldset className="sheets-show">
           <legend>Show</legend>
+          <Check label="Site plan" on={show.site} onChange={() => toggle('site')} title="The whole lot at a site scale: contours, buildings and roofs, walks, setbacks and the buffer, with the lot coverage, program budget and code check beside it" />
+          {show.site && <Check label="North up" on={northUp} onChange={() => setNorthUp((v) => !v)} title="Draw the site plan with north straight up; otherwise it is turned so the lot fits the paper, and the north arrow shows the turn" />}
           <Check label="Plan" on={show.plan} onChange={() => toggle('plan')} />
           <Check label="Elevations" on={show.elevations} onChange={() => toggle('elevations')} />
           <Check label="Measurements" on={show.measurements} onChange={() => toggle('measurements')} />
@@ -133,16 +159,22 @@ export function DrawingSheets({ onClose, opener }: Props) {
           <Check label="Furniture" on={show.furniture} onChange={() => toggle('furniture')} title="The furniture and fixtures from the interior plan" />
           <Check label="Supports" on={show.supports} onChange={() => toggle('supports')} title="A foundation plan after the floor plans: what each part stands on (posts, piers and piles at their size, beams dashed, a mast or stilts), with one spacing chain per row of posts" />
         </fieldset>
-        <button onClick={() => window.print()} disabled={!shown.length || drawing}>
+        <button onClick={() => window.print()} disabled={(!shown.length && !siteBuild) || drawing}>
           {drawing ? 'Drawing elevations…' : 'Print'}
         </button>
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
           Download measurements
         </button>
+        {siteBuild && <SiteFit build={siteBuild} paper={paper} scale={siteScale} />}
         <PaperFit buildings={shown} objects={objects} terrain={terrain} paper={paper} scale={scale} show={show} />
         <p className="sheets-hint">Print at 100% (Actual size), not Fit to page. Check the 1 inch bar on each sheet with a ruler.</p>
       </div>
       <div className="sheets-pages">
+        {siteBuild && (
+          <div className="sheets-building" data-testid="site-sheet">
+            <SiteSheet build={siteBuild} paper={paper} scale={siteScale} planName={plan.name} />
+          </div>
+        )}
         {!shown.length && <p className="sheets-empty">There are no buildings in this plan to draw.</p>}
         {shown.map((b) => {
           const sheet = { ...info, buildingName: b.name }

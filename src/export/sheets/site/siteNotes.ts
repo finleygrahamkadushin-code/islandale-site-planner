@@ -136,9 +136,13 @@ function programBlock(objects: readonly PlanObject[]): NoteBlock {
 }
 
 function clearancesBlock({ plan, site, setbacks, layers }: SiteNotesInput, objects: readonly PlanObject[]): NoteBlock {
+  // one row per building, its inspector rows run together: to shore, to lot line, to nearest
   const rows = objects
     .filter((o) => o.type === 'house' && !o.hidden)
-    .flatMap((o) => clearanceRows(o, plan, site, setbacks, layers).map((r): NoteRow => ({ label: `${o.name} · ${r.label.toLowerCase()}`, value: r.text, flag: r.warn ? 'warn' : undefined })))
+    .map((o): NoteRow => {
+      const rs = clearanceRows(o, plan, site, setbacks, layers)
+      return { label: o.name, value: rs.map((r) => r.text).join('; '), flag: rs.some((r) => r.warn) ? 'warn' : undefined }
+    })
   return { id: 'clearances', title: 'Clearances', rows, notes: ['Measured from the walls and wings the rules count (decks over 30 in up; not stairs or ramps), as the inspector does.'] }
 }
 

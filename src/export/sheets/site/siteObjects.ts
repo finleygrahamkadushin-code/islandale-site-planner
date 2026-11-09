@@ -279,5 +279,14 @@ export function shadowPieces(poly: readonly Pt[], heightFt: number, dir: readonl
     const q = poly[(i + 1) % poly.length]
     return [p, q, moved[(i + 1) % poly.length], moved[i]]
   })
-  return [[...poly], moved, ...quads]
+  // one winding for every piece, so a nonzero fill unions them instead of cutting holes where they overlap
+  return [[...poly], moved, ...quads].map(counterClockwise)
 }
+
+const signedArea2 = (poly: readonly Pt[]) => poly.reduce((s, [x1, y1], i) => {
+  const [x2, y2] = poly[(i + 1) % poly.length]
+  return s + x1 * y2 - x2 * y1
+}, 0)
+
+/** The polygon wound counter-clockwise (positive area, x right and y up). */
+export const counterClockwise = (poly: readonly Pt[]): Pt[] => (signedArea2(poly) < 0 ? [...poly].reverse() : [...poly])

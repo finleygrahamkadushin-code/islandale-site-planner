@@ -67,8 +67,9 @@ describe.each(SCHEMES.map((s) => s.id))('site notes · Scheme %s', (schemeId) =>
 
   test('each building’s clearances are the inspector’s rows', () => {
     const rows = block(notes, 'clearances').rows
-    const want = objects.filter((o) => o.type === 'house').flatMap((o) => clearanceRows(o, plan, SITE, DEFAULT_SETBACKS).map((r) => r.text))
-    expect(rows.map((r) => r.value)).toEqual(want)
+    const houses = objects.filter((o) => o.type === 'house')
+    expect(rows.map((r) => r.label)).toEqual(houses.map((o) => o.name))
+    expect(rows.map((r) => r.value)).toEqual(houses.map((o) => clearanceRows(o, plan, SITE, DEFAULT_SETBACKS).map((r) => r.text).join('; ')))
   })
 })
 

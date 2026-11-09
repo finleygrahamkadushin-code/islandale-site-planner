@@ -15,7 +15,8 @@ import { siteContours } from '../../../site/siteContours'
 import { sunPosition } from '../../../site/environment/sun'
 import type { Site } from '../../../site/types'
 import { ftToM, M_PER_FT } from '../../../site/units'
-import type { Environment, PlanObject, Setbacks } from '../../../store/types'
+import { clearances } from '../../../site/rules/clearances'
+import type { Environment, Plan, PlanObject, Setbacks } from '../../../store/types'
 import { sheetBuildings } from '../model/model'
 import type { Pt } from '../svgDims'
 import { boxOf, chainSegments, simplifyLine, type Box } from './siteGeom'
@@ -31,6 +32,14 @@ export interface SiteContour {
   readonly ft: number
   readonly index: boolean
   readonly lines: readonly (readonly Pt[])[]
+}
+
+/** A building's nearest approach to the shore and to a side or rear lot line, as the inspector measures it, site feet. */
+export interface SiteClearanceMark {
+  readonly id: string
+  readonly name: string
+  readonly shore: { readonly from: Pt; readonly to: Pt; readonly dFt: number; readonly pastFt: number; readonly banked: boolean; readonly inside: boolean } | null
+  readonly lot: { readonly from: Pt; readonly to: Pt; readonly dFt: number; readonly inside: boolean } | null
 }
 
 export interface SiteSheetModel {
@@ -53,6 +62,7 @@ export interface SiteSheetModel {
   readonly bridges: readonly SiteBridgeMark[]
   readonly things: readonly SiteThingMark[]
   readonly trees: readonly SiteTreeMark[]
+  readonly clearances: readonly SiteClearanceMark[]
   /** Roof shadows as flat pieces (outline, its shadow and the quads between), site feet; empty with the sun down or shadows off. */
   readonly shadows: readonly (readonly Pt[])[]
   /** Where the sun was for the shadows: season and hour, as the Sun and tide panel set them. */
@@ -76,13 +86,19 @@ export interface SiteModelInput {
 
 /** Contours are kept this far round the lot, feet; the page clips them to its own pad. */
 const CONTOUR_REACH_FT = 60
-/** Lines are thinned to this, feet: well under a printed hair at 1" = 16'. */
+/** Contours are thinned to this, feet: well under a printed hair at 1" = 16'. */
 const THIN_FT = 0.03
+/**
+ * The buffer, bank, setback and tree-zone lines are traced on a half-metre
+ * grid, whose crossings zig-zag a little: thinned this much they lose the
+ * zig-zag and keep their course to well under a printed line's width.
+ */
+const RULE_THIN_FT = 0.15
 /** The side setback line and tree zones are traced over a grid this fine, metres. */
 const LINE_GRID_M = 0.5
 
-const lines = (segs: readonly IsoSegment[]): Pt[][] =>
-  chainSegments(segs.map(([x1, n1, x2, n2]) => [...toFt([x1, n1]), ...toFt([x2, n2])] as const)).map((l) => simplifyLine(l, THIN_FT))
+const lines = (segs: readonly IsoSegment[], thin = RULE_THIN_FT): Pt[][] =>
+  chainSegments(segs.map(([x1, n1, x2, n2]) => [...toFt([x1, n1]), ...toFt([x2, n2])] as const)).map((l) => simplifyLine(l, thin))
 
 export function siteSheetModel(input: SiteModelInput): SiteSheetModel {
   const { site, setbacks, environment, works, ground } = input
@@ -125,18 +141,35 @@ export function siteSheetModel(input: SiteModelInput): SiteSheetModel {
     buffer: lines(shoreBufferLine(parcel, setbacks.shoreFt, setbacks.bankFt)),
     sideLine: sideSetbackLine(input),
     treeZones: setbacks.treeZones ? treeZoneLines(input) : [],
-    contours: mergeLevels(siteContours(terrain, works, ground).map((c) => ({ ft: c.ft, index: c.index, lines: lines(c.segments).filter(near) }))),
+    contours: mergeLevels(siteContours(terrain, works, ground).map((c) => ({ ft: c.ft, index: c.index, lines: lines(c.segments, THIN_FT).filter(near) }))),
     buildings,
     paths,
     bridges,
     things,
     trees,
+    clearances: clearanceMarks(input, objects),
     shadows,
     sun: { season: environment.season, hour: environment.hour, up: shadows.length > 0 },
     bandAt: ([x, y]) => setbackBand(parcel, setbacks, ftToM(x), ftToM(y)),
     bounds: drawn,
     setbacks,
   }
+}
+
+function clearanceMarks({ site, setbacks }: SiteModelInput, objects: readonly PlanObject[]): SiteClearanceMark[] {
+  // clearances reads the plan only for the nearest object, which the sheet doesn't draw
+  const plan: Plan = { name: '', siteId: 'islandale', schemeId: null, objects: Object.fromEntries(objects.map((o) => [o.id, o])), order: objects.map((o) => o.id) }
+  return objects
+    .filter((o) => o.type === 'house')
+    .map((o) => {
+      const c = clearances(o, plan, site, setbacks)
+      return {
+        id: o.id,
+        name: o.name,
+        shore: c.shore && { from: toFt(c.shore.from), to: toFt(c.shore.to), dFt: c.shore.d / M_PER_FT, pastFt: c.shore.past / M_PER_FT, banked: c.shore.banked, inside: c.shore.insideBuffer },
+        lot: c.lot && { from: toFt(c.lot.from), to: toFt(c.lot.to), dFt: c.lot.d / M_PER_FT, inside: c.lot.insideSetback || c.lot.crossesLot },
+      }
+    })
 }
 
 /** One entry per level, lowest first: the survey's lines and every earthworks patch's at that level together. */
