@@ -4,7 +4,7 @@
  * boardwalks and bridges, pads, trees and the other site objects, and the
  * shadows the roofs cast. Site feet (x east, y north). Pure.
  */
-import { localToSite, num, siteFootprint, type LocalPoint } from '../../../buildings/footprint'
+import { localToSite, num, siteFootprint, siteToLocal, type LocalPoint } from '../../../buildings/footprint'
 import { pointInPolygon } from '../../../buildings/foundation/foundation'
 import type { MassKind } from '../../../buildings/masses'
 import { boardwalkPath, routePoints } from '../../../buildings/decks/boardwalk'
@@ -37,6 +37,10 @@ export interface SitePartMark {
 
 export interface SiteRoofMark {
   readonly eave: readonly Pt[]
+  /** The roof finish (glass, copper, metal, sod), or null for the standard one: drawn as its texture on the roof plan. */
+  readonly finish: string | null
+  /** Along the ridge (unit, site), for a metal roof's seams; null when the roof has no ridge line. */
+  readonly ridgeDir: Pt | null
   readonly lines: readonly { readonly kind: SheetRoofLineKind; readonly pts: readonly Pt[] }[]
   /** A shed roof's arrow from its high side to its low side. */
   readonly slope: readonly [Pt, Pt] | null
@@ -93,6 +97,8 @@ export interface SiteThingMark {
   readonly outline: readonly Pt[]
   /** Parking stalls on a pad with cars. */
   readonly cars: number
+  /** The lines between its parking stalls, across the pad's width (as the old site plan drew them), site feet. */
+  readonly stalls: readonly (readonly [Pt, Pt])[]
 }
 
 export interface SiteTreeMark {
@@ -141,6 +147,8 @@ export function buildingMarks(buildings: readonly SheetBuilding[], objects: read
         parts: b.parts.map((p) => partMark(p, toSite)),
         roofs: roofed.map((p) => ({
           eave: p.roof!.eave.map(toSite),
+          finish: p.roof!.finish,
+          ridgeDir: ridgeDirection(p.roof!.lines.filter((l) => l.kind === 'ridge').map((l) => l.pts.map(toSite))),
           lines: p.roof!.lines.map((l) => ({ kind: l.kind, pts: l.pts.map(toSite) })),
           slope: p.roof!.slope ? [toSite(p.roof!.slope.high), toSite(p.roof!.slope.low)] : null,
         })),
@@ -219,7 +227,54 @@ const THING_KIND: Readonly<Record<string, SiteThingKind>> = { pad: 'pad', pond: 
 export function thingMark(o: PlanObject): SiteThingMark {
   const kind = THING_KIND[o.type] ?? 'other'
   const outline = kind === 'boulder' ? boulderOutline(o) : siteFootprint(o).map(toFt)
-  return { id: o.id, name: o.name, kind, outline, cars: Math.max(0, Math.round(num(o.params.cars, 0))) }
+  const cars = Math.max(0, Math.round(num(o.params.cars, 0)))
+  return { id: o.id, name: o.name, kind, outline, cars, stalls: kind === 'pad' ? stallLines(o, cars) : [] }
+}
+
+/** Most stalls drawn on one pad (the old site plan's limit). */
+const MAX_STALLS = 8
+
+/** Stall dividers: `cars` stalls side by side along the pad's width, each line across its depth, kept inside its outline. */
+function stallLines(o: PlanObject, cars: number): (readonly [Pt, Pt])[] {
+  const n = Math.min(MAX_STALLS, cars)
+  if (n < 2) return []
+  const w = num(o.params.w, 10)
+  const d = num(o.params.d, 10)
+  const local = siteFootprint(o).map((p) => siteToLocal(o.position, o.rotation, p))
+  return Array.from({ length: n - 1 }, (_, i) => {
+    const x = -w / 2 + ((i + 1) * w) / n
+    const [z0, z1] = spanInside(local, x, d)
+    return [toFt(localToSite(o.position, o.rotation, [x, z0])), toFt(localToSite(o.position, o.rotation, [x, z1]))] as const
+  })
+}
+
+/** Where the line x = const runs inside a local outline, as its lowest and highest z (the full depth when it can't tell). */
+function spanInside(poly: readonly LocalPoint[], x: number, d: number): readonly [number, number] {
+  const zs: number[] = []
+  for (let i = 0; i < poly.length; i++) {
+    const [x1, z1] = poly[i]
+    const [x2, z2] = poly[(i + 1) % poly.length]
+    if ((x1 - x) * (x2 - x) > 0 || x1 === x2) continue
+    zs.push(z1 + ((x - x1) / (x2 - x1)) * (z2 - z1))
+  }
+  return zs.length >= 2 ? [Math.min(...zs), Math.max(...zs)] : [-d / 2, d / 2]
+}
+
+/** The longest ridge's direction, unit, or null. */
+function ridgeDirection(ridges: readonly (readonly Pt[])[]): Pt | null {
+  let best: Pt | null = null
+  let bestLen = 0
+  for (const r of ridges) {
+    if (r.length < 2) continue
+    const a = r[0]
+    const b = r[r.length - 1]
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1])
+    if (l > bestLen) {
+      bestLen = l
+      best = [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
+    }
+  }
+  return best
 }
 
 function boulderOutline(o: PlanObject): Pt[] {

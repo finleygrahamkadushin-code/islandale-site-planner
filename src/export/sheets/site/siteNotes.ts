@@ -162,7 +162,7 @@ export function siteNotes(input: SiteNotesInput): SiteNotes {
       title: 'Code check · SJCC 18.50.540',
       rulesOff: check.rulesOff,
       rows: check.rows.map((r) => ({ id: r.id, label: r.label, verdict: r.verdict, text: r.text, names: r.names.map((x) => x.name) })),
-      notes: [...(check.rulesOff ? [RULES_OFF_TEXT] : []), ...CODE_HINT],
+      notes: [...CODE_HINT],
     },
   }
 }

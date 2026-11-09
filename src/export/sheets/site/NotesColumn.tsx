@@ -4,7 +4,7 @@
  * line and tone on the drawing, drawn with the drawing's own pens.
  */
 import type { CSSProperties, ReactNode } from 'react'
-import { VERDICT_TEXT, type NoteBlock, type SiteNotes as Notes } from './siteNotes'
+import { RULES_OFF_TEXT, VERDICT_TEXT, type NoteBlock, type SiteNotes as Notes } from './siteNotes'
 import { INK } from './SiteMarks'
 
 const SEASON_NAME = { jun: 'June 21', sep: 'September 22', dec: 'December 21' } as const
@@ -67,6 +67,11 @@ function Rows({ block }: { readonly block: NoteBlock }) {
 function CodeCheck({ code }: { readonly code: Notes['code'] }) {
   return (
     <Block title={code.title}>
+      {code.rulesOff && (
+        <p style={{ border: '1.2pt solid #111', padding: '0.03in 0.06in', margin: '0 0 0.04in', fontWeight: 700, letterSpacing: '0.04em' }} data-testid="rules-off">
+          RULES OFF · {RULES_OFF_TEXT}
+        </p>
+      )}
       <table style={S.table} data-notes="code">
         <tbody>
           {code.rows.map((r) => (
@@ -199,7 +204,8 @@ export interface SiteNotesProps {
 export function SiteNotesColumn({ notes, sun, columns = 1, widthIn }: SiteNotesProps) {
   const lot = notes.blocks.find((b) => b.id === 'lot')
   const rest = notes.blocks.filter((b) => b.id !== 'lot')
-  const style: CSSProperties = columns > 1 ? { ...S.col, display: 'block', columnCount: columns, columnGap: '0.3in', width: `${widthIn}in` } : { ...S.col, width: `${widthIn}in` }
+  // on a page of their own the notes have room to be read at a normal size
+  const style: CSSProperties = columns > 1 ? { ...S.col, display: 'block', columnCount: columns, columnGap: '0.35in', fontSize: '8pt', width: `${widthIn}in` } : { ...S.col, width: `${widthIn}in` }
   const gap = columns > 1 ? { marginBottom: '0.09in' } : undefined
   return (
     <div className="site-notes" style={style} data-testid="site-notes">
@@ -215,7 +221,7 @@ export function SiteNotesColumn({ notes, sun, columns = 1, widthIn }: SiteNotesP
         <Legend />
       </div>
       <p style={{ ...S.small, ...gap }}>
-        Elevations in feet, NAVD88. Contours every 2 ft from the survey grid, with the reshaped ground inside earthworks.
+        Elevations in feet, NAVD88. Contours every 2 ft from the survey grid (USGS 3DEP lidar), with the reshaped ground inside earthworks. Lot line per San Juan County GIS, APN 140750111000.
         {sun.up ? ` Shadows: ${SEASON_NAME[sun.season]}, ${clockText(sun.hour)}, as set in Sun and tide.` : ' No shadows: the sun is down at the hour set in Sun and tide.'}
       </p>
     </div>

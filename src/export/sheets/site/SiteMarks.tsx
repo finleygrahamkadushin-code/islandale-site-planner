@@ -25,7 +25,18 @@ export interface SiteTextures {
   readonly bankTicks: readonly Seg4[]
   /** Gravel stipple dots, sheet feet. */
   readonly gravel: readonly Pt[]
+  /** Grass tufts on meadows and sod roofs: where each stands. */
+  readonly tufts: readonly Pt[]
+  readonly sodTufts: readonly Pt[]
+  /** Water in ponds and pools: short rows of dashes. */
+  readonly water2: readonly Seg4[]
+  /** Roof finishes under the roof linework: a glass roof's grid, a metal roof's seams. */
+  readonly roofHatch: readonly Seg4[]
 }
+
+/** A grass tuft: three short strokes fanning up from a point, `size` tall (the old site plan's tuft). */
+const tuft = ([x, y]: Pt, size: number) =>
+  `M${(x - size * 0.5).toFixed(2)} ${y.toFixed(2)}l${(size * 0.22).toFixed(2)} ${(-size * 0.75).toFixed(2)}M${x.toFixed(2)} ${(y + size * 0.05).toFixed(2)}v${(-size).toFixed(2)}M${(x + size * 0.5).toFixed(2)} ${y.toFixed(2)}l${(-size * 0.22).toFixed(2)} ${(-size * 0.75).toFixed(2)}`
 
 const segsPath = (segs: readonly Seg4[]) => segs.map(([x1, y1, x2, y2]) => `M${x1.toFixed(3)} ${y1.toFixed(3)}L${x2.toFixed(3)} ${y2.toFixed(3)}`).join('')
 const pts = (poly: readonly Pt[]) => poly.map(([x, y]) => `${x.toFixed(3)},${y.toFixed(3)}`).join(' ')
@@ -86,6 +97,13 @@ function Things({ m, t, pens }: { readonly m: SiteSheetModel; readonly t: SiteTe
       {m.things.map((o) => {
         if (o.kind === 'meadow')
           return <path key={o.id} d={smoothPath([...o.outline, o.outline[0]])} fill="none" stroke={INK.soft} strokeWidth={pens.thin} strokeLinecap="round" strokeDasharray={dash(0, pens.thin * 3.2)} />
+        if (o.kind === 'pad' && o.stalls.length)
+          return (
+            <g key={o.id}>
+              <polygon points={pts(o.outline)} fill="#fff" stroke={INK.line} strokeWidth={pens.thin} strokeLinejoin="round" />
+              <path d={segsPath(o.stalls.map(([a, c]) => [...a, ...c] as Seg4))} stroke={INK.line} strokeWidth={pens.hair} />
+            </g>
+          )
         if (o.kind === 'pond')
           return (
             <g key={o.id}>
@@ -104,6 +122,8 @@ function Things({ m, t, pens }: { readonly m: SiteSheetModel; readonly t: SiteTe
         if (o.kind === 'boulder') return <path key={o.id} d={smoothPath([...o.outline, o.outline[0]])} fill={INK.stone} stroke={INK.line} strokeWidth={pens.thin} />
         return <polygon key={o.id} points={pts(o.outline)} fill="#fff" stroke={INK.line} strokeWidth={pens.thin} strokeLinejoin="round" />
       })}
+      <path d={segsPath(t.water2)} stroke={INK.faint} strokeWidth={pens.hair} strokeDasharray={dash(pens.label * 0.5, pens.label * 0.7)} />
+      <path d={t.tufts.map((p) => tuft(p, pens.label * 0.42)).join('')} stroke={INK.soft} strokeWidth={pens.hair} strokeLinecap="round" fill="none" />
       <g fill={INK.soft} stroke="none">
         {t.gravel.map(([x, y], i) => (
           <circle key={i} cx={x.toFixed(2)} cy={y.toFixed(2)} r={(pens.hair * 0.7).toFixed(3)} />
@@ -230,6 +250,16 @@ function Buildings({ m, pens }: { readonly m: SiteSheetModel; readonly pens: Sit
   )
 }
 
+/** Roof finishes over the roof plans: a glass roof's grid and a metal roof's seams (already clipped to their eaves), and sod roofs' tufts. */
+function RoofTextures({ t, pens }: { readonly t: SiteTextures; readonly pens: SitePens }) {
+  return (
+    <g aria-hidden="true">
+      <path d={segsPath(t.roofHatch)} stroke={INK.faint} strokeWidth={pens.hair} />
+      <path d={t.sodTufts.map((p) => tuft(p, pens.label * 0.36)).join('')} stroke={INK.soft} strokeWidth={pens.hair} strokeLinecap="round" fill="none" />
+    </g>
+  )
+}
+
 function Trees({ m, pens }: { readonly m: SiteSheetModel; readonly pens: SitePens }) {
   return (
     <g>
@@ -315,6 +345,7 @@ export function SiteDrawing({ m, a, t, pens, clipId }: { readonly m: SiteSheetMo
       <Things m={m} t={t} pens={pens} />
       <Paths m={m} pens={pens} />
       <Buildings m={m} pens={pens} />
+      <RoofTextures t={t} pens={pens} />
       <Trees m={m} pens={pens} />
       <SiteLines m={m} t={t} pens={pens} />
       <Clearances a={a} pens={pens} />

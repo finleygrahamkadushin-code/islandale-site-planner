@@ -17,6 +17,27 @@ import { SiteNotesColumn } from './NotesColumn'
 const WATER_OFFSETS_FT = [2.5, 5.5, 9.5]
 /** Pads that read as gravel and get the stipple. */
 const GRAVEL = /gravel|drive|lane|park/i
+/** The lot, as the old site plan's title block named it. */
+export const SITE_ADDRESS = '1484 Islandale Road, Lopez Island, WA'
+
+/** Meadow tufts this far apart, printed inches. */
+const TUFT_IN = 0.16
+/** A glass roof's grid and a metal roof's standing seams, feet apart (the old site plan's 2.5 ft grid; seams 16 in, or wider when they'd print closer than 1/20 in). */
+const GLASS_GRID_FT = 2.5
+const SEAM_FT = 16 / 12
+
+const roofsWith = (m: SiteSheetModel, finish: string) => m.buildings.flatMap((b) => b.roofs.filter((r) => r.finish === finish))
+const shrinkPoly = (poly: readonly (readonly [number, number])[], k: number): [number, number][] => {
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length
+  const cy = poly.reduce((s, p) => s + p[1], 0) / poly.length
+  return poly.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k])
+}
+const boxExtent = (poly: readonly (readonly [number, number])[]): Extent => {
+  const xs = poly.map((p) => p[0])
+  const ys = poly.map((p) => p[1])
+  return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) }
+}
+
 /** Hatch angles on the sheet: the buffer one way, the side setback the other. */
 const SHORE_HATCH_DEG = -45
 const SIDE_HATCH_DEG = 45
@@ -58,6 +79,18 @@ export function buildSiteSheet(input: SiteSheetInput, paper: PaperId, scale: Sit
     water: waterLines(model.shoreline, onLand, WATER_OFFSETS_FT),
     bankTicks: model.topOfBank.flatMap((l) => bankTicks(l, shoreDistance(model), 0.07 / scale, 0.045 / scale)),
     gravel: model.things.filter((t) => t.kind === 'pad' && GRAVEL.test(t.name)).flatMap((t, i) => stipple(t.outline, (0.05 / scale) ** 2, 7919 * (i + 1))),
+    tufts: model.things.filter((t) => t.kind === 'meadow').flatMap((t, i) => stipple(shrinkPoly(t.outline, 0.9), (TUFT_IN / scale) ** 2, 104729 * (i + 1))),
+    sodTufts: roofsWith(model, 'sod').flatMap((r, i) => stipple(shrinkPoly(r.eave, 0.9), (TUFT_IN * 0.8 / scale) ** 2, 1299709 * (i + 1))),
+    water2: model.things.filter((t) => t.kind === 'pond' || t.kind === 'pool').flatMap((t) => {
+      const inner = shrinkPoly(t.outline, t.kind === 'pool' ? 0.84 : 0.9)
+      return hatchWhere((p) => insidePoly(inner, p), boxExtent(inner), 0.07 / scale, 0, pens.hatchStep)
+    }),
+    roofHatch: [
+      ...roofsWith(model, 'glass').flatMap((r) => [45, -45].flatMap((deg) => hatchWhere((p) => insidePoly(r.eave, p), boxExtent(r.eave), GLASS_GRID_FT, deg, pens.hatchStep))),
+      ...[...roofsWith(model, 'metal'), ...roofsWith(model, 'copper')].flatMap((r) =>
+        hatchWhere((p) => insidePoly(r.eave, p), boxExtent(r.eave), Math.max(SEAM_FT, 0.05 / scale), r.ridgeDir ? (Math.atan2(r.ridgeDir[1], r.ridgeDir[0]) * 180) / Math.PI + 90 : 0, pens.hatchStep),
+      ),
+    ],
   }
   return { model, notes, layout, pens, textures, annotations: siteAnnotate(model, pens, e, scale) }
 }
@@ -73,7 +106,9 @@ function DrawingSvg({ build, extent, scale }: { readonly build: SiteSheetBuild; 
   const clipId = `site-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   return (
     <svg
-      className="sheet-svg"
+      // its own class, not .sheet-svg: the building sheets' tests and styles find a building's drawing as the first .sheet-svg
+      className="site-svg"
+      style={{ display: 'block', flex: 'none', maxWidth: 'none' }}
       width={`${extent.w * scale}in`}
       height={`${extent.h * scale}in`}
       viewBox={`${extent.x} ${extent.y} ${extent.w} ${extent.h}`}
@@ -101,7 +136,7 @@ function SiteDefs({ clipId, extent }: { readonly clipId: string; readonly extent
 /** The site plan: the lot at a site scale with its notes beside it, or on a page of their own when the drawing needs the room. */
 export function SiteSheet({ build, paper, scale, planName }: Props) {
   const { layout } = build
-  const info: PageInfo = { paper, scale, planName, buildingName: 'Islandale · Lopez Island', sheetTitle: 'Site plan', northDeg: layout.frame.northDeg }
+  const info: PageInfo = { paper, scale, planName, buildingName: SITE_ADDRESS, sheetTitle: 'Site plan', northDeg: layout.frame.northDeg }
   const notesPage = (
     <Page {...info} sheetTitle="Site plan · notes" northDeg={null} flow>
       <SiteNotesColumn notes={build.notes} sun={build.model.sun} columns={3} widthIn={PAPERS[paper].w - 2 * MARGIN_IN} />

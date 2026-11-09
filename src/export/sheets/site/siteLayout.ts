@@ -103,6 +103,12 @@ export function sitePens(scale: SiteScale) {
 export type SitePens = ReturnType<typeof sitePens>
 
 const turnPts = (f: SiteFrame, pts: readonly Pt[]): Pt[] => pts.map(f.toSheet)
+/** A direction turned onto the sheet (the frame's turn and flip, without its offset). */
+const turnDir = (f: SiteFrame, d: Pt): Pt => {
+  const o = f.toSheet([0, 0])
+  const p = f.toSheet(d)
+  return [p[0] - o[0], p[1] - o[1]]
+}
 const turnPair = (f: SiteFrame, [a, b]: readonly [Pt, Pt]): readonly [Pt, Pt] => [f.toSheet(a), f.toSheet(b)]
 
 /** The model with every point turned onto the sheet, and its band rule read in sheet feet. */
@@ -122,7 +128,7 @@ export function turnModel(m: SiteSheetModel, f: SiteFrame): SiteSheetModel {
     buildings: m.buildings.map((b) => ({
       ...b,
       parts: b.parts.map((p) => ({ ...p, outline: turnPts(f, p.outline), inner: turnPts(f, p.inner), nosings: p.nosings.map((n) => turnPair(f, n)), run: p.run && turnPair(f, p.run) })),
-      roofs: b.roofs.map((r) => ({ ...r, eave: turnPts(f, r.eave), lines: r.lines.map((l) => ({ ...l, pts: turnPts(f, l.pts) })), slope: r.slope && turnPair(f, r.slope) })),
+      roofs: b.roofs.map((r) => ({ ...r, eave: turnPts(f, r.eave), lines: r.lines.map((l) => ({ ...l, pts: turnPts(f, l.pts) })), slope: r.slope && turnPair(f, r.slope), ridgeDir: r.ridgeDir && turnDir(f, r.ridgeDir) })),
       walls: b.walls.map((w) => ({ face: turnPts(f, w.face), back: turnPts(f, w.back) })),
       courts: lines(b.courts),
       label: f.toSheet(b.label),
@@ -130,7 +136,7 @@ export function turnModel(m: SiteSheetModel, f: SiteFrame): SiteSheetModel {
     })),
     paths: m.paths.map((p) => ({ ...p, outline: turnPts(f, p.outline), centre: turnPts(f, p.centre), treads: p.treads.map((t) => turnPair(f, t)) })),
     bridges: m.bridges.map((b) => ({ ...b, left: turnPts(f, b.left), right: turnPts(f, b.right), centre: turnPts(f, b.centre), columns: turnPts(f, b.columns), boards: b.boards.map((t) => turnPair(f, t)) })),
-    things: m.things.map((t) => ({ ...t, outline: turnPts(f, t.outline) })),
+    things: m.things.map((t) => ({ ...t, outline: turnPts(f, t.outline), stalls: t.stalls.map((l) => turnPair(f, l)) })),
     trees: m.trees.map((t) => ({ ...t, at: f.toSheet(t.at), canopy: turnPts(f, t.canopy) })),
     clearances: m.clearances.map((c) => ({
       ...c,

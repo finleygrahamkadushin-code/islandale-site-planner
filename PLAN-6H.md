@@ -149,3 +149,16 @@ Then I wait for your sign-off before check-in C (merge).
 5. **Clearance dimensions on the drawing:** one to the shore and one to the lot line per building, as the app's 3D labels show. Or leave them only in the notes, for a cleaner drawing?
 6. **Bands as hatching (recommended) or colour?** Hatching photocopies and reads in black and white; colour would match the app's ground tints (orange buffer, tan side band).
 7. **Branch name:** the plan said `claude/phase-6h-site-sheet`; this session's branch is `claude/phase-6h-site-sheet-591f83`. I'll keep this one unless you'd like it renamed before merge.
+
+## Finley's answers (check-in A, Nov 8)
+
+All seven as recommended: turned to fit with a North up checkbox; Site plan on by default and printed first; the two `src/site/` changes; 2 ft contours with 10 ft index lines; clearance dimensions on the drawing; hatched bands; keep this branch.
+
+## What changed during the build
+
+- **Clearance dimensions** use the inspector's own words and rounding (`80'-1" TO SHORE · 35'-1" PAST BANK`), so the drawing and the notes read the same figure. A dimension is left off when it would cross another building (its line couldn't be read), when there's nowhere clear for its figure, or when the building crosses its lot line (the inspector gives no distance then); the figure is always in the notes' Clearances.
+- **Notes:** the Clearances block has one row per building (its inspector rows run together), to keep the column on the page. A rules-off scheme gets a boxed **RULES OFF** line.
+- **Shadows** follow the Sun and tide panel's season and hour, as planned; the check-in PDFs are printed at the app's default (September, 2 pm), since a late hour gives very long shadows.
+- **From the old site plan**, kept: the address and data sources (USGS 3DEP lidar, San Juan County GIS, APN), parking stall lines, meadow and sod-roof tufts, water hatching in ponds and pools, glass and metal roof textures. Left out, recorded in `PLAN.md`: its 1 ft contours and its numbered schedule of every object.
+- **Files:** the notes column is `NotesColumn.tsx`, not `SiteNotes.tsx` (that differs from `siteNotes.ts` only in case). Added `siteGeom.ts` (joining iso-lines, smooth curves), `siteHatch.ts` (hatching, water lines, bank ticks, stipple), `siteLabels.ts` and `siteAnnotate.ts` (every word placed so none overprints), `SiteFit.tsx` and `siteTestKit.ts`. The site plan's SVG has its own class, `site-svg`, so the building sheets' tests still find a building's drawing first.
+- **Tests:** besides the planned ones, every scheme is checked for overprinting words and words off the drawing; the notes are compared against the real Lot facts, Program and Code check panels rendered for Scheme C.

@@ -102,11 +102,10 @@ describe('the real panels, Scheme C (the plan the app opens on)', () => {
 })
 
 describe('rules off', () => {
-  test('a rules-off scheme notes every row and says why', () => {
+  test('a rules-off scheme notes every row (the notes column says why, in a box)', () => {
     const off = SCHEMES.find((s) => ['D', 'E', 'F'].includes(s.id))!
     const notes = notesFor(planOf(off.id))
     expect(notes.code.rulesOff).toBe(true)
     expect(notes.code.rows.every((r) => r.verdict === 'note')).toBe(true)
-    expect(notes.code.notes[0]).toMatch(/rules off/)
   })
 })
