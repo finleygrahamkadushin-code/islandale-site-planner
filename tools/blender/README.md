@@ -31,6 +31,35 @@ node tools/export/export_scene.mjs                # --scheme C2, --plan my.plan.
 
 You can also save the files from the app: the top bar's **3D model** button. Open the app in the Realistic style first, because trees, pads and the ground keep the colours shown on screen.
 
+## Bake for Unreal (6E)
+
+```bash
+# Every material styles.json can reach (25 sets), 4096 px, into build/3d/unreal/textures/ (a few hours)
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/bake_textures.py -- \
+    [--keys kurinuki,stucco__aa9d13] [--all] [--res 4096] [--samples 64] [--height-samples 256] [--no-shift-check]
+
+# Tests: the numpy parts (seconds), then real 256 px bakes (about a minute)
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/test_bake_numpy.py
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/test_bake_blender.py
+```
+
+- **What it makes:** each set is one seamless 6 m tile in `build/3d/unreal/textures/<name>/`:
+
+  | File | Format |
+  |---|---|
+  | `T_<name>_BC` | 8-bit sRGB albedo |
+  | `T_<name>_ORM` | 8-bit: AO, roughness, metallic |
+  | `T_<name>_H` | 16-bit height, 0..1 = 0..`relief_m` |
+  | `T_<name>_N` | 16-bit normal, DirectX, green down |
+
+  Beside them go `materials.json`, which 6F and 6G read (conventions, relief, constants, blends, seam numbers, Unreal hints), and `contact.html`, the check-in sheet (every map shown 2 × 2).
+- **How:** each output of the material's group is rendered flat as emission. The set-up is an orthographic camera over exactly one tile, a 1-pixel box filter, float EXR and no colour transform. The Normal and any missing AO are then worked out in numpy with filters that wrap. The plan and its reasoning are in `PLAN-6E.md`.
+- **Names:** a tuned variant in `styles.json` (`{"material": key, "params": {...}}`) bakes as `<key>__<6 hex of its params>`, which stays the same until its params change.
+- **Blends:** the wainscot and the meadow-to-beach shore are recorded as two layers plus a rule in `materials.json`, and mixed in Unreal.
+- **Seams:** the run exits 1 if any set fails a check.
+  - **Edge check:** the step across the wrap must be no bigger than 1.5 × the largest step inside the tile.
+  - **Shift check:** a half-tile-shifted render must match within 0.01, or within 1.5 × the map's own render noise for detail finer than a pixel.
+
 ## Files
 
 | File | What it does |
@@ -44,6 +73,7 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 | `islandale3d/materials/` | The procedural materials, one module per family. |
 | `styles.json` | Which material each surface wears. |
 | `swatch.py` | Renders one material on a test cabin. |
+| `bake_textures.py`, `islandale3d/bake/` | The Unreal texture bake (6E): which sets (`targets.py`), the flat renders (`render.py`), encoding and PNGs (`encode.py`), seams (`seams.py`), `materials.json` (`manifest.py`), the contact sheet (`contact.py`). Tests in `tests/`. |
 
 ## What the export must contain
 

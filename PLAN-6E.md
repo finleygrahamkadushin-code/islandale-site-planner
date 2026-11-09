@@ -1,6 +1,25 @@
 # 6E · Bake textures for Unreal
 
-Status: **plan, waiting for Finley's OK** (check-in A, Nov 6 2026, branch `claude/phase-6e-bake-2ec41d`, cut from `claude/phase-6-rest-plan`). Track U, part 1 of 3. No bake code is written until you say OK.
+Status: **built, at check-in B** (Nov 8 2026, branch `claude/phase-6e-bake-2ec41d`). Finley OK'd the plan with all seven recommended answers, then asked for the highest quality, time and disk no object, and for the research videos to be applied. "Changes after the OK" below records what that changed. The rest of this file is the plan as approved.
+
+## Changes after the OK (Nov 8)
+
+From Finley ("as high quality as possible, don't care about the space or the time") and the Phase 6 research playbook (vault: `03 Resources/Islandale Phase 6 Research/`):
+
+- **4096 px for every set**, not 2048 (1.5 mm a pixel). Not 8192: the videos call 8K overkill, and 25 sets of 8K maps would overflow Unreal's texture streaming on a 24 GB Mac, which blurs textures. That costs quality rather than adding it.
+- **16-bit Normal** as well as Height (playbook table). BaseColor and ORM stay 8-bit (Unreal compresses them to BC7 and BC5/Masks anyway).
+- **Samples:** 64 per pixel for colour and ORM, **256 for Height**, because the normal is computed from it and noise there becomes grain. Each pixel is the box-filtered average over its own square.
+- **File names** follow the playbook: `T_<name>_BC`, `_ORM`, `_H`, `_N`.
+- **AO:** the material's own AO output where it has one; otherwise a gentle cavity AO computed from the height with a wrapping blur (playbook: the contract bans AO nodes). `materials.json` says which (`ao_source`).
+- **Height is never clipped.** Where a material goes past its stated relief (`concrete`, `concrete_slab` and `madrone_bark` do, by up to 3% of their pixels), H's range widens to fit. `relief_m` is then the real range, `blender_relief_m` the stated one, and `face_h` the H value where Blender's wall face sits. Unreal displaces by (h − face_h) × relief.
+- **Edge check, corrected:** the wrap step is now compared with the *largest* ordinary step between neighbouring columns (rows) anywhere in the tile, not the average one. The first version flagged 10 materials whose board joints, roof ribs and course lines sit exactly on the tile edge, which is where `wrapped_cells` puts cell boundaries. Those materials passed the shift check, so they really do repeat. A real seam still stands out (the tests bake a cliff on the edge and a wrong-period ramp, and each fails its check).
+- **The half-tile shift check renders at 1024 px** (16 samples): it tests whether the material repeats, which doesn't depend on the file's size. The edge check runs on the full-size files.
+- **Extra checks from the research:**
+  - Albedo outside 0.03–0.9 is flagged (for Lumen's bounce light).
+  - The lit preview uses a low light from the top left, so a raised course should read as raised.
+  - Each set also gets a 3 × 3 lit preview.
+- **`materials.json` carries Unreal hints per set** (`ue`): `master` (opaque / glass / water / foliage), a starting `specular` (0.1 natural, 0.5 built), `cell_bomb` (meadow, beach, gravel only), `triplanar` (bark), `metallic_present`, `height_range_cm`, and `displacement_center`. 6G treats them as starting values.
+- **Tests:** 15 numpy tests and 4 real-render tests (256 px). A flat colour comes out exact through the EXR and sRGB path, tile noise passes, and the two broken materials fail.
 
 **What it does:** turns every procedural Blender material the scene wears into a plain set of seamless image textures that Unreal can use. Each set is one 6 m × 6 m tile: BaseColor, ORM (AO, Roughness, Metallic), Height and Normal, at 2048 px. It also writes `materials.json`, which tells 6F and 6G what each set is, how deep its relief goes, and how the two blended surfaces (the Elders' wainscot and the meadow-to-beach shore) mix their layers. Every map's seam is measured, and the run fails if one doesn't wrap.
 
