@@ -25,7 +25,7 @@ CHECK_RES = 1024               # the half-tile shift check renders at this size 
 CHECK_SAMPLES = 16
 CONSTANT_STD = 1e-4            # an output this flat is written as a number, not a map
 PREVIEW_TILE = 256             # px per tile in the 2 x 2 previews
-LIT_TILE = 384                 # px per tile in the 3 x 3 lit preview
+LIT_TILE = 512                 # px per tile in the 3 x 3 lit preview (must divide the bake size)
 LIGHT_ELEVATION_DEG = 35.0     # the preview light: low, from the top left, so a raised stone course reads as raised
 ALBEDO_LOW, ALBEDO_HIGH = 0.03, 0.9
 HEIGHT_CLIP_WARN = 0.001     # share of the height beyond the stated relief worth a note
@@ -34,11 +34,15 @@ DISPLACE_MIN_RELIEF = 0.02     # m: the same rule as styling.DISPLACE_MIN_RELIEF
 
 
 def _downsample(img: np.ndarray, size: int) -> np.ndarray:
-    f = img.shape[0] // size
-    if f <= 1:
+    """Box-average a square tile down to size x size. The size must divide the tile exactly: trimming the remainder
+    would cut the tile short and draw a false seam in the tiled previews."""
+    n = img.shape[0]
+    if n <= size:
         return img
-    trimmed = img[: size * f, : size * f]
-    return trimmed.reshape(size, f, size, f, *img.shape[2:]).mean(axis=(1, 3))
+    if n % size:
+        raise ValueError(f"preview size {size} does not divide the {n} px tile")
+    f = n // size
+    return img.reshape(size, f, size, f, *img.shape[2:]).mean(axis=(1, 3))
 
 
 def _tiled(img: np.ndarray, k: int) -> np.ndarray:
@@ -66,6 +70,17 @@ def _write_previews(folder: Path, maps: dict, bc_lin: np.ndarray, nrm: np.ndarra
     encode.write_png(folder / "preview_lit.png", _tiled(_downsample(lit, PREVIEW_TILE), 2), 8)
     out["lit3x3"], out["lit"] = "preview_lit3x3.png", "preview_lit.png"
     return out
+
+
+def rewrite_previews(out: Path, name: str, entry: dict) -> dict:
+    """Redraw one set's previews from its baked PNGs (no rendering): for preview fixes without a rebake."""
+    folder = out / name
+    read = lambda label: encode.read_png(out / entry["maps"][label])  # noqa: E731
+    bc_srgb, orm, h01, n_enc = read("BC"), read("ORM"), read("H"), read("N")
+    nrm = np.stack([n_enc[..., 0] * 2 - 1, (0.5 - n_enc[..., 1]) * 2, n_enc[..., 2] * 2 - 1], axis=-1)
+    nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True)
+    return _write_previews(folder, {"BC": bc_srgb, "ORM": orm, "H": h01, "N": n_enc},
+                           encode.srgb_to_linear(bc_srgb), nrm, orm[..., 0])
 
 
 def _shift_checks(baker, check_shift: bool) -> dict:

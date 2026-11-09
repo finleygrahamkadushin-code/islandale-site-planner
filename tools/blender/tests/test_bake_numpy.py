@@ -182,6 +182,19 @@ def test_blends_name_both_layers():
     assert {w["upper"], w["lower"], t["upper"], t["lower"]} <= {x.name for x in targets(STYLES)}
 
 
+def test_preview_downsample_never_trims_the_tile():
+    from islandale3d.bake import LIT_TILE, PREVIEW_TILE, _downsample
+    img = np.arange(16.0).reshape(4, 4)
+    assert np.allclose(_downsample(img, 2), [[2.5, 4.5], [10.5, 12.5]])
+    for res in (512, 1024, 2048, 4096):
+        assert res % PREVIEW_TILE == 0 and (res <= LIT_TILE or res % LIT_TILE == 0)
+    try:
+        _downsample(np.zeros((12, 12)), 5)
+    except ValueError:
+        return
+    raise AssertionError("a size that doesn't divide the tile must be refused")
+
+
 def main():
     tests = [(k, f) for k, f in globals().items() if k.startswith("test_") and callable(f)]
     failed = 0

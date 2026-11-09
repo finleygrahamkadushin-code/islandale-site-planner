@@ -2,7 +2,7 @@
 
     /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/bake_textures.py -- \
         [--keys stucco__abc123,kurinuki] [--all] [--res 4096] [--samples 64] [--height-samples 256] \
-        [--out build/3d/unreal/textures] [--no-shift-check] [--contact-only]
+        [--out build/3d/unreal/textures] [--no-shift-check] [--contact-only] [--previews-only]
 
 One 6 m tile per set: T_<name>_BC (sRGB), _ORM, _H (16-bit), _N (16-bit, DirectX), in <out>/<name>/, plus materials.json
 and contact.html (the check-in sheet) in <out>. The sets are everything styles.json can reach (--all adds the library's
@@ -18,7 +18,7 @@ import bpy
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from islandale3d import BUILD, ROOT  # noqa: E402
-from islandale3d.bake import bake_set, contact, manifest  # noqa: E402
+from islandale3d.bake import bake_set, contact, manifest, rewrite_previews  # noqa: E402
 from islandale3d.bake.targets import LIBRARY_EXTRAS, blends, targets  # noqa: E402
 from islandale3d.styling import Styler  # noqa: E402
 
@@ -37,6 +37,7 @@ def parse(argv):
     ap.add_argument("--styles", default=str(STYLES))
     ap.add_argument("--no-shift-check", action="store_true")
     ap.add_argument("--contact-only", action="store_true", help="rewrite contact.html from materials.json and stop")
+    ap.add_argument("--previews-only", action="store_true", help="redraw every set's previews from its PNGs, then the sheet")
     a = ap.parse_args(argv)
     if a.res < 256 or a.res & (a.res - 1):
         ap.error("--res must be a power of two, at least 256")
@@ -48,7 +49,12 @@ def main(argv):
     out = pathlib.Path(a.out).resolve()
     json_path = out / "materials.json"
     previous = manifest.load(json_path)
-    if a.contact_only:
+    if a.previews_only:
+        for name, entry in previous["materials"].items():
+            entry["previews"] = rewrite_previews(out, name, entry)
+            print(f"BAKE previews redrawn: {name}", flush=True)
+        manifest.write(json_path, previous)
+    if a.contact_only or a.previews_only:
         print(f"BAKE contact sheet -> {contact.write(out, previous)}")
         return 0
     styles = json.loads(pathlib.Path(a.styles).read_text())
