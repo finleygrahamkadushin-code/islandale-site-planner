@@ -32,11 +32,15 @@ describe.each(SCHEMES.map((s) => s.id))('site plan words · Scheme %s', (schemeI
     }
   })
 
-  test('every building is named, with its floor level', () => {
+  test('every cabin is named, with its floor level; a standalone deck only by name, where it fits', () => {
     expect(a.buildings.map((b) => b.id).sort()).toEqual(build.model.buildings.map((b) => b.id).sort())
     for (const b of a.buildings) {
-      expect(b.names.map((n) => n.text).join(' ')).toBe(build.model.buildings.find((m) => m.id === b.id)!.name.toUpperCase())
-      expect(b.level?.text).toMatch(/^FF .* NAVD88$/)
+      const m = build.model.buildings.find((x) => x.id === b.id)!
+      const cabin = m.parts.some((p) => p.kind === 'wall')
+      if (!cabin && !b.names.length) continue
+      expect(b.names.map((n) => n.text).join(' ')).toBe(m.name.toUpperCase())
+      if (cabin) expect(b.level?.text).toMatch(/^FF .* NAVD88$/)
+      else expect(b.level).toBeNull()
     }
   })
 

@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { DEFAULT_SETBACKS } from '../../../store/types'
-import { siteLayout, sitePens, turnModel } from './siteLayout'
+import { fitNotes, notesHeightIn, siteLayout, sitePens, turnModel } from './siteLayout'
+import { siteNotes } from './siteNotes'
 import { siteSheetModel } from './siteModel'
-import { modelInputFor, planOf } from './siteTestKit'
+import { earthworksFor, modelInputFor, objectsOf, planOf, SITE } from './siteTestKit'
 
 const model = siteSheetModel(modelInputFor(planOf('C')))
 
@@ -55,5 +56,27 @@ describe('site layout · Scheme C', () => {
   test('the setbacks change the model, not the frame', () => {
     const wide = siteSheetModel(modelInputFor(planOf('C'), { ...DEFAULT_SETBACKS, shoreFt: 50 }))
     expect(siteLayout(wide, 'tabloid', 0.05, false).frame.turnDeg).toBe(siteLayout(model, 'tabloid', 0.05, false).frame.turnDeg)
+  })
+})
+
+describe('the notes column fits, or takes a page of its own', () => {
+  const notesFor = (id: string) => {
+    const plan = planOf(id)
+    return siteNotes({ plan, site: SITE, setbacks: DEFAULT_SETBACKS, routeGround: earthworksFor(objectsOf(plan)).ground })
+  }
+
+  test('Scheme C’s notes fit beside its drawing on Tabloid', () => {
+    const notes = notesFor('C')
+    expect(notesHeightIn(notes, 4.1)).toBeLessThan(11 - 1 - 0.9)
+    expect(fitNotes(siteLayout(model, 'tabloid', 0.05, false), notes, 'tabloid', 0.05).mode).toBe('beside')
+  })
+
+  test('Scheme E’s long code check moves its notes to a page of their own', () => {
+    const notes = notesFor('E')
+    const e = siteSheetModel(modelInputFor(planOf('E')))
+    expect(notesHeightIn(notes, 4.1)).toBeGreaterThan(notesHeightIn(notesFor('C'), 4.1))
+    const l = fitNotes(siteLayout(e, 'tabloid', 0.05, false), notes, 'tabloid', 0.05)
+    expect(l.mode).toBe('notesPage')
+    expect(l.pages).toBe(2)
   })
 })

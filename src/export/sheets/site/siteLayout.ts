@@ -12,6 +12,7 @@ import { ptToFt, type Pt } from '../svgDims'
 import { drawingExtent, siteFrame, type SiteFrame } from './siteFrame'
 import { boxOf } from './siteGeom'
 import type { SiteSheetModel } from './siteModel'
+import type { SiteNotes } from './siteNotes'
 
 /** Room round everything drawn, feet: for the shore's water lines and the labels outside the lot. */
 export const PAD_FT = 12
@@ -67,6 +68,57 @@ export function siteLayout(m: SiteSheetModel, paper: PaperId, scale: SiteScale, 
     pages: mode === 'beside' ? 1 : tiles.length + 1,
     onePagePaper: papers.find((id) => fitsBeside(extent, id, scale)) ?? null,
   }
+}
+
+// --- will the notes column fit beside the drawing? ---------------------------------
+
+/** The notes column's type, as NotesColumn sets it: line heights and an average character's width, inches. */
+const NOTE_LINE_IN = (6.3 * 1.2) / 72
+const SMALL_LINE_IN = (5.6 * 1.2) / 72
+const NOTE_CHAR_IN = (6.3 * 0.5) / 72
+const SMALL_CHAR_IN = (5.6 * 0.5) / 72
+/** A block's caption with its rule and gaps, the legend's rows, the gap between blocks, inches. */
+const CAPTION_IN = 0.2
+const LEGEND_IN = 7 * 0.165
+const BLOCK_GAP_IN = 0.06
+/** Room kept for the estimate being short: text wraps a little worse than an average character says. */
+const NOTES_SAFETY = 1.12
+
+const linesFor = (chars: number, widthIn: number, charIn: number) => Math.max(1, Math.ceil((chars * charIn) / Math.max(0.5, widthIn)))
+
+/**
+ * About how tall the notes column runs at a width, inches: each block's
+ * caption, rows wrapped at the width their column leaves, small print, the
+ * code check, the legend and the closing note, with a margin for wrapping.
+ */
+export function notesHeightIn(notes: SiteNotes, widthIn: number): number {
+  let h = 0
+  for (const b of notes.blocks) {
+    const labelIn = Math.min(1.6, Math.max(...b.rows.map((r) => r.label.length), 1) * NOTE_CHAR_IN + 0.06)
+    h += CAPTION_IN + BLOCK_GAP_IN
+    for (const r of b.rows) h += linesFor(r.value.length + 2, widthIn - labelIn, NOTE_CHAR_IN) * NOTE_LINE_IN
+    for (const n of b.notes) h += linesFor(n.length, widthIn, SMALL_CHAR_IN) * SMALL_LINE_IN
+  }
+  h += CAPTION_IN + BLOCK_GAP_IN
+  if (notes.code.rulesOff) h += 2 * NOTE_LINE_IN + 0.08
+  for (const r of notes.code.rows) h += linesFor(r.label.length + r.text.length + r.names.join(', ').length + 6, widthIn - 0.35, NOTE_CHAR_IN) * NOTE_LINE_IN
+  for (const n of notes.code.notes) h += linesFor(n.length, widthIn, SMALL_CHAR_IN) * SMALL_LINE_IN
+  h += CAPTION_IN + LEGEND_IN + BLOCK_GAP_IN + 3 * SMALL_LINE_IN
+  return h * NOTES_SAFETY
+}
+
+const notesFit = (notes: SiteNotes, paper: PaperId) => notesHeightIn(notes, NOTES_IN) <= PAPERS[paper].h - 2 * MARGIN_IN - TITLE_IN
+
+/**
+ * The layout once the notes are known: a notes column too tall for the page
+ * moves to a page of its own, and the one-page paper must hold the column's
+ * height as well as its width.
+ */
+export function fitNotes(l: SiteLayout, notes: SiteNotes, paper: PaperId, scale: SiteScale): SiteLayout {
+  const papers = (Object.keys(PAPERS) as PaperId[]).sort((a, b) => PAPERS[a].w * PAPERS[a].h - PAPERS[b].w * PAPERS[b].h)
+  const onePagePaper = papers.find((id) => fitsBeside(l.extent, id, scale) && notesFit(notes, id)) ?? null
+  if (l.mode !== 'beside' || notesFit(notes, paper)) return { ...l, onePagePaper }
+  return { ...l, mode: 'notesPage', pages: 2, onePagePaper }
 }
 
 /** The smallest paper that holds the drawing alone on one page. */

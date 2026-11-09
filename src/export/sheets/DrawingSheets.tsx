@@ -183,7 +183,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
           Download measurements
         </button>
-        {siteBuild && <SiteFit build={siteBuild.build} paper={paper} scale={siteScale} />}
+        {siteBuild && <SiteFit build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} />}
         <PaperFit buildings={shown} objects={objects} terrain={terrain} paper={paper} scale={scale} show={show} />
         <p className="sheets-hint">Print at 100% (Actual size), not Fit to page. Check the 1 inch bar on each sheet with a ruler.</p>
       </div>

@@ -49,7 +49,7 @@ export const floorText = (navdFt: number) => `FF ${formatArch(navdFt)} NAVD88`
 /** The obstacles labels keep off: roofs, building parts, bridge decks, pads and paths, ponds and pools. */
 export function obstaclesOf(m: SiteSheetModel): (readonly Pt[])[] {
   return [
-    ...m.buildings.flatMap((b) => [...b.roofs.map((r) => [...r.eave]), ...b.parts.map((p) => [...p.outline])]),
+    ...m.buildings.flatMap((b) => [...b.roofs.map((r) => r.eave), ...b.parts.map((p) => p.outline)]),
     ...m.bridges.map((b) => [...b.left, ...[...b.right].reverse()]),
     ...m.paths.map((p) => [...p.outline]),
     ...m.things.filter((t) => t.kind !== 'meadow').map((t) => t.outline),
@@ -212,8 +212,17 @@ export function siteAnnotate(m: SiteSheetModel, pens: SitePens, extent: Extent, 
 
   // building names and floor levels: inside the walls, along their long side, sized (or wrapped) to fit; forced, since they are what the sheet is about
   const buildings = m.buildings.map((b) => {
-    const main = b.parts.find((p) => p.kind === 'wall') ?? b.parts[0]
-    const set = main ? nameSet(main.outline, b.label, upper(b.name), floorText(b.floorNavdFt), pens) : null
+    const walls = b.parts.find((p) => p.kind === 'wall')
+    if (!walls) {
+      // a standalone deck: its name alone, only when it fits at a legible size (a cluster of small decks would crowd itself)
+      const deck = b.parts[0]
+      const one = deck ? bestInside(deck.outline, b.label, upper(b.name), pens.small, pens.small * 0.75, true) : null
+      if (!one || !placer.fits(one, deck.outline)) return { id: b.id, names: [], level: null }
+      placer.take(one)
+      return { id: b.id, names: [one], level: null }
+    }
+    const main = walls
+    const set = nameSet(main.outline, b.label, upper(b.name), floorText(b.floorNavdFt), pens)
     const labels = set?.labels ?? [{ text: upper(b.name), at: b.label, angleDeg: 0, size: pens.small, bold: true }]
     for (const l of labels) placer.take(l)
     return { id: b.id, names: labels.slice(0, -1).length ? labels.slice(0, -1) : labels, level: set ? labels[labels.length - 1] : null }

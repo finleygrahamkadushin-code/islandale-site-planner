@@ -7,7 +7,7 @@ import { PAPERS, MARGIN_IN, type PaperId, type SiteScale } from '../types'
 import { siteAnnotate, shoreDistance, type SiteAnnotations } from './siteAnnotate'
 import { insidePoly } from './siteGeom'
 import { bankTicks, hatchWhere, stipple, waterLines } from './siteHatch'
-import { NOTES_GAP_IN, NOTES_IN, siteLayout, sitePens, turnModel, type SiteLayout, type SitePens } from './siteLayout'
+import { fitNotes, NOTES_GAP_IN, NOTES_IN, siteLayout, sitePens, turnModel, type SiteLayout, type SitePens } from './siteLayout'
 import { SiteDrawing, type SiteTextures } from './SiteMarks'
 import { siteSheetModel, type SiteSheetModel } from './siteModel'
 import type { SiteNotes } from './siteNotes'
@@ -134,7 +134,7 @@ function SiteDefs({ clipId, extent }: { readonly clipId: string; readonly extent
 
 /** The site plan: the lot at a site scale with its notes beside it, or on a page of their own when the drawing needs the room. */
 export function SiteSheet({ build, notes, paper, scale, planName }: Props) {
-  const { layout } = build
+  const layout = fitNotes(build.layout, notes, paper, scale)
   const info: PageInfo = { paper, scale, planName, buildingName: SITE_ADDRESS, sheetTitle: 'Site plan', northDeg: layout.frame.northDeg }
   const notesPage = (
     <Page {...info} sheetTitle="Site plan · notes" northDeg={null} flow>
