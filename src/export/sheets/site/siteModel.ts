@@ -20,7 +20,7 @@ import type { Environment, Plan, PlanObject, Setbacks } from '../../../store/typ
 import { sheetBuildings } from '../model/model'
 import type { Pt } from '../svgDims'
 import { boxOf, chainSegments, simplifyLine, type Box } from './siteGeom'
-import { bridgeMark, buildingMarks, pathMark, shadowPieces, sortObjects, thingMark, toFt, treeMark, type SiteBridgeMark, type SiteBuildingMark, type SitePathMark, type SiteThingMark, type SiteTreeMark } from './siteObjects'
+import { bridgeMark, buildingMarks, pathMark, SHADOW_MIN_UP, shadowPieces, sortObjects, thingMark, toFt, treeMark, type SiteBridgeMark, type SiteBuildingMark, type SitePathMark, type SiteThingMark, type SiteTreeMark } from './siteObjects'
 
 export interface SiteLotLine {
   readonly a: Pt
@@ -66,7 +66,8 @@ export interface SiteSheetModel {
   /** Roof shadows as flat pieces (outline, its shadow and the quads between), site feet; empty with the sun down or shadows off. */
   readonly shadows: readonly (readonly Pt[])[]
   /** Where the sun was for the shadows: season and hour, as the Sun and tide panel set them. */
-  readonly sun: { readonly season: Environment['season']; readonly hour: number; readonly up: boolean }
+  /** Where the sun was for the shadows (the Sun and tide panel's season and hour): up, and high enough to cast them. */
+  readonly sun: { readonly season: Environment['season']; readonly hour: number; readonly up: boolean; readonly casts: boolean }
   /** Which band a ground point (site feet) is in: the setbacks rule itself. */
   readonly bandAt: (p: Pt) => SetbackBand
   /** Bounds of the lot and everything drawn on it, site feet. */
@@ -129,7 +130,7 @@ export function siteSheetModel(input: SiteModelInput): SiteSheetModel {
     ...bridges.flatMap((b) => [...b.left, ...b.right]),
     ...things.flatMap((t) => t.outline),
     ...trees.flatMap((t) => t.canopy),
-  ])!
+  ]) ?? lotBox
   const near = (l: readonly Pt[]) => l.some(([x, y]) => x > lotBox.minx - CONTOUR_REACH_FT && x < lotBox.maxx + CONTOUR_REACH_FT && y > lotBox.miny - CONTOUR_REACH_FT && y < lotBox.maxy + CONTOUR_REACH_FT)
 
   return {
@@ -149,7 +150,7 @@ export function siteSheetModel(input: SiteModelInput): SiteSheetModel {
     trees,
     clearances: clearanceMarks(input, objects),
     shadows,
-    sun: { season: environment.season, hour: environment.hour, up: shadows.length > 0 },
+    sun: { season: environment.season, hour: environment.hour, up: sun.direction[2] > 0, casts: sun.direction[2] >= SHADOW_MIN_UP },
     bandAt: ([x, y]) => setbackBand(parcel, setbacks, ftToM(x), ftToM(y)),
     bounds: drawn,
     setbacks,

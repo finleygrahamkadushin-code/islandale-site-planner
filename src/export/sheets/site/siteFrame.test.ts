@@ -47,6 +47,16 @@ describe('site frame', () => {
     expect(y).toBeCloseTo(p[1])
   })
 
+  test('the turn stays within ±90°, so north never points down the sheet', () => {
+    for (let k = 0; k < 12; k++) {
+      const a = (k * 15 * Math.PI) / 180
+      const box = [[0, 0], [60, 0], [60, 20], [0, 20]].map(([x, y]) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)] as const)
+      const t = bestTurn(box)
+      expect(t).toBeGreaterThan(-90)
+      expect(t).toBeLessThanOrEqual(90)
+    }
+  })
+
   test('the extent is the turned box with its pad', () => {
     const f = frameAt(0)
     const e = drawingExtent([[0, 0], [10, 20]], f, 5)

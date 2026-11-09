@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import type { Ground, SiteEarthworks } from '../../../site/earthworks/earthworks'
 import type { Site } from '../../../site/types'
-import type { Environment, Layers, Plan, PlanObject, Setbacks } from '../../../store/types'
+import type { Environment, Plan, PlanObject, Setbacks } from '../../../store/types'
 import { Page, TiledDrawing, type Extent, type PageInfo } from '../Page'
 import { PAPERS, MARGIN_IN, type PaperId, type SiteScale } from '../types'
 import { siteAnnotate, shoreDistance, type SiteAnnotations } from './siteAnnotate'
@@ -10,7 +10,7 @@ import { bankTicks, hatchWhere, stipple, waterLines } from './siteHatch'
 import { NOTES_GAP_IN, NOTES_IN, siteLayout, sitePens, turnModel, type SiteLayout, type SitePens } from './siteLayout'
 import { SiteDrawing, type SiteTextures } from './SiteMarks'
 import { siteSheetModel, type SiteSheetModel } from './siteModel'
-import { siteNotes, type SiteNotes } from './siteNotes'
+import type { SiteNotes } from './siteNotes'
 import { SiteNotesColumn } from './NotesColumn'
 
 /** How far out the water lines run from the OHWM, feet. */
@@ -47,7 +47,6 @@ export interface SiteSheetInput {
   readonly site: Site
   readonly setbacks: Setbacks
   readonly environment: Environment
-  readonly layers?: Layers
   /** The ground as useEarthworks gives the app's panels. */
   readonly works: SiteEarthworks
   readonly ground: Ground
@@ -55,7 +54,6 @@ export interface SiteSheetInput {
 
 export interface SiteSheetBuild {
   readonly model: SiteSheetModel
-  readonly notes: SiteNotes
   readonly layout: SiteLayout
   readonly pens: SitePens
   readonly textures: SiteTextures
@@ -64,10 +62,9 @@ export interface SiteSheetBuild {
 
 const objectsOf = (plan: Plan): PlanObject[] => plan.order.map((id) => plan.objects[id]).filter((o): o is PlanObject => o !== undefined)
 
-/** Everything the site sheet draws, worked out once: model, notes, page layout, textures and words. */
+/** Everything the site sheet draws, worked out once: model, page layout, textures and words (the notes are worked out apart, see siteNotes). */
 export function buildSiteSheet(input: SiteSheetInput, paper: PaperId, scale: SiteScale, northUp: boolean): SiteSheetBuild {
   const raw = siteSheetModel({ objects: objectsOf(input.plan), site: input.site, setbacks: input.setbacks, environment: input.environment, works: input.works, ground: input.ground })
-  const notes = siteNotes({ plan: input.plan, site: input.site, setbacks: input.setbacks, layers: input.layers, routeGround: input.ground })
   const layout = siteLayout(raw, paper, scale, northUp)
   const model = turnModel(raw, layout.frame)
   const pens = sitePens(scale)
@@ -79,11 +76,12 @@ export function buildSiteSheet(input: SiteSheetInput, paper: PaperId, scale: Sit
     water: waterLines(model.shoreline, onLand, WATER_OFFSETS_FT),
     bankTicks: model.topOfBank.flatMap((l) => bankTicks(l, shoreDistance(model), 0.07 / scale, 0.045 / scale)),
     gravel: model.things.filter((t) => t.kind === 'pad' && GRAVEL.test(t.name)).flatMap((t, i) => stipple(t.outline, (0.05 / scale) ** 2, 7919 * (i + 1))),
-    tufts: model.things.filter((t) => t.kind === 'meadow').flatMap((t, i) => stipple(shrinkPoly(t.outline, 0.9), (TUFT_IN / scale) ** 2, 104729 * (i + 1))),
-    sodTufts: roofsWith(model, 'sod').flatMap((r, i) => stipple(shrinkPoly(r.eave, 0.9), (TUFT_IN * 0.8 / scale) ** 2, 1299709 * (i + 1))),
+    // shrunk toward the middle for a margin, then kept to the true outline (a concave shape's shrunk copy can poke out of it)
+    tufts: model.things.filter((t) => t.kind === 'meadow').flatMap((t, i) => stipple(shrinkPoly(t.outline, 0.9), (TUFT_IN / scale) ** 2, 104729 * (i + 1)).filter((p) => insidePoly(t.outline, p))),
+    sodTufts: roofsWith(model, 'sod').flatMap((r, i) => stipple(shrinkPoly(r.eave, 0.9), (TUFT_IN * 0.8 / scale) ** 2, 1299709 * (i + 1)).filter((p) => insidePoly(r.eave, p))),
     water2: model.things.filter((t) => t.kind === 'pond' || t.kind === 'pool').flatMap((t) => {
       const inner = shrinkPoly(t.outline, t.kind === 'pool' ? 0.84 : 0.9)
-      return hatchWhere((p) => insidePoly(inner, p), boxExtent(inner), 0.07 / scale, 0, pens.hatchStep)
+      return hatchWhere((p) => insidePoly(inner, p) && insidePoly(t.outline, p), boxExtent(inner), 0.07 / scale, 0, pens.hatchStep)
     }),
     roofHatch: [
       ...roofsWith(model, 'glass').flatMap((r) => [45, -45].flatMap((deg) => hatchWhere((p) => insidePoly(r.eave, p), boxExtent(r.eave), GLASS_GRID_FT, deg, pens.hatchStep))),
@@ -92,11 +90,12 @@ export function buildSiteSheet(input: SiteSheetInput, paper: PaperId, scale: Sit
       ),
     ],
   }
-  return { model, notes, layout, pens, textures, annotations: siteAnnotate(model, pens, e, scale) }
+  return { model, layout, pens, textures, annotations: siteAnnotate(model, pens, e, scale) }
 }
 
 interface Props {
   readonly build: SiteSheetBuild
+  readonly notes: SiteNotes
   readonly paper: PaperId
   readonly scale: SiteScale
   readonly planName: string
@@ -134,12 +133,12 @@ function SiteDefs({ clipId, extent }: { readonly clipId: string; readonly extent
 }
 
 /** The site plan: the lot at a site scale with its notes beside it, or on a page of their own when the drawing needs the room. */
-export function SiteSheet({ build, paper, scale, planName }: Props) {
+export function SiteSheet({ build, notes, paper, scale, planName }: Props) {
   const { layout } = build
   const info: PageInfo = { paper, scale, planName, buildingName: SITE_ADDRESS, sheetTitle: 'Site plan', northDeg: layout.frame.northDeg }
   const notesPage = (
     <Page {...info} sheetTitle="Site plan · notes" northDeg={null} flow>
-      <SiteNotesColumn notes={build.notes} sun={build.model.sun} columns={3} widthIn={PAPERS[paper].w - 2 * MARGIN_IN} />
+      <SiteNotesColumn notes={notes} sun={build.model.sun} columns={3} widthIn={PAPERS[paper].w - 2 * MARGIN_IN} />
     </Page>
   )
   if (layout.mode === 'beside') {
@@ -149,7 +148,7 @@ export function SiteSheet({ build, paper, scale, planName }: Props) {
           <div style={{ alignSelf: 'center' }}>
             <DrawingSvg build={build} extent={layout.extent} scale={scale} />
           </div>
-          <SiteNotesColumn notes={build.notes} sun={build.model.sun} widthIn={NOTES_IN} />
+          <SiteNotesColumn notes={notes} sun={build.model.sun} widthIn={NOTES_IN} />
         </div>
       </Page>
     )
@@ -175,11 +174,6 @@ export function SiteSheet({ build, paper, scale, planName }: Props) {
 }
 
 function TiledSite({ build }: { readonly build: SiteSheetBuild }) {
-  const clipId = `site-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
-  return (
-    <>
-      <SiteDefs clipId={clipId} extent={build.layout.extent} />
-      <SiteDrawing m={build.model} a={build.annotations} t={build.textures} pens={build.pens} clipId={clipId} />
-    </>
-  )
+  // no clip here: each tile's own viewBox crops it, and one clip path per tile would repeat its id
+  return <SiteDrawing m={build.model} a={build.annotations} t={build.textures} pens={build.pens} clipId={null} />
 }

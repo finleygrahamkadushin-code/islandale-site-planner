@@ -72,7 +72,9 @@ export function bestTurn(pts: readonly Pt[]): number {
       bestCost = c
     }
   }
-  return Math.round(best * 100) / 100
+  // a turn past ±90° and the one half a turn round give the same box: keep the one with north pointing up
+  const turn = Math.round(best * 100) / 100
+  return turn > 90 ? turn - 180 : turn <= -90 ? turn + 180 : turn
 }
 
 /** The frame for the lot: turned to fit, or north up. */

@@ -149,24 +149,32 @@ export function bankTicks(line: readonly Pt[], toward: (p: Pt) => number, spacin
   return out
 }
 
+/** Most dots one shape gets. */
+const MAX_DOTS = 2500
+
 /**
  * Gravel stipple: evenly scattered dots inside a polygon, about one per
  * `areaPer` square feet, jittered on a grid so they never clump, and the
  * same every time for the same seed.
  */
-export function stipple(poly: readonly Pt[], areaPer: number, seed: number): Pt[] {
+export function stipple(poly: readonly Pt[], areaPer: number, seed: number, maxDots = MAX_DOTS): Pt[] {
   if (poly.length < 3) return []
   const xs = poly.map((p) => p[0])
   const ys = poly.map((p) => p[1])
-  const step = Math.sqrt(areaPer)
+  const x0 = Math.min(...xs)
+  const x1 = Math.max(...xs)
+  const y0 = Math.min(...ys)
+  const y1 = Math.max(...ys)
+  // a big shape gets sparser dots rather than tens of thousands of them
+  const step = Math.max(Math.sqrt(areaPer), Math.sqrt(((x1 - x0) * (y1 - y0)) / maxDots))
   let s = seed >>> 0 || 1
   const rand = () => {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0
     return s / 4294967296
   }
   const out: Pt[] = []
-  for (let y = Math.min(...ys); y < Math.max(...ys); y += step) {
-    for (let x = Math.min(...xs); x < Math.max(...xs); x += step) {
+  for (let y = y0; y < y1; y += step) {
+    for (let x = x0; x < x1; x += step) {
       const p: Pt = [x + rand() * step, y + rand() * step]
       if (insidePoly(poly, p)) out.push(p)
     }

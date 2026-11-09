@@ -338,9 +338,9 @@ function Words({ a, pens }: { readonly a: SiteAnnotations; readonly pens: SitePe
 }
 
 /** The whole drawing, back to front. */
-export function SiteDrawing({ m, a, t, pens, clipId }: { readonly m: SiteSheetModel; readonly a: SiteAnnotations; readonly t: SiteTextures; readonly pens: SitePens; readonly clipId: string }): ReactNode {
+export function SiteDrawing({ m, a, t, pens, clipId }: { readonly m: SiteSheetModel; readonly a: SiteAnnotations; readonly t: SiteTextures; readonly pens: SitePens; readonly clipId: string | null }): ReactNode {
   return (
-    <g clipPath={`url(#${clipId})`}>
+    <g clipPath={clipId ? `url(#${clipId})` : undefined}>
       <Ground m={m} t={t} pens={pens} />
       <Things m={m} t={t} pens={pens} />
       <Paths m={m} pens={pens} />

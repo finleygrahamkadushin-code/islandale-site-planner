@@ -18,6 +18,7 @@ import { hasSupports } from './plan/planLayout'
 import { Tip } from '../../guide/Tip'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { buildSiteSheet, SiteSheet, type SiteSheetInput } from './site/SiteSheet'
+import { siteNotes } from './site/siteNotes'
 import { SiteFit } from './site/SiteFit'
 
 interface Props {
@@ -27,6 +28,18 @@ interface Props {
 }
 
 const ALL = 'all'
+
+type Attempt<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: unknown }
+
+/** Run a sheet's build, keeping a failure to that sheet (logged for whoever is debugging it). */
+function attempt<T>(f: () => T): Attempt<T> {
+  try {
+    return { ok: true, value: f() }
+  } catch (error) {
+    console.error('Drawing sheets: a sheet could not be built', error)
+    return { ok: false, error }
+  }
+}
 const SCALES = Object.keys(SCALE_LABEL).map(Number) as Scale[]
 const SITE_SCALES = Object.keys(SITE_SCALE_LABEL).map(Number) as SiteScale[]
 const PAPER_IDS = Object.keys(PAPERS) as PaperId[]
@@ -41,7 +54,8 @@ export function DrawingSheets({ onClose, opener }: Props) {
   )
   // the same reshaped ground the Code check and the 3D marks use, so the site sheet's numbers and contours match them
   const { works, ground } = useEarthworks()
-  const siteInput = useMemo<SiteSheetInput>(() => ({ plan, site, setbacks, environment, layers, works, ground }), [plan, site, setbacks, environment, layers, works, ground])
+  // layers only change the notes' nearest object, so they don't redraw the site plan itself
+  const siteInput = useMemo<SiteSheetInput>(() => ({ plan, site, setbacks, environment, works, ground }), [plan, site, setbacks, environment, works, ground])
   const [siteScale, setSiteScale] = useState<SiteScale>(0.05)
   const [northUp, setNorthUp] = useState(false)
   const objects = useMemo(() => plan.order.map((id) => plan.objects[id]).filter((o) => o !== undefined), [plan])
@@ -50,7 +64,11 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const [paper, setPaper] = useState<PaperId>('tabloid')
   const [scale, setScale] = useState<Scale>(0.25)
   const [show, setShow] = useState({ site: true, plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
-  const siteBuild = useMemo(() => (show.site ? buildSiteSheet(siteInput, paper, siteScale, northUp) : null), [show.site, siteInput, paper, siteScale, northUp])
+  // a site plan that can't be drawn says so in one line, and the building sheets carry on
+  const siteResult = useMemo(() => (show.site ? attempt(() => buildSiteSheet(siteInput, paper, siteScale, northUp)) : null), [show.site, siteInput, paper, siteScale, northUp])
+  const siteNotesResult = useMemo(() => (show.site ? attempt(() => siteNotes({ plan, site, setbacks, layers, routeGround: ground })) : null), [show.site, plan, site, setbacks, layers, ground])
+  const siteBuild = siteResult?.ok && siteNotesResult?.ok ? { build: siteResult.value, notes: siteNotesResult.value } : null
+  const siteFailed = (siteResult && !siteResult.ok) || (siteNotesResult && !siteNotesResult.ok)
   const picked = buildings.filter((b) => b.id === pick)
   const shown = pick === ALL ? buildings : picked.length ? picked : buildings.slice(0, 1)
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
@@ -165,14 +183,19 @@ export function DrawingSheets({ onClose, opener }: Props) {
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
           Download measurements
         </button>
-        {siteBuild && <SiteFit build={siteBuild} paper={paper} scale={siteScale} />}
+        {siteBuild && <SiteFit build={siteBuild.build} paper={paper} scale={siteScale} />}
         <PaperFit buildings={shown} objects={objects} terrain={terrain} paper={paper} scale={scale} show={show} />
         <p className="sheets-hint">Print at 100% (Actual size), not Fit to page. Check the 1 inch bar on each sheet with a ruler.</p>
       </div>
       <div className="sheets-pages">
+        {siteFailed && (
+          <p className="sheets-empty" role="alert" data-testid="site-failed">
+            The site plan couldn't be drawn for this plan. The other sheets are below.
+          </p>
+        )}
         {siteBuild && (
           <div className="sheets-building" data-testid="site-sheet">
-            <SiteSheet build={siteBuild} paper={paper} scale={siteScale} planName={plan.name} />
+            <SiteSheet build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} planName={plan.name} />
           </div>
         )}
         {!shown.length && <p className="sheets-empty">There are no buildings in this plan to draw.</p>}

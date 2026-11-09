@@ -81,7 +81,7 @@ describe('site sheet model · Scheme C', () => {
   })
 
   test('the roofs cast shadows with the September 2 pm sun, away from it (to the north-east)', () => {
-    expect(model.sun).toMatchObject({ season: 'sep', hour: 14, up: true })
+    expect(model.sun).toMatchObject({ season: 'sep', hour: 14, up: true, casts: true })
     expect(model.shadows.length).toBeGreaterThan(0)
     const caster = model.buildings[0].shadowCasters[0]
     const moved = model.shadows[1]
@@ -90,6 +90,15 @@ describe('site sheet model · Scheme C', () => {
     const cy = (pts: readonly (readonly [number, number])[]) => pts.reduce((s, p) => s + p[1], 0) / pts.length
     expect(cx(moved)).toBeGreaterThan(cx(caster.poly))
     expect(cy(moved)).toBeGreaterThan(cy(caster.poly))
+  })
+
+  test('the sun says it is up even when nothing casts a shadow, and is down at night', () => {
+    const empty = { ...planC, objects: {}, order: [] }
+    expect(siteSheetModel(modelInputFor(empty)).sun).toMatchObject({ up: true, casts: true })
+    expect(siteSheetModel(modelInputFor(empty)).shadows).toEqual([])
+    const night = siteSheetModel({ ...modelInputFor(planC), environment: { season: 'dec', hour: 19, tideFt: 6 } })
+    expect(night.sun.up).toBe(false)
+    expect(night.shadows).toEqual([])
   })
 
   test('tree zones follow the setting', () => {

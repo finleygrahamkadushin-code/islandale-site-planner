@@ -192,9 +192,17 @@ function Legend() {
   )
 }
 
+/** What the shadows show, in the words of the Sun and tide panel's setting. */
+export function shadowNote(sun: SiteNotesProps['sun']): string {
+  const when = `${SEASON_NAME[sun.season]}, ${clockText(sun.hour)}`
+  if (sun.casts) return ` Shadows: ${when}, as set in Sun and tide.`
+  if (sun.up) return ` No shadows: at ${when} (Sun and tide) the sun is too low to draw them on the sheet.`
+  return ` No shadows: the sun is down at ${when} (Sun and tide).`
+}
+
 export interface SiteNotesProps {
   readonly notes: Notes
-  readonly sun: { readonly season: keyof typeof SEASON_NAME; readonly hour: number; readonly up: boolean }
+  readonly sun: { readonly season: keyof typeof SEASON_NAME; readonly hour: number; readonly up: boolean; readonly casts: boolean }
   /** Lay the notes out in columns across a page of their own, instead of one column beside the drawing. */
   readonly columns?: number
   readonly widthIn: number
@@ -222,7 +230,7 @@ export function SiteNotesColumn({ notes, sun, columns = 1, widthIn }: SiteNotesP
       </div>
       <p style={{ ...S.small, ...gap }}>
         Elevations in feet, NAVD88. Contours every 2 ft from the survey grid (USGS 3DEP lidar), with the reshaped ground inside earthworks. Lot line per San Juan County GIS, APN 140750111000.
-        {sun.up ? ` Shadows: ${SEASON_NAME[sun.season]}, ${clockText(sun.hour)}, as set in Sun and tide.` : ' No shadows: the sun is down at the hour set in Sun and tide.'}
+        {shadowNote(sun)}
       </p>
     </div>
   )

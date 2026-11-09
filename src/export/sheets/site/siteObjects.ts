@@ -325,7 +325,10 @@ export function sortObjects(objects: readonly PlanObject[]) {
  * per edge. Drawn in one flat tone they read as a single shadow. Empty with
  * the sun low or down.
  */
-export function shadowPieces(poly: readonly Pt[], heightFt: number, dir: readonly [number, number, number], minUp = 0.12): Pt[][] {
+/** Below this sun height (the sine of about 7°) shadows would run off the sheet, so none are drawn. */
+export const SHADOW_MIN_UP = 0.12
+
+export function shadowPieces(poly: readonly Pt[], heightFt: number, dir: readonly [number, number, number], minUp = SHADOW_MIN_UP): Pt[][] {
   if (dir[2] < minUp || heightFt <= 0 || poly.length < 3) return []
   const dx = (-dir[0] / dir[2]) * heightFt
   const dy = (-dir[1] / dir[2]) * heightFt

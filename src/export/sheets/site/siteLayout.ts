@@ -10,6 +10,7 @@ import { pageFeet, smallestPaper, tileDrawing } from '../tiles'
 import { PAPERS, MARGIN_IN, TITLE_IN, type PaperId, type SiteScale } from '../types'
 import { ptToFt, type Pt } from '../svgDims'
 import { drawingExtent, siteFrame, type SiteFrame } from './siteFrame'
+import { boxOf } from './siteGeom'
 import type { SiteSheetModel } from './siteModel'
 
 /** Room round everything drawn, feet: for the shore's water lines and the labels outside the lot. */
@@ -144,6 +145,7 @@ export function turnModel(m: SiteSheetModel, f: SiteFrame): SiteSheetModel {
       lot: c.lot && { ...c.lot, from: f.toSheet(c.lot.from), to: f.toSheet(c.lot.to) },
     })),
     shadows: lines(m.shadows),
+    bounds: boxOf(drawnPoints(m).map(f.toSheet)) ?? m.bounds,
     bandAt: (p) => m.bandAt(f.fromSheet(p)),
   }
 }
