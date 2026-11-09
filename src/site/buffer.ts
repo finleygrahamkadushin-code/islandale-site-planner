@@ -56,3 +56,18 @@ export function shoreBufferLine(parcel: Parcel, shoreFt: number, bankFt: number)
   }
   return isoSegments({ nx: g.nx, ny: g.ny, x0: g.x0, n0: g.n0, spacing: GRID_M, at }, ftToM(shoreFt))
 }
+
+/**
+ * The top of bank on the east shore (5E): the line `bankFt` in from the
+ * banked shore's OHWM, kept to the lot and to ground nearer the banked
+ * shore than the south-west one (where the bank gives way to the beach).
+ * The shoreline setback on the east shore is measured from this line.
+ */
+export function topOfBankLine(parcel: Parcel, bankFt: number): IsoSegment[] {
+  const g = shoreGrid(parcel)
+  const at = (i: number, j: number) => {
+    const k = j * g.nx + i
+    return g.dBank[k] <= g.dShore[k] ? g.dBank[k] : NaN
+  }
+  return isoSegments({ nx: g.nx, ny: g.ny, x0: g.x0, n0: g.n0, spacing: GRID_M, at }, ftToM(bankFt))
+}
