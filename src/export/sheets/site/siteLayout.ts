@@ -107,17 +107,20 @@ export function notesHeightIn(notes: SiteNotes, widthIn: number): number {
   return h * NOTES_SAFETY
 }
 
-const notesFit = (notes: SiteNotes, paper: PaperId) => notesHeightIn(notes, NOTES_IN) <= PAPERS[paper].h - 2 * MARGIN_IN - TITLE_IN
+/** The estimate's answer for a paper not drawn. */
+export const notesFit = (notes: SiteNotes, paper: PaperId) => notesHeightIn(notes, NOTES_IN) <= PAPERS[paper].h - 2 * MARGIN_IN - TITLE_IN
 
 /**
- * The layout once the notes are known: a notes column too tall for the page
- * moves to a page of its own, and the one-page paper must hold the column's
- * height as well as its width.
+ * The layout once the notes are known. Whether the column fits beside the
+ * drawing on this paper is measured on the page as drawn (`tooTall`, from
+ * SiteSheet): a column that runs past the drawing area moves to a page of
+ * its own. The one-page paper suggestion, for papers not drawn, uses the
+ * estimate (a little generous, so it never suggests a paper that won't do).
  */
-export function fitNotes(l: SiteLayout, notes: SiteNotes, paper: PaperId, scale: SiteScale): SiteLayout {
+export function fitNotes(l: SiteLayout, notes: SiteNotes, scale: SiteScale, tooTall: boolean): SiteLayout {
   const papers = (Object.keys(PAPERS) as PaperId[]).sort((a, b) => PAPERS[a].w * PAPERS[a].h - PAPERS[b].w * PAPERS[b].h)
   const onePagePaper = papers.find((id) => fitsBeside(l.extent, id, scale) && notesFit(notes, id)) ?? null
-  if (l.mode !== 'beside' || notesFit(notes, paper)) return { ...l, onePagePaper }
+  if (l.mode !== 'beside' || !tooTall) return { ...l, onePagePaper }
   return { ...l, mode: 'notesPage', pages: 2, onePagePaper }
 }
 
