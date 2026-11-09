@@ -1,6 +1,6 @@
 # 6E · Bake textures for Unreal
 
-Status: **built, at check-in B** (Nov 8 2026, branch `claude/phase-6e-bake-2ec41d`). Finley OK'd the plan with all seven recommended answers, then asked for the highest quality, time and disk no object, and for the research videos to be applied. "Changes after the OK" below records what that changed. The rest of this file is the plan as approved.
+Status: **signed off at check-in B by Finley (Nov 9 2026)**; waiting for check-in C (merge, on his word). Branch `claude/phase-6e-bake-2ec41d`. Finley OK'd the plan with all seven recommended answers, then asked for the highest quality, time and disk no object, and for the research videos to be applied. "Changes after the OK" below records what that changed. The rest of this file is the plan as approved.
 
 ## Changes after the OK (Nov 8)
 
