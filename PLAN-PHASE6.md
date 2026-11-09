@@ -1,6 +1,6 @@
 # Phase 6 plan: exports and renders
 
-Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D signed off and merged** (Nov 6) (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
+Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done and merged** (main 2e404a5, hosted home v11); **6D signed off and merged** (Nov 6); **the rest of Phase 6 is planned in `PLAN-PHASE6-REST.md`, waiting for Finley's OK** (Nov 6 2026, branch `claude/phase-6-plan`). Claude Code reads this file before starting each part of Phase 6.
 
 **Done when** (from `PLAN.md`): the class deliverables come straight out of the app.
 
@@ -47,14 +47,12 @@ Status: **6A and 6B done and merged** (main 18ada9b, hosted home v10); **6C done
 
 ## What's left
 
-1. **The Blender and Unreal pipeline**, started Nov 2 and never committed.
-   - **Where it is:** only in the worktree `house-exterior-textures-3b6cc5`, which is based on the old repo (206adaa).
-   - **What it has:** 27 procedural materials (kurinuki, offset ledgestone, rigidized metal, stucco over a stone wainscot, and more) and a Blender scene builder that renders 9 cameras.
-   - **The catch:** its exporter loads the **old planner**. Finley has said not to work on the old planner, so the pipeline needs a new exporter.
-2. **A 3D model export** from the new app, as glTF: for SketchUp, and as that new exporter for Blender.
-3. **A site plan sheet:** the lot with setbacks, the buffer, coverage and code-check notes (left from 5E).
-4. **Section sheets:** cuts through each building.
-5. **Photo-quality stills:** a Render button that path-traces the current view.
+1. ~~The Blender and Unreal pipeline saved into the repo~~ (6A, done).
+2. ~~A 3D model export from the new app~~ (6B, done; you still need to open the `.glb` in SketchUp).
+3. ~~Blender renders from the new export, art-directed~~ (6C and 6D, signed off).
+4. **Unreal:** bake the textures (6E), export the scene for Unreal (6F), and import it into UE 5.8 (6G).
+5. **In-app sheets:** a site plan sheet (6H) and section sheets (6I).
+6. **Photo-quality stills in the app:** a Render button (6J).
 
 ## Order: small parts, two tracks
 
@@ -257,6 +255,10 @@ The original 6D list was sun, sky and AgX, meadow colour, stucco brightness, and
 ### Done when
 
 You sign off on the renders.
+
+## The rest of Phase 6 (6E–6J)
+
+The plan for the remaining parts (tracks, sessions, order, check-ins, and what each needs installed) is in **`PLAN-PHASE6-REST.md`**.
 
 ## Decisions (say if you disagree)
 
