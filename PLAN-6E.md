@@ -1,53 +1,39 @@
 # 6E · Bake textures for Unreal
 
-Status: **signed off at check-in B by Finley (Nov 9 2026)**; waiting for check-in C (merge, on his word). Branch `claude/phase-6e-bake-2ec41d`. Finley OK'd the plan with all seven recommended answers, then asked for the highest quality, time and disk no object, and for the research videos to be applied. "Changes after the OK" below records what that changed. The rest of this file is the plan as approved.
+Status: **signed off at check-in B by Finley (Nov 9 2026)**, merged into local `main` by the coordinator. The follow-up fixes from an independent review (Nov 9) are on branch `claude/phase-6e-bake-2ec41d`; see "Review fixes".
 
-## Changes after the OK (Nov 8)
+This file describes 6E **as built**. The plan Finley approved at check-in A (Nov 6) said 2048 px and an 8-bit normal. He then asked for the highest quality, with time and disk no object, and for the Phase 6 research videos to be applied. "History" at the end records the original decisions and what changed them.
 
-From Finley ("as high quality as possible, don't care about the space or the time") and the Phase 6 research playbook (vault: `03 Resources/Islandale Phase 6 Research/`):
+**What it does:** turns every procedural Blender material the scene wears into a set of seamless image textures that Unreal can use:
+- Each set is one 6 m × 6 m tile at **4096 px** (1.5 mm a pixel): BaseColor, ORM (AO, Roughness, Metallic), a 16-bit Height and a 16-bit Normal.
+- It also writes `materials.json`, which tells 6F and 6G what each set is, how deep its relief goes, how the two blended surfaces (the Elders' wainscot and the meadow-to-beach shore) mix their layers, and some starting values for Unreal.
+- Every set is checked for seams, and the run fails if one doesn't wrap.
 
-- **4096 px for every set**, not 2048 (1.5 mm a pixel). Not 8192: the videos call 8K overkill, and 25 sets of 8K maps would overflow Unreal's texture streaming on a 24 GB Mac, which blurs textures. That costs quality rather than adding it.
-- **16-bit Normal** as well as Height (playbook table). BaseColor and ORM stay 8-bit (Unreal compresses them to BC7 and BC5/Masks anyway).
-- **Samples:** 64 per pixel for colour and ORM, **256 for Height**, because the normal is computed from it and noise there becomes grain. Each pixel is the box-filtered average over its own square.
-- **File names** follow the playbook: `T_<name>_BC`, `_ORM`, `_H`, `_N`.
-- **AO:** the material's own AO output where it has one; otherwise a gentle cavity AO computed from the height with a wrapping blur (playbook: the contract bans AO nodes). `materials.json` says which (`ao_source`).
-- **Height is never clipped.** Where a material goes past its stated relief (`concrete`, `concrete_slab` and `madrone_bark` do, by up to 3% of their pixels), H's range widens to fit. `relief_m` is then the real range, `blender_relief_m` the stated one, and `face_h` the H value where Blender's wall face sits. Unreal displaces by (h − face_h) × relief.
-- **Edge check, corrected:** the wrap step is now compared with the *largest* ordinary step between neighbouring columns (rows) anywhere in the tile, not the average one. The first version flagged 10 materials whose board joints, roof ribs and course lines sit exactly on the tile edge, which is where `wrapped_cells` puts cell boundaries. Those materials passed the shift check, so they really do repeat. A real seam still stands out (the tests bake a cliff on the edge and a wrong-period ramp, and each fails its check).
-- **The half-tile shift check renders at 1024 px** (16 samples): it tests whether the material repeats, which doesn't depend on the file's size. The edge check runs on the full-size files.
-- **Extra checks from the research:**
-  - Albedo outside 0.03–0.9 is flagged (for Lumen's bounce light).
-  - The lit preview uses a low light from the top left, so a raised course should read as raised.
-  - Each set also gets a 3 × 3 lit preview.
-- **`materials.json` carries Unreal hints per set** (`ue`): `master` (opaque / glass / water / foliage), a starting `specular` (0.1 natural, 0.5 built), `cell_bomb` (meadow, beach, gravel only), `triplanar` (bark), `metallic_present`, `height_range_cm`, and `displacement_center`. 6G treats them as starting values.
-- **Tests:** 15 numpy tests and 4 real-render tests (256 px). A flat colour comes out exact through the EXR and sRGB path, tile noise passes, and the two broken materials fail.
-
-**What it does:** turns every procedural Blender material the scene wears into a plain set of seamless image textures that Unreal can use. Each set is one 6 m × 6 m tile: BaseColor, ORM (AO, Roughness, Metallic), Height and Normal, at 2048 px. It also writes `materials.json`, which tells 6F and 6G what each set is, how deep its relief goes, and how the two blended surfaces (the Elders' wainscot and the meadow-to-beach shore) mix their layers. Every map's seam is measured, and the run fails if one doesn't wrap.
-
-Out of scope for 6E: exporting meshes (6F), anything inside Unreal (6G), and changing how any material looks. If a material fails its seam check, I stop and tell you rather than retune it.
+Out of scope for 6E: exporting meshes (6F), anything inside Unreal (6G), and changing how any material looks.
 
 ## Files
 
-All new, all in `tools/blender/` (Track U's folder). Nothing in `src/`.
+All in `tools/blender/` (Track U's folder). Nothing in `src/`.
 
 | File | What it does |
 |---|---|
-| `bake_textures.py` | The entry point, run in Blender: `Blender -b --factory-startup -P tools/blender/bake_textures.py -- [--keys a,b] [--all] [--res 2048] [--samples 16] [--out build/3d/unreal/textures] [--keep-exr] [--no-shift-check] [--contact-only]` |
-| `islandale3d/bake/__init__.py` | The one `bake_set(entry, res, samples, out)` the entry point calls per material |
-| `islandale3d/bake/targets.py` | Which materials to bake: walks `styles.json` the way `styling.py` resolves it and returns one entry per (key, params) pair, with where it's used. Builds each material through `Styler.material`, so a tuned variant is made exactly as the scene makes it |
-| `islandale3d/bake/render.py` | The Blender side: a 6 m plane with `UVMeters`, an orthographic camera, and one emission render per pass to a float EXR |
-| `islandale3d/bake/encode.py` | numpy only: linear → sRGB, ORM packing, Height normalisation, Normal from Height, PNG writing (through Blender's image saver, 8- or 16-bit) |
-| `islandale3d/bake/seams.py` | numpy only: the seam metrics below |
-| `islandale3d/bake/manifest.py` | Writes `materials.json` |
-| `islandale3d/bake/contact.py` | The check-in B contact sheet (HTML plus PNG previews) |
-| `tests/test_bake_numpy.py` | Fast tests of `encode.py`, `seams.py` and `targets.py`, no rendering |
-| `tests/test_bake_blender.py` | One small real bake (256 px) of a known-good and a known-bad material |
-| `README.md` | A "Bake for Unreal" section: the command, the outputs, the conventions |
+| `bake_textures.py` | The entry point, run in Blender: `Blender -b --factory-startup -P tools/blender/bake_textures.py -- [--keys a,b] [--all] [--res 4096] [--samples 64] [--height-samples 256] [--out build/3d/unreal/textures] [--no-shift-check] [--checks-only] [--previews-only] [--contact-only]` |
+| `islandale3d/bake/__init__.py` | `bake_set` (render, encode, check and write one set), `verify_set` (re-check a baked set without rebaking), the previews |
+| `islandale3d/bake/targets.py` | Which sets to bake: walks `styles.json` the way `styling.py` resolves it. One entry per (key, params) pair, with where it's used, plus the blends and the Unreal hints |
+| `islandale3d/bake/render.py` | The Blender side: a plane with `UVMeters`, an orthographic camera, and one emission render per pass to a float EXR |
+| `islandale3d/bake/encode.py` | numpy only: sRGB, Height normalisation, Normal and AO from Height, and PNG writing and reading (8- and 16-bit, no dependency beyond numpy) |
+| `islandale3d/bake/seams.py` | numpy only: the seam checks |
+| `islandale3d/bake/manifest.py` | `materials.json` |
+| `islandale3d/bake/contact.py` | The contact sheet (`contact.html`) |
+| `tests/test_bake_numpy.py` | Fast tests of `encode`, `seams` and `targets`, no rendering |
+| `tests/test_bake_blender.py` | Real 256 px bakes: good and deliberately broken materials, orientation, exact colour |
+| `README.md` | The "Bake for Unreal (6E)" section |
 
-Output goes to `build/3d/unreal/textures/` (gitignored), one folder per set.
+Output goes to `build/3d/unreal/textures/` (gitignored), one folder per set, plus `materials.json`, `contact.html` and `contact.png`.
 
 ## Which materials get baked
 
-Everything `styles.json` can reach, which today is **25 texture sets**: 23 plain keys and 2 tuned variants.
+Everything `styles.json` can reach: **25 texture sets**, 23 plain keys and 2 tuned variants.
 
 | Where in `styles.json` | Keys |
 |---|---|
@@ -56,137 +42,181 @@ Everything `styles.json` can reach, which today is **25 texture sets**: 23 plain
 | `wall_kinds`, `roof_mats`, `rail_styles` | `board_batten`, `glass_tinted`, `sod_roof` (plus keys above) |
 | `site` | **`meadow` with `Green Amount` 0.24** (terrain and earthworks), `beach`, `flagstone`, `gravel`, `water`, `madrone_bark` and `leaves` (the 6D trees) |
 
-- **Tuned variants** are baked under their own name: `<key>__<6 hex chars of a hash of the sorted params>`, for example `stucco__3f9a1c`, with the params written out in `materials.json`. Plain `stucco` and plain `meadow` aren't baked, because nothing wears them untuned. The name only changes if the params change.
-- **Not baked unless you pass `--all`:** `kurinuki_shino` and `rigidized_metal` (in the library, unused), and the debug `uv_grid` and `tile_noise`.
-- **Glass and water** get a set like any other (their tint, roughness and ripples are real texture), but their see-through part isn't an image: an output that's the same everywhere (glass's Alpha and Transmission) is written as a number in `materials.json`, not as a map. Only an output that varies gets an extra map (`_Opacity`). 6G gives them their own glass and water masters.
+- **Tuned variants** are baked under their own name, `<key>__<6 hex chars of a hash of the params>`: today `stucco__aa9d13` and `meadow__63c904`.
+  - Params are canonicalised before hashing (every number a float, rounded to 9 decimals), so `1` and `1.0` give the same name.
+  - Two different (key, params) pairs that land on one name stop the run with an error.
+  - Plain `stucco` and plain `meadow` aren't baked, because nothing wears them untuned.
+- **`--all`** adds `kurinuki_shino` and `rigidized_metal` (in the library, unused). The debug `uv_grid` and `tile_noise` are never baked.
+- **A set nothing reaches any more** drops out of `materials.json` on the next run. Its folder stays on disk, and the run names it.
+- **Glass and water** get a set like any other. An output that's the same everywhere (glass's Alpha and Transmission) is written as a number in `materials.json`. Only an output that varies gets an extra map (`T_<name>_Opacity`), and an old Opacity map is deleted when a rebake no longer makes one. 6G gives glass and water their own masters.
 
 ### Blends: two layers and a rule, not a baked mix
 
-The two blends depend on where a surface sits in the world, not on the tile, so they can't be baked into one tile. Each is recorded as two baked sets plus a mask rule, for 6F to fill in with real heights and 6G to build as a layered material:
-
-- **Elders' wainscot:** `upper` = the stucco variant, `lower` = `ledgestone_cool`, rule `below_world_z`, `height_m` 0.9, hard edge (exactly as `wainscot_material`: stone where world Z < top). The top Z is per building (measured from the wall foot in `styling.wainscot_bases`), so `materials.json` holds the rule and 6F's `scene.json` holds each building's top Z.
-- **Terrain:** `upper` = the meadow variant, `lower` = `beach`, rule `z_smoothstep`, shore at 3.0 m, blend ±0.8 m (as `terrain_material`: smoothstep on the surface's world Z). The heights are in the Blender scene's metres; 6F records whether the export's vertical exaggeration applies.
+The two blends depend on where a surface sits in the world, so they can't be baked into one tile. Each is recorded as two baked sets plus a mask rule:
+- **`elders_wainscot`:** upper = `stucco__aa9d13`, lower = `ledgestone_cool`, rule `below_world_z`, `height_m` 0.9, hard edge, exactly as `wainscot_material`. The top Z is per building (from `styling.wainscot_bases`), so 6F's `scene.json` carries it.
+- **`terrain`:** upper = `meadow__63c904`, lower = `beach`, rule `z_smoothstep`, shore at 3.0 m, blend ±0.8 m, as `terrain_material`. 6F records whether the export's vertical exaggeration applies.
 
 ## How each set is baked (Blender 5.2, Cycles on Metal)
 
-**Method: an orthographic emission render of each output on a 6 m plane.** It's the same set-up `swatch.py --tile-test` already uses, so it's proven on these materials. Blender has no way to evaluate a shader node tree from Python without rendering, and Cycles' own Bake button would do the same work with more set-up (a UV-unwrapped plane, an image node per pass), so the render is the simpler path.
+**An orthographic emission render of each output on a flat plane**, the set-up `swatch.py --tile-test` already used. Blender can't evaluate a shader node tree from Python without rendering, and Cycles' Bake button would do the same work with more set-up.
 
-- **The plane and camera:** a plane from (0, 0) to (6, 6) m with `UVMeters` = world x, y. Camera straight down, orthographic, `ortho_scale` = Tile, centred on (T/2, T/2), N × N pixels. So pixel i covers [i·T/N, (i+1)·T/N] and its centre is (i + 0.5)·T/N: the first and last columns are neighbours across the wrap, which is what makes the maps tile.
-- **Clean values:** no world, no lights, light bounces 0, emission strength 1, view transform `Raw`, film not transparent, a 1-pixel box filter (each pixel is the average over its own square and nothing outside it), 16 samples, no denoising, no adaptive sampling. Output is 32-bit float EXR, which Blender writes scene-linear.
-- **Three renders per set** (channels packed into one render where they share a precision):
-  1. Base Color.
-  2. AO, Roughness, Metallic as R, G, B (AO is 1.0 when the material has no AO output).
-  3. Height ÷ `is_relief_m`, unclamped, in R; Alpha and Transmission in G and B when the material has them.
-- **Group inputs:** each render copies the material's group-node input values, so a variant's params bake as the scene shows them.
+- **Framing:** the plane carries `UVMeters` = world (x, y). The camera looks straight down, orthographic, `ortho_scale` = Tile, framing exactly [0, Tile]² on N × N pixels. Pixel i covers [i·T/N, (i+1)·T/N] with its centre at (i + 0.5)·T/N, so the first and last columns are neighbours across the wrap.
+- **Clean values:**
+  - no world, no lights, light bounces 0, emission strength 1;
+  - view transform Standard (the EXR is scene-linear either way);
+  - a 1-pixel box filter, so each pixel is the average over its own square;
+  - no denoising, no adaptive sampling;
+  - 32-bit float EXR, read back and deleted.
+- **Three renders per set:**
 
-### Maps, bit depths, colour spaces
+  | Render | Contents | Samples per pixel |
+  |---|---|---|
+  | 1 | Base Color | 64 |
+  | 2 | AO, Roughness, Metallic as R, G, B (AO 1.0 when the material has no AO output) | 64 |
+  | 3 | Height ÷ the stated relief in R; Alpha and Transmission in G and B when the material has them | **256**, because the normal comes from it |
 
-| Map | File | Format | Colour space | What's in it |
-|---|---|---|---|---|
-| BaseColor | `T_<name>_BaseColor.png` | 8-bit RGB | sRGB (exact sRGB curve applied in numpy) | Base Color |
-| ORM | `T_<name>_ORM.png` | 8-bit RGB | linear | R = AO, G = Roughness, B = Metallic |
-| Height | `T_<name>_Height.png` | 16-bit grey | linear | 0..1 = 0..`relief_m` |
-| Normal | `T_<name>_Normal.png` | 8-bit RGB | linear | tangent-space normal from the height, DirectX (green down) |
+- The group's input values are copied, so a variant's params bake as the scene shows them.
 
-- **Orientation:** the image's top row is the top of the tile (v = 6 m), u runs left to right, so a map opened in Preview looks the way the wall stands. UV0 = UVMeters / 6 (6F's job) and the glTF V flip are recorded in `materials.json`.
-- **Height:** `Height / is_relief_m`, clamped to 0..1. Its real minimum, maximum and the share of pixels clipped are written to `materials.json`, with a warning if more than 0.1 % clip (the stated relief is too small) or the maximum is under 0.5 (it's too large, wasting precision). In the materials, 0 is the bottom of the deepest joint and `relief_m` is the proudest point; Blender carves **inward** (the proudest point sits on the wall's face). `materials.json` records `"carve": "inward"`, so Unreal displaces by (h − 1) × `relief_m` and frames flush with the wall stay uncovered, as in Blender.
-- **Normal:** from the float height (not the 16-bit PNG), in true metres, with central differences that wrap around the tile edges (`np.roll`), so the normal map wraps exactly when the height does:
-  - dh/du = (h[i+1] − h[i−1]) × relief / (2 T/N), and the same for v;
-  - n = normalise(−dh/du, −dh/dv, 1);
-  - R = ½ + ½ n<sub>u</sub>, G = ½ − ½ n<sub>v</sub> (DirectX: green points down the image), B = ½ + ½ n<sub>z</sub>.
-  - No strength fudge: a 2 cm stone lip gives the slope it really has. The Normal is what Unreal shows where it doesn't displace (relief under 2 cm, or far away), matching Blender's bump.
+### Maps
+
+| Map | File | Format | What's in it |
+|---|---|---|---|
+| BaseColor | `T_<name>_BC.png` | 8-bit RGB, sRGB (exact curve, in numpy) | albedo only, nothing lit or occluded |
+| ORM | `T_<name>_ORM.png` | 8-bit RGB, linear | R = AO, G = Roughness, B = Metallic |
+| Height | `T_<name>_H.png` | **16-bit** grey, linear | 0..1 = 0..`relief_m` |
+| Normal | `T_<name>_N.png` | **16-bit** RGB, linear | tangent-space normal from the height, DirectX (green down) |
+| Opacity | `T_<name>_Opacity.png` | 8-bit grey, linear | Alpha × (1 − Transmission), only when it varies |
+
+- **Orientation:** the image's top row is the top of the tile (v = 6 m), with u running left to right. A real-bake test checks all four corners.
+- **AO:** the material's own AO output, or, where it has none, a gentle cavity AO computed from the height with a blur that wraps. `ao_source` says which.
+- **Height is never clipped.** The range is 0..1 of the stated relief (`is_relief_m`), widened to fit wherever the material goes past it (`concrete`, `concrete_slab` and `madrone_bark` do, on 0.1–0.8 % of their pixels).
+  - `relief_m` is then the real range in metres, `blender_relief_m` the stated one, and `face_h` the H value where Blender's wall face sits (1 unless the material rises past its stated relief).
+  - Blender carves **inward**, so Unreal displaces by (h − `face_h`) × `relief_m`. `ue.displacement_center` = `face_h`.
+- **Normal:** from the float height (before quantising), in true metres, by central differences that wrap (`np.roll`). n = normalise(−dh/du, −dh/dv, 1), then R = ½ + ½n<sub>u</sub>, G = ½ − ½n<sub>v</sub> (DirectX), B = ½ + ½n<sub>z</sub>. There's no strength fudge.
 
 ## Seams
 
-Two checks per set, both in `seams.py`:
+Two independent checks per set, in `seams.py`. A set's `status` is `pass` only when both ran and passed. With `--no-shift-check` it's `unchecked`, which is never a pass. The run exits 1 if any current set fails, 2 if none fails but some are unchecked or not baked, and 0 otherwise.
 
-1. **Edge ratio (every map):** the jump across the wrap compared with an ordinary step between neighbouring pixels: mean |column N−1 − column 0| ÷ the mean |column i+1 − column i| over the whole image, and the same for rows. A seamless map scores about 1.0. **Pass: ≤ 1.5** in both directions.
-2. **Half-tile shift (BaseColor, ORM, Height):** each pass is rendered a second time with the camera moved half a tile in u and v, then compared with the first image rolled by N/2 pixels. If the material really repeats every 6 m the two match up to sampling noise. This is `swatch.py --tile-test`'s check, done on the baked pixels. **Pass: mean difference < 0.01** (the README's existing threshold), p99 reported. It doubles the render time; `--no-shift-check` skips it for quick reruns.
-   - **Detail finer than a pixel:** the probe below found `steel`'s Height at 0.025, over the threshold. Its orange-peel relief is finer than a pixel, so two renders with different random sub-pixel samples disagree even with no seam. So when a map fails the 0.01 test, it renders that pass once more at the *same* position with a different seed. That difference is the map's own noise floor, and the map passes if the shift difference is at most **1.5 × its noise floor**. A real seam shows up far above its noise; a noisy-but-seamless map sits right at it. The report says which rule passed each map.
+1. **Edge check: does the FILE wrap?** Run on every map as written (BC, ORM, H, N, Opacity).
+   - It compares the change across the wrap with the **4th-largest** change inside the tile. Each change is measured over two pixels, |column i+1 − column i−1|, so a joint counts fully whether it lands on a pixel boundary or between pixel centres. Rows work the same way.
+   - A board joint, roof rib, course line or slab joint on the tile edge (`wrapped_cells` puts cell boundaries there) is judged like the joints mid-tile. A cliff that happens once per tile, at the wrap, has nothing comparable inside, even next to one large interior step.
+   - **Pass: ≤ 1.5** in both directions.
+2. **Shift check: does the MATERIAL repeat every 6 m?** Each pass is rendered at 1024 px (16 samples), then again with the camera moved half a tile in u and v, and compared after rolling the first image by half its size.
+   - It compares per channel and takes the **worst channel**, so a constant channel can't dilute a seam. For the third render, only the outputs the material really has are compared (Height, Alpha, Transmission), so a relief-less material with varying opacity (leaves, glass) is checked too.
+   - Two statistics: the **mean** difference, and the **line**, the worst single row or column mean of the difference. A seam is a line: a 2 cm one at 0.4 contrast is 0.33 % of the pixels and moves the mean only to ~0.001, but its column shows at 0.4.
+   - **Pass: mean < 0.01 and line < 0.03.**
+   - **Noise floor:** a pass that misses those thresholds is rendered once more at the same place with another seed. It then passes if both its mean and its line are within **1.5 ×** that noise floor. That's for detail finer than a pixel, such as `steel`'s orange-peel height. p99 is reported, not judged.
 
-A failed check doesn't stop the other sets, but the run exits 1 and the contact sheet marks the set red.
+Limits worth knowing:
+- A defect shaped exactly like the pattern's own joints (a joint-sized step at the wrap on a board material) can't be told from a joint by any check that doesn't know the pattern. The contact sheet's 2 × 2 tiles are the check for that.
+- `--checks-only` re-runs both checks on an existing bake without re-rendering the maps.
 
 ## `materials.json`
 
 ```json
 {
-  "version": 1,
-  "generated": "2026-11-…T…Z", "blender": "5.2.2", "git": "<commit>",
-  "res": 2048, "tile_m": 6.0, "samples": 16,
-  "conventions": {
-    "uv": "UV0 = UVMeters / tile_m; image top row = top of the tile (v = tile_m); u left to right",
-    "BaseColor": "8-bit sRGB", "ORM": "8-bit linear, R AO, G Roughness, B Metallic",
-    "Height": "16-bit linear, 0..1 = 0..relief_m; carve inward: offset = (h - 1) * relief_m",
-    "Normal": "8-bit linear, tangent space, DirectX (green down), derived from Height"
-  },
+  "version": 1, "generated": "2026-11-09T…Z", "blender": "5.2.2 LTS", "git": "<commit>",
+  "res": 4096, "tile_m": 6.0, "samples": 64, "height_samples": 256, "shift_check": true,
+  "conventions": { "uv": "…", "BC": "…", "ORM": "…", "H": "…", "N": "…", "Opacity": "…", "constants": "…" },
   "materials": {
     "ledgestone_cool": {
       "key": "ledgestone_cool", "params": {}, "blender_material": "M_LedgestoneCool", "group": "IS Ledgestone",
-      "relief_m": 0.07, "displace": true,
-      "maps": { "BaseColor": "ledgestone_cool/T_ledgestone_cool_BaseColor.png", "ORM": "…", "Height": "…", "Normal": "…" },
-      "constants": {},
-      "height": { "min": 0.0, "max": 0.98, "clipped": 0.0 },
-      "seams": { "BaseColor": { "edge_u": 1.02, "edge_v": 0.99, "shift_mean": 0.003, "shift_p99": 0.02, "pass": true }, "…": {} },
-      "bake_s": 61.4,
-      "used_by": ["buildings.elders.parts.wall.wainscot", "site.retaining"]
-    },
-    "stucco__3f9a1c": { "key": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] }, "…": "…" },
-    "glass": { "…": "…", "constants": { "Alpha": 1.0, "Transmission": 1.0 } }
+      "tile_m": 6.0, "res": 4096, "relief_m": 0.039, "blender_relief_m": 0.039, "face_h": 1.0, "displace": true,
+      "maps": { "BC": "ledgestone_cool/T_ledgestone_cool_BC.png", "ORM": "…", "H": "…", "N": "…" },
+      "constants": { "Metallic": 0.0 }, "ao_source": "material", "outputs_baked": ["AO", "Base Color", "…"],
+      "height": { "min": 0.0, "max": 1.0, "beyond_stated": 0.0, "range": [0.0, 1.0], "face_h": 1.0 },
+      "albedo_luminance": { "mean": 0.2, "p01": 0.029, "p99": 0.5 },
+      "seams": {
+        "edge": { "BC": { "edge_u": 0.7, "edge_v": 0.6, "edge_pass": true }, "…": {} },
+        "shift": { "color": { "channels": ["Base Color"], "shift_mean": 0.003, "shift_line": 0.006, "shift_p99": 0.02,
+                              "shift_pass": true, "shift_rule": "absolute" }, "orm": {}, "height": {} },
+        "shift_checked": true
+      },
+      "status": "pass", "pass": true, "warnings": ["albedo below 0.03 …"],
+      "ue": { "master": "opaque", "specular": 0.5, "cell_bomb": false, "triplanar": false, "metallic_present": false,
+              "height_range_cm": 3.9, "displacement_center": 1.0 },
+      "previews": { "BC": "preview_BC.png", "…": "…" }, "used_by": ["buildings.elders.parts.wall.wainscot", "site.retaining"],
+      "bake_s": 315.0
+    }
   },
-  "blends": {
-    "elders_wainscot": { "rule": "below_world_z", "upper": "stucco__3f9a1c", "lower": "ledgestone_cool",
-                         "height_m": 0.9, "edge": "hard", "top_z": "per building, in 6F's scene.json" },
-    "terrain": { "rule": "z_smoothstep", "upper": "meadow__…", "lower": "beach", "shore_z_m": 3.0, "blend_m": 0.8 }
-  },
-  "failed": []
+  "blends": { "elders_wainscot": { "rule": "below_world_z", "…": "…" }, "terrain": { "rule": "z_smoothstep", "…": "…" } },
+  "failed": [], "unchecked": [], "missing": []
 }
 ```
 
-(The numbers above are placeholders for the shape.) `displace` is true when `relief_m` ≥ 2 cm, the same rule as `styling.DISPLACE_MIN_RELIEF`.
+(The numbers are illustrative.) `displace` is true when the stated relief is ≥ 2 cm, the same rule as `styling.DISPLACE_MIN_RELIEF`. The `ue` block holds starting values for 6G from the research playbook: specular 0.1 on natural surfaces, cell bombing only on meadow, beach and gravel, triplanar on bark.
 
-## Run time and disk
+## Run time and disk (measured)
 
-- **Measured** (Nov 6, `swatch.py --tile-test`, 1024² over 2 × 2 tiles, 16 samples, two emission passes):
-  - `kurinuki`, the heaviest graph: about 2.5 s a pass, after a first render of 122 s that was almost all Metal kernel compiling.
-  - `steel`, a light one: about 1 s a pass, with the kernels already cached.
-  - Seams in the probe: kurinuki Base Color 0.0027, Height 0.0060 (pass); steel Base Color 0.0016 (pass), Height 0.0253 (over the threshold; see "Seams").
-- **Run time at 2048:** four times the pixels, so about 10 s a pass for the heaviest materials and 2–4 s for light ones. Each set is 6 passes (3 maps plus the 3 shift renders, a seventh where the noise-floor re-render is needed) and a few seconds of numpy: **about 20–70 s a set**, and **about 10–20 minutes for all 25**. Add about 2 minutes on a cold shader cache.
-- **Disk per set at 2048:**
-  - BaseColor and ORM: about 6–10 MB each (8-bit; noisy detail compresses poorly).
-  - Height: about 5–8 MB (16-bit).
-  - Normal: about 8–12 MB.
-  - So **about 25–40 MB a set, under 1 GB for all 25**.
-  - The temporary EXRs (about 50 MB each) are deleted as each set finishes, unless `--keep-exr`. The internal disk's 74 GB free is plenty for 6E; the SSD matters for 6G's Unreal project.
+- **Full bake at 4096** (64 / 256 samples, Nov 8): **63 minutes** for all 25, with 25–350 s a set (kurinuki, the ledgestones, flagstone, gravel, beach and meadow are the slow ones). Add a few minutes for Metal kernels on a cold shader cache.
+- **`--checks-only`:** a few seconds a set (shift renders at 1024 px, plus reading the PNGs back).
+- **Disk:** **2.5 GB** for all 25. The 16-bit normals are the largest (kurinuki's is 63 MB). The temporary EXRs are deleted as each pass is read.
 
 ## Tests
 
-- **`test_bake_numpy.py`** (run with Blender's Python: `Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/test_bake_numpy.py`):
-  - Normal from an analytic height, h = A sin(2π u / T): matches the analytic slope to within one 8-bit step. A slope rising to the right gives R > ½; a slope rising up the image gives G < ½ (the DirectX sign).
-  - The normal of a periodic height wraps: its edge ratio ≈ 1.
-  - The sRGB curve at 0, at the 0.0031308 knee and at 1; ORM channel order.
-  - Height normalisation: clamping and the clipped share.
-  - The seam metrics: a seamless synthetic image passes; the same image with a step at the edge, or a ramp 0→1 across the tile, fails.
-  - Targets: the reachable set from today's `styles.json` is the 25 sets listed above; variant names stay the same across runs and change when a param changes.
-- **`test_bake_blender.py`:** a real 256 px bake of `tile_noise` (seamless by design) passes both checks, and a deliberately non-repeating test material (a ramp in u) fails both. The files exist with the right bit depths and sizes, and `materials.json` has the shape above.
-- **The real run:** all 25 sets at 2048 pass, with timings in `materials.json`.
+Run with Blender's Python: `Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/<file>`.
 
-## Check-in B: what you'll get to look at
+- **`test_bake_numpy.py`** (21 tests):
+  - The normal against an analytic steep sine, within 2·10⁻⁴ relative. The DirectX signs (rising right gives R < ½; rising up the image gives G > ½), and a bump lit from the top left reads raised.
+  - A periodic height gives a periodic normal; the sRGB curve; Height widening; PNG round trips at 8 and 16 bits, with the top row as the tile's top; derived AO darkens pits and wraps.
+  - Edge check: seamless and noise pass; wrong period and a ramp fail; a joint on the edge passes; one cliff per tile fails even beside one big interior step; a joint on a pixel boundary at the wrap passes when the joints inside fall between pixel centres.
+  - Shift check: the noise-floor rule; a **localised 2 cm seam** is caught by the line; the worst channel counts, not the average.
+  - Targets: the 25 sets; variant names stable, sensitive, and the same for 1 and 1.0; today's names unchanged; a name collision raises; the blends.
+  - Previews never trim the tile.
+- **`test_bake_blender.py`** (7 real bakes at 256 px):
+  - Tile noise passes.
+  - A cliff on the tile edge fails the edge check, and a wrong-period ramp fails the shift check.
+  - **Orientation:** BaseColor = (frac(u/T), frac(v/T), 0), with all four PNG corners asserted.
+  - An opacity-only material is shift-checked on Alpha, a wrong-period one fails, and a rebake without opacity deletes the old Opacity map.
+  - `--no-shift-check` gives `unchecked`, not a pass.
+  - A flat colour comes out exact through the EXR, sRGB and PNG path, and its constants are noted.
 
-- **`build/3d/unreal/textures/contact.html`**, opened in the browser pane and saved as a PNG for your phone. One row per set, five pictures each, every one shown **2 × 2 tiles** so a seam would show as a line through the middle:
-  1. BaseColor;
-  2. ORM;
-  3. Height;
-  4. Normal;
-  5. a quick "lit" preview (BaseColor shaded by the Normal under a low sun), so the relief reads without Unreal.
-- Each row's label gives the name, where it's used, the relief, the bake time, and the seam numbers in green or red.
-- **The seam report:** a table of every map's numbers, and any warnings (height clipping, unused relief).
+## Check-in B (signed off Nov 9)
 
-## Decisions to confirm
+`build/3d/unreal/textures/contact.html` (and `contact.png`) has one row per set: BaseColor, ORM, Height, Normal and a lit preview (low light from the top left), each shown **2 × 2 tiles**. Each row gives where the set is used, its relief, bake time, seam numbers and warnings, followed by the seam report table. Each set also has a 3 × 3 lit preview. Things to know:
+- Kurinuki has one dark-green carved patch that repeats visibly every 6 m in a 3 × 3 view. That's in the material; 6G's macro variation, or a tweak to the material, would hide it.
+- Charred wood, the cool ledgestone and water sit just under the 0.03 albedo floor (expected for those materials).
 
-1. **Which sets:** everything `styles.json` can reach (**25**, my pick), or also the two unused library materials (`--all`, 27)?
-2. **Resolution:** **2048 for all** (2.9 mm a pixel on a 6 m tile, my pick), or 4096 for the hero walls (`kurinuki`, both ledgestones, `rigidized_bronze`), at four times the disk and time?
-3. **Normal at 8-bit** (my pick: Unreal compresses normals to BC5 anyway), or 16-bit?
-4. **Variant names** like `stucco__3f9a1c` (stable, made from the params, my pick), or names you pick in `styles.json` (for example `"bake_name": "stucco_warm"`)? The second means adding a key to `styles.json`.
-5. **The half-tile seam check** doubles the bake time. Keep it on by default (my pick), or run it only with a flag?
-6. **The noise-floor rule** for maps with detail finer than a pixel (`steel`'s Height): OK to pass a map whose shift difference is within 1.5 × its own render noise, or should such maps be baked at more samples until they clear 0.01 outright (slower, and may never get there for sub-pixel detail)?
-7. **Output on the internal disk** at `build/3d/unreal/textures/` for now (under 1 GB), moving `build/3d/unreal/` to the SSD when it arrives for 6G?
+## Review fixes (Nov 9)
+
+An independent review before `main` is pushed:
+1. **Shift check:** compares the worst channel, adds the line statistic for localised seams, and checks Alpha and Transmission.
+2. **Edge check:** compares with the 4th-largest two-pixel change inside the tile instead of the largest one-pixel step.
+   - A first try, the 8th-largest one-pixel step at 4096, failed `cedar` (1.90) and `concrete_slab` (2.0) on joints that are really there. Cedar's joint on the edge falls on a pixel boundary, while its joints inside fall between pixel centres and split their step over two pixels. Concrete slab has only four control joints a tile (every 1.5 m), so an 8th-largest step isn't a joint.
+   - Measuring over two pixels with a rank of 4 fixes both. All 25 sets score ≤ 1.07 against the 1.5 limit, and a cliff once per tile still fails.
+3. **`materials.json`:**
+   - `shift_checked` and `status`, with `unchecked` never counted as a pass;
+   - prunes sets `styles.json` no longer reaches;
+   - `failed`, `unchecked` and `missing` cover the current sets only;
+   - deletes a stale Opacity map;
+   - a clear error when `--previews-only` (or `--contact-only`, `--checks-only`) finds no `materials.json`.
+4. **Tests:** the orientation bake, a tighter slope test, localised-seam and diluted-channel cases.
+5. **Variant names:** canonical params, and a collision raises (today's names are unchanged).
+6. **This file:** made consistent with what shipped.
+
+The maps themselves didn't change. All 25 sets were re-checked under the stricter rules with `--checks-only`; the result is in the commit message.
+
+## History: the decisions at check-in A (Nov 6)
+
+Finley OK'd all seven recommended answers. The two marked † were then changed by his "as high quality as possible" and the research playbook.
+
+| # | Decision | Answer at check-in A | As built |
+|---|---|---|---|
+| 1 | Which sets | the 25 `styles.json` reaches | same (`--all` for 27) |
+| 2 † | Resolution | 2048 for all | **4096 for all**. Not 8192: the videos call 8K overkill, and 25 sets of 8K would overflow Unreal's texture streaming on a 24 GB Mac, which blurs textures |
+| 3 † | Normal bit depth | 8-bit | **16-bit** (playbook), as is Height |
+| 4 | Variant names | hashed from the params | same, now canonicalised |
+| 5 | Half-tile check | on by default | same, at 1024 px, plus the line statistic |
+| 6 | Noise-floor rule | within 1.5 × the render noise | same, applied to both mean and line |
+| 7 | Output | internal disk, `build/3d/unreal/textures/` | same (2.5 GB) |
+
+Other changes after the OK:
+- The playbook's file names (`_BC/_ORM/_H/_N`) replace `_BaseColor/_ORM/_Height/_Normal`.
+- 256 samples for Height.
+- AO from height where a material has none.
+- Height widened instead of clipped.
+- The research's albedo check and Unreal hints.
+- The edge check was reworked three times. The average step flagged joints on the tile edge; the largest step was too lenient; and the 8th-largest one-pixel step flagged real joints that sit on a pixel boundary (review fix 2).
+
+The timing probe (Nov 6, `swatch.py --tile-test`, 1024 px, 16 samples) measured kurinuki at about 2.5 s a pass after 122 s of Metal kernel compiling, and steel at about 1 s. Steel's Height scored 0.025 there, which is what led to the noise-floor rule.

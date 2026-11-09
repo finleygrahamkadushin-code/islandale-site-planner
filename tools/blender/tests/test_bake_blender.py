@@ -15,7 +15,7 @@ sys.path.insert(0, str(HERE.parent))
 from islandale3d.bake import bake_set, encode  # noqa: E402
 from islandale3d.bake.targets import Target  # noqa: E402
 from islandale3d.materials import build  # noqa: E402
-from islandale3d.materials.common import TILE_DEFAULT, math, new_group, node, pbr_material  # noqa: E402
+from islandale3d.materials.common import OUTPUTS, TILE_DEFAULT, math, new_group, node, pbr_material  # noqa: E402
 
 RES, SAMPLES = 256, 16
 FLAT_COLOR = (0.5, 0.25, 0.1)
@@ -47,6 +47,36 @@ def ramp_material(period_tiles):
     return pbr_material(f"M_TestRamp_{period_tiles}", ng, 0.05, rebuild=True)
 
 
+TILE_INPUT = ("Tile", "NodeSocketFloat", TILE_DEFAULT, 0.5, 100.0)
+
+
+def _frac(nodes, links, coord, period):
+    return math(nodes, links, "FRACT", math(nodes, links, "DIVIDE", coord, period))
+
+
+def orientation_material():
+    """Base Color = (frac(u / Tile), frac(v / Tile), 0): red grows to the right, green grows upward."""
+    ng, nodes, links, gin, gout = new_group("IS Test Orientation", inputs=(TILE_INPUT,), rebuild=True)
+    sep = node(nodes, "ShaderNodeSeparateXYZ")
+    links.new(gin.outputs["Vector"], sep.inputs[0])
+    comb = node(nodes, "ShaderNodeCombineColor")
+    links.new(_frac(nodes, links, sep.outputs["X"], gin.outputs["Tile"]), comb.inputs[0])
+    links.new(_frac(nodes, links, sep.outputs["Y"], gin.outputs["Tile"]), comb.inputs[1])
+    links.new(comb.outputs["Color"], gout.inputs["Base Color"])
+    return pbr_material("M_TestOrientation", ng, 0.0, rebuild=True)
+
+
+def opacity_material(tag, alpha_fn):
+    """No relief, a varying Alpha (like leaves or glass): alpha_fn(nodes, links, u, tile) -> socket."""
+    ng, nodes, links, gin, gout = new_group(f"IS Test Opacity {tag}", inputs=(TILE_INPUT,),
+                                            outputs=OUTPUTS + (("Alpha", "NodeSocketFloat"),), rebuild=True)
+    sep = node(nodes, "ShaderNodeSeparateXYZ")
+    links.new(gin.outputs["Vector"], sep.inputs[0])
+    gout.inputs["Base Color"].default_value = (0.3, 0.4, 0.2, 1.0)
+    links.new(alpha_fn(nodes, links, sep.outputs["X"], gin.outputs["Tile"]), gout.inputs["Alpha"])
+    return pbr_material(f"M_TestOpacity_{tag}", ng, 0.0, rebuild=True)
+
+
 def bake(mat, name, out):
     return bake_set(mat, Target(name, name, {}, ["test"]), out, RES, SAMPLES, SAMPLES, True)
 
@@ -75,6 +105,40 @@ def test_wrong_period_fails_the_shift_check(out):
     assert not e["pass"]
     assert not e["seams"]["shift"]["height"]["shift_pass"], e["seams"]["shift"]["height"]
     assert not e["seams"]["shift"]["color"]["shift_pass"], e["seams"]["shift"]["color"]
+
+
+def test_orientation_u_right_v_up(out):
+    """The PNG's top-left is u = 0, v = Tile: a u or v flip anywhere in the chain fails here."""
+    e = bake(orientation_material(), "orient", out)
+    file_rows = np.flipud(encode.read_png(out / e["maps"]["BC"]))      # back to file order: row 0 = the top row
+    lo, hi = encode.linear_to_srgb(np.array([0.5 / RES, 1 - 0.5 / RES]))
+    tol = 2.0 / 255
+    corners = {"top-left": (file_rows[0, 0], (lo, hi)), "top-right": (file_rows[0, -1], (hi, hi)),
+               "bottom-left": (file_rows[-1, 0], (lo, lo)), "bottom-right": (file_rows[-1, -1], (hi, lo))}
+    for where, (px, (r, g)) in corners.items():
+        assert abs(px[0] - r) < tol and abs(px[1] - g) < tol and px[2] < tol, (where, px, (r, g))
+
+
+def test_opacity_only_material_is_shift_checked(out):
+    def seamless(nodes, links, u, tile):
+        ang = math(nodes, links, "MULTIPLY", math(nodes, links, "DIVIDE", u, tile), 6.283185307179586)
+        return math(nodes, links, "MULTIPLY_ADD", math(nodes, links, "SINE", ang), 0.4)
+
+    def wrong_period(nodes, links, u, tile):
+        return _frac(nodes, links, u, math(nodes, links, "MULTIPLY", tile, 0.9))
+
+    good = bake(opacity_material("good", seamless), "opacity", out)
+    assert good["seams"]["shift"]["height"]["channels"] == ["Alpha"], good["seams"]["shift"]
+    assert good["pass"] and "Opacity" in good["maps"], good["seams"]
+    bad = bake(opacity_material("bad", wrong_period), "opacity_bad", out)
+    assert not bad["seams"]["shift"]["height"]["shift_pass"], bad["seams"]["shift"]["height"]
+    flat = bake(flat_material(), "opacity", out)                       # same set name, no opacity any more
+    assert "Opacity" not in flat["maps"] and not (out / "opacity" / "T_opacity_Opacity.png").exists()
+
+
+def test_skipped_shift_check_is_not_a_pass(out):
+    e = bake_set(build("tile_noise"), Target("unchecked", "tile_noise", {}, ["test"]), out, RES, SAMPLES, SAMPLES, False)
+    assert e["status"] == "unchecked" and e["pass"] is False and e["seams"]["shift_checked"] is False
 
 
 def test_flat_colour_is_exact_and_constants_noted(out):

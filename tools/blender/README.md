@@ -36,7 +36,8 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 ```bash
 # Every material styles.json can reach (25 sets), 4096 px, into build/3d/unreal/textures/ (a few hours)
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/bake_textures.py -- \
-    [--keys kurinuki,stucco__aa9d13] [--all] [--res 4096] [--samples 64] [--height-samples 256] [--no-shift-check]
+    [--keys kurinuki,stucco__aa9d13] [--all] [--res 4096] [--samples 64] [--height-samples 256] [--no-shift-check] \\
+    [--checks-only] [--previews-only] [--contact-only]
 
 # Tests: the numpy parts (seconds), then real 256 px bakes (about a minute)
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/test_bake_numpy.py
@@ -56,9 +57,10 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 - **How:** each output of the material's group is rendered flat as emission. The set-up is an orthographic camera over exactly one tile, a 1-pixel box filter, float EXR and no colour transform. The Normal and any missing AO are then worked out in numpy with filters that wrap. The plan and its reasoning are in `PLAN-6E.md`.
 - **Names:** a tuned variant in `styles.json` (`{"material": key, "params": {...}}`) bakes as `<key>__<6 hex of its params>`, which stays the same until its params change.
 - **Blends:** the wainscot and the meadow-to-beach shore are recorded as two layers plus a rule in `materials.json`, and mixed in Unreal.
-- **Seams:** the run exits 1 if any set fails a check.
-  - **Edge check:** the step across the wrap must be no bigger than 1.5 × the largest step inside the tile.
-  - **Shift check:** a half-tile-shifted render must match within 0.01, or within 1.5 × the map's own render noise for detail finer than a pixel.
+- **Seams:** the run exits 1 if any set fails a check, and 2 if none fails but some are unchecked (`--no-shift-check`, never a pass) or not baked yet.
+  - **Edge check (the file wraps):** on every map as written, the change across the wrap must be no bigger than 1.5 × the 4th-largest change inside the tile, each measured over two pixels so a joint counts fully wherever it falls.
+  - **Shift check (the material repeats):** a half-tile-shifted render at 1024 px, compared channel by channel (the worst channel counts, including Alpha and Transmission). The mean difference must be under 0.01 and the worst single row or column under 0.03, or both within 1.5 × the map's own render noise for detail finer than a pixel.
+  - `--checks-only` re-runs both checks on an existing bake without re-rendering the maps; `--previews-only` redraws the previews from the PNGs.
 
 ## Files
 

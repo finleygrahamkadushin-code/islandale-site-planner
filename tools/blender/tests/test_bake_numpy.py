@@ -27,14 +27,16 @@ def grid():
 
 
 def test_normal_matches_analytic_slope():
+    """A steep sine (slopes up to 0.52) so a wrong step size or sign shows; tolerance relative to the slope."""
     u, v = grid()
-    amp = 0.02
+    amp = 1.0
     h01 = 0.5 + 0.5 * np.sin(2 * np.pi * u / T)               # height = amp * h01
     nrm = encode.normal_from_height(h01, amp, T)
     slope = amp * 0.5 * (2 * np.pi / T) * np.cos(2 * np.pi * u / T)
-    expect_u = -slope / np.sqrt(1 + slope ** 2)
-    assert np.abs(nrm[..., 0] - expect_u).max() < 1.0 / 255, np.abs(nrm[..., 0] - expect_u).max()
-    assert np.abs(nrm[..., 1]).max() < 1e-9
+    expect = np.stack([-slope, np.zeros_like(slope), np.ones_like(slope)], axis=-1) / np.sqrt(1 + slope ** 2)[..., None]
+    err = np.abs(nrm - expect).max()
+    assert err < 2e-4 * np.abs(expect[..., 0]).max(), err      # central differences: ~(2 pi / N)^2 / 6 relative
+    assert np.abs(nrm[..., 0]).max() > 0.4
 
 
 def test_directx_green_points_down():
@@ -140,16 +142,63 @@ def test_joint_on_the_tile_edge_is_not_a_seam():
     assert eu <= seams.EDGE_RATIO_MAX and ev <= seams.EDGE_RATIO_MAX, (eu, ev)
 
 
-def test_shift_difference_and_noise_rule():
+def test_one_cliff_per_tile_fails_even_beside_one_big_step():
+    """A ramp with a cliff at the wrap, plus a single large step inside the tile: comparing with the LARGEST interior
+    change would let the cliff through; the EDGE_RANK-th largest does not."""
+    u, v = grid()
+    img = 0.6 * (u / T) + np.where(u > T / 2, 0.3, 0.0)        # one 0.3 step mid-tile, then a 0.9 cliff at the wrap
+    assert not seams.edge_report(img)["edge_pass"], seams.edge_ratio(img)
+
+
+def test_a_joint_between_pixel_centres_counts_like_one_on_a_boundary():
+    """Boards of alternating colour, box-filtered like the renderer. The edge on the tile wrap sits on a pixel boundary
+    (its whole step in one column pair); the others fall between pixel centres (each step split over two pairs). A
+    one-pixel step compares the wrap with half-steps (cedar scored 1.9 that way); the two-pixel change does not."""
+    n, boards, sub = 1001, 4, 16          # 250.25 px a board (1.5 m, as concrete_slab): inner edges land mid-pixel
+    x = (np.arange(n * sub) + 0.5) / (n * sub) * T
+    row = np.where(np.floor(x / (T / boards)) % 2 == 0, 0.3, 0.7).reshape(n, sub).mean(axis=1)
+    img = np.tile(row, (64, 1))
+    one_px = np.abs(np.diff(row))
+    assert abs(row[-1] - row[0]) > 1.5 * np.sort(one_px)[::-1][3], "the setup must fool a one-pixel step"
+    eu, ev = seams.edge_ratio(img)
+    assert eu <= seams.EDGE_RATIO_MAX and ev <= seams.EDGE_RATIO_MAX, (eu, ev)   # 1.33: three inner joints only
+
+
+def test_shift_stats_and_noise_rule():
     u, v = grid()
     base = 0.5 + 0.4 * np.sin(2 * np.pi * u / T)
-    mean, _ = seams.shift_difference(base, 0.5 + 0.4 * np.sin(2 * np.pi * (u + T / 2) / T))
-    assert mean < 1e-9, mean
-    assert seams.shift_report(mean, 0.0, None)["shift_rule"] == "absolute"
-    assert seams.shift_report(0.02, 0.1, 0.015)["shift_rule"] == "noise_floor"
-    assert not seams.shift_report(0.05, 0.1, 0.015)["shift_pass"]
-    ramp_mean, _ = seams.shift_difference(u / T, (u + T / 2) / T)     # a ramp does not repeat
-    assert ramp_mean > 0.1, ramp_mean
+    stats = seams.shift_stats(base, 0.5 + 0.4 * np.sin(2 * np.pi * (u + T / 2) / T))
+    assert stats["mean"] < 1e-9 and stats["line"] < 1e-9, stats
+    assert seams.shift_report(stats, None, ["x"])["shift_rule"] == "absolute"
+    noisy = {"mean": 0.02, "line": 0.04, "p99": 0.1}
+    assert seams.shift_report(noisy, {"mean": 0.015, "line": 0.03, "p99": 0.1}, ["x"])["shift_rule"] == "noise_floor"
+    assert not seams.shift_report(noisy, {"mean": 0.015, "line": 0.02, "p99": 0.1}, ["x"])["shift_pass"]
+    assert not seams.shift_report({"mean": 0.05, "line": 0.06, "p99": 0.1},
+                                  {"mean": 0.015, "line": 0.03, "p99": 0.1}, ["x"])["shift_pass"]
+    ramp = seams.shift_stats(u / T, (u + T / 2) / T)           # a ramp does not repeat
+    assert ramp["mean"] > 0.1, ramp
+
+
+def test_localised_seam_is_caught_by_the_line_test():
+    """A 2 cm line once per tile at 0.4 contrast: 0.33% of the pixels, so the mean (~0.001) passes; the line can't."""
+    u, v = grid()
+    rng = np.random.default_rng(7)
+    base = 0.5 + 0.02 * rng.standard_normal((N, N))
+    shifted = np.roll(base, (-(N // 2), -(N // 2)), axis=(0, 1)).copy()
+    shifted[:, 100] += 0.4                                       # 6 m / 256 px = 2.3 cm: one column
+    stats = seams.shift_stats(base, shifted)
+    assert stats["mean"] < seams.SHIFT_MEAN_MAX, stats
+    assert not seams.shift_report(stats, None, ["x"])["shift_pass"], stats
+
+
+def test_worst_channel_counts_not_the_average():
+    """ORM with constant roughness and metallic: a 0.02 difference in AO alone must not be diluted to 0.007."""
+    u, v = grid()
+    base = np.dstack([0.5 + 0.4 * np.sin(2 * np.pi * u / T), np.full((N, N), 0.6), np.zeros((N, N))])
+    shifted = np.roll(base, (-(N // 2), -(N // 2)), axis=(0, 1)).copy()
+    shifted[..., 0] += 0.02
+    stats = seams.shift_stats(base, shifted)
+    assert abs(stats["mean"] - 0.02) < 1e-9 and not seams.shift_report(stats, None, ["AO", "R", "M"])["shift_pass"]
 
 
 def test_targets_are_the_25_reachable_sets():
@@ -167,10 +216,31 @@ def test_targets_are_the_25_reachable_sets():
 def test_variant_names_are_stable_and_param_sensitive():
     a = variant_name("stucco", {"Color": [0.7, 0.6, 0.5, 1.0]})
     assert a == variant_name("stucco", {"Color": [0.7, 0.6, 0.5, 1.0]})
+    assert a == variant_name("stucco", {"Color": [0.7, 0.6, 0.5, 1]}), "1 and 1.0 must name the same variant"
     assert a != variant_name("stucco", {"Color": [0.7, 0.6, 0.51, 1.0]})
     assert variant_name("stucco", {}) == "stucco"
-    assert variant_name("m", {"a": 1, "b": 2}) == variant_name("m", {"b": 2, "a": 1})
+    assert variant_name("m", {"a": 1, "b": 2}) == variant_name("m", {"b": 2.0, "a": 1.0})
     assert split_spec({"material": {"material": "stucco", "params": {"x": 1}}}) == ("stucco", {"x": 1})
+    names = {t.name for t in targets(STYLES)}
+    assert {"stucco__aa9d13", "meadow__63c904"} <= names, "today's variant names are unchanged"
+
+
+def test_a_name_collision_raises():
+    import islandale3d.bake.targets as tg
+    styles = {"site": {"terrain": {"material": "meadow", "params": {"G": 1}},
+                       "earthworks": {"material": "meadow", "params": {"G": 2}}}}
+    real = tg.variant_name
+    try:
+        tg.variant_name = lambda key, params: key + "__same"      # force two different params onto one name
+        tg.targets(styles)
+    except ValueError as e:
+        assert "two materials" in str(e)
+    else:
+        raise AssertionError("a collision must raise")
+    finally:
+        tg.variant_name = real
+    assert len(targets({"site": {"terrain": {"material": "meadow", "params": {"G": 1}},
+                                 "earthworks": {"material": "meadow", "params": {"G": 1.0}}}})) == 1
 
 
 def test_blends_name_both_layers():
