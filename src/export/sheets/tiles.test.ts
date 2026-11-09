@@ -63,3 +63,16 @@ describe('smallestPaper', () => {
     expect(smallestPaper(d.w + 1, 1, 0.5)).toBeNull()
   })
 })
+
+describe('site scales', () => {
+  test('a Tabloid page holds 320 × 182 ft of ground at 1" = 20\'', () => {
+    const page = pageFeet('tabloid', 0.05)
+    expect(page.w).toBeCloseTo(320)
+    expect(page.h).toBeCloseTo(182)
+  })
+
+  test('a drawing a hair taller than the page tiles to two rows at 1/16" = 1\'-0"', () => {
+    const page = pageFeet('tabloid', 0.0625)
+    expect(tileDrawing(page.w - 1, page.h + 1, 'tabloid', 0.0625).map((t) => t.label)).toEqual(['A1', 'B1'])
+  })
+})
