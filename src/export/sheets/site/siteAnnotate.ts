@@ -255,7 +255,8 @@ export function siteAnnotate(m: SiteSheetModel, pens: SitePens, extent: Extent, 
     // in the inspector's own words and rounding (ftIn), so the drawing and the notes read the same figure
     const ft = (v: number) => ftIn(v * M_PER_FT)
     if (c.shore) one('shore', c.shore.from, c.shore.to, c.shore.banked && m.setbacks.bankFt > 0 ? `${ft(c.shore.dFt)} TO SHORE · ${ft(c.shore.pastFt)} PAST BANK` : `${ft(c.shore.dFt)} TO SHORE`, c.shore.inside)
-    if (c.lot) one('lot', c.lot.from, c.lot.to, `${ft(c.lot.dFt)} TO LOT LINE`, c.lot.inside)
+    // a building across the lot line has no distance to it: the inspector says so in words, and so do the notes
+    if (c.lot && !c.lot.crosses) one('lot', c.lot.from, c.lot.to, `${ft(c.lot.dFt)} TO LOT LINE`, c.lot.inside)
     return dims
   })
 

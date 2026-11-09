@@ -44,7 +44,8 @@ export interface PlacedLabel {
 /** A label's box as four corners, padded by `pad` all round. */
 export function labelBox(l: PlacedLabel, pad: number): Pt[] {
   const w = labelWidth(l.text, l.size, l.bold) / 2 + pad
-  const h = l.size * 0.62 + pad
+  // capitals stand about 0.72 em; with their halo a box one em tall holds them
+  const h = l.size * 0.5 + pad
   const a = (l.angleDeg * Math.PI) / 180
   const c = Math.cos(a)
   const s = Math.sin(a)

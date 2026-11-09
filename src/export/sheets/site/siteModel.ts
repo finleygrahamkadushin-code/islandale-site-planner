@@ -39,7 +39,7 @@ export interface SiteClearanceMark {
   readonly id: string
   readonly name: string
   readonly shore: { readonly from: Pt; readonly to: Pt; readonly dFt: number; readonly pastFt: number; readonly banked: boolean; readonly inside: boolean } | null
-  readonly lot: { readonly from: Pt; readonly to: Pt; readonly dFt: number; readonly inside: boolean } | null
+  readonly lot: { readonly from: Pt; readonly to: Pt; readonly dFt: number; readonly inside: boolean; readonly crosses: boolean } | null
 }
 
 export interface SiteSheetModel {
@@ -167,7 +167,7 @@ function clearanceMarks({ site, setbacks }: SiteModelInput, objects: readonly Pl
         id: o.id,
         name: o.name,
         shore: c.shore && { from: toFt(c.shore.from), to: toFt(c.shore.to), dFt: c.shore.d / M_PER_FT, pastFt: c.shore.past / M_PER_FT, banked: c.shore.banked, inside: c.shore.insideBuffer },
-        lot: c.lot && { from: toFt(c.lot.from), to: toFt(c.lot.to), dFt: c.lot.d / M_PER_FT, inside: c.lot.insideSetback || c.lot.crossesLot },
+        lot: c.lot && { from: toFt(c.lot.from), to: toFt(c.lot.to), dFt: c.lot.d / M_PER_FT, inside: c.lot.insideSetback || c.lot.crossesLot, crosses: c.lot.crossesLot },
       }
     })
 }
