@@ -1,7 +1,7 @@
-import { MARGIN_IN, PAPERS, TITLE_IN, type PaperId, type Scale, type Tile } from './types'
+import { MARGIN_IN, PAPERS, TITLE_IN, type AnyScale, type PaperId, type Tile } from './types'
 
 /** Feet of drawing one page holds at a scale: the paper less its margins and title strip. */
-export function pageFeet(paper: PaperId, scale: Scale): { readonly w: number; readonly h: number } {
+export function pageFeet(paper: PaperId, scale: AnyScale): { readonly w: number; readonly h: number } {
   const p = PAPERS[paper]
   return { w: (p.w - 2 * MARGIN_IN) / scale, h: (p.h - 2 * MARGIN_IN - TITLE_IN) / scale }
 }
@@ -22,7 +22,7 @@ const pagesFor = (size: number, page: number) => Math.max(1, Math.ceil(size / pa
  * row and column, row-major and labelled A1, A2 … B1, so the pages tape
  * together edge to edge at true scale.
  */
-export function tileDrawing(widthFt: number, heightFt: number, paper: PaperId, scale: Scale): Tile[] {
+export function tileDrawing(widthFt: number, heightFt: number, paper: PaperId, scale: AnyScale): Tile[] {
   const page = pageFeet(paper, scale)
   const width = Math.max(0, widthFt)
   const height = Math.max(0, heightFt)
@@ -46,6 +46,6 @@ export function tileDrawing(widthFt: number, heightFt: number, paper: PaperId, s
 const PAPERS_BY_SIZE = (Object.keys(PAPERS) as PaperId[]).sort((a, b) => PAPERS[a].w * PAPERS[a].h - PAPERS[b].w * PAPERS[b].h)
 
 /** The smallest paper that holds a drawing of width × height feet on one page at the scale, or null when none does. */
-export function smallestPaper(widthFt: number, heightFt: number, scale: Scale): PaperId | null {
+export function smallestPaper(widthFt: number, heightFt: number, scale: AnyScale): PaperId | null {
   return PAPERS_BY_SIZE.find((id) => tileDrawing(widthFt, heightFt, id, scale).length === 1) ?? null
 }

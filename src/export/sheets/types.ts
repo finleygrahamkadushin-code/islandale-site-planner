@@ -19,6 +19,16 @@ import type { OpeningKind } from '../../buildings/openings/openingLayout'
 export type Scale = 0.125 | 0.25 | 0.5
 export const SCALE_LABEL: Readonly<Record<Scale, string>> = { 0.125: '1/8" = 1\'-0"', 0.25: '1/4" = 1\'-0"', 0.5: '1/2" = 1\'-0"' }
 
+/** Paper inches per foot of ground on the site plan: 1" = 20'-0" is 0.05, 1/16" = 1'-0" is 0.0625. */
+export type SiteScale = 0.05 | 0.0625
+export const SITE_SCALE_LABEL: Readonly<Record<SiteScale, string>> = { 0.05: '1" = 20\'-0"', 0.0625: '1/16" = 1\'-0"' }
+
+/** Any scale a sheet is drawn at: a building's or the site plan's. */
+export type AnyScale = Scale | SiteScale
+const ALL_SCALE_LABEL: Readonly<Record<AnyScale, string>> = { ...SCALE_LABEL, ...SITE_SCALE_LABEL }
+/** The scale as written in a title strip: 1/4" = 1'-0", 1" = 20'-0". */
+export const scaleLabel = (scale: AnyScale): string => ALL_SCALE_LABEL[scale]
+
 export type PaperId = 'letter' | 'tabloid' | 'archC' | 'archD'
 /** Landscape sheet sizes, inches. */
 export const PAPERS: Readonly<Record<PaperId, { readonly label: string; readonly w: number; readonly h: number }>> = {

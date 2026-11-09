@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { tileDrawing } from './tiles'
-import { MARGIN_IN, PAPERS, SCALE_LABEL, TITLE_IN, type PaperId, type Scale, type Tile } from './types'
+import { MARGIN_IN, PAPERS, scaleLabel, TITLE_IN, type AnyScale, type PaperId, type Scale, type Tile } from './types'
 import { ptToFt } from './svgDims'
 import { Tip } from '../../guide/Tip'
 
-/** What every sheet of one drawing shares in its title strip. */
-export interface SheetInfo {
+/** What every page shares in its title strip, at a building's scale or the site plan's. */
+export interface PageInfo {
   readonly paper: PaperId
-  readonly scale: Scale
+  readonly scale: AnyScale
   readonly planName: string
   readonly buildingName: string
   readonly sheetTitle: string
@@ -15,7 +15,12 @@ export interface SheetInfo {
   readonly northDeg?: number | null
 }
 
-interface PageProps extends SheetInfo {
+/** What every sheet of one building's drawing shares in its title strip. */
+export interface SheetInfo extends PageInfo {
+  readonly scale: Scale
+}
+
+interface PageProps extends PageInfo {
   readonly tileLabel?: string
   /** Grow past one sheet instead of clipping (tables that run on); the printer breaks it. */
   readonly flow?: boolean
@@ -40,7 +45,7 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
         </div>
         <div className="sheet-title-facts">
           {tileLabel && <span>{tileLabel}</span>}
-          <span>Scale {SCALE_LABEL[scale]}</span>
+          <span>Scale {scaleLabel(scale)}</span>
           <span>{TODAY}</span>
           <span>Islandale Site Planner</span>
         </div>
@@ -59,9 +64,16 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
   )
 }
 
-/** A graphic scale, 0–4–8–16 ft (0–2–4–8 ft at 1/2"), drawn in paper points. */
-function ScaleBar({ scale }: { readonly scale: Scale }) {
-  const marks = scale >= 0.5 ? [0, 2, 4, 8] : [0, 4, 8, 16]
+/** The scale bar's marks, feet: 0–2–4–8 at 1/2", 0–4–8–16 at a building scale, 0–10–20–40–80 at a site scale. */
+export function scaleBarMarks(scale: AnyScale): readonly number[] {
+  if (scale >= 0.5) return [0, 2, 4, 8]
+  if (scale >= 0.125) return [0, 4, 8, 16]
+  return [0, 10, 20, 40, 80]
+}
+
+/** A graphic scale drawn in paper points. */
+function ScaleBar({ scale }: { readonly scale: AnyScale }) {
+  const marks = scaleBarMarks(scale)
   const total = marks[marks.length - 1]
   const pt = (ft: number) => ft * scale * 72
   const w = pt(total)
@@ -102,7 +114,7 @@ export interface Extent {
 }
 
 interface TiledProps {
-  readonly info: SheetInfo
+  readonly info: PageInfo
   readonly extent: Extent
   /** The drawing, in feet; drawn once per tile. */
   readonly children: ReactNode
@@ -138,7 +150,7 @@ export function TiledDrawing({ info, extent, children, label }: TiledProps) {
 }
 
 /** L-shaped marks just inside each tile corner, and its label, for lining up taped sheets. */
-function CropMarks({ tile, extent, scale }: { readonly tile: Tile; readonly extent: Extent; readonly scale: Scale }) {
+function CropMarks({ tile, extent, scale }: { readonly tile: Tile; readonly extent: Extent; readonly scale: AnyScale }) {
   const x0 = extent.x + tile.x
   const y0 = extent.y + tile.y
   const x1 = x0 + tile.w

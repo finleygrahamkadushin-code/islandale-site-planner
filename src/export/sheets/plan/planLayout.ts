@@ -5,7 +5,7 @@
 import { signedArea } from '../../../buildings/footprint'
 import { formatArch } from '../format'
 import { boundsOf } from '../model/model'
-import type { Scale, SheetBounds, SheetBuilding, SheetFloor } from '../types'
+import type { AnyScale, Scale, SheetBounds, SheetBuilding, SheetFloor } from '../types'
 import type { Extent } from '../Page'
 import { arcPoints, openingStops, pointAlong } from './planDims'
 import { earthNotes, earthPlan, type EarthPlan } from './earthLayout'
@@ -27,7 +27,7 @@ const BEYOND_FT = 1 / 48
 const NOTES_GAP_TEXT = 2
 
 /** Paper sizes turned into drawing feet at the scale. */
-export function penSizes(scale: Scale) {
+export function penSizes(scale: AnyScale) {
   return {
     text: ptToFt(7.5, scale),
     small: ptToFt(6.5, scale),

@@ -62,6 +62,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 - **6H · Site plan sheet:**
   - The lot, contours, buildings, walks, setback bands and the buffer line, with the 5E code-check and coverage notes, a north arrow and a scale bar, at true scale.
   - Check-in B: a PDF at 1" = 20' on Tabloid, with the 5E numbers matching the app.
+  - Full plan (check-in A): `PLAN-6H.md`.
 - **6I · Section sheets:**
   - One long and one cross section per building, with the cut chosen on its plan sheet. They show floor, walls, roof, the cut ground and openings, with heights in NAVD88.
   - Check-in B: PDFs of every Scheme C building at 1/4" = 1'-0".
