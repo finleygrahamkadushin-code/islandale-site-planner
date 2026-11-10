@@ -1,9 +1,10 @@
+import { terrainBounds } from '../../site/terrain'
 import type { Terrain } from '../../site/types'
 import type { ObjectId, PlanObject } from '../../store/types'
 import type { Ground } from '../pieces'
 import { CITE, checkPieces, pct, type PieceVerdict } from './routeCheck'
 import { routeAnchors, routeBuildings, routeItems } from './routeCollect'
-import { endKey, LEVEL_M, routeGraph, type RouteAnchor, type RouteGraph } from './routeGraph'
+import { endKey, LEVEL_M, routeGraph, type RouteAnchor, type RouteGraph, type RouteItem } from './routeGraph'
 
 /**
  * The accessible-route verdict per building (old walk-check routes): a
@@ -132,9 +133,16 @@ export function buildingRoutes(G: RouteGraph, pieces: ReadonlyMap<ObjectId, Piec
   })
 }
 
+/** Marks the pieces with an end off the survey grid (it is a rectangle, so both ends on it keep the whole piece on it). */
+function markOffSurvey(items: readonly RouteItem[], terrain: Terrain): RouteItem[] {
+  const b = terrainBounds(terrain)
+  const on = (x: number, n: number) => x >= b.minX && x <= b.maxX && n >= b.minN && n <= b.maxN
+  return items.map((it) => (it.ends.every((e) => on(e.x, e.n)) ? it : { ...it, offSurvey: true }))
+}
+
 /** The whole check for a plan: every piece's verdict and every building's route. */
 export function routeReport(objects: readonly PlanObject[], terrain: Terrain, ground: Ground): RouteReport {
-  const items = routeItems(objects, ground)
+  const items = markOffSurvey(routeItems(objects, ground), terrain)
   const graph = routeGraph(items, routeAnchors(objects, terrain, ground, items))
   const pieces = checkPieces(graph)
   const routes = buildingRoutes(graph, pieces, routeBuildings(objects))

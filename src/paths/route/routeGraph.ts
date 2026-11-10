@@ -1,5 +1,5 @@
 import type { ObjectId } from '../../store/types'
-import type { PathKind } from '../pieces'
+import type { PathKind, Surface } from '../pieces'
 
 /**
  * The route graph (old ext:walk-route and the node pass of ext:walk-check):
@@ -39,6 +39,10 @@ export interface RouteItem {
   /** The walking surface along the piece (distance from A, surface, cross slope). */
   readonly profile: readonly { readonly s: number; readonly z: number; readonly cross: number }[]
   readonly rail: boolean
+  /** Walking surface (R2.10); left out, it isn't checked. */
+  readonly surface?: Surface
+  /** Some of the piece is off the surveyed ground, where the terrain only repeats its edge (R2.11). */
+  readonly offSurvey?: boolean
 }
 
 export type AnchorType = 'driveway' | 'door' | 'wingfoot' | 'wingtop' | 'deck'
