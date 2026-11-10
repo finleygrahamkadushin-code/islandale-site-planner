@@ -19,6 +19,8 @@ export interface PlanObject {
   readonly locked: boolean
   readonly hidden: boolean
   readonly labelVisible: boolean
+  /** Objects sharing a group id are picked, moved and isolated together (flat: groups don't nest). Absent when ungrouped. */
+  readonly group?: string
 }
 
 export interface Plan {

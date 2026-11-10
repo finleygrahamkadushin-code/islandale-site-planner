@@ -336,3 +336,9 @@ Record here any behaviour that the rebuild intentionally does differently from `
   - Partitions are merged into one plan shape per height band, so L corners are closed and T junctions don't overlap. Partition tops under a slab stop 0.01 ft short of it.
   - The spiral landing wedge is left out when a slab covers it.
   - Rooms, partitions and furniture in a raised walled wing sit at the wing's own level.
+- Isolate and groups (Finley's OK, Nov 9 2026; branch `claude/isolate-groups`): the old planner had neither. Both are new:
+  - **Groups** are plan data: an optional `group` id on each object, saved with the plan. Cmd/Ctrl+G groups the selection and Cmd/Ctrl+Shift+G ungroups it; the Inspector's Group and Ungroup buttons do the same. Each is one undo step, refused on a read-only tab and refused whole if any member is locked.
+  - Groups are flat: grouping objects that are already in groups merges them into one new group, with no nesting. A click picks the whole group; Shift-click still adds or takes away one object. Duplicating a whole group gives the copies a new group, and a copy of one member stays in its group.
+  - **Isolate** is view state (`src/tools/isolate.ts`), never undone or saved. Double-click an object, or a group member, to work on it alone. The rest fades to a see-through ghost, or hides with "Hide rest" on the chip, and can't be clicked, hovered or boxed. Its labels and contact shadows go too.
+  - In an open group a click picks one member, and a double-click on a member narrows to it. Objects made while isolated stay in reach.
+  - Esc, Done, a double-click on empty space, Present mode, or losing the isolated object or group to undo, delete or a scheme load leaves isolation.

@@ -20,6 +20,8 @@ The editing tools (Phase 4A): the one current tool (Select, Place, Paint, Connec
 | Box select (Shift-drag on empty ground) | `useBoxSelect.tsx` (window listeners from the ground's press), `arrange.ts` (`idsInBox`) |
 | Align and distribute several objects | `arrange.ts`, `../store/toolActions.ts` (`alignObjects`, `distributeObjects`), the buttons in `../ui/Inspector.tsx` |
 | Group drag (drag any selected object) | `useDragMove.ts` (commits through `nudgeObjects`); `DragState.group` in `../scene/editing.ts` |
+| Groups: group and ungroup (Cmd/Ctrl+G, Shift ungroups), a click picking the whole group, copies' groups | `groups.ts` (pure), `../store/toolActions.ts` (`groupObjects`, `ungroupObjects`, `duplicateObjects`), the buttons in `../ui/Inspector.tsx`, the keys in `../ui/useKeyboardShortcuts.ts` |
+| Isolate and edit: double-click to work on an object or group alone, Esc leaves | `isolate.ts` (the view-state store, `isolationFor`), `IsolateChip.tsx` (the chip, and leaving on Present or when what was isolated is gone); the double-click and the fade are in `../scene/PlanObjects.tsx` and `../scene/Ghosted.tsx`, the empty-space double-click in `../scene/Scene.tsx` |
 | The "Placing: … · Esc stops" chip | `ModeChip.tsx` (Paint keeps its own `../buildings/paint/PaintHud.tsx`) |
 | How the strip, library and tooltips look | the "Tools (4A)" block at the end of `../app/styles.css` |
 
@@ -28,6 +30,7 @@ The editing tools (Phase 4A): the one current tool (Select, Place, Paint, Connec
 - **One tool at a time:** what each tool holds (`placing`, `painting`, `connecting` in the plan store) decides the tool, and each setter clears the other two. `toolOf(state)` is the one reading of it. Switching tools is view state: never an undo step, never saved.
 - **The library:** `library.ts` is pure data. It holds the old planner's `LIB` sizes and colours plus the five path pieces from `../store/pathActions.ts` (`PIECE_LIBRARY`). Path pieces are placed through `addPathPiece`, so they still snap to doors and other pieces; everything else is built by `buildLibraryObject`.
 - **Snapping:** `snap` in the plan store (on by default). Positions snap to the site's 1 ft grid and turns to 5° steps. Holding Shift drags freely.
+- **Groups and isolate:** a group is plan data (`group` on each member, flat, no nesting). Isolating is view state in `useIsolate`, never undone or saved. While isolated, the rest (`isolation.rest`) is ghosted by `Ghosted`, which swaps in one see-through material and turns off raycasting, so clicks pass through it. Box select, labels and contact shadows also skip the rest.
 - **Drags:** the live drag is `useLiveDrag` in `../scene/editing.ts`. The scene draws the object where the drag has it, and the move is committed once on release as one undo step.
 
 ## Changing data (the store)
@@ -36,6 +39,7 @@ Every edit is one undo step, refused on a read-only tab, with a toast saying why
 - **`placeItem`:** refused on a locked layer.
 - **`duplicateObjects`:** refused whole if any object is on a locked layer.
 - **`turnObjects`:** locked objects stay put.
+- **`groupObjects` / `ungroupObjects`:** refused whole if any member is locked; grouping needs two or more objects.
 - **Dragging:** commits through `transformObject`, so locks and path-piece snapping apply as for the gizmo.
 
 ## Talks to (open these only when the task crosses over)
@@ -46,7 +50,7 @@ Every edit is one undo step, refused on a read-only tab, with a toast saying why
 
 ## Checks for this section
 
-- **Unit tests:** `npx vitest run src/tools src/store/tools.test.ts` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root.
-- **Browser tests:** `e2e/tools.spec.ts` (the 4A done-when: place, duplicate, drag, Q / E / R, locks; about 2 minutes). After changing the drag or the keys, also run `e2e/parts.spec.ts`, `chips.spec.ts` and `paths.spec.ts`.
+- **Unit tests:** `npx vitest run src/tools src/store/tools.test.ts src/store/groups.test.ts` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root.
+- **Browser tests:** `e2e/isolate.spec.ts` (double-click, fade, Esc, groups), `e2e/tools.spec.ts` (the 4A done-when: place, duplicate, drag, Q / E / R, locks; about 2 minutes). After changing the drag or the keys, also run `e2e/parts.spec.ts`, `chips.spec.ts` and `paths.spec.ts`.
 - **Test probes:** `islandale.lookAtSite(x, n)` and `islandale.screenOf(x, n)` (in `../scene/CameraRig.tsx`) aim the camera and give a site point's screen position, so a test can click the ground.
 - **New UI:** run the `web-design-guidelines` skill over new tools files before the part's done-when check.

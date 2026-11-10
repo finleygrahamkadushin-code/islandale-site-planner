@@ -38,6 +38,7 @@ import { CompassScale } from '../present/CompassScale'
 import { Splash } from '../present/Splash'
 import { NoWebGL } from '../present/NoWebGL'
 import { hasWebGL2 } from '../present/webgl'
+import { useIsolate, wasClaimed } from '../tools/isolate'
 
 /** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
 const ORBIT_SPEED = 0.6
@@ -52,9 +53,12 @@ export function Scene() {
   const presenting = usePresent((s) => s.presenting)
   const orbit = usePresent((s) => s.orbit)
   const firstFrameDrawn = useSplash((s) => s.ready)
+  // isolate mode: the route and junction chips belong to the whole site, so they step aside
+  const isolating = useIsolate((s) => s.isolation !== null)
   if (!webgl) return <NoWebGL />
   return (
-    <div className="viewport" data-tour="view">
+    // isolate mode: a double-click that no object took (empty space, the ground, a faded object) leaves it
+    <div className="viewport" data-tour="view" onDoubleClick={(e) => !wasClaimed(e.nativeEvent) && useIsolate.getState().leave()}>
     <LabelLayer />
     <PartHud drag={drag} />
     <PaintHud />
@@ -77,8 +81,8 @@ export function Scene() {
       <ClearanceMarks />
       <BoxSelectLayer />
       <ConnectLayer />
-      <JunctionLayer />
-      <RouteChips />
+      {!isolating && <JunctionLayer />}
+      {!isolating && <RouteChips />}
       <LabelProjector drag={drag} />
       {!presenting && <EditGizmos drag={drag} setDrag={setDrag} />}
       {firstFrameDrawn && (

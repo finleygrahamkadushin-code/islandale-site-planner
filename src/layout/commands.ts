@@ -109,6 +109,8 @@ export function commandsFor(s: PlanState): Command[] {
   if (s.selection.length) {
     cmds.push(
       { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: '⌘D', run: () => get().duplicateObjects(get().selection) },
+      { id: 'group', group: 'Selection', label: 'Group the selection', keys: '⌘G', run: () => get().groupObjects(get().selection) },
+      { id: 'ungroup', group: 'Selection', label: 'Ungroup the selection', keys: '⇧⌘G', run: () => get().ungroupObjects(get().selection) },
       { id: 'fly-to', group: 'Selection', label: 'Fly to the selection', keys: 'F', run: () => useFocusRequest.getState().flyTo(get().selection[0]) },
       { id: 'delete', group: 'Selection', label: 'Delete the selection', keys: 'Delete', run: () => requestDelete(get().selection) },
     )

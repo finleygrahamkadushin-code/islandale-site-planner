@@ -9,6 +9,7 @@ import { lazy, Suspense } from 'react'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { ToolStrip } from '../tools/ToolStrip'
 import { ModeChip } from '../tools/ModeChip'
+import { IsolateChip } from '../tools/IsolateChip'
 import { BottomBar } from '../layout/BottomBar'
 import { Overlays } from '../layout/Overlays'
 import { TipProvider } from '../guide/Tip'
@@ -32,6 +33,7 @@ export function App() {
       <Scene />
       <ToolStrip />
       <ModeChip />
+      <IsolateChip />
       <SidePanel />
       <div className="bottom-row">
         <ViewStrip />

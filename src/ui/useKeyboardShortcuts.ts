@@ -9,6 +9,7 @@ import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
 import { isPresenting, usePresent } from '../present/present'
 import { useConfirm } from '../guide/confirm'
+import { useIsolate } from '../tools/isolate'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
@@ -22,7 +23,7 @@ function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
 }
 
-/** Undo/redo, duplicate, the tool keys (toolKeys), delete, escape, Q / E / R turns and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
+/** Undo/redo, duplicate, group (Cmd+G, Shift ungroups), the tool keys (toolKeys), delete, escape, Q / E / R turns and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,6 +67,14 @@ export function useKeyboardShortcuts(): void {
         if (s.selection.length) s.duplicateObjects(s.selection)
         return
       }
+      // Cmd/Ctrl+G groups the selection, with Shift ungroups it (and keeps the browser's find-next away)
+      if (mod && e.key.toLowerCase() === 'g') {
+        e.preventDefault()
+        if (!s.selection.length) return
+        if (e.shiftKey) s.ungroupObjects(s.selection)
+        else s.groupObjects(s.selection)
+        return
+      }
       if (!mod && viewKey(e, s)) {
         e.preventDefault()
         return
@@ -86,7 +95,10 @@ export function useKeyboardShortcuts(): void {
         return
       }
       if (e.key === 'Escape') {
-        s.select([])
+        // isolate mode: Escape leaves it first, keeping the selection
+        const isolate = useIsolate.getState()
+        if (isolate.isolation) isolate.leave()
+        else s.select([])
         return
       }
       if (!s.selection.length) return

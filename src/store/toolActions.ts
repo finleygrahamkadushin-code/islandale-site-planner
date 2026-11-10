@@ -1,6 +1,7 @@
 import { libraryItem, buildLibraryObject } from '../tools/library'
 import { snapDeg, snapPoint } from '../tools/snap'
 import { measureOf, withMeasurement, type MeasurePoint } from '../tools/measure'
+import { copyGroupIds, expandToGroups, freshGroupId, withGroup } from '../tools/groups'
 import { alignedPositions, distributedPositions, type AlignMode, type Axis } from '../tools/arrange'
 import type { Ground } from '../paths/pieces'
 import type { Terrain } from '../site/types'
@@ -54,6 +55,10 @@ export interface ToolActions {
   readonly alignObjects: (ids: readonly ObjectId[], mode: AlignMode) => void
   /** Spread the selection's centres evenly along one axis as one undo step; locked objects stay put. */
   readonly distributeObjects: (ids: readonly ObjectId[], axis: Axis) => void
+  /** Put the objects (and the whole of any group they are in) into one new group as one undo step; refused whole if any is locked or fewer than two. */
+  readonly groupObjects: (ids: readonly ObjectId[]) => string | null
+  /** Take the objects' groups apart (every member, not just these) as one undo step; refused whole if any member is locked. */
+  readonly ungroupObjects: (ids: readonly ObjectId[]) => void
 }
 
 export interface ToolContext {
@@ -153,9 +158,11 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
       const dx = ftToM(DUPLICATE_OFFSET_FT)
       let plan: Plan = s.plan
       const copies: ObjectId[] = []
+      const groups = copyGroupIds(s.plan, sources.map((o) => o.id))
       for (const src of sources) {
         const moved: PlanObject = {
           ...src,
+          ...(src.group ? { group: groups.get(src.group) } : {}),
           id: freshId(plan, 'obj'),
           name: freshName(plan, src.name),
           position: { x: src.position.x + dx, n: src.position.n - dx },
@@ -169,6 +176,36 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
       }
       set({ plan, selection: copies, pickedPart: null })
       return copies
+    },
+
+    groupObjects: (ids) => {
+      if (!writable()) return null
+      const s = get()
+      const members = expandToGroups(s.plan, ids)
+      if (members.length < 2) {
+        s.showToast('Select two or more objects to group')
+        return null
+      }
+      const locked = members.find(isLocked)
+      if (locked) {
+        s.showToast(`${s.plan.objects[locked].name} is locked`)
+        return null
+      }
+      const group = freshGroupId(s.plan)
+      set({ plan: withGroup(s.plan, members, group), selection: members, pickedPart: null })
+      s.showToast(`Grouped ${members.length} objects`)
+      return group
+    },
+
+    ungroupObjects: (ids) => {
+      if (!writable()) return
+      const s = get()
+      const members = expandToGroups(s.plan, ids).filter((id) => s.plan.objects[id].group)
+      if (!members.length) return s.showToast('Nothing selected is grouped')
+      const locked = members.find(isLocked)
+      if (locked) return s.showToast(`${s.plan.objects[locked].name} is locked`)
+      set({ plan: withGroup(s.plan, members, null), selection: members })
+      s.showToast(`Ungrouped ${members.length} objects`)
     },
 
     turnObjects: (ids, byDeg) => {
