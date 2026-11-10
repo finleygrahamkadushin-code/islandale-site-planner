@@ -1,4 +1,4 @@
-import { usePlanStore, type PlanState } from '../store/planStore'
+import { redoPlan, undoPlan, usePlanStore, type PlanState } from '../store/planStore'
 import { DISPLAY_STYLES } from '../store/types'
 import { SAVED_VIEWS } from '../scene/views'
 import { useFocusRequest } from '../scene/cameraFocus'
@@ -97,8 +97,8 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'lock-all', group: 'Plan', label: 'Lock all', run: () => get().lockAll(true) },
     { id: 'unlock-all', group: 'Plan', label: 'Unlock all', run: () => get().lockAll(false) },
     { id: 'show-all', group: 'Plan', label: 'Show everything', run: () => get().showAll() },
-    { id: 'undo', group: 'Plan', label: 'Undo', keys: '⌘Z', run: () => usePlanStore.temporal.getState().undo() },
-    { id: 'redo', group: 'Plan', label: 'Redo', keys: '⇧⌘Z', run: () => usePlanStore.temporal.getState().redo() },
+    { id: 'undo', group: 'Plan', label: 'Undo', keys: '⌘Z', run: () => undoPlan() },
+    { id: 'redo', group: 'Plan', label: 'Redo', keys: '⇧⌘Z', run: () => redoPlan() },
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },

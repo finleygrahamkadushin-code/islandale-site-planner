@@ -5,7 +5,7 @@ import { exportModel } from '../export/model3d/exportModel'
 import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
 import { openScheme, openSchemeNow } from '../site/archive/openScheme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
-import { BLANK_PLAN_NAME, usePlanStore } from '../store/planStore'
+import { BLANK_PLAN_NAME, redoPlan, undoPlan, usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
 import { HistoryMenu } from './HistoryMenu'
 import { TaskTabs } from '../layout/TaskTabs'
@@ -113,12 +113,12 @@ export function TopBar() {
 
       <div className="seg" role="group" aria-label="Undo and redo">
         <Tip label="Undo" keyHint="⌘Z">
-          <button onClick={() => usePlanStore.temporal.getState().undo()} disabled={!canUndo}>
+          <button onClick={() => undoPlan()} disabled={!canUndo}>
             Undo
           </button>
         </Tip>
         <Tip label="Redo" keyHint="⇧⌘Z">
-          <button onClick={() => usePlanStore.temporal.getState().redo()} disabled={!canRedo}>
+          <button onClick={() => redoPlan()} disabled={!canRedo}>
             Redo
           </button>
         </Tip>

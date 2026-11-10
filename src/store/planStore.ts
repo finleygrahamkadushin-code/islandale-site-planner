@@ -415,11 +415,15 @@ export const usePlanStore = create<PlanState>()(
         ...toolActions({ get, set, writable, isLocked: (id) => isObjectLocked(get(), id), terrain: site.terrain, ground: siteGround }),
 
         // the picked part survives only a selection of exactly its own building
-        select: (ids) =>
-          set((s) => ({
-            selection: [...ids],
-            pickedPart: s.pickedPart && ids.length === 1 && ids[0] === s.pickedPart.objectId ? s.pickedPart : null,
-          })),
+        // only ids of objects that exist, once each; a lone id passed as a string (from the console) is one id
+        select: (given) =>
+          set((s) => {
+            const ids = [...new Set(typeof given === 'string' ? [given] : given)].filter((id) => Object.hasOwn(s.plan.objects, id))
+            return {
+              selection: ids,
+              pickedPart: s.pickedPart && ids.length === 1 && ids[0] === s.pickedPart.objectId ? s.pickedPart : null,
+            }
+          }),
         toggleSelect: (id) =>
           set((s) => ({
             selection: s.selection.includes(id) ? s.selection.filter((x) => x !== id) : [...s.selection, id],
@@ -493,6 +497,29 @@ function viewPatch(s: PlanState, { labelMode, layers, environment, setbacks, dis
 }
 
 export const useTemporalStore = usePlanStore.temporal
+
+/** Undo and redo for every button, key and command: refused, with the reason, when this tab may not change the plan. */
+const unlessReadOnly = (step: () => void) => (): void => {
+  const s = usePlanStore.getState()
+  if (s.readOnly) s.showToast(READ_ONLY_TEXT[s.readOnly])
+  else step()
+}
+export const undoPlan = unlessReadOnly(() => usePlanStore.temporal.getState().undo())
+export const redoPlan = unlessReadOnly(() => usePlanStore.temporal.getState().redo())
+
+/** After any change to the plan (undo and redo included), what points at an object that is gone lets go of it. */
+usePlanStore.subscribe((s, prev) => {
+  if (s.plan === prev.plan) return
+  const has = (id: ObjectId) => Object.hasOwn(s.plan.objects, id)
+  const selection = s.selection.filter(has)
+  const patch: Partial<PlanState> = {
+    ...(selection.length < s.selection.length ? { selection } : {}),
+    ...(s.hovered !== null && !has(s.hovered) ? { hovered: null } : {}),
+    ...(s.openingFocus && !has(s.openingFocus.objectId) ? { openingFocus: null } : {}),
+    ...(s.paintFocus && !has(s.paintFocus.objectId) ? { paintFocus: null } : {}),
+  }
+  if (Object.keys(patch).length) usePlanStore.setState(patch)
+})
 
 watchPickedPart(usePlanStore)
 
