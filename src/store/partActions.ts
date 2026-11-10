@@ -1,6 +1,6 @@
 import { buildingMasses, MAX_WINGS, massPoly, wingSlots } from '../buildings/masses'
 import { isRailable } from '../buildings/rails/railRules'
-import { buildingRailStyle, hasRailMap, withRailStyle, writeAll, writeEdge, type RailState, type RailStyle } from '../buildings/rails/railEdits'
+import { buildingRailStyle, hasRailMap, STAIR_SIDES, withRailStyle, writeAll, writeEdge, writeStairJoin, writeStairSide, type RailState, type RailStyle } from '../buildings/rails/railEdits'
 import { wingAt, withAddedWing, withMainEdgeResized, withoutWing, withWing, withWingPatch } from '../buildings/parts/wingEdits'
 import { railDraws } from './railResolver'
 import type { PickedPart, PlanState } from './planStore'
@@ -16,6 +16,7 @@ import type { ObjectId, Plan, PlanObject } from './types'
  */
 
 type Params = Record<string, unknown>
+const isAccess = (kind: string) => kind === 'stair' || kind === 'ramp'
 
 export interface PartActions {
   // parts: mass n (n >= 1) is the n-th wing; each is one undo step, refused when locked
@@ -28,6 +29,8 @@ export interface PartActions {
   readonly resizeMainEdge: (id: ObjectId, edge: number, deltaFt: number) => void
   /** One edge's rail, or every edge's ('all'). A standalone deck is mass 0 and keeps its rails on its own params. */
   readonly setRail: (id: ObjectId, massIndex: number, edge: number | 'all', state: RailState) => void
+  /** A stair or ramp handrail side (edge 1 or 3) carried over its landing to the railing at the top, or not. */
+  readonly setRailJoin: (id: ObjectId, massIndex: number, edge: number, on: boolean) => void
   /** The building's rail style (wood, steel, cable, glass, none). */
   readonly setRailStyle: (id: ObjectId, style: RailStyle) => void
   /** Pick a part (its building becomes the selection), or null to go back to the whole building. Not an undo step. */
@@ -121,8 +124,12 @@ export function partActions({ get, set, editable, edit, editRefit, refitObject }
         if (deck && mi !== 0) throw new Error('a standalone deck is mass 0')
         const mass = buildingMasses(o.params)[mi]
         if (!mass) throw new Error(`no mass ${mi}`)
-        // stairs and ramps carry handrails by their style, walls none; only decks and porches rail per edge
-        if (!deck && !isRailable(mass)) throw new Error(`mass ${mi} of "${id}" is a ${mass.kind}; only decks and porches rail per edge`)
+        // stairs and ramps: a handrail per side (edges 1 and 3), on or off; walls never rail
+        if (!deck && isAccess(mass.kind)) {
+          const sides = edge === 'all' ? STAIR_SIDES : [edge]
+          return { ...o, params: withWing(o.params, mi, (w) => sides.reduce((x, e) => writeStairSide(x, e, state), w)) }
+        }
+        if (!deck && !isRailable(mass)) throw new Error(`mass ${mi} of "${id}" is a ${mass.kind}; only decks, porches, stairs and ramps rail`)
         const src = deck ? o.params : wingAt(o.params, mi)
         const n = massPoly(mass).length
         const s = get()
@@ -137,6 +144,13 @@ export function partActions({ get, set, editable, edit, editRefit, refitObject }
         return { ...o, params: deck ? write(o.params) : withWing(o.params, mi, write) }
       }),
 
+    setRailJoin: (id, mi, edge, on) =>
+      edit(id, (o) => {
+        const mass = o.type === 'house' ? buildingMasses(o.params)[mi] : undefined
+        if (!mass || !isAccess(mass.kind)) throw new Error(`mass ${mi} of "${id}" is not a stair or ramp`)
+        return { ...o, params: withWing(o.params, mi, (w) => writeStairJoin(w, edge, on)) }
+      }),
+
     setRailStyle: (id, style) => {
       const o = get().plan.objects[id]
       if (o && buildingRailStyle(o.params) === style) return
@@ -146,7 +160,8 @@ export function partActions({ get, set, editable, edit, editRefit, refitObject }
     pickPart: (p) => {
       if (!p) return set({ pickedPart: null })
       if (!partExists(get().plan, p)) return
-      set({ pickedPart: { objectId: p.objectId, mass: p.mass }, selection: [p.objectId] })
+      const rail = Number.isInteger(p.rail) ? p.rail : undefined
+      set({ pickedPart: rail === undefined ? { objectId: p.objectId, mass: p.mass } : { objectId: p.objectId, mass: p.mass, rail }, selection: [p.objectId] })
     },
   }
 }

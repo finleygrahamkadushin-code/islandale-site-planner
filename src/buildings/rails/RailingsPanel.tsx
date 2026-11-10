@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { buildingMasses, deckObjectMass, type Mass } from '../masses'
 import { railRowText, railTarget } from '../parts/partFields'
-import { buildingRailStyle, RAIL_STYLES, type RailState, type RailStyle } from './railEdits'
+import { buildingRailStyle, RAIL_STYLES, stairSideState, type RailState, type RailStyle } from './railEdits'
+import { wingAt } from '../parts/wingEdits'
+import { wingHost } from '../stairs/stairWing'
 import { isRailable, type EdgeRail } from './railRules'
 import { objectRails } from './railSite'
 import { useRailWorld } from './useRailWorld'
@@ -11,6 +13,9 @@ import { InspectorSection } from '../../ui/InspectorSection'
 
 const STATES: readonly RailState[] = ['on', 'off', 'auto']
 const STYLE_LABELS: Record<RailStyle, string> = { wood: 'wood', steel: 'steel', cable: 'cable', glass: 'glass', none: 'none (hidden)' }
+const isAccess = (m: Mass) => m.kind === 'stair' || m.kind === 'ramp'
+/** Decks and porches rail per edge; stairs and ramps per handrail side. */
+const hasRails = (m: Mass) => isRailable(m) || isAccess(m)
 const HINT = 'Auto = a guard wherever the floor is more than 30 in above the ground (IRC R312.1). Click the rail chips in 3D to cycle auto → on → off.'
 
 /**
@@ -28,8 +33,8 @@ export function RailingsPanel({ id }: { readonly id: string }) {
   const masses = useMemo(() => (o ? (o.type === 'deck' ? [deckObjectMass(o.params)] : buildingMasses(o.params)) : []), [o])
   if (!o || (o.type !== 'house' && o.type !== 'deck')) return null
   const deck = o.type === 'deck'
-  const mi = deck ? 0 : part?.objectId === id && part.mass > 0 && masses[part.mass] && isRailable(masses[part.mass]) ? part.mass : null
-  const railable = deck ? [] : masses.flatMap((m, i) => (i > 0 && isRailable(m) ? [i] : []))
+  const mi = deck ? 0 : part?.objectId === id && part.mass > 0 && masses[part.mass] && hasRails(masses[part.mass]) ? part.mass : null
+  const railable = deck ? [] : masses.flatMap((m, i) => (i > 0 && hasRails(m) ? [i] : []))
   if (!deck && !railable.length) return null
   return (
     <InspectorSection
@@ -43,7 +48,7 @@ export function RailingsPanel({ id }: { readonly id: string }) {
     >
       {mi === null ? (
         <>
-          <p className="muted small">Pick a deck or porch to set its railings (or click it again in 3D):</p>
+          <p className="muted small">Pick a deck, porch or stair to set its railings (or click it again in 3D):</p>
           <div className="actions">
             {railable.map((i) => (
               <button key={i} type="button" onClick={() => pickPart({ objectId: id, mass: i })}>
@@ -52,6 +57,8 @@ export function RailingsPanel({ id }: { readonly id: string }) {
             ))}
           </div>
         </>
+      ) : isAccess(masses[mi]) ? (
+        <StairRails o={o} masses={masses} mi={mi} locked={locked} />
       ) : (
         <RailEdges o={o} m={masses[mi]} mi={mi} locked={locked} />
       )}
@@ -93,6 +100,46 @@ function RailEdges({ o, m, mi, locked }: { readonly o: PlanObject; readonly m: M
         </select>
       </label>
       <p className="muted small">{HINT}</p>
+    </>
+  )
+}
+
+const SIDES: readonly { readonly edge: number; readonly label: string }[] = [
+  { edge: 3, label: 'Left handrail' },
+  { edge: 1, label: 'Right handrail' },
+]
+
+/** A stair's or ramp's handrails (deliberate addition, PLAN.md): each side on or off, and joined to the railing at its top. */
+function StairRails({ o, masses, mi, locked }: { readonly o: PlanObject; readonly masses: readonly Mass[]; readonly mi: number; readonly locked: boolean }) {
+  const setRail = usePlanStore((s) => s.setRail)
+  const setRailJoin = usePlanStore((s) => s.setRailJoin)
+  const raw = wingAt(o.params, mi)
+  const hosted = !!wingHost(masses, mi)
+  return (
+    <>
+      <ul className="rail-rows">
+        {SIDES.map(({ edge, label }) => {
+          const st = stairSideState(raw, edge)
+          return (
+            <li key={edge} className="rail-row" data-testid={`stair-rail-${mi}-${edge}`}>
+              <span>{label}</span>
+              <span className="seg">
+                {(['on', 'off'] as const).map((s) => (
+                  <button key={s} type="button" className={st.on === (s === 'on') ? 'on' : ''} disabled={locked} aria-pressed={st.on === (s === 'on')} onClick={() => setRail(o.id, mi, edge, s)}>
+                    {s}
+                  </button>
+                ))}
+              </span>
+              {hosted && (
+                <label className="row small">
+                  <input type="checkbox" checked={st.join} disabled={locked || !st.on} onChange={(e) => setRailJoin(o.id, mi, edge, e.target.checked)} /> join
+                </label>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      <p className="muted small">Join carries a handrail over the landing to the railing at the top. Click a rail in 3D to remove it on its own.</p>
     </>
   )
 }

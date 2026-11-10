@@ -205,8 +205,56 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
     if (alt) await page.keyboard.down('Alt')
     await page.mouse.click(p.x, p.y)
     if (alt) await page.keyboard.up('Alt')
-    await expect.poll(state, { message: `${alt ? 'Alt+' : ''}click at ${Math.round(p.x)}, ${Math.round(p.y)}` }).toEqual({ selection: [id], picked: { objectId: id, mass: 3 } })
+    // the click lands on one rail of the deck, which is picked with it (Remove rail, PLAN.md)
+    await expect
+      .poll(state, { message: `${alt ? 'Alt+' : ''}click at ${Math.round(p.x)}, ${Math.round(p.y)}` })
+      .toEqual({ selection: [id], picked: { objectId: id, mass: 3, rail: expect.any(Number) } })
   }
+})
+
+test('a rail clicked in 3D can be removed on its own from its chip, and undo puts it back', async ({ page }) => {
+  test.setTimeout(120_000)
+  await load(page, 'C')
+  const id = 'C-0'
+  await expect.poll(async () => (await railedEdges(page))[id]?.[3], { timeout: 30_000 }).toBeTruthy()
+  await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 9), id)
+  await store(page, 'select', [id])
+  const spots: { x: number; y: number }[] = await page.evaluate((id) => (window as any).islandale.railPointsOf(id, 3), id)
+  expect(spots.length).toBeGreaterThan(0)
+  const before = await railedEdges(page)
+  await page.mouse.click(spots[0].x, spots[0].y)
+  const rail: number = await expect
+    .poll(() => page.evaluate(() => (window as any).islandale.store.getState().pickedPart?.rail))
+    .toEqual(expect.any(Number))
+    .then(() => page.evaluate(() => (window as any).islandale.store.getState().pickedPart.rail))
+  expect(before[id][3]).toContain(rail)
+  await page.getByTestId('rail-remove').click()
+  await expect.poll(async () => (await railedEdges(page))[id][3], { timeout: 15_000 }).not.toContain(rail)
+  const after = await railedEdges(page)
+  expect(after[id][3]).toEqual(before[id][3].filter((e: number) => e !== rail))
+  await expect(page.getByTestId('rail-pick')).toHaveCount(0)
+  await undo(page)
+  await expect.poll(() => railedEdges(page), { timeout: 15_000 }).toEqual(before)
+})
+
+test("a stair's handrails: one side off from the Railings panel, and Fit to code lengthens a steep stair", async ({ page }) => {
+  test.setTimeout(120_000)
+  await load(page, 'C')
+  const id = 'C-1'
+  await expect.poll(async () => (await railedEdges(page))[id]?.[2], { timeout: 30_000 }).toEqual([1, 3])
+  await store(page, 'pickPart', { objectId: id, mass: 2 })
+  await openSection(page, 'railings')
+  await page.getByTestId('stair-rail-2-1').getByRole('button', { name: 'off' }).click()
+  await expect.poll(async () => (await railedEdges(page))[id]?.[2], { timeout: 15_000 }).toEqual([3])
+  await undo(page)
+  await expect.poll(async () => (await railedEdges(page))[id]?.[2], { timeout: 15_000 }).toEqual([1, 3])
+
+  await expect(page.getByTestId('part-notes')).toContainText('treads under 11 in')
+  const run = (await wings(page, id))[1].d
+  await page.getByTestId('stair-fit').click()
+  await expect.poll(async () => (await wings(page, id))[1].d).toBeGreaterThan(run)
+  await expect(page.getByTestId('part-notes')).not.toContainText('treads under 11 in')
+  await expect(page.getByTestId('stair-fit')).toHaveCount(0)
 })
 
 test('hiding a cabin with a part picked takes its chips, grip and knob away with it, by its own Hide or its layer', async ({ page }) => {

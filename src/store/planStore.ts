@@ -58,6 +58,8 @@ export interface OpeningFocus {
 export interface PickedPart {
   readonly objectId: ObjectId
   readonly mass: number
+  /** One rail of the part picked in 3D (its edge), for Remove rail and Join. */
+  readonly rail?: number
 }
 
 export interface Toast {

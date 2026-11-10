@@ -33,7 +33,8 @@ function railed(plan: Plan): Record<string, Record<number, number[]>> {
 
 describe('Schemes C and C2–C4 rail where they did', () => {
   // the same table as e2e/paths-rails.spec.ts (LEGACY_RAILED), read from the old planner
-  const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [2, 3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
+  // the prow's front stair runs into rising ground, so its handrails stop with its treads (PLAN.md, stairs into the ground)
+const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
   for (const id of ['C', 'C2', 'C3', 'C4']) {
     test(`${id}: the same masses carry rails`, () => {
       const byMass = railed(schemePlan(id))
@@ -44,8 +45,8 @@ describe('Schemes C and C2–C4 rail where they did', () => {
 
   test('C rails these edges (what railedEdges() reports in the scene)', () => {
     expect(railed(schemePlan('C'))).toEqual({
-      // the prow: its stair, and its curved deck except the sitting-step edges and where it runs along the walls
-      'C-0': { 2: [1, 3], 3: [0, 1, 2, 15, 16, 32] },
+      // the prow: its curved deck (its stair runs into the ground) except the sitting-step edges and where it runs along the walls
+      'C-0': { 3: [0, 1, 2, 15, 16, 32] },
       'C-1': { 1: [0, 1, 2, 3], 2: [1, 3] },
       'C-2': { 1: [1, 2, 3], 2: [1, 3], 3: [0, 1, 2, 3] },
       // the wedge deck keeps rail 'sides': its ends (edges 1 and 3) stay open
@@ -122,6 +123,38 @@ describe('the store keeps what is drawn on the first per-edge write', () => {
         })
       }
     }
+  })
+
+  test("removing one handrail of C's lantern stair keeps the other; undo brings it back", () => {
+    const info = () => stairInfo(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['C-1'], 2)!
+    expect(info().rails.map((r) => r.side)).toEqual([-1, 1])
+    store().setRail('C-1', 2, 1, 'off')
+    expect(info().rails.map((r) => r.side)).toEqual([-1])
+    store().setRail('C-1', 2, 3, 'off')
+    expect(info().rails).toEqual([])
+    store().setRail('C-1', 2, 1, 'on')
+    expect(info().rails.map((r) => r.side)).toEqual([1])
+    usePlanStore.temporal.getState().undo()
+    usePlanStore.temporal.getState().undo()
+    usePlanStore.temporal.getState().undo()
+    expect(info().rails.map((r) => r.side)).toEqual([-1, 1])
+  })
+
+  test("C's lantern stair handrails join the porch railing at their top by default; Join off stops one", () => {
+    const info = () => stairInfo(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['C-1'], 2)!
+    expect(info().rails.map((r) => r.joined)).toEqual([true, true])
+    store().setRailJoin('C-1', 2, 3, false)
+    expect(info().rails.map((r) => r.joined)).toEqual([false, true])
+    store().setRailJoin('C-1', 2, 3, true)
+    expect(info().rails.map((r) => r.joined)).toEqual([true, true])
+  })
+
+  test('a locked cabin refuses a stair handrail or Join change', () => {
+    store().setLocked('C-1', true)
+    const before = store().plan
+    store().setRail('C-1', 2, 1, 'off')
+    store().setRailJoin('C-1', 2, 1, false)
+    expect(store().plan).toBe(before)
   })
 
   test('the resolver answers for a deck or porch and not for a stair', () => {

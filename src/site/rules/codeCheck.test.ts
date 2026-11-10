@@ -46,6 +46,7 @@ describe('code check', () => {
       'Guards · IRC R312.1',
       'Rail clearance',
       'Handrails · R311.7.8 / R311.8.3',
+      'Stair risers & treads · R311.7.5 / R311.8.1',
       'Tree zone 1 (0–35 ft)',
       'Accessible route · ADA 402–405',
       'Path pieces',
@@ -63,6 +64,16 @@ describe('code check', () => {
     expect(row(rows, 'handrails').verdict).toBe('pass')
     expect(row(rows, 'rail-clearance').verdict).toBe('note')
     expect(row(rows, 'tree-zone').verdict).toBe('note')
+  })
+
+  it('fails the stair row on Scheme C: the prow stair runs into the ground, the family stairs are too steep and the twin pod meets nothing', () => {
+    const stairs = row(check(C, 'C').rows, 'stairs')
+    expect(stairs.verdict).toBe('fail')
+    expect(stairs.text).toContain('Gathering prow · Stair 2 runs into the ground')
+    expect(stairs.text).toContain('Family lantern · Stair 2 too steep')
+    expect(stairs.text).toContain('Family twin pod · Stair 2 too steep')
+    expect(stairs.text).toContain('Family twin pod · Stair 2 meets nothing at its top')
+    expect(stairs.names.map((n) => n.id).sort()).toEqual(['C-0', 'C-1', 'C-2'])
   })
 
   it('fails the shoreline row at a 150 ft setback and names the cabins', () => {
@@ -88,7 +99,7 @@ describe('code check', () => {
   it('gives only notes for a rules-off scheme', () => {
     const r = check(objectsOf('D'), 'D')
     expect(r.rulesOff).toBe(true)
-    expect(r.rows).toHaveLength(11)
+    expect(r.rows).toHaveLength(12)
     expect(r.rows.every((x) => x.verdict === 'note')).toBe(true)
   })
 })

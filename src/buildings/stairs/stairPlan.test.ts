@@ -108,6 +108,32 @@ describe('planStair: a stair', () => {
     expect(planStair(base).info.posts).toBe(0)
   })
 
+  test('a stair run into rising ground stops where its treads meet the ground (C prow, E longhouse)', () => {
+    // 6 risers over a 2 m run, but the ground climbs from 0.9 m down at the top to level with the floor at the foot
+    const rising = (z: number) => -0.9 + ((z + 1) / 2) * 0.9
+    const { items, info } = planStair({ ...base, groundAt: rising })
+    expect(info.buried).toBeGreaterThan(0)
+    expect(info.footAbove).toBe(true)
+    expect(of(items, 'foot')).toHaveLength(0)
+    // every tread drawn sits on or over the ground
+    const t = box(of(items, 'tread')[0].mesh)
+    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe((info.n - info.buried) * 12)
+    expect(t.max[2]).toBeLessThan(1)
+    // handrails stop over the last tread, not out in the grass
+    for (const r of info.rails) expect(r.zb).toBeLessThanOrEqual(t.max[2] + 1e-6)
+    // ground above the floor everywhere: nothing of the stair is drawn but its fitting
+    const buriedAll = planStair({ ...base, drop: 0.3, groundAt: () => 0.3 })
+    expect(buriedAll.info.buried).toBe(buriedAll.info.n)
+    expect(of(buriedAll.items, 'tread')).toHaveLength(0)
+    expect(of(buriedAll.items, 'rail')).toHaveLength(0)
+  })
+
+  test('a stair on ground that falls with it is drawn whole', () => {
+    const { info } = planStair({ ...base, groundAt: flatGround(0.9) })
+    expect(info.buried).toBe(0)
+    expect(info.footAbove).toBe(false)
+  })
+
   test('the riser count can be forced (path pieces)', () => {
     const { info } = planStair({ ...base, n: 3 })
     expect(info.n).toBe(3)

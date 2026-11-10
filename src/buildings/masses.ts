@@ -69,6 +69,8 @@ export interface Mass {
   readonly footZ?: number
   /** Stair handrails start back from a door at the top: true, false, or undefined to decide from the doors. */
   readonly clearTop?: boolean
+  /** Stair and ramp handrails: false on edge 1 (right) or 3 (left) stops that side joining the railing at its top; missing joins. */
+  readonly railJoin?: Readonly<Record<number, boolean>>
 }
 
 const KINDS: readonly MassKind[] = ['wall', 'porch', 'deck', 'stair', 'ramp']
@@ -152,6 +154,7 @@ function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mas
     name: !isMain && typeof p.name === 'string' && p.name ? p.name : undefined,
     footZ: typeof p.footZ === 'number' && Number.isFinite(p.footZ) ? p.footZ : undefined,
     clearTop: typeof p.clearTop === 'boolean' ? p.clearTop : undefined,
+    railJoin: access && isRecord(p.railJoin) ? railMap(p.railJoin, 4) : undefined,
   }
 }
 

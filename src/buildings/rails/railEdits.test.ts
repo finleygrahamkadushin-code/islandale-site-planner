@@ -2,6 +2,9 @@ import { describe, expect, test } from 'vitest'
 import {
   buildingRailStyle,
   cycle,
+  stairSideState,
+  writeStairJoin,
+  writeStairSide,
   hasRailMap,
   materialise,
   railStates,
@@ -108,5 +111,29 @@ describe('rail style', () => {
     const kept = withRailStyle({ ext: { masses: { '1': {} }, parts: { rail: { style: 'cable', color: '#000' }, roof: 'x' } } }, 'wood')
     expect(kept).toEqual({ ext: { masses: { '1': {} }, parts: { roof: 'x', rail: { color: '#000' } } } })
     expect(() => withRailStyle({}, 'chrome' as never)).toThrow()
+  })
+})
+
+describe('stair handrail sides and Join', () => {
+  test('a side off is stored false in the per-edge map; on removes it, and an empty map goes', () => {
+    const off = writeStairSide({ kind: 'stair' }, 1, 'off')
+    expect(off.rails).toEqual({ 1: false })
+    expect(stairSideState(off, 1).on).toBe(false)
+    expect(stairSideState(off, 3).on).toBe(true)
+    expect(writeStairSide(off, 1, 'on')).toEqual({ kind: 'stair' })
+  })
+
+  test("the old whole-stair rail: false becomes both sides off, so one turned on leaves the other off", () => {
+    const one = writeStairSide({ kind: 'stair', rail: false }, 3, 'on')
+    expect(one).toEqual({ kind: 'stair', rails: { 1: false } })
+  })
+
+  test('Join is on unless stored off, and only edges 1 and 3 are handrails', () => {
+    const off = writeStairJoin({}, 3, false)
+    expect(off.railJoin).toEqual({ 3: false })
+    expect(stairSideState(off, 3).join).toBe(false)
+    expect(writeStairJoin(off, 3, true)).toEqual({})
+    expect(() => writeStairSide({}, 0, 'off')).toThrow()
+    expect(() => writeStairJoin({}, 2, true)).toThrow()
   })
 })

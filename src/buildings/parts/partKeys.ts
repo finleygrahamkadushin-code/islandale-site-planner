@@ -25,10 +25,15 @@ export function partKey(e: Pick<KeyboardEvent, 'key' | 'shiftKey'>, get: () => P
   const part = pickedPartOf(s)
   if (!part) return false
   if (e.key === 'Escape') {
-    s.pickPart(null)
+    // a picked rail goes first, then the part
+    s.pickPart(part.rail !== undefined ? { objectId: part.objectId, mass: part.mass } : null)
     return true
   }
   const o = s.plan.objects[part.objectId]
+  if (part.rail !== undefined && (e.key === 'Delete' || e.key === 'Backspace')) {
+    removePickedRail(get)
+    return true
+  }
   const m = buildingMasses(o.params)[part.mass]
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (part.mass === 0) {
@@ -57,3 +62,15 @@ export function partKey(e: Pick<KeyboardEvent, 'key' | 'shiftKey'>, get: () => P
 }
 
 const round3 = (v: number) => Math.round(v * 1000) / 1000
+
+/** Remove rail (deliberate addition, PLAN.md): the picked rail's edge off, one undo step; the part stays picked. */
+export function removePickedRail(get: () => PlanState): void {
+  const s = get()
+  const part = pickedPartOf(s)
+  if (!part || part.rail === undefined) return
+  const before = s.plan
+  s.setRail(part.objectId, part.mass, part.rail, 'off')
+  if (get().plan === before) return
+  s.pickPart({ objectId: part.objectId, mass: part.mass })
+  s.showToast('Removed rail · Undo brings it back')
+}

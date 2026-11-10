@@ -11,6 +11,8 @@ const MIN_RAIL_M = 0.25
 /** With a door at the top, the handrail starts this much further down and has no top post. */
 export const CLEAR_TOP_M = 0.3
 const BALUSTER_GAP_M = 0.1
+/** A joined handrail's newel stands this far in from the host edge. */
+const JOIN_IN_M = 0.03
 const BALUSTER_M = 0.015
 
 /** Rail section: 0.06 for wood and glass, 0.035 for steel and cable (legacy rT). */
@@ -26,6 +28,8 @@ export interface StairRailInfo {
   readonly posts: readonly number[]
   readonly balusters: number
   readonly skipped: boolean
+  /** Carried on over the landing to the railing at the top (Join). */
+  readonly joined?: boolean
 }
 
 export interface HandrailCtx {
@@ -52,7 +56,7 @@ export interface Handrail {
  * style's infill: wood balusters every 0.1 m, two steel rails, cables every
  * 0.08 m, or a glass pane.
  */
-export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number, line: (z: number) => number, surf: (z: number) => number): Handrail {
+export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number, line: (z: number) => number, surf: (z: number) => number, join = false): Handrail {
   const xr = sg * (c.w / 2 - 0.03)
   const za = Math.max(zMin, c.zt(xr) + 0.05) + (c.clearTop ? CLEAR_TOP_M : 0)
   const zb = zMax
@@ -60,6 +64,13 @@ export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number,
   const { H, rT } = c
   const gb = emptyMesh()
   beam(gb, xr, za, line(za) + H, zb, line(zb) + H, rT, rT)
+  // Join (PLAN.md): the top rail carries on level over the landing to the host edge, where a newel meets the railing's end post
+  const zj = c.zt(xr) + JOIN_IN_M
+  const joined = join && !c.clearTop && za - zj > rT
+  if (joined) {
+    beam(gb, xr, zj, line(za) + H, za, line(za) + H, rT, rT)
+    box(gb, xr - rT / 2, xr + rT / 2, line(za), line(za) + H, zj - rT / 2, zj + rT / 2)
+  }
   const m = Math.max(1, Math.ceil((zb - za) / POST_GAP_M - 1e-9))
   const posts: number[] = []
   for (let k = c.clearTop ? 1 : 0; k <= m; k++) {
@@ -95,5 +106,5 @@ export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number,
           xr + 0.006,
         )
       : null
-  return { info: { side: sg, za, zb, posts, balusters, skipped: false }, frame: gb, glass }
+  return { info: { side: sg, za, zb, posts, balusters, skipped: false, joined }, frame: gb, glass }
 }

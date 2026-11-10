@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { massOf } from '../buildings/parts/partFrame'
+import { railHit } from './railHit'
 import { firstPaintHit, isPaintable } from '../buildings/paint/paintHit'
 import { usePaintHover } from '../buildings/paint/paintHover'
 import { usePresent } from '../present/present'
@@ -54,7 +55,7 @@ export function useObjectInteraction(o: PlanObject) {
       const already = s.selection.length === 1 && s.selection[0] === o.id
       const mass = o.type === 'house' ? massOf(e.object) : undefined
       if (mass !== undefined && (already || e.altKey)) {
-        if (e.delta < PICK_SLOP_PX) s.pickPart({ objectId: o.id, mass })
+        if (e.delta < PICK_SLOP_PX) s.pickPart({ objectId: o.id, mass, rail: railHit(o, mass, e) })
         return
       }
       // a click picks the whole group, except inside the group open in isolation

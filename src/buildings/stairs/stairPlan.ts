@@ -43,6 +43,10 @@ export interface StairSpec {
   readonly footPlate?: boolean
   /** Riser count override (path pieces). */
   readonly n?: number
+  /** Handrail sides left out: -1 the left (edge 3), +1 the right (edge 1). */
+  readonly railOff?: readonly (-1 | 1)[]
+  /** Handrail sides carried over the landing to the railing at the top (Join). */
+  readonly railJoin?: readonly (-1 | 1)[]
 }
 
 export interface StairInfo {
@@ -66,6 +70,10 @@ export interface StairInfo {
   readonly posts: number
   /** Treads (or the sloped slab) the host curve left nothing of. */
   readonly dropped: number
+  /** Treads left out because the ground stands over them (a stair run into rising ground). */
+  readonly buried: number
+  /** The ground at the foot is above where the stair comes down: it runs into the ground. */
+  readonly footAbove: boolean
   /** The top tread's (ramp: top plate's) polygons, fitted to the host. */
   readonly topTread: readonly (readonly XZ[])[]
   readonly topNosingZ: number
@@ -86,6 +94,8 @@ const RAMP_T = 0.15
 const CURB_M = 0.05
 const SKIRT_T = 0.025
 const RAMP_MAX_SLOPE = 1 / 12
+/** A tread or the foot counts as under the ground when the ground is this far over it. */
+const GROUND_TOL_M = 0.02
 
 const sortedUnique = (zs: readonly number[], lo: number, hi: number) =>
   zs
@@ -103,6 +113,8 @@ interface Ctx {
   readonly gAt: (z: number) => number
   readonly railOn: boolean
   readonly rail: HandrailCtx
+  readonly railOff: readonly (-1 | 1)[]
+  readonly railJoin: readonly (-1 | 1)[]
 }
 
 /** Plan a stair or ramp wing: its pieces (stair frame metres) and the numbers the part inspector shows. */
@@ -122,14 +134,14 @@ export function planStair(spec: StairSpec): StairPlan {
   const clearTop = !!spec.clearTop
   const railH = spec.railH && spec.railH > 0.3 ? spec.railH : WING_RAIL_M
   const rT = spec.rT && spec.rT > 0.005 ? spec.rT : railSection(style)
-  const c: Ctx = { w, run, drop, zf: run / 2, Ht, zt, gAt, railOn: spec.rail !== false && style !== 'none', rail: { w, H: railH, rT, style, clearTop, zt } }
+  const c: Ctx = { w, run, drop, zf: run / 2, Ht, zt, gAt, railOn: spec.rail !== false && style !== 'none', rail: { w, H: railH, rT, style, clearTop, zt }, railOff: spec.railOff ?? [], railJoin: spec.railJoin ?? [] }
   const items: StairItem[] = []
   const add = (role: StairRole, mat: StairMat, mesh: MeshData | null, side?: -1 | 1) => {
     if (mesh && mesh.positions.length) items.push(side ? { role, mat, mesh, side } : { role, mat, mesh })
   }
   const body = spec.kind === 'ramp' ? planRamp(c, add) : planSteps(c, spec, add)
   const footPlate = spec.footPlate ?? true
-  if (footPlate) add('foot', 'foundation', box(emptyMesh(), -w / 2 - 0.05, w / 2 + 0.05, -drop - 0.08, -drop + 0.02, c.zf - 0.05, c.zf + 0.55))
+  if (footPlate && !body.footAbove) add('foot', 'foundation', box(emptyMesh(), -w / 2 - 0.05, w / 2 + 0.05, -drop - 0.08, -drop + 0.02, c.zf - 0.05, c.zf + 0.55))
   return { items, info: { kind: spec.kind, w, run, drop, clearTop, ...body } }
 }
 
@@ -138,11 +150,12 @@ type Body = Omit<StairInfo, 'kind' | 'w' | 'run' | 'drop' | 'clearTop'>
 
 /** Both sides' handrails, added as items; their info. */
 function rails(c: Ctx, add: Add, zMin: number, zMax: number, line: (z: number) => number, surf: (z: number) => number): StairRailInfo[] {
-  return ([-1, 1] as const).map((sg) => {
-    const r = handrail(c.rail, sg, zMin, zMax, line, surf)
+  return ([-1, 1] as const).flatMap((sg) => {
+    if (c.railOff.includes(sg)) return []
+    const r = handrail(c.rail, sg, zMin, zMax, line, surf, c.railJoin.includes(sg))
     add('rail', 'rail', r.frame, sg)
     add('glass', 'glass', r.glass, sg)
-    return r.info
+    return [r.info]
   })
 }
 
@@ -159,12 +172,18 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   const Z = (i: number) => -run / 2 + i * tread
   const z1 = Z(1)
   const top = hTop(Ht)
+  // a tread whose top is under the ground at its middle is left out, with everything below and after it
+  const under = (i: number) => c.gAt(Z(i) + tread / 2) > -i * rise + GROUND_TOL_M
+  let firstUnder = n
+  for (let i = 0; i < n; i++) if (under(i)) { firstUnder = i; break }
+  const zEnd = firstUnder < n ? Math.max(Z(0), Z(firstUnder) - nos) : zf
+  const footAbove = c.gAt(zf) > -drop + GROUND_TOL_M
 
   // treads, 0.04 thick with the nosing over the riser; tread 0 is fitted to the host, flush with its surface
   const tg = emptyMesh()
   let dropped = 0
   let topTread: XZ[][] = []
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < firstUnder; i++) {
     const low = i === 0 ? Ht : top > Z(i) + 1e-9 ? hMax(Ht, Z(i) - nos) : hFlat(w, Z(i) - nos)
     const polys = band(low, Z(i + 1))
     if (i === 0) topTread = polys
@@ -173,11 +192,11 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   }
   // closed risers behind each nosing, down to the next tread (the last to the ground)
   const rg = emptyMesh()
-  for (let j = 1; j <= n; j++) {
+  for (let j = 1; j <= firstUnder; j++) {
     const za = Z(j) - nos - RISER_T
     const zb = Z(j) - nos
     const yt = -(j - 1) * rise - TREAD_T
-    const yb = j < n ? -j * rise : -drop
+    const yb = Math.max(j < n ? -j * rise : -drop, Math.min(yt, c.gAt(zb)))
     if (!(yt - yb > 0.005)) continue
     const low = top > za + 1e-9 ? hMax(Ht, za) : hFlat(w, za)
     for (const p of band(low, zb)) slab(rg, p, () => yt, yt - yb)
@@ -196,18 +215,19 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   for (const sg of [-1, 1]) {
     const xs = sg * (w / 2 - 0.02)
     const zs = c.zt(xs)
-    if (zs > zf - 0.15) continue
-    const brk = [zs, z1, zf]
+    const zS = Math.min(zf, zEnd)
+    if (zs > zS - 0.15) continue
+    const brk = [zs, z1, zS]
     if (rise > 1e-6) brk.push(z1 + ((0.02 - Dv + STRINGER_D) * tread) / rise, z1 + ((0.02 - Dv + drop) * tread) / rise)
-    const Zs = sortedUnique(brk, zs, zf)
+    const Zs = sortedUnique(brk, zs, zS)
     const upper: XZ[] = Zs.map((z) => [z, yu(z)])
     const lower: XZ[] = [...Zs].reverse().map((z) => [z, Math.min(ybl(z), yu(z) - 0.02)])
-    lower[0] = [zf, -drop]
+    if (zS >= zf) lower[0] = [zf, -drop]
     prismX(sgb, [...upper, ...lower], sg > 0 ? w / 2 - STRINGER_W : -w / 2, sg > 0 ? w / 2 : -w / 2 + STRINGER_W)
     // support posts every 2.4 m of run where the stringer is more than 0.4 m off the ground (ground read on the centre line)
     for (let k = 1; ; k++) {
       const zp = -run / 2 + POST_SPACING_M * k
-      if (zp >= zf - 0.3) break
+      if (zp >= zS - 0.3) break
       if (zp < zs + 0.1) continue
       const under = ybl(zp)
       const gy = Math.min(c.gAt(zp), under)
@@ -223,8 +243,8 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   // handrails over the nosing line, from the top nosing to the foot, only with more than one riser
   const yN = (z: number) => (-(z - z1) * rise) / tread
   const yT = (z: number) => -Math.max(0, Math.min(n - 1, Math.floor((z - Z(0)) / tread + 1e-9))) * rise
-  const railInfo = c.railOn && n > 1 ? rails(c, add, z1, zf, yN, yT) : []
-  return { n, rise, tread, ok, slope: 0, steep: false, rails: railInfo, posts, dropped, topTread, topNosingZ: z1 }
+  const railInfo = c.railOn && n > 1 ? rails(c, add, z1, Math.min(zf, zEnd), yN, yT) : []
+  return { n, rise, tread, ok, slope: 0, steep: false, rails: railInfo, posts, dropped, buried: n - firstUnder, footAbove, topTread, topNosingZ: z1 }
 }
 
 /** A level plate to the host, one slope over the whole run, curbs, skirts to the ground and handrails. */
@@ -272,6 +292,8 @@ function planRamp(c: Ctx, add: Add): Body {
     rails: railInfo,
     posts: 0,
     dropped: R2.length ? 0 : 1,
+    buried: 0,
+    footAbove: c.gAt(zf) > -drop + GROUND_TOL_M,
     topTread: R1,
     topNosingZ: -run / 2,
   }
