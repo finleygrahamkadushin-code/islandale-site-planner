@@ -66,6 +66,13 @@ describe('stairSummary', () => {
     expect(stairSummary(info({}))).toEqual({ lines: ['3 risers of 6 in', 'Treads 11.5 in'], warn: null })
     expect(stairSummary(info({ ok: false, n: 1, rise: 8 * IN })).warn).toBe('Risers over 7 in or treads under 11 in')
   })
+  test('flags a flight over 12 ft and a missing handrail (R3.1)', () => {
+    expect(stairSummary(info({ n: 52, flightOver: true })).warn).toBe('Rises over 12 ft with no landing: use Connect to route it with landings')
+    expect(stairSummary(info({ n: 4, handrailMissing: true })).warn).toBe('Four or more risers need a handrail')
+    expect(stairSummary(info({ kind: 'ramp', drop: 38 * IN, slope: 1 / 12, flightOver: true, handrailMissing: true })).warn).toBe(
+      'Rises over 30 in with no landing: use Connect to route it with landings. A ramp rising over 6 in needs handrails',
+    )
+  })
   test('a ramp gives its slope and flags one steeper than 1:12', () => {
     expect(stairSummary(info({ kind: 'ramp', slope: 1 / 10, steep: true, drop: 12 * IN }))).toEqual({ lines: ['Slope 1:10', 'Drop 12 in'], warn: 'Steeper than 1:12' })
   })

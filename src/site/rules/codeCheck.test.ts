@@ -46,7 +46,7 @@ describe('code check', () => {
       'Guards · IRC R312.1',
       'Rail clearance',
       'Handrails · R311.7.8 / R311.8.3',
-      'Stair risers & treads · R311.7.5 / R311.8.1',
+      'Stairs & ramps · IBC 1011.5, 1011.8, 1012.2, 1012.4',
       'Tree zone 1 (0–35 ft)',
       'Accessible route · ADA 402–405',
       'Path pieces',

@@ -87,15 +87,18 @@ export function railSummary(edges: readonly EdgeRail[]): string {
   return `Rails on ${drawn} of ${edges.length} edge${edges.length === 1 ? '' : 's'}${warn}`
 }
 
-/** Lines for a stair's or ramp's numbers, and a warning when they break the rules. */
+/** Lines for a stair's or ramp's numbers, and a warning when they break the planner's rule (see codeCheckStairs). */
 export function stairSummary(info: StairInfo, attached = true): { readonly lines: readonly string[]; readonly warn: string | null } {
   const inches = (m: number) => `${f1(m / IN)} in`
   const site = [info.footAbove ? 'The ground at the foot is above the floor: the stair runs into it' : null, attached ? null : 'Its top meets no porch, deck or walls']
   const join = (...w: (string | null)[]) => w.filter(Boolean).join('. ') || null
+  const flight = (limit: string) => (info.flightOver ? `Rises over ${limit} with no landing: use Connect to route it with landings` : null)
   if (info.kind === 'ramp') {
     const slope = info.slope > 0 ? `1:${f1(1 / info.slope)}` : 'level'
-    return { lines: [`Slope ${slope}`, `Drop ${inches(info.drop)}`], warn: join(info.steep ? 'Steeper than 1:12' : null, ...site) }
+    const rail = info.handrailMissing ? 'A ramp rising over 6 in needs handrails' : null
+    return { lines: [`Slope ${slope}`, `Drop ${inches(info.drop)}`], warn: join(info.steep ? 'Steeper than 1:12' : null, flight('30 in'), rail, ...site) }
   }
   const lines = [`${info.n} riser${info.n === 1 ? '' : 's'} of ${inches(info.rise)}`, `Treads ${inches(info.tread)}`]
-  return { lines, warn: join(info.ok ? null : 'Risers over 7 in or treads under 11 in', ...site) }
+  const rail = info.handrailMissing ? 'Four or more risers need a handrail' : null
+  return { lines, warn: join(info.ok ? null : 'Risers over 7 in or treads under 11 in', flight('12 ft'), rail, ...site) }
 }

@@ -3,7 +3,7 @@ import type { RailStyle } from '../rails/railEdits'
 import { band, EXT_M, evalH, hClamp, hFlat, hMax, hostCurve, hTop, type TopEdge, type XZ } from './stairCurve'
 import { box, prismX, slab } from './stairMesh'
 import { handrail, railSection, WING_RAIL_M, type HandrailCtx, type StairRailInfo } from './stairRails'
-import { stairGeomMath, TREAD_MIN_M } from './stairs'
+import { FLIGHT_RISE_MAX_M, HANDRAIL_RISERS, RAMP_HANDRAIL_RISE_M, RAMP_RUN_RISE_MAX_M, stairGeomMath, TREAD_MIN_M } from './stairs'
 
 /**
  * Pure stair and ramp layout, ported from the old planner's stair-geom
@@ -64,6 +64,10 @@ export interface StairInfo {
   readonly slope: number
   /** A ramp steeper than 1:12. */
   readonly steep: boolean
+  /** The rise is more than one flight may take between landings: 12 ft for a stair, 30 in for a ramp run. */
+  readonly flightOver: boolean
+  /** A handrail is needed (a stair of four or more risers, a ramp rising over 6 in) and none is drawn. */
+  readonly handrailMissing: boolean
   readonly clearTop: boolean
   readonly rails: readonly StairRailInfo[]
   /** Support posts under the stringers. */
@@ -244,7 +248,9 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   const yN = (z: number) => (-(z - z1) * rise) / tread
   const yT = (z: number) => -Math.max(0, Math.min(n - 1, Math.floor((z - Z(0)) / tread + 1e-9))) * rise
   const railInfo = c.railOn && n > 1 ? rails(c, add, z1, Math.min(zf, zEnd), yN, yT) : []
-  return { n, rise, tread, ok, slope: 0, steep: false, rails: railInfo, posts, dropped, buried: n - firstUnder, footAbove, topTread, topNosingZ: z1 }
+  const flightOver = drop > FLIGHT_RISE_MAX_M + 1e-9
+  const handrailMissing = n >= HANDRAIL_RISERS && !railInfo.some((r) => !r.skipped)
+  return { n, rise, tread, ok, slope: 0, steep: false, flightOver, handrailMissing, rails: railInfo, posts, dropped, buried: n - firstUnder, footAbove, topTread, topNosingZ: z1 }
 }
 
 /** A level plate to the host, one slope over the whole run, curbs, skirts to the ground and handrails. */
@@ -289,6 +295,8 @@ function planRamp(c: Ctx, add: Add): Body {
     ok: true,
     slope,
     steep: slope > RAMP_MAX_SLOPE + 1e-9,
+    flightOver: drop > RAMP_RUN_RISE_MAX_M + 1e-9,
+    handrailMissing: drop > RAMP_HANDRAIL_RISE_M + 1e-9 && !railInfo.some((r) => !r.skipped),
     rails: railInfo,
     posts: 0,
     dropped: R2.length ? 0 : 1,
