@@ -13,11 +13,18 @@ import {
   overlapsAny,
   partEdges,
   rampTooLongText,
+  stairTooHighText,
   surfaceAt,
   type AttachSite,
 } from './attach'
 import { buildingMasses } from '../masses'
 import { SLAB_M } from '../rails/rails'
+import { stairGeomMath } from '../stairs/stairs'
+import { stairInfo } from '../stairs/stairSite'
+import { planRailWorld } from '../rails/railSite'
+import { partFrame } from './partFrame'
+import { loadIslandaleTerrain } from '../../site/islandale'
+import type { PlanObject } from '../../store/types'
 
 const FT = 0.3048
 const FLOOR = 10
@@ -69,19 +76,17 @@ describe('attachSpec', () => {
     expect(attachSpec(buildingMasses(box()), 0, 3, 'porch', flat(1), 6)).toMatchObject({ wing: { h: 7, rot: -90, dx: -14 } })
   })
 
-  test('a stair takes 1.6 ft of run per foot of drop, 6 to 14 ft', () => {
-    const drop = (m: number) => (m + SLAB_M) / FT
-    const r = attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(2), 9)
-    expect(r).toMatchObject({ wing: { kind: 'stair', w: 5, d: Math.round(drop(2) * 1.6), h: 0, roof: 'none' } })
+  test('a stair takes 11 in of run per 7 in riser of its drop (no slab, at least 0.3 m), at least 6 ft', () => {
+    // 2 m: 12 risers, 132 in of run
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(2), 9)).toMatchObject({ wing: { kind: 'stair', w: 5, d: 11, h: 0, roof: 'none' } })
     expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(0.2), 9)).toMatchObject({ wing: { d: 6 } })
-    expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(5), 9)).toMatchObject({ wing: { d: 14 } })
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(5), 9)).toEqual({ reason: stairTooHighText(5 / FT) })
   })
 
-  test('a ramp runs 1:12, at least 8 ft, and is refused past 40 ft', () => {
-    const need = Math.ceil(((0.5 + SLAB_M) / FT) * 12)
-    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(0.5), 9)).toMatchObject({ wing: { kind: 'ramp', w: 4, d: need } })
-    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(0), 9)).toMatchObject({ wing: { d: 8 } })
-    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(2), 9)).toEqual({ reason: rampTooLongText(Math.ceil(((2 + SLAB_M) / FT) * 12)) })
+  test('a ramp runs 1:12 from a drop of at least 0.3 m, and is refused past a 30 in rise', () => {
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(0.5), 9)).toMatchObject({ wing: { kind: 'ramp', w: 4, d: Math.ceil((0.5 / FT) * 12) } })
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(0), 9)).toMatchObject({ wing: { d: Math.ceil((0.3 / FT) * 12) } })
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(2), 9)).toEqual({ reason: rampTooLongText(Math.ceil((2 / FT) * 12)) })
   })
 
   test('slides along the edge a foot at a time to clear another part', () => {
@@ -141,4 +146,61 @@ describe('doorCut', () => {
     expect(doorCut(p, buildingMasses(p), 0, 1)).toMatchObject({ cut: { h: 6 } })
     expect(doorAddedText(buildingMasses(p)[0], 0, 1)).toBe('Door added · Main · right — move or resize it in Openings')
   })
+})
+
+describe('stairs and ramps from the + chip meet the planner rule (R3.3)', () => {
+  const IN = 0.0254
+  const stairOf = (below: number) => {
+    const r = attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(below), 9)
+    if (!('wing' in r)) throw new Error(r.reason)
+    const run = Number(r.wing.d) * FT
+    return stairGeomMath(Math.max(0.3, below), run)
+  }
+  for (const ft of [1, 4, 5, 6, 10, 12]) {
+    test(`a stair down a ${ft} ft drop has treads of 11 in or more`, () => {
+      const m = stairOf(ft * FT)
+      expect(m.tread / IN).toBeGreaterThanOrEqual(11 - 1e-6)
+      expect(m.ok).toBe(true)
+    })
+  }
+  test('a stair over 12 ft high is refused: it needs landings', () => {
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(13 * FT), 9)).toEqual({ reason: stairTooHighText(13) })
+  })
+  test('a ramp with a 38 in rise is refused rather than added as one 39 ft run', () => {
+    const r = attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(38 * IN), 9)
+    expect(r).toHaveProperty('reason')
+  })
+  test('a ramp with a 24 in rise runs 24 ft, 1:12', () => {
+    expect(attachSpec(buildingMasses(box()), 0, 2, 'ramp', flat(24 * IN), 9)).toMatchObject({ wing: { kind: 'ramp', d: 24 } })
+  })
+
+  test('in every scheme, no stair or ramp the + chip adds to a cabin is born failing', () => {
+    const terrain = loadIslandaleTerrain()
+    const born: string[] = []
+    let added = 0
+    for (const s of loadSchemes()) {
+      const plan = planFromScheme(s)
+      const objects = plan.order.map((k) => plan.objects[k]).filter((o): o is PlanObject => !!o)
+      const world = planRailWorld(objects, terrain)
+      for (const o of objects.filter((x) => x.type === 'house')) {
+        const frame = partFrame(o, terrain, world.ground)!
+        frame.masses.forEach((_, mi) => {
+          for (const i of chipEdges(frame.masses, mi)) {
+            for (const kind of ['stair', 'ramp'] as const) {
+              const r = attachSpec(frame.masses, mi, i, kind, frame.site, 9)
+              if (!('wing' in r)) continue
+              const params = { ...o.params, wings: [...((o.params.wings as unknown[]) ?? []), r.wing] }
+              const at = buildingMasses(params).length - 1
+              const info = stairInfo(world, { ...o, params }, at)!
+              added++
+              const ok = (info.kind === 'stair' ? info.ok : !info.steep) && !info.flightOver
+              if (!ok) born.push(`${o.id} mass ${mi} edge ${i} ${kind}: d ${r.wing.d}, drop ${(info.drop / IN).toFixed(1)} in, tread ${(info.tread / IN).toFixed(2)} in, slope ${info.slope.toFixed(3)}`)
+            }
+          }
+        })
+      }
+    }
+    expect(added).toBeGreaterThan(100)
+    expect(born).toEqual([])
+  }, 60000)
 })

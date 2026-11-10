@@ -5,6 +5,8 @@ import { massWalls } from '../openings/openingEdits'
 import type { CutData } from '../openings/openingLayout'
 import { edgeFree, outwardNormal } from '../rails/railRules'
 import { SLAB_M } from '../rails/rails'
+import { MIN_DROP_M } from '../stairs/stairWing'
+import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
 
 /**
  * Adding parts to a cabin's edges (legacy ext:attach-core and
@@ -27,6 +29,8 @@ export interface AttachSite {
   readonly groundAt: (p: LocalPoint) => number
   /** The slab between the floor and the walking surface, metres (0 for a standalone deck). */
   readonly slabM?: number
+  /** The building floor once a new wing is added: a cabin stands on the highest ground round all its parts, so a long stair or ramp can lift it. Default: `floor`. */
+  readonly floorWith?: (wing: Params) => number
 }
 
 /** One edge of a mass, building frame (legacy attach.edges). */
@@ -110,6 +114,7 @@ export const NOT_FREE_TEXT = 'That edge is against another part of the building'
 export const DOOR_WALLS_TEXT = 'Doors go on enclosed walls — pick a wall of the house or a closed wing'
 export const NO_DOOR_ROOM_TEXT = 'No room for a door on that wall'
 export const rampTooLongText = (needFt: number) => `Needs ${needFt} ft of ramp — use Connect to route it with landings`
+export const stairTooHighText = (dropFt: number) => `Drops ${Math.round(dropFt)} ft, more than one 12 ft flight — use Connect to route it with landings`
 
 /** A wing to add, or why not. */
 export type AttachResult =
@@ -123,16 +128,25 @@ function kindFields(kind: AttachKind, mainH: number): Params {
   return { kind, open: true, roof: 'none', h: 0, pitch: 0, ridge: 'x', overhang: 0 }
 }
 
-const STAIR_RUN_PER_FT = 1.6
+/** A new stair or ramp is at least this long, feet (legacy attachSpec's least run). */
+const STAIR_MIN_FT = 6
+const RAMP_MIN_FT = 8
+/** Ramps: one foot of run per inch of rise (1:12). */
 const RAMP_SLOPE = 12
-const RAMP_MAX_FT = 40
+/** Sizing re-measures the drop at each new foot; ground falling under the run takes a few passes. */
+const SIZE_PASSES = 8
+const ceilInch = (ft: number) => Math.ceil(ft * 12 - 1e-6) / 12
 
 /**
  * How a new part is sized and placed off edge i of mass mi (legacy
  * attachSpec): its back edge on the host edge, its front pointing out, on
- * the host's level. A stair's run comes from the drop (1.6 ft of run per
- * foot), a ramp's from 1:12 (refused past 40 ft); if it overlaps another
- * part it slides along the edge a foot at a time to the first clear spot.
+ * the host's level; if it overlaps another part it slides along the edge a
+ * foot at a time to the first clear spot. A stair's run gives 11 in treads
+ * under 7 in risers and a ramp's 1:12 (deliberate change from the legacy
+ * 1.6 ft of run per foot, PLAN-REVIEW-FIXES R3.3), from the drop the stair
+ * is drawn with (stairWing: top flush with the floor, at least 0.3 m),
+ * measured at its foot where it lands; a stair over 12 ft and a ramp over
+ * 30 in are refused, since a wing has no landings.
  */
 export function attachSpec(masses: readonly Mass[], mi: number, i: number, kind: AttachKind, site: AttachSite, mainH: number): AttachResult {
   const host = masses[mi]
@@ -141,34 +155,13 @@ export function attachSpec(masses: readonly Mass[], mi: number, i: number, kind:
   if (!edgeFree(masses, mi, i)) return { reason: NOT_FREE_TEXT }
   const E = partEdges(masses, mi, site)[i]
   if (!E) throw new Error(`no edge ${i} of mass ${mi}`)
-  const ground = (dist: number) => {
-    const g = site.groundAt([E.mid[0] + E.n[0] * dist, E.mid[1] + E.n[1] * dist])
+  const ground = (dist: number, off: number) => {
+    const g = site.groundAt([E.mid[0] + E.n[0] * dist + E.u[0] * off, E.mid[1] + E.n[1] * dist + E.u[1] * off])
     return Number.isFinite(g) ? g : E.z
   }
-  const dropAt = (dist: number) => Math.max(0, (E.z - ground(dist)) / FT)
-  let w = 12
-  let d = kind === 'porch' ? 8 : 10
-  let dropFt = dropAt(d)
-  if (kind === 'stair') {
-    w = 5
-    d = 10
-    for (let k = 0; k < 3; k++) {
-      dropFt = dropAt(d)
-      d = clamp(Math.round(dropFt * STAIR_RUN_PER_FT), 6, 14)
-    }
-  } else if (kind === 'ramp') {
-    w = 4
-    d = 12
-    let need = d
-    for (let k = 0; k < 4; k++) {
-      dropFt = dropAt(Math.min(d, RAMP_MAX_FT))
-      need = Math.max(8, Math.ceil(dropFt * RAMP_SLOPE))
-      d = Math.min(RAMP_MAX_FT, need)
-    }
-    if (need > RAMP_MAX_FT) return { reason: rampTooLongText(need) }
-  }
   const rot = r3((Math.atan2(E.n[0], E.n[1]) * 180) / Math.PI)
-  const place = (off: number): Params => ({
+  const w = kind === 'stair' ? 5 : kind === 'ramp' ? 4 : 12
+  const place = (off: number, d: number): Params => ({
     ...kindFields(kind, mainH),
     shape: 'rect',
     w,
@@ -178,15 +171,43 @@ export function attachSpec(masses: readonly Mass[], mi: number, i: number, kind:
     dx: r3(E.mid[0] + (E.n[0] * d) / 2 + E.u[0] * off),
     dz: r3(E.mid[1] + (E.n[1] * d) / 2 + E.u[1] * off),
   })
-  const first = place(0)
-  if (!overlapsAny(masses, first)) return { wing: first, overlaps: false, dropFt }
+  // decks and porches: the walking surface to the ground at their front, as before
+  const dropAt = (dist: number) => Math.max(0, (E.z - ground(dist, 0)) / FT)
+  // stairs and ramps: the drop they are drawn with, from the floor at the host's level to the ground at the foot
+  const accessDrop = (d: number, off: number) => Math.max(MIN_DROP_M, (site.floorWith?.(place(off, d)) ?? site.floor) - ground(d, off)) + host.lvl * FT
+  const runFor = (drop: number) => (kind === 'ramp' ? Math.max(RAMP_MIN_FT, Math.ceil((drop / FT) * RAMP_SLOPE - 1e-6)) : Math.max(STAIR_MIN_FT, ceilInch((Math.ceil(drop / RISER_MAX_M - 1e-9) * TREAD_MIN_M) / FT)))
+  const sized = (off: number): { readonly d: number; readonly drop: number } => {
+    let d = kind === 'ramp' ? RAMP_MIN_FT : STAIR_MIN_FT
+    let drop = accessDrop(d, off)
+    for (let k = 0; k < SIZE_PASSES; k++) {
+      const next = Math.max(d, runFor(drop))
+      if (next === d) break
+      d = next
+      drop = accessDrop(d, off)
+    }
+    return { d, drop }
+  }
+  const access = kind === 'stair' || kind === 'ramp'
+  const first = access ? sized(0) : { d: kind === 'porch' ? 8 : 10, drop: 0 }
+  if (kind === 'stair' && first.drop > FLIGHT_RISE_MAX_M + 1e-9) return { reason: stairTooHighText(first.drop / FT) }
+  if (kind === 'ramp' && first.drop > RAMP_RUN_RISE_MAX_M + 1e-9) return { reason: rampTooLongText(first.d) }
+  const dropFt = access ? first.drop / FT : dropAt(first.d)
+  // a stair or ramp slid along the edge is re-sized for the ground at its new foot; one too high there is skipped
+  const at = (off: number): Params | null => {
+    if (!access || off === 0) return place(off, first.d)
+    const s = sized(off)
+    const high = s.drop > (kind === 'stair' ? FLIGHT_RISE_MAX_M : RAMP_RUN_RISE_MAX_M) + 1e-9
+    return high ? null : place(off, s.d)
+  }
+  const spot = place(0, first.d)
+  if (!overlapsAny(masses, spot)) return { wing: spot, overlaps: false, dropFt }
   for (let k = 1; k <= Math.floor(E.lenFt / 2); k++) {
     for (const sg of [1, -1]) {
-      const spec = place(sg * k)
-      if (!overlapsAny(masses, spec)) return { wing: spec, overlaps: false, dropFt }
+      const spec = at(sg * k)
+      if (spec && !overlapsAny(masses, spec)) return { wing: spec, overlaps: false, dropFt }
     }
   }
-  return { wing: first, overlaps: true, dropFt }
+  return { wing: spot, overlaps: true, dropFt }
 }
 
 /** The new wing's outline pulled in 0.15 ft, so touching its host is not an overlap (legacy overlapsAny). */
