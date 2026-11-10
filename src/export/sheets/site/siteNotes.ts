@@ -9,6 +9,7 @@ import type { Ground } from '../../../site/earthworks/earthworks'
 import { lotFacts } from '../../../site/lotFacts'
 import { codeCheck, type CodeVerdict } from '../../../site/rules/codeCheck'
 import { BUILDING_CAP_SQFT, PROGRAM_CAP_SQFT, programBudget, type BuildingProgram, type ProgramBudget } from '../../../site/rules/program'
+import { PLANNING_AID_NOTE } from '../../../site/rules/ruleSources'
 import { TREE_ZONE_1_FT, TREE_ZONE_2_FT } from '../../../site/rules/setbacks'
 import type { Site } from '../../../site/types'
 import { sqFtToAcres } from '../../../site/units'
@@ -143,7 +144,7 @@ function clearancesBlock({ plan, site, setbacks, layers }: SiteNotesInput, objec
       const rs = clearanceRows(o, plan, site, setbacks, layers)
       return { label: o.name, value: rs.map((r) => r.text).join('; '), flag: rs.some((r) => r.warn) ? 'warn' : undefined }
     })
-  return { id: 'clearances', title: 'Clearances', rows, notes: ['Measured from the walls and wings the rules count (decks over 30 in up; not stairs or ramps), as the inspector does.'] }
+  return { id: 'clearances', title: 'Clearances', rows, notes: ['Measured wall to line, as the inspector does: no stairs, ramps or decks 30 in or lower.'] }
 }
 
 export function siteNotes(input: SiteNotesInput): SiteNotes {
@@ -162,7 +163,8 @@ export function siteNotes(input: SiteNotesInput): SiteNotes {
       title: 'Code check · SJCC 18.50.540',
       rulesOff: check.rulesOff,
       rows: check.rows.map((r) => ({ id: r.id, label: r.label, verdict: r.verdict, text: r.text, names: r.names.map((x) => x.name) })),
-      notes: [...CODE_HINT],
+      // a planning aid, not a code review (R2.7), saying which limits are assumed (R2.8), as the panel says it
+      notes: [PLANNING_AID_NOTE, ...CODE_HINT],
     },
   }
 }

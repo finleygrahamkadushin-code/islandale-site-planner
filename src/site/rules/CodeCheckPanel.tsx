@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useEarthworks } from '../earthworks/useEarthworks'
 import { usePlanStore } from '../../store/planStore'
 import { codeCheck, type CodeRow } from './codeCheck'
+import { limitText, PLANNING_AID_NOTE, RULE_LIMITS } from './ruleSources'
 
 /** The shortened old hint, a sentence a line. */
 const HINT = [
@@ -16,7 +17,9 @@ const RULES_OFF_TEXT = 'This scheme sets the brief aside (rules off), so nothing
  * Code check · SJCC 18.50.540 (5E, old code check panel): a row per rule,
  * failing rows in the warning colour, and every object a row names a button
  * that selects it. Worked out from the plan, setbacks and lot only, so it
- * doesn't rerun on hover or pointer moves.
+ * doesn't rerun on hover or pointer moves. It opens with the note that it is
+ * a planning aid, not a code review, and lists each limit with its source or
+ * "assumed" (review R2.7, R2.8); the site sheet prints the same words.
  */
 export function CodeCheckPanel() {
   const plan = usePlanStore((s) => s.plan)
@@ -40,6 +43,9 @@ export function CodeCheckPanel() {
       <header>
         <strong>Code check · SJCC 18.50.540</strong>
       </header>
+      <p className="small" data-testid="planning-aid">
+        {PLANNING_AID_NOTE}
+      </p>
       {result.rulesOff && <p className="small muted">{RULES_OFF_TEXT}</p>}
       <ul className="int-program">
         {result.rows.map((r) => (
@@ -51,6 +57,14 @@ export function CodeCheckPanel() {
           {line}
         </p>
       ))}
+      <details className="small muted">
+        <summary>Limits and their sources</summary>
+        <ul>
+          {RULE_LIMITS.map((l) => (
+            <li key={l.id}>{limitText(l)}</li>
+          ))}
+        </ul>
+      </details>
     </section>
   )
 }
