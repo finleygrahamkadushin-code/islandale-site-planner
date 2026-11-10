@@ -27,9 +27,23 @@ export type PutResult =
 
 export const revOf = (text: string): string => createHash('sha1').update(text).digest('hex').slice(0, 16)
 
-export function createPlanFileStore(dir: string, now: () => Date = () => new Date()) {
+export interface PlanFileStoreHooks {
+  /** Runs after the new text is written aside, just before the revision is checked again (tests use it). */
+  readonly beforeReplace?: () => Promise<void>
+}
+
+export function createPlanFileStore(dir: string, now: () => Date = () => new Date(), hooks: PlanFileStoreHooks = {}) {
   const file = join(dir, PLAN_FILE_NAME)
   const historyDir = join(dir, HISTORY_DIR)
+  /** Gives temp and history files names no other write in the same millisecond can share. */
+  let seq = 0
+  /** One write at a time, so two tabs' writes based on the same revision cannot both pass the check. */
+  let queue: Promise<unknown> = Promise.resolve()
+  const oneAtATime = <T>(job: () => Promise<T>): Promise<T> => {
+    const run = queue.then(job, job)
+    queue = run.catch(() => undefined)
+    return run
+  }
 
   const read = async (): Promise<PlanFileRead> => {
     try {
@@ -43,34 +57,49 @@ export function createPlanFileStore(dir: string, now: () => Date = () => new Dat
 
   const keepPrevious = async (text: string) => {
     await mkdir(historyDir, { recursive: true })
-    await writeFile(join(historyDir, `${now().toISOString().replace(/[:.]/g, '-')}.json`), text)
+    // the time first, so the names sort oldest first; the sequence keeps two writes in one millisecond apart
+    await writeFile(join(historyDir, `${now().toISOString().replace(/[:.]/g, '-')}-${String(++seq).padStart(6, '0')}.json`), text)
     const old = (await readdir(historyDir)).filter((f) => f.endsWith('.json')).sort()
     for (const f of old.slice(0, Math.max(0, old.length - HISTORY_KEEP))) await rm(join(historyDir, f))
   }
 
+  const changed = (rev: string): PutResult => ({ ok: false, status: 409, error: 'The plan file changed since this copy was read.', rev })
+
   /** Write the plan if `baseRev` is still the file's revision. */
-  const put = async (text: string, baseRev: string | null): Promise<PutResult> => {
-    const current = await read()
-    const problem = checkPlanText(text)
-    if (problem) return { ok: false, status: 400, error: problem, rev: current.rev }
-    if (baseRev !== current.rev) {
-      return { ok: false, status: 409, error: 'The plan file changed since this copy was read.', rev: current.rev }
-    }
-    await mkdir(dir, { recursive: true })
-    if (current.text !== null) await keepPrevious(current.text)
-    const temp = `${file}.${process.pid}.${Date.now()}.tmp`
-    await writeFile(temp, text)
-    await rename(temp, file)
-    return { ok: true, rev: revOf(text) }
-  }
+  const put = (text: string, baseRev: string | null): Promise<PutResult> =>
+    oneAtATime(async () => {
+      const current = await read()
+      const problem = checkPlanText(text)
+      if (problem) return { ok: false, status: 400, error: problem, rev: current.rev }
+      if (baseRev !== current.rev) return changed(current.rev)
+      await mkdir(dir, { recursive: true })
+      const temp = `${file}.${process.pid}.${Date.now()}.${++seq}.tmp`
+      await writeFile(temp, text)
+      try {
+        await hooks.beforeReplace?.()
+        // checked again: someone may have saved the file while the new text was written aside
+        const again = await read()
+        if (again.rev !== current.rev) {
+          await rm(temp, { force: true })
+          return changed(again.rev)
+        }
+        if (current.text !== null) await keepPrevious(current.text)
+        await rename(temp, file)
+      } catch (err) {
+        await rm(temp, { force: true })
+        throw err
+      }
+      return { ok: true, rev: revOf(text) }
+    })
 
   /** Remove the plan file (its last version stays in .history). Used by the end-to-end tests. */
-  const remove = async (): Promise<void> => {
-    const current = await read()
-    if (current.text === null) return
-    await keepPrevious(current.text)
-    await rm(file)
-  }
+  const remove = (): Promise<void> =>
+    oneAtATime(async () => {
+      const current = await read()
+      if (current.text === null) return
+      await keepPrevious(current.text)
+      await rm(file)
+    })
 
   return { file, read, put, remove }
 }

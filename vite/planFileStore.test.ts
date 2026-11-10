@@ -62,3 +62,49 @@ describe('the plan file on disk', () => {
     expect(await readdir(join(dir, HISTORY_DIR))).toHaveLength(1)
   })
 })
+
+describe('two writers at once (R6.13)', () => {
+  let dir = ''
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'plan-file-'))
+  })
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  test('two writes based on the same revision: one lands, the other is refused, none is lost unseen', async () => {
+    const store = createPlanFileStore(dir)
+    const base = await store.put(plan('A'), NO_FILE_REV)
+    if (!base.ok) throw new Error(base.error)
+    const results = await Promise.all([store.put(plan('From tab 1'), base.rev), store.put(plan('From tab 2'), base.rev)])
+    expect(results.filter((r) => r.ok)).toHaveLength(1)
+    expect(results.filter((r) => !r.ok && r.status === 409)).toHaveLength(1)
+    const winner = results[0].ok ? 'From tab 1' : 'From tab 2'
+    expect(JSON.parse(await readFile(join(dir, PLAN_FILE_NAME), 'utf8')).plan.name).toBe(winner)
+  })
+
+  test('writes in the same millisecond each keep the version before them', async () => {
+    const frozen = new Date('2026-11-10T10:00:00Z')
+    const store = createPlanFileStore(dir, () => frozen)
+    let rev = NO_FILE_REV
+    for (const name of ['A', 'B', 'C']) {
+      const r = await store.put(plan(name), rev)
+      if (!r.ok) throw new Error(r.error)
+      rev = r.rev
+    }
+    const kept = await readdir(join(dir, HISTORY_DIR))
+    const names = await Promise.all(kept.map(async (f) => JSON.parse(await readFile(join(dir, HISTORY_DIR, f), 'utf8')).plan.name))
+    expect(names.sort()).toEqual(['A', 'B'])
+  })
+
+  test('a file changed on disk while a write is under way is not overwritten', async () => {
+    const store = createPlanFileStore(dir, undefined, {
+      // Claude saves the file just as the app's write is about to land
+      beforeReplace: async () => writeFile(join(dir, PLAN_FILE_NAME), plan('Edited by Claude')),
+    })
+    const base = await store.put(plan('A'), NO_FILE_REV)
+    expect(base).toMatchObject({ ok: false, status: 409 })
+    expect(JSON.parse(await readFile(join(dir, PLAN_FILE_NAME), 'utf8')).plan.name).toBe('Edited by Claude')
+    expect((await readdir(dir)).filter((f) => f.endsWith('.tmp'))).toEqual([])
+  })
+})

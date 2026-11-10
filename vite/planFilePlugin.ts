@@ -27,31 +27,41 @@ export function planFilePlugin(dir = 'data/plans'): Plugin {
     res.end(typeof body === 'string' ? body : JSON.stringify(body))
   }
 
+  /** The body, or null when it is past MAX_BODY_BYTES (the rest is read and dropped, so the 413 reaches the browser). */
   const readBody = (req: IncomingMessage) =>
-    new Promise<string>((ok, fail) => {
+    new Promise<string | null>((ok, fail) => {
       let size = 0
+      let tooLarge = false
       const chunks: Buffer[] = []
       req.on('data', (c: Buffer) => {
         size += c.length
         if (size > MAX_BODY_BYTES) {
-          fail(new Error('The plan is too large.'))
-          req.destroy()
-        } else chunks.push(c)
+          if (!tooLarge) ok(null)
+          tooLarge = true
+          chunks.length = 0
+        } else if (!tooLarge) chunks.push(c)
       })
-      req.on('end', () => ok(Buffer.concat(chunks).toString('utf8')))
+      req.on('end', () => ok(tooLarge ? null : Buffer.concat(chunks).toString('utf8')))
       req.on('error', fail)
     })
+  const declaredTooLarge = (req: IncomingMessage) => Number(req.headers['content-length'] ?? 0) > MAX_BODY_BYTES
+  const tooLargeBody = { error: `The plan is larger than ${MAX_BODY_BYTES / 1024 / 1024} MB.` }
 
   return {
     name: 'islandale-plan-file',
     apply: 'serve',
     configureServer(server) {
       server.watcher.add(store.file)
+      // a read that fails here (the file mid-replace, or unreadable) is logged; thrown, it would take the dev server down
       const onFile = async (path: string) => {
         if (resolve(path) !== store.file) return
-        const { rev } = await store.read()
-        if (rev === lastWrittenRev) return
-        server.ws.send({ type: 'custom', event: PLAN_CHANGED_EVENT, data: { rev } })
+        try {
+          const { rev } = await store.read()
+          if (rev === lastWrittenRev) return
+          server.ws.send({ type: 'custom', event: PLAN_CHANGED_EVENT, data: { rev } })
+        } catch (err) {
+          server.config.logger.error(`[plan file] could not read the changed plan file: ${err instanceof Error ? err.message : String(err)}`)
+        }
       }
       server.watcher.on('change', (p) => void onFile(p))
       server.watcher.on('add', (p) => void onFile(p))
@@ -69,7 +79,15 @@ export function planFilePlugin(dir = 'data/plans'): Plugin {
               return send(res, 200, text, rev)
             }
             if (req.method === 'PUT') {
+              if (declaredTooLarge(req)) {
+                res.setHeader('Connection', 'close')
+                return send(res, 413, tooLargeBody)
+              }
               const text = await readBody(req)
+              if (text === null) {
+                res.setHeader('Connection', 'close')
+                return send(res, 413, tooLargeBody)
+              }
               const result = await store.put(text, req.headers['if-match'] ?? null)
               if (!result.ok) return send(res, result.status, { error: result.error, rev: result.rev }, result.rev)
               lastWrittenRev = revOf(text)
