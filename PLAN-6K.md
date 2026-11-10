@@ -16,7 +16,7 @@ There are four parts. Each gets its own branch and is checked in the browser bef
 - Furniture is built from simple parts, not downloaded models.
 - The 43 floor-plan rules become a later phase of their own.
 
-## K1 · Interior geometry (branch `claude/phase-6k1-interior-geometry`)
+## K1 · Interior geometry (branch `claude/phase-6k1-interior-geometry`) ✅ signed off by Finley, Nov 9 2026
 
 All of it is in `src/interiors/scene3d/`. The pure geometry goes in `interiorShell.ts` and is drawn by `InteriorMesh.tsx`.
 
