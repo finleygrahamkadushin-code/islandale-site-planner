@@ -6,12 +6,21 @@ const FT = 0.3048
 const IN = 0.0254
 export const GUARD_HEIGHT_M = 36 * IN
 
-// wood (the new app's guard): top and bottom rails, posts about every 6 ft, balusters at 4 in gaps
+/**
+ * Rigid infill (balusters, pickets) leaves at most this clear, under the
+ * 4 in sphere rule (IRC R312.1.3), with half an inch to spare (R3.7: the
+ * old 4.00 in exactly let a 4 in sphere through).
+ */
+export const INFILL_CLEAR_M = 3.5 * IN
+/** Cables stretch under load, so they are set closer: at most 3 in clear. */
+export const CABLE_CLEAR_M = 3 * IN
+
+// wood (the new app's guard): top and bottom rails, posts about every 6 ft, balusters 3.5 in apart
 const TOP_RAIL_M = 0.06
 const BOTTOM_RAIL_M = 0.04
 const BOTTOM_RAIL_Y_M = 3.5 * IN
-const BALUSTER_M = 0.035
-const BALUSTER_GAP_M = 4 * IN + BALUSTER_M
+export const WOOD_BALUSTER_M = 0.035
+export const WOOD_BALUSTER_PITCH_M = INFILL_CLEAR_M + WOOD_BALUSTER_M
 const POST_GAP_M = 6 * FT
 const POST_M = 0.09
 
@@ -20,12 +29,15 @@ const side = (r: number) => r * Math.SQRT2
 const METAL_POST_R = 0.025
 const METAL_TOP_R = 0.025
 const CABLE_TOP_R = 0.02
+/** The cable guard's top rail, its side (m). */
+export const CABLE_TOP_M = side(CABLE_TOP_R)
 const STEEL_BOTTOM_R = 0.018
-const STEEL_BOTTOM_Y_M = 0.1
+/** The steel guard's bottom rail stands this far up: the gap under it stays under 4 in. */
+export const STEEL_BOTTOM_Y_M = 3.5 * IN
 const PICKET_R = 0.008
-const PICKET_GAP_M = 0.11
+export const STEEL_PICKET_M = side(PICKET_R)
 const CABLE_R = 0.004
-const CABLES = 7
+export const CABLE_M = side(CABLE_R)
 const CABLE_POST_GAP_M = 1.2
 const POST_GAP_METAL_M = 1.5
 const GLASS_T_M = 0.012
@@ -68,13 +80,13 @@ function woodRun(mesh: MeshData, pts: readonly M2[], baseY: number): void {
     if (len < 1e-4) continue
     addBar(mesh, a, b, baseY + GUARD_HEIGHT_M - TOP_RAIL_M, TOP_RAIL_M, TOP_RAIL_M)
     addBar(mesh, a, b, baseY + BOTTOM_RAIL_Y_M, BOTTOM_RAIL_M, BOTTOM_RAIL_M)
-    for (let d = 0; d < len; d += BALUSTER_GAP_M) {
+    for (let d = 0; d < len; d += WOOD_BALUSTER_PITCH_M) {
       const p = lerp(a, b, d / len)
       if (sincePost >= POST_GAP_M) {
         addPost(mesh, p, baseY, baseY + GUARD_HEIGHT_M, POST_M)
         sincePost = 0
-      } else addPost(mesh, p, baseY + BOTTOM_RAIL_Y_M, baseY + GUARD_HEIGHT_M - TOP_RAIL_M, BALUSTER_M)
-      sincePost += BALUSTER_GAP_M
+      } else addPost(mesh, p, baseY + BOTTOM_RAIL_Y_M, baseY + GUARD_HEIGHT_M - TOP_RAIL_M, WOOD_BALUSTER_M)
+      sincePost += WOOD_BALUSTER_PITCH_M
     }
   }
   addPost(mesh, pts[pts.length - 1], baseY, baseY + GUARD_HEIGHT_M, POST_M)
@@ -93,21 +105,27 @@ function metalRun(frame: MeshData, glass: MeshData | null, pts: readonly M2[], y
     if (len < 1e-4) continue
     addBar(frame, a, b, y0 + H - top, top, top)
     if (style === 'steel') addBar(frame, a, b, y0 + STEEL_BOTTOM_Y_M, side(STEEL_BOTTOM_R), side(STEEL_BOTTOM_R))
-    if (cable) {
-      for (let k = 1; k <= CABLES; k++) {
-        const y = y0 + 0.1 + ((H - 0.16) * (k - 1)) / CABLES
-        addBar(frame, a, b, y, side(CABLE_R), side(CABLE_R))
-      }
-    }
+    if (cable) for (const y of cableHeights(y0)) addBar(frame, a, b, y - CABLE_M / 2, CABLE_M, CABLE_M)
     if (glass) addPane(glass, a, b, y0 + GLASS_INSET_M, Math.max(0.1, H - 2 * GLASS_INSET_M))
   }
   // posts spread evenly along the whole run, both ends included
   const np = Math.max(1, Math.ceil(total / (cable ? CABLE_POST_GAP_M : POST_GAP_METAL_M)))
   for (let k = 0; k <= np; k++) addPost(frame, at(pts, (total * k) / np), y0, y0 + H - top, side(METAL_POST_R))
   if (style === 'steel') {
-    const nq = Math.floor(total / PICKET_GAP_M)
-    for (let k = 1; k < nq; k++) addPost(frame, at(pts, (total * k) / nq), y0 + STEEL_BOTTOM_Y_M, y0 + H - top, side(PICKET_R))
+    const nq = picketCount(total)
+    for (let k = 1; k < nq; k++) addPost(frame, at(pts, (total * k) / nq), y0 + STEEL_BOTTOM_Y_M, y0 + H - top, STEEL_PICKET_M)
   }
+}
+
+/** Steel pickets: the bays a run of `total` metres is split into, so none is wider than 3.5 in clear (the legacy floor(total / 0.11) gave up to 4.3 in). */
+export const picketCount = (total: number): number => Math.max(1, Math.ceil(total / (INFILL_CLEAR_M + STEEL_PICKET_M) - 1e-9))
+
+/** The cable guard's cable centres over a surface at y0: evenly from the surface to the top rail, no gap over 3 in (the legacy seven cables left 4 in between and 5.3 in under the rail). */
+export function cableHeights(y0: number): number[] {
+  const span = GUARD_HEIGHT_M - CABLE_TOP_M
+  const n = Math.ceil((span - CABLE_CLEAR_M) / (CABLE_CLEAR_M + CABLE_M) - 1e-9)
+  const pitch = (span - n * CABLE_M) / (n + 1)
+  return Array.from({ length: n }, (_, k) => y0 + (k + 1) * pitch + k * CABLE_M + CABLE_M / 2)
 }
 
 const lerp = (a: M2, b: M2, f: number): M2 => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]

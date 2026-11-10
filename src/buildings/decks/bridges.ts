@@ -32,6 +32,11 @@ const MIN_MAST_M = 5
 const CABLE_SAG = 0.16
 const CABLE_END_M = 1.2
 const HANDRAIL_M = 1.05
+/** Guard pickets along a truss or cable bridge (R3.7): square bars, no more than 3.5 in clear (the 4 in sphere rule). */
+export const BRIDGE_PICKET_M = 0.014
+const PICKET_CLEAR_M = 3.5 * 0.0254
+/** Truss: the guard stands just inside the side frames. */
+const TRUSS_GUARD_IN_M = 0.07
 /** Glass balustrade (ribbon): bottom, inset from the edge. */
 const GLASS_BASE_M = 0.05
 const GLASS_INSET_M = 0.04
@@ -150,6 +155,7 @@ export function buildBridge(layout: BridgeLayout, groundAt: (x: number, n: numbe
   if (layout.style === 'ribbon') addRibbon(out, layout, groundAt)
   else if (layout.style === 'truss') addTruss(out, layout, groundAt)
   else addCable(out, layout, groundAt)
+  addGuard(out, layout)
   return out
 }
 
@@ -190,6 +196,43 @@ function addRibbon(out: BridgeMeshes, { path, depth: th, halfWidth: hw, columns 
     addPrism(out.posts, [s.x, g - FOOT_EMBED_M, -s.n], fork, 0.15, 12, true)
     addPrism(out.posts, fork, pointAt(path, i, hw * 0.6, -th), 0.085, 6)
     addPrism(out.posts, fork, pointAt(path, i, -hw * 0.6, -th), 0.085, 6)
+  }
+}
+
+/** How far in from the deck edge each style's guard stands, metres. */
+const guardInset = (style: BridgeStyle): number => (style === 'truss' ? TRUSS_GUARD_IN_M : 0.03)
+
+/**
+ * The feet of the guard pickets along one side (1 left, -1 right) of a
+ * truss or cable bridge, scene frame, deck top: evenly along each half-metre
+ * sample step so no clear gap is over 3.5 in. Deliberate change (R3.7): the
+ * old truss and cable bridges had open side panels, 2.4 m truss bays and
+ * 1.5 m between cable-bridge rail posts. Empty for a ribbon (glass).
+ */
+export function bridgeGuard(layout: BridgeLayout, side: 1 | -1): V3[] {
+  if (layout.style === 'ribbon') return []
+  const { path } = layout
+  const k = side * (layout.halfWidth - guardInset(layout.style))
+  const P = path.samples.map((_, i) => pointAt(path, i, k, 0))
+  const feet: V3[] = [P[0]]
+  for (let i = 0; i + 1 < P.length; i++) {
+    const [a, b] = [P[i], P[i + 1]]
+    const L = Math.hypot(b[0] - a[0], b[2] - a[2])
+    const n = Math.max(1, Math.ceil(L / (PICKET_CLEAR_M + BRIDGE_PICKET_M) - 1e-9))
+    for (let j = 1; j <= n; j++) feet.push([a[0] + ((b[0] - a[0]) * j) / n, a[1] + ((b[1] - a[1]) * j) / n, a[2] + ((b[2] - a[2]) * j) / n])
+  }
+  return feet
+}
+
+/** The pickets and, for a truss, a handrail along both sides at handrail height (a cable bridge has its own handrails). */
+function addGuard(out: BridgeMeshes, layout: BridgeLayout): void {
+  const { path } = layout
+  for (const side of [1, -1] as const) {
+    for (const f of bridgeGuard(layout, side)) addPrism(out.rail, f, [f[0], f[1] + HANDRAIL_M, f[2]], BRIDGE_PICKET_M / Math.SQRT2)
+    if (layout.style !== 'truss') continue
+    const k = side * (layout.halfWidth - guardInset('truss'))
+    const R = path.samples.map((_, i) => pointAt(path, i, k, HANDRAIL_M))
+    for (let i = 0; i + 1 < R.length; i++) addPrism(out.rail, R[i], R[i + 1], 0.03)
   }
 }
 

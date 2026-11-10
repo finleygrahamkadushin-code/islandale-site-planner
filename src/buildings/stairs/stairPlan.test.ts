@@ -87,12 +87,43 @@ describe('planStair: a stair', () => {
     expect(of(planStair({ ...base, style: 'none' }).items, 'rail')).toHaveLength(0)
   })
 
-  test('styles: glass adds panes, steel and cable a thinner section and no balusters', () => {
-    expect(of(planStair({ ...base, style: 'glass' }).items, 'glass')).toHaveLength(2)
+  test('styles: glass adds panes; steel has pickets (R3.7: not two rails with 10 in openings); cable its cables', () => {
+    const glass = planStair({ ...base, style: 'glass' })
+    expect(of(glass.items, 'glass')).toHaveLength(2)
     const steel = planStair({ ...base, style: 'steel' })
-    expect(steel.info.rails[0].balusters).toBe(0)
+    expect(steel.info.rails[0].balusters).toBeGreaterThan(10)
     expect(of(steel.items, 'glass')).toHaveLength(0)
-    expect(tris(of(planStair({ ...base, style: 'cable' }).items, 'rail'))).toBeGreaterThan(tris(of(steel.items, 'rail')))
+    expect(tris(of(planStair({ ...base, style: 'cable' }).items, 'rail'))).toBeGreaterThan(tris(of(glass.items, 'rail')))
+  })
+
+  describe('no opening a 4 in sphere passes (R3.7)', () => {
+    const FOUR = 4 * 0.0254
+    /** The clear gaps along the run between posts and bars, and from the rail's start to the first one. */
+    const gaps = (r: ReturnType<typeof planStair>['info']['rails'][number], rT: number) => {
+      const members = [...r.posts.map((z) => [z, rT] as const), ...r.infill.map((z) => [z, r.infillW] as const)].sort((a, b) => a[0] - b[0])
+      return members.slice(1).map(([z, w], k) => z - w / 2 - (members[k][0] + members[k][1] / 2))
+    }
+    for (const style of ['wood', 'steel'] as const) {
+      for (const clearTop of [false, true]) {
+        test(`${style}${clearTop ? ', door at the top' : ''}: every gap between posts and bars is under 4 in`, () => {
+          for (const run of [1.4, 2, 2.9, 4.1]) {
+            const { info } = planStair({ ...base, run, style, clearTop })
+            for (const r of info.rails) {
+              const g = gaps(r, style === 'wood' ? 0.06 : 0.035)
+              expect(Math.max(...g), `${style} run ${run}`).toBeLessThan(FOUR)
+              expect(Math.min(...g)).toBeGreaterThan(0)
+            }
+          }
+        })
+      }
+    }
+    test('cable: no gap over 3 in from the nosing line up to the rail', () => {
+      const { info } = planStair({ ...base, style: 'cable' })
+      const r = info.rails[0]
+      const H = WING_RAIL_M
+      const edges = [0, ...r.cables.flatMap((y) => [y - 0.003, y + 0.003]), H - 0.035 / 2]
+      for (let k = 0; k + 1 < edges.length; k += 2) expect(edges[k + 1] - edges[k]).toBeLessThanOrEqual(3 * 0.0254 + 1e-9)
+    })
   })
 
   test('support posts stand every 2.4 m where the stringer is more than 0.4 m off the ground', () => {
