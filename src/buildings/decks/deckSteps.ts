@@ -1,10 +1,17 @@
 import type { LocalPoint } from '../footprint'
 import type { DeckSteps } from '../masses'
+import { RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
 
 const FT = 0.3048
-/** Legacy STEP_RISE_M / STEP_TREAD_M: 7¾ in max riser, 11 in min tread (IRC R311.7.5). */
-export const STEP_RISE_M = 0.195
-const STEP_TREAD_FT = 0.28 / FT
+/**
+ * The planner's one stair rule (stairs/stairs.ts): risers of 7 in or less,
+ * treads of 11 in or more. Deliberate change: the legacy STEP_RISE_M /
+ * STEP_TREAD_M were 0.195 m (7.68 in) and 0.28 m, cited as IRC R311.7.5,
+ * whose minimum tread is 10 in.
+ */
+export const STEP_RISE_M = RISER_MAX_M
+const STEP_TREAD_FT = TREAD_MIN_M / FT
+/** A flight never draws more risers than this; past it the rise grows and the plan says so (ok false). */
 const MAX_RISERS = 30
 /** Planting well kept clear round a trunk the steps flow around, legacy TREE_WELL_M. */
 export const TREE_WELL_FT = 1.2 / FT
@@ -31,6 +38,8 @@ export interface DeckStepsPlan {
   readonly rise: number
   /** Tread depth, feet. */
   readonly tread: number
+  /** The risers meet the 7 in rule; false only when the flight is capped at 30 risers and the rise grew past it. */
+  readonly ok: boolean
   readonly bands: readonly StepBand[]
   /** Wells the flight meets, with the highest tread top each one touches (metres, floor-relative). */
   readonly wells: readonly { readonly well: TreeWell; readonly top: number }[]
@@ -86,8 +95,8 @@ export function deckStepsPlan(poly: readonly LocalPoint[], s: DeckSteps, groundA
     const b = q[Math.min(q.length - 1, j + 1)]
     return groundAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
   }
-  let risers = Math.max(1, Math.ceil(-midAt(0) / STEP_RISE_M))
-  for (let it = 0; it < 3; it++) risers = Math.max(1, Math.min(MAX_RISERS, Math.ceil(-midAt((risers - 0.5) * tread) / STEP_RISE_M)))
+  let risers = Math.max(1, Math.ceil(-midAt(0) / STEP_RISE_M - 1e-9))
+  for (let it = 0; it < 3; it++) risers = Math.max(1, Math.min(MAX_RISERS, Math.ceil(-midAt((risers - 0.5) * tread) / STEP_RISE_M - 1e-9)))
   const rise = Math.max(STEP_RISE_M, -midAt((risers - 0.5) * tread)) / risers
   const bands: StepBand[] = []
   const met: { well: TreeWell; top: number }[] = []
@@ -103,7 +112,7 @@ export function deckStepsPlan(poly: readonly LocalPoint[], s: DeckSteps, groundA
       }
     }
   }
-  return { chain, risers, rise, tread, bands, wells: met }
+  return { chain, risers, rise, tread, ok: rise <= STEP_RISE_M + 1e-9, bands, wells: met }
 }
 
 /** One tread band (inner chain A, outer chain B) as outlines, with tree wells cut out (legacy stepBandPieces). */
