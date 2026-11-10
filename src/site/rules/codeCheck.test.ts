@@ -47,7 +47,8 @@ describe('code check', () => {
       'Height ≤ 35 ft',
       'Guards · IRC R312.1',
       'Rail clearance',
-      'Handrails · R311.7.8 / R311.8.3',
+      // the 6 in ramp trigger is ADA 405.8; IRC R311.8.3 asks for a handrail on ramps steeper than 1:12 (R2.9)
+      'Handrails · IRC R311.7.8 / ADA 405.8',
       'Stair risers & treads · R311.7.5 / R311.8.1',
       'Tree zone 1 (0–35 ft)',
       'Accessible route · ADA 402–405',

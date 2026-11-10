@@ -14,7 +14,7 @@ import { named, type CheckContext, type CodeRow, type NamedObject } from './code
 
 /** IRC R311.7.8: stairs with this many risers or more need a handrail. */
 export const HANDRAIL_RISERS = 4
-/** IRC R311.8.3: ramps rising more than this need a handrail, metres (6 in). */
+/** ADA 405.8: ramp runs rising more than this need handrails, metres (6 in). The old planner cited IRC R311.8.3, whose trigger is a slope over 1:12, not a rise (R2.9). */
 export const HANDRAIL_RAMP_RISE_M = ftToM(0.5)
 
 interface MassRails {
@@ -81,7 +81,7 @@ function accesses(c: CheckContext): Access[] {
 export function handrailsRow(c: CheckContext): CodeRow {
   const needed = accesses(c).filter((a) => a.needs)
   const missing = needed.filter((a) => !a.has).map((a) => named(a.o, a.name))
-  const label = 'Handrails · R311.7.8 / R311.8.3'
+  const label = 'Handrails · IRC R311.7.8 / ADA 405.8'
   if (missing.length) return { id: 'handrails', label, text: `none on ${missing.map((n) => n.name).join(', ')}`, verdict: 'fail', names: missing }
   const n = needed.length
   const text = n ? `${n} stair${n > 1 ? 's or ramps need' : ' or ramp needs'} one; ${n > 1 ? 'all have' : 'it has'} it` : 'none needed'
