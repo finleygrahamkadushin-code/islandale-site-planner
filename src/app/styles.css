@@ -200,6 +200,7 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .rail-chip.on { border-color: var(--accent); color: var(--accent); }
 .rail-chip.bad { background: #b3261e; border-color: #b3261e; color: #fff; }
+.rail-pick { display: flex; gap: 4px; }
 
 /* Part inspector and railings (Phase 5A) */
 .part-inspector { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--accent); border-radius: 6px; padding: 8px; }

@@ -43,6 +43,10 @@ export interface StairSpec {
   readonly footPlate?: boolean
   /** Riser count override (path pieces). */
   readonly n?: number
+  /** Handrail sides left out: -1 the left (edge 3), +1 the right (edge 1). */
+  readonly railOff?: readonly (-1 | 1)[]
+  /** Handrail sides carried over the landing to the railing at the top (Join). */
+  readonly railJoin?: readonly (-1 | 1)[]
 }
 
 export interface StairInfo {
@@ -109,6 +113,8 @@ interface Ctx {
   readonly gAt: (z: number) => number
   readonly railOn: boolean
   readonly rail: HandrailCtx
+  readonly railOff: readonly (-1 | 1)[]
+  readonly railJoin: readonly (-1 | 1)[]
 }
 
 /** Plan a stair or ramp wing: its pieces (stair frame metres) and the numbers the part inspector shows. */
@@ -128,7 +134,7 @@ export function planStair(spec: StairSpec): StairPlan {
   const clearTop = !!spec.clearTop
   const railH = spec.railH && spec.railH > 0.3 ? spec.railH : WING_RAIL_M
   const rT = spec.rT && spec.rT > 0.005 ? spec.rT : railSection(style)
-  const c: Ctx = { w, run, drop, zf: run / 2, Ht, zt, gAt, railOn: spec.rail !== false && style !== 'none', rail: { w, H: railH, rT, style, clearTop, zt } }
+  const c: Ctx = { w, run, drop, zf: run / 2, Ht, zt, gAt, railOn: spec.rail !== false && style !== 'none', rail: { w, H: railH, rT, style, clearTop, zt }, railOff: spec.railOff ?? [], railJoin: spec.railJoin ?? [] }
   const items: StairItem[] = []
   const add = (role: StairRole, mat: StairMat, mesh: MeshData | null, side?: -1 | 1) => {
     if (mesh && mesh.positions.length) items.push(side ? { role, mat, mesh, side } : { role, mat, mesh })
@@ -144,11 +150,12 @@ type Body = Omit<StairInfo, 'kind' | 'w' | 'run' | 'drop' | 'clearTop'>
 
 /** Both sides' handrails, added as items; their info. */
 function rails(c: Ctx, add: Add, zMin: number, zMax: number, line: (z: number) => number, surf: (z: number) => number): StairRailInfo[] {
-  return ([-1, 1] as const).map((sg) => {
-    const r = handrail(c.rail, sg, zMin, zMax, line, surf)
+  return ([-1, 1] as const).flatMap((sg) => {
+    if (c.railOff.includes(sg)) return []
+    const r = handrail(c.rail, sg, zMin, zMax, line, surf, c.railJoin.includes(sg))
     add('rail', 'rail', r.frame, sg)
     add('glass', 'glass', r.glass, sg)
-    return r.info
+    return [r.info]
   })
 }
 

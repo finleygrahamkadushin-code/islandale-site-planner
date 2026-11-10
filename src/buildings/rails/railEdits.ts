@@ -108,6 +108,44 @@ export function writeAll(src: Params, mode: RailState, n: number, free: readonly
   return withMap(src, rails)
 }
 
+/** A stair or ramp's handrail sides: edge 1 (right) and edge 3 (left). */
+export const STAIR_SIDES: readonly number[] = [1, 3]
+
+const checkSide = (edge: number) => {
+  if (!STAIR_SIDES.includes(edge)) throw new Error(`a stair's handrails are edges 1 and 3, not ${edge}`)
+}
+
+/**
+ * One handrail side of a stair or ramp on or off (deliberate addition,
+ * PLAN.md), kept in the same per-edge map decks use: false for off, a
+ * missing edge for on. Auto counts as on. The whole-wing `rail: false`
+ * becomes both sides off, so turning one back on leaves the other off.
+ */
+export function writeStairSide(src: Params, edge: number, state: RailState): Params {
+  checkSide(edge)
+  const old = isRecord(src.rails) ? (src.rails as Record<string, boolean>) : src.rail === false ? { 1: false, 3: false } : {}
+  const { [String(edge)]: _old, ...rest } = old
+  const rails = state === 'off' ? { ...rest, [edge]: false } : rest
+  const { rail: _flag, rails: _map, ...base } = src
+  return Object.keys(rails).length ? { ...base, rails } : base
+}
+
+/** One handrail side's Join (carried over the landing to the railing at the top): on is the default, so only off is stored. */
+export function writeStairJoin(src: Params, edge: number, on: boolean): Params {
+  checkSide(edge)
+  const old = isRecord(src.railJoin) ? (src.railJoin as Record<string, boolean>) : {}
+  const { [String(edge)]: _old, ...rest } = old
+  const railJoin = on ? rest : { ...rest, [edge]: false }
+  const { railJoin: _j, ...base } = src
+  return Object.keys(railJoin).length ? { ...base, railJoin } : base
+}
+
+/** The on / off state of a stair's handrail side and its Join, read from the raw wing. */
+export function stairSideState(src: Params, edge: number): { readonly on: boolean; readonly join: boolean } {
+  const on = isRecord(src.rails) ? railAt(src.rails, edge) !== false : src.rail !== false
+  return { on, join: railAt(src.railJoin, edge) !== false }
+}
+
 const asStyle = (v: unknown): RailStyle | undefined => (RAIL_STYLES.includes(v as RailStyle) ? (v as RailStyle) : undefined)
 const railStyleIn = (scope: unknown): RailStyle | undefined => (isRecord(scope) && isRecord(scope.rail) ? asStyle(scope.rail.style) : undefined)
 

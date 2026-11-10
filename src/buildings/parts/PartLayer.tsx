@@ -8,6 +8,7 @@ import { partFrame } from './partFrame'
 import { PartHandles } from './PartHandleMesh'
 import { PartOutline } from './PartOutline'
 import { RailChips } from '../rails/RailChips'
+import { RailPickChip } from '../rails/RailPickChip'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
 
 interface Props {
@@ -38,6 +39,7 @@ export function PartLayer({ o, picked, dragging, setDrag }: Props) {
       {!locked && house && picked !== null && <PartHandles o={o} mi={picked} frame={frame} setDrag={setDrag} />}
       {!locked && house && !dragging && <AddChips o={o} frame={frame} picked={picked} />}
       {!locked && !dragging && <RailChips o={o} frame={frame} picked={picked} />}
+      {!locked && house && !dragging && <RailPickChip o={o} frame={frame} />}
     </group>
   )
 }

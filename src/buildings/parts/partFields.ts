@@ -77,7 +77,7 @@ export function railChipTitle(m: Pick<Mass, 'shape'>, e: EdgeRail): string {
 }
 
 /** "deck 3" or "porch 1", the Railings panel's word for a wing. */
-export const railTarget = (m: Pick<Mass, 'kind'>, mi: number): string => `${m.kind === 'deck' ? 'deck' : 'porch'} ${mi}`
+export const railTarget = (m: Pick<Mass, 'kind'>, mi: number): string => `${m.kind === 'porch' || m.kind === 'wall' ? 'porch' : m.kind} ${mi}`
 
 /** "Rails on 3 of 4 edges · 1 required edge off", for the part inspector. */
 export function railSummary(edges: readonly EdgeRail[]): string {

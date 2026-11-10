@@ -125,6 +125,38 @@ describe('the store keeps what is drawn on the first per-edge write', () => {
     }
   })
 
+  test("removing one handrail of C's lantern stair keeps the other; undo brings it back", () => {
+    const info = () => stairInfo(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['C-1'], 2)!
+    expect(info().rails.map((r) => r.side)).toEqual([-1, 1])
+    store().setRail('C-1', 2, 1, 'off')
+    expect(info().rails.map((r) => r.side)).toEqual([-1])
+    store().setRail('C-1', 2, 3, 'off')
+    expect(info().rails).toEqual([])
+    store().setRail('C-1', 2, 1, 'on')
+    expect(info().rails.map((r) => r.side)).toEqual([1])
+    usePlanStore.temporal.getState().undo()
+    usePlanStore.temporal.getState().undo()
+    usePlanStore.temporal.getState().undo()
+    expect(info().rails.map((r) => r.side)).toEqual([-1, 1])
+  })
+
+  test("C's lantern stair handrails join the porch railing at their top by default; Join off stops one", () => {
+    const info = () => stairInfo(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['C-1'], 2)!
+    expect(info().rails.map((r) => r.joined)).toEqual([true, true])
+    store().setRailJoin('C-1', 2, 3, false)
+    expect(info().rails.map((r) => r.joined)).toEqual([false, true])
+    store().setRailJoin('C-1', 2, 3, true)
+    expect(info().rails.map((r) => r.joined)).toEqual([true, true])
+  })
+
+  test('a locked cabin refuses a stair handrail or Join change', () => {
+    store().setLocked('C-1', true)
+    const before = store().plan
+    store().setRail('C-1', 2, 1, 'off')
+    store().setRailJoin('C-1', 2, 1, false)
+    expect(store().plan).toBe(before)
+  })
+
   test('the resolver answers for a deck or porch and not for a stair', () => {
     const q = { plan: store().plan, site: store().site, id: 'C-0' }
     expect(resolveRailDraws({ ...q, mass: 3 })).toHaveLength(33)

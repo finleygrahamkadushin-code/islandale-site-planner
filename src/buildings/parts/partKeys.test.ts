@@ -73,3 +73,41 @@ describe('part keys', () => {
     expect(store().toast?.text).toMatch(/locked/)
   })
 })
+
+describe('a picked rail', () => {
+  const LANTERN = 'C-1' // Stair 2 hangs off its porch
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    store().lockAll(false)
+    history().clear()
+  })
+
+  test('Delete removes only that rail, as one undo step, and leaves the stair picked', () => {
+    store().pickPart({ objectId: LANTERN, mass: 2, rail: 1 })
+    expect(key('Delete')).toBe(true)
+    const stair = buildingMasses(store().plan.objects[LANTERN].params)[2]
+    expect(stair.kind).toBe('stair')
+    expect(stair.rails).toEqual({ 1: false })
+    expect(pickedPartOf(store())).toEqual({ objectId: LANTERN, mass: 2 })
+    expect(history().pastStates).toHaveLength(1)
+    history().undo()
+    expect(buildingMasses(store().plan.objects[LANTERN].params)[2].rails).toBeUndefined()
+  })
+
+  test('Escape drops the rail first, then the part', () => {
+    store().pickPart({ objectId: LANTERN, mass: 2, rail: 3 })
+    expect(key('Escape')).toBe(true)
+    expect(pickedPartOf(store())).toEqual({ objectId: LANTERN, mass: 2 })
+    expect(key('Escape')).toBe(true)
+    expect(pickedPartOf(store())).toBeNull()
+  })
+
+  test('a locked cabin keeps its rail', () => {
+    store().pickPart({ objectId: LANTERN, mass: 2, rail: 1 })
+    store().setLocked(LANTERN, true)
+    const before = store().plan
+    key('Delete')
+    expect(store().plan).toBe(before)
+  })
+})

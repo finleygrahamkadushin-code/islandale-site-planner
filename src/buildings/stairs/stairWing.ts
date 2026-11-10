@@ -169,6 +169,9 @@ export function wingStairSpec(masses: readonly Mass[], mi: number, site: AccessS
     nosing: 0.025,
     style: site.railStyle ?? 'wood',
     rail: m.rail !== false,
+    // per-side handrails (edge 1 right, 3 left), and Join on by default where the stair meets a part at its top
+    railOff: ([-1, 1] as const).filter((sg) => m.rails?.[sg > 0 ? 1 : 3] === false),
+    railJoin: host ? ([-1, 1] as const).filter((sg) => m.railJoin?.[sg > 0 ? 1 : 3] !== false) : [],
     clearTop: !!site.clearTop,
     groundAt: (z) => site.groundAt(0, z / FT) - site.floor,
     footPlate: m.footZ === undefined,
