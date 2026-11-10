@@ -41,6 +41,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // the "every scheme" tests build all twelve schemes: 2–4 s each alone, past the 5 s default on a busy machine
+    testTimeout: 30_000,
     include: ['src/**/*.test.ts', 'vite/**/*.test.ts', 'scripts/**/*.test.mjs'],
   },
 })
