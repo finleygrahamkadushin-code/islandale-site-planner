@@ -6,6 +6,7 @@ import type { PlanObject } from '../store/types'
 import { useEarthworks } from '../site/earthworks/useEarthworks'
 import type { Ground } from '../site/earthworks/earthworksTypes'
 import { useLiveDrag } from './editing'
+import { isOutside, useIsolate } from '../tools/isolate'
 import { castsContactShadow, shadowMesh, shadowOutlines, type ShadowMesh } from './contactShadow'
 
 // one mesh per object, kept while the object and the ground are unchanged
@@ -45,7 +46,11 @@ function merge(meshes: readonly ShadowMesh[]): BufferGeometry {
  */
 export function ContactShadows() {
   const { drawnGround } = useEarthworks()
-  const objects = usePlanStore(useShallow((s) => s.plan.order.map((id) => s.plan.objects[id]).filter((o) => o && castsContactShadow(o))))
+  const isolation = useIsolate((s) => s.isolation)
+  // isolate mode: the faded or hidden rest casts no shadow
+  const objects = usePlanStore(
+    useShallow((s) => s.plan.order.map((id) => s.plan.objects[id]).filter((o) => o && castsContactShadow(o) && !isOutside(isolation, o.id))),
+  )
   // the dragged ids change only when a drag starts or ends, not on every move
   const dragged = useLiveDrag(useShallow((s) => (s.drag ? [s.drag.id, ...(s.drag.group ?? [])] : [])))
   const geometry = useMemo(

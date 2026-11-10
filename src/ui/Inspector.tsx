@@ -162,11 +162,29 @@ function SingleInspector({ id }: { readonly id: string }) {
 function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
   const setLocked = usePlanStore((s) => s.setLocked)
   const names = usePlanStore(useShallow((s) => ids.map((id) => s.plan.objects[id]?.name ?? '')))
+  const groups = usePlanStore(useShallow((s) => ids.map((id) => s.plan.objects[id]?.group ?? '')))
+  const groupObjects = usePlanStore((s) => s.groupObjects)
+  const ungroupObjects = usePlanStore((s) => s.ungroupObjects)
+  const oneGroup = groups[0] !== '' && groups.every((g) => g === groups[0])
+  const anyGrouped = groups.some((g) => g !== '')
   return (
     <section className="panel inspector" aria-label="Inspector">
       <header>
-        <strong>{ids.length} selected</strong>
+        <strong>{oneGroup ? `Group of ${ids.length}` : `${ids.length} selected`}</strong>
       </header>
+      <div className="actions" role="group" aria-label="Grouping">
+        {!oneGroup && (
+          <button type="button" data-testid="group-selection" title="Group (Cmd/Ctrl+G)" onClick={() => groupObjects(ids)}>
+            Group
+          </button>
+        )}
+        {anyGrouped && (
+          <button type="button" data-testid="ungroup-selection" title="Ungroup (Cmd/Ctrl+Shift+G)" onClick={() => ungroupObjects(ids)}>
+            Ungroup
+          </button>
+        )}
+      </div>
+      {oneGroup && <p className="muted">Double-click any member in the view to edit the group alone.</p>}
       <ul className="list">
         {names.map((n, i) => (
           <li key={ids[i]}>{n}</li>

@@ -23,7 +23,7 @@ src/
   site/         feature (map inside): the lot at the top, then earthworks/ objects/ environment/
   paths/        feature (map inside): path pieces at the top, then connect/ route/ junctions/
   interiors/    feature (map inside): the floor-plan model at the top, then editor/ furniture/ scene3d/
-  tools/        feature (map inside): tool strip, object library, place, drag, snap, duplicate, measure, box select, align
+  tools/        feature (map inside): tool strip, object library, place, drag, snap, duplicate, measure, box select, align, groups, isolate
   layout/       feature (map inside): task tabs, bottom bar, command search, shortcuts sheet, view keys
   present/      feature (map inside): Present mode, the sun animation, compass and scale bar, splash, snapshot, WebGL check
   guide/        feature (map inside): Beginner / Advanced mode, the shared tooltip, glossary words, the confirm dialog, the first-run tour
@@ -47,7 +47,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
 | Export 3D model: the .glb and manifest for Blender and SketchUp, the headless export | `src/export/model3d/`, `tools/export/export_scene.mjs` | `src/export/model3d/CLAUDE.md` |
-| Tool strip, object library, placing, dragging, snapping, duplicate, Q / E / R turns, measuring, box select, align | `src/tools/` | `src/tools/CLAUDE.md` |
+| Tool strip, object library, placing, dragging, snapping, duplicate, Q / E / R turns, measuring, box select, align, groups, isolate and edit | `src/tools/` | `src/tools/CLAUDE.md` |
 | Task tabs, which panels each tab shows, bottom bar, command search, shortcuts sheet, view keys | `src/layout/` | `src/layout/CLAUDE.md` |
 | Beginner / Advanced, what Beginner hides, tooltips, glossary words, delete confirmation, the first-run tour | `src/guide/` | `src/guide/CLAUDE.md` |
 | Present mode, the sun animation, slow orbit, compass and scale bar, loading splash, snapshot, no-WebGL message | `src/present/` | `src/present/CLAUDE.md` |

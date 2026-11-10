@@ -107,6 +107,7 @@ function validateObject(id: string, raw: unknown): PlanObject {
     locked: raw.locked === true,
     hidden: raw.hidden === true,
     labelVisible: raw.labelVisible !== false,
+    ...(typeof raw.group === 'string' && raw.group ? { group: raw.group } : {}),
   }
 }
 

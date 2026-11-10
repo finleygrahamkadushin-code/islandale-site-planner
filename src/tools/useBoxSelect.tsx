@@ -9,6 +9,8 @@ import { toolOf } from '../store/toolActions'
 import { useEarthworks } from '../site/earthworks/useEarthworks'
 import { toScene } from '../scene/frame'
 import { idsInBox } from './arrange'
+import { pickedIds } from './groups'
+import { isOutside, isolationNow } from './isolate'
 
 /**
  * Box select (4B): with the Select tool, Shift-drag on empty ground draws a
@@ -66,8 +68,10 @@ export function useBoxSelect() {
         useSelectBox.getState().set(null, null)
         boxEndedAt = performance.now()
         const st = usePlanStore.getState()
-        const shown = st.plan.order.map((id) => st.plan.objects[id]).filter((o) => o && isObjectVisible(st, o.id))
-        st.select(idsInBox(shown, a, b))
+        // isolate mode: only what is isolated can be boxed; a box takes whole groups except in the open one
+        const iso = isolationNow()
+        const shown = st.plan.order.map((id) => st.plan.objects[id]).filter((o) => o && isObjectVisible(st, o.id) && !isOutside(iso, o.id))
+        st.select(pickedIds(st.plan, idsInBox(shown, a, b), iso?.group ?? null))
       }
       window.addEventListener('pointermove', move, true)
       window.addEventListener('pointerup', up, true)

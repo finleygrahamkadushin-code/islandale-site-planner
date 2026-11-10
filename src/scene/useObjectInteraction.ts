@@ -7,6 +7,8 @@ import { firstPaintHit, isPaintable } from '../buildings/paint/paintHit'
 import { usePaintHover } from '../buildings/paint/paintHover'
 import { usePresent } from '../present/present'
 import { useDragMove } from '../tools/useDragMove'
+import { pickedIds } from '../tools/groups'
+import { isolationNow } from '../tools/isolate'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
 const PICK_SLOP_PX = 4
@@ -55,7 +57,11 @@ export function useObjectInteraction(o: PlanObject) {
         if (e.delta < PICK_SLOP_PX) s.pickPart({ objectId: o.id, mass })
         return
       }
-      select([o.id])
+      // a click picks the whole group, except inside the group open in isolation
+      const ids = pickedIds(s.plan, [o.id], isolationNow()?.group ?? null)
+      // clicking a member of the group already selected keeps the group (so it can be dragged)
+      if (ids.length > 1 && ids.length === s.selection.length && ids.every((id) => s.selection.includes(id))) return
+      select(ids)
     },
     [o, select, toggleSelect],
   )

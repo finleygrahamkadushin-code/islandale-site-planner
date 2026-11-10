@@ -1,10 +1,13 @@
 import { useShallow } from 'zustand/react/shallow'
 import { isLabelShown, usePlanStore } from '../store/planStore'
+import { isOutside, useIsolate } from '../tools/isolate'
 import { labelElements } from './labelRegistry'
 
 /** Name labels as plain DOM elements over the canvas; `LabelProjector` positions them each frame. */
 export function LabelLayer() {
-  const ids = usePlanStore(useShallow((s) => s.plan.order.filter((id) => isLabelShown(s, id))))
+  const isolation = useIsolate((s) => s.isolation)
+  // isolate mode: the rest's labels go with it
+  const ids = usePlanStore(useShallow((s) => s.plan.order.filter((id) => isLabelShown(s, id) && !isOutside(isolation, id))))
   return (
     <div className="labels">
       {ids.map((id) => (

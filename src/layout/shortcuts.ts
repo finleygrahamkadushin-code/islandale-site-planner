@@ -25,6 +25,8 @@ export const SHORTCUT_GROUPS: readonly { readonly title: string; readonly items:
       { keys: 'R', does: 'Turn 90° (Shift+R the other way)' },
       { keys: 'Arrows', does: 'Nudge 1 ft (Shift: 5 ft)' },
       { keys: '⌘D / Ctrl+D', does: 'Duplicate' },
+      { keys: '⌘G / Ctrl+G', does: 'Group (⇧ to ungroup); a click then picks the whole group' },
+      { keys: 'Double-click', does: 'Edit an object or group alone (the rest fades); Esc or a double-click on empty space leaves' },
       { keys: 'Delete', does: 'Delete' },
       { keys: 'F', does: 'Fly the camera to it' },
       { keys: 'I', does: 'Open the selected cabin’s floor plan' },

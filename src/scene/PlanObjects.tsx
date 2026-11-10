@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
+import type { ThreeEvent } from '@react-three/fiber'
 import { useShallow } from 'zustand/react/shallow'
 import { isObjectVisible, usePlanStore } from '../store/planStore'
 import { ObjectMesh } from '../site/objects/ObjectMesh'
@@ -14,14 +15,46 @@ import { ShedMesh } from '../site/objects/ShedMesh'
 import { PondMesh } from '../site/objects/PondMesh'
 import { pieceKind } from '../paths/pieces'
 import { dragMoves, type DragState } from './editing'
+import { Ghosted } from './Ghosted'
+import { claimDoubleClick, isOutside, useIsolate } from '../tools/isolate'
+import { isPresenting } from '../present/present'
 
 export function PlanObjects({ drag }: { readonly drag: DragState | null }) {
-  const ids = usePlanStore(useShallow((s) => s.plan.order.filter((id) => isObjectVisible(s, id))))
+  const isolation = useIsolate((s) => s.isolation)
+  const hideRest = useIsolate((s) => s.hideRest)
+  const visible = usePlanStore(useShallow((s) => s.plan.order.filter((id) => isObjectVisible(s, id))))
+  // isolate mode: the rest is hidden, or drawn as a ghost that can't be picked
+  const ids = hideRest ? visible.filter((id) => !isOutside(isolation, id)) : visible
   return (
     <group name="plan">
       {ids.map((id) => (
-        <PlanObjectView key={id} id={id} drag={dragMoves(drag, id) ? drag : null} />
+        <IsolateWrap key={id} id={id} faded={isOutside(isolation, id)}>
+          <PlanObjectView id={id} drag={dragMoves(drag, id) ? drag : null} />
+        </IsolateWrap>
       ))}
+    </group>
+  )
+}
+
+/** Double-click an object (or a member of a group) to isolate it; faded objects take no pointer at all. */
+function IsolateWrap({ id, faded, children }: { readonly id: string; readonly faded: boolean; readonly children: ReactNode }) {
+  const onDoubleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      e.stopPropagation()
+      if (isPresenting()) return
+      claimDoubleClick(e.nativeEvent)
+      const s = usePlanStore.getState()
+      useIsolate.getState().enter(s.plan, id)
+      const focus = useIsolate.getState().isolation
+      // a single object stays selected for editing; in an open group, click the member to edit
+      s.pickPart(null)
+      s.select(focus && !focus.group ? focus.focus : [])
+    },
+    [id],
+  )
+  return (
+    <group onDoubleClick={onDoubleClick}>
+      <Ghosted on={faded}>{children}</Ghosted>
     </group>
   )
 }
