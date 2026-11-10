@@ -1,4 +1,5 @@
 import type { LocalPoint } from '../footprint'
+import { pointInPolygon } from '../foundation/foundation'
 import { buildingToMass, massBuildingPoly, type Mass } from '../masses'
 import type { RailStyle } from '../rails/railEdits'
 import { boundaryPts, type TopEdge, type XZ } from './stairCurve'
@@ -68,6 +69,59 @@ export function wingHost(masses: readonly Mass[], mi: number): WingHost | null {
     })
   })
   return host
+}
+
+/** Snap to porch looks this far along the stair's centre line for an edge to meet (building feet). */
+export const SNAP_FT = 12
+const SNAP_DONE_FT = 0.05
+
+/** The top centre of access wing m and the unit direction down its run, building feet. */
+export function stairAxis(m: Pick<Mass, 'dx' | 'dz' | 'rot' | 'd'>): { readonly top: LocalPoint; readonly down: LocalPoint } {
+  const a = (m.rot * Math.PI) / 180
+  const down: LocalPoint = [Math.sin(a), Math.cos(a)]
+  return { top: [m.dx - (down[0] * m.d) / 2, m.dz - (down[1] * m.d) / 2], down }
+}
+
+/** Where the line p + t·u crosses segment ab, as t, or null when it misses or runs along it. */
+function crossAt(p: LocalPoint, u: LocalPoint, a: LocalPoint, b: LocalPoint): number | null {
+  const ex = b[0] - a[0]
+  const ez = b[1] - a[1]
+  const den = u[0] * ez - u[1] * ex
+  if (Math.abs(den) < 1e-9) return null
+  const qx = a[0] - p[0]
+  const qz = a[1] - p[1]
+  const s = (qx * u[1] - qz * u[0]) / den
+  if (s < -1e-9 || s > 1 + 1e-9) return null
+  return (qx * ez - qz * ex) / den
+}
+
+/**
+ * Snap to porch (deliberate addition, PLAN.md): the offset that slides
+ * access wing mi along its own run until its top meets the nearest edge of
+ * a deck, porch or walls at its level, within SNAP_FT, with the stair left
+ * outside that part. Null when it already meets one or none is in reach.
+ */
+export function snapToHost(masses: readonly Mass[], mi: number): { readonly dx: number; readonly dz: number } | null {
+  const m = masses[mi]
+  if (!m || !isAccess(m)) return null
+  const { top, down } = stairAxis(m)
+  let best: number | null = null
+  masses.forEach((hm, k) => {
+    if (k === mi || isAccess(hm) || Math.abs(hm.lvl - m.lvl) >= SAME_LEVEL_FT) return
+    const P = massBuildingPoly(hm)
+    P.forEach((a, i) => {
+      const t = crossAt(top, down, a, P[(i + 1) % P.length])
+      if (t === null || Math.abs(t) > SNAP_FT) return
+      // the stair hangs off the outside: just down from the new top is not inside this part
+      const probe: LocalPoint = [top[0] + down[0] * (t + 0.25), top[1] + down[1] * (t + 0.25)]
+      if (pointInPolygon(P, probe[0], probe[1])) return
+      if (best === null || Math.abs(t) < Math.abs(best)) best = t
+    })
+  })
+  if (best === null || Math.abs(best) < SNAP_DONE_FT) return null
+  const t: number = best
+  const r = (v: number) => Math.round(v * 1000) / 1000
+  return { dx: r(m.dx + down[0] * t), dz: r(m.dz + down[1] * t) }
 }
 
 /** A building-frame point (feet) in the wing's stair frame (metres). */

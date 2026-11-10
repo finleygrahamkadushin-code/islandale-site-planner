@@ -6,7 +6,8 @@ import { kindPatch, MAX_LEVEL_FT, minSizeFt, railSummary, stairSummary } from '.
 import { isRailable } from '../rails/railRules'
 import { wingAt } from './wingEdits'
 import { objectRails } from '../rails/railSite'
-import { stairInfo } from '../stairs/stairSite'
+import { fitStairRun, stairAttached, stairInfo } from '../stairs/stairSite'
+import { snapToHost } from '../stairs/stairWing'
 import { useRailWorld } from '../rails/useRailWorld'
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'
@@ -59,6 +60,7 @@ export function PartInspector({ id, mass }: { readonly id: string; readonly mass
         <WingFields o={o} m={m} mass={mass} locked={locked} set={set} />
       )}
       {mass > 0 && <PartNotes o={o} m={m} mass={mass} />}
+      {mass > 0 && (m.kind === 'stair' || m.kind === 'ramp') && <StairFixes o={o} mass={mass} locked={locked} set={set} />}
       {mass > 0 && (
         <div className="actions">
           <button type="button" className="danger" disabled={locked} onClick={remove}>
@@ -121,7 +123,7 @@ function PartNotes({ o, m, mass }: { readonly o: PlanObject; readonly m: Mass; r
       return rails ? { lines: [railSummary(rails)], warn: rails.some((r) => r.required && !r.drawn) ? 'A guard is required over 30 in' : null } : null
     }
     const info = stairInfo(world, o, mass)
-    return info ? stairSummary(info) : null
+    return info ? stairSummary(info, stairAttached(o, mass)) : null
   }, [world, o, m, mass])
   if (!notes) return null
   return (
@@ -131,5 +133,27 @@ function PartNotes({ o, m, mass }: { readonly o: PlanObject; readonly m: Mass; r
       ))}
       {notes.warn && <li className="warn">{notes.warn}</li>}
     </ul>
+  )
+}
+
+/** Fit to code and Snap to porch for a stair or ramp, each one undo step, shown only when it would change something. */
+function StairFixes({ o, mass, locked, set }: { readonly o: PlanObject; readonly mass: number; readonly locked: boolean; readonly set: (patch: Record<string, unknown>) => void }) {
+  const world = useRailWorld()
+  const snap = useMemo(() => snapToHost(buildingMasses(o.params), mass), [o, mass])
+  const fit = useMemo(() => (snap ? null : fitStairRun(world, o, mass)), [world, o, mass, snap])
+  if (!snap && !fit) return null
+  return (
+    <div className="actions">
+      {snap && (
+        <button type="button" data-testid="stair-snap" disabled={locked} title="Slide the stair along its run until its top meets the nearest porch, deck or walls" onClick={() => set(snap)}>
+          Snap to porch
+        </button>
+      )}
+      {fit && (
+        <button type="button" data-testid="stair-fit" disabled={locked} title="Lengthen the run to 11 in treads (ramps 1:12), keeping the top where it is" onClick={() => set(fit)}>
+          Fit to code · run {Math.floor(fit.d)} ft {Math.round((fit.d % 1) * 12)} in
+        </button>
+      )}
+    </div>
   )
 }

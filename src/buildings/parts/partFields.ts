@@ -88,12 +88,14 @@ export function railSummary(edges: readonly EdgeRail[]): string {
 }
 
 /** Lines for a stair's or ramp's numbers, and a warning when they break the rules. */
-export function stairSummary(info: StairInfo): { readonly lines: readonly string[]; readonly warn: string | null } {
+export function stairSummary(info: StairInfo, attached = true): { readonly lines: readonly string[]; readonly warn: string | null } {
   const inches = (m: number) => `${f1(m / IN)} in`
+  const site = [info.footAbove ? 'The ground at the foot is above the floor: the stair runs into it' : null, attached ? null : 'Its top meets no porch, deck or walls']
+  const join = (...w: (string | null)[]) => w.filter(Boolean).join('. ') || null
   if (info.kind === 'ramp') {
     const slope = info.slope > 0 ? `1:${f1(1 / info.slope)}` : 'level'
-    return { lines: [`Slope ${slope}`, `Drop ${inches(info.drop)}`], warn: info.steep ? 'Steeper than 1:12' : null }
+    return { lines: [`Slope ${slope}`, `Drop ${inches(info.drop)}`], warn: join(info.steep ? 'Steeper than 1:12' : null, ...site) }
   }
   const lines = [`${info.n} riser${info.n === 1 ? '' : 's'} of ${inches(info.rise)}`, `Treads ${inches(info.tread)}`]
-  return { lines, warn: info.ok ? null : 'Risers over 7 in or treads under 11 in' }
+  return { lines, warn: join(info.ok ? null : 'Risers over 7 in or treads under 11 in', ...site) }
 }

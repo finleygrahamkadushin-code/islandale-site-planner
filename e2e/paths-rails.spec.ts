@@ -5,7 +5,8 @@ import { clearSaves } from './fresh'
 
 // wings (mass indexes) the old planner draws rails on, by building (object ids are <scheme>-<n>),
 // read from legacy/islandale-planner.html; the same for C and C2–C4
-const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [2, 3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
+// the prow's front stair runs into rising ground, so its handrails stop with its treads (PLAN.md, stairs into the ground)
+const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
 const PATH_TO_BEACH = (id: string) => `${id}-9`
 const PAD_THICKNESS_M = 0.2 * 0.3048
 

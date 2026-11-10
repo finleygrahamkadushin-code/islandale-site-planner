@@ -6,6 +6,7 @@ import type { Parcel, Terrain } from '../types'
 import type { PlanObject, Setbacks } from '../../store/types'
 import type { CheckContext, CodeRow } from './codeCheckTypes'
 import { guardsRow, handrailsRow, railClearanceRow } from './codeCheckRails'
+import { stairsRow } from './codeCheckStairs'
 import { levelsRow, pathPiecesRow, routeRow } from './codeCheckPaths'
 import { decksInBufferRow, heightRow, lotWidthRow, shoreRow, treeZoneRow } from './codeCheckRows'
 
@@ -47,6 +48,7 @@ const ROWS: readonly ((c: CheckContext) => CodeRow)[] = [
   guardsRow,
   railClearanceRow,
   handrailsRow,
+  stairsRow,
   treeZoneRow,
   routeRow,
   pathPiecesRow,

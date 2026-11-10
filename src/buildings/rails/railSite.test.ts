@@ -33,7 +33,8 @@ function railed(plan: Plan): Record<string, Record<number, number[]>> {
 
 describe('Schemes C and C2–C4 rail where they did', () => {
   // the same table as e2e/paths-rails.spec.ts (LEGACY_RAILED), read from the old planner
-  const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [2, 3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
+  // the prow's front stair runs into rising ground, so its handrails stop with its treads (PLAN.md, stairs into the ground)
+const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
   for (const id of ['C', 'C2', 'C3', 'C4']) {
     test(`${id}: the same masses carry rails`, () => {
       const byMass = railed(schemePlan(id))
@@ -44,8 +45,8 @@ describe('Schemes C and C2–C4 rail where they did', () => {
 
   test('C rails these edges (what railedEdges() reports in the scene)', () => {
     expect(railed(schemePlan('C'))).toEqual({
-      // the prow: its stair, and its curved deck except the sitting-step edges and where it runs along the walls
-      'C-0': { 2: [1, 3], 3: [0, 1, 2, 15, 16, 32] },
+      // the prow: its curved deck (its stair runs into the ground) except the sitting-step edges and where it runs along the walls
+      'C-0': { 3: [0, 1, 2, 15, 16, 32] },
       'C-1': { 1: [0, 1, 2, 3], 2: [1, 3] },
       'C-2': { 1: [1, 2, 3], 2: [1, 3], 3: [0, 1, 2, 3] },
       // the wedge deck keeps rail 'sides': its ends (edges 1 and 3) stay open
