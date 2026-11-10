@@ -3,7 +3,7 @@ import { pointInPolygon } from '../foundation/foundation'
 import { massBuildingPoly, massPoly, massToBuilding, type Mass } from '../masses'
 import { stateOf, type EdgeDraw, type RailState } from './railEdits'
 import { inIntervals, keepRuns, MIN_RUN_M, sampledRuns, type Interval } from './railOpenings'
-import { DROP_PROBE_M, GUARD_DROP_M, guardRule, SLAB_M, wingDropM } from './rails'
+import { DROP_PROBE_M, GUARD_DROP_M, guardRule, wingDropM } from './rails'
 
 /**
  * Which edges of a deck or porch get a guard, and where along each edge
@@ -80,18 +80,30 @@ export function outwardNormal(poly: readonly LocalPoint[], i: number): LocalPoin
   return signedArea(poly) >= 0 ? [uz, -ux] : [-uz, ux]
 }
 
+/** Where edgeDropM reads the ground: fractions along the edge, and distances out from it (metres, out to the 36 in the guard rule looks). */
+const DROP_ALONG = [0, 0.25, 0.5, 0.75, 1]
+const DROP_OUT_M = [DROP_PROBE_M / 3, (2 * DROP_PROBE_M) / 3, DROP_PROBE_M]
+
 /**
- * Port of legacy edgeDropFt: the largest drop from the walking surface
- * along edge i to the ground 0.9 m outside its ends and midpoint, metres.
- * `floor` is the mass floor; a wing's walking surface is its slab above it.
+ * The drop a guard is judged by (after legacy edgeDropFt): from the walking
+ * surface along edge i, as drawn (the mass floor: decks and porches have
+ * their top there; deliberate change, R3.6: the legacy 0.15 m slab is not
+ * added), to the lowest ground within 0.9 m (36 in) outside it, read at
+ * five points along the edge and three distances out (the legacy read only
+ * its ends and middle at 0.9 m), metres.
  */
-export function edgeDropM(poly: readonly LocalPoint[], i: number, floor: number, groundAt: (x: number, z: number) => number, slabM = SLAB_M): number {
+export function edgeDropM(poly: readonly LocalPoint[], i: number, floor: number, groundAt: (x: number, z: number) => number): number {
   const a = poly[i]
   const b = poly[(i + 1) % poly.length]
   const [nx, nz] = outwardNormal(poly, i)
-  const k = DROP_PROBE_M / FT
-  const lowest = Math.min(...[a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], b].map(([x, z]) => groundAt(x + nx * k, z + nz * k)))
-  return Math.max(0, floor + slabM - lowest)
+  const lowest = Math.min(
+    ...DROP_ALONG.flatMap((t) => {
+      const x = a[0] + (b[0] - a[0]) * t
+      const z = a[1] + (b[1] - a[1]) * t
+      return DROP_OUT_M.map((out) => groundAt(x + (nx * out) / FT, z + (nz * out) / FT))
+    }),
+  )
+  return Math.max(0, floor - lowest)
 }
 
 /** The closest point to p on segment a→b. */
@@ -179,7 +191,7 @@ export function resolveEdges(masses: readonly Mass[], mi: number, site: RailMass
     const L = lenFt * FT
     const step = !deck && ((!!m.steps && i >= m.steps.e0 && i <= m.steps.e1) || !m.slab)
     const free = deck || edgeFree(masses, mi, i)
-    const dropM = edgeDropM(poly, i, site.floor, site.groundAt, deck ? 0 : SLAB_M)
+    const dropM = edgeDropM(poly, i, site.floor, site.groundAt)
     const required = !step && free && dropM > GUARD_DROP_M
     const state: RailState = mapped ? stateOf(m.rails, m.rail, i, n) : 'auto'
     // an explicit on draws a covered edge too, so the first per-edge write keeps the runs the whole-wing rule drew there

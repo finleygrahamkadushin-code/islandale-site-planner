@@ -32,8 +32,8 @@ describe('joinEdgeRuns', () => {
   })
 })
 
-describe('wingDropM (legacy surfaceDropFt)', () => {
-  test('flat ground: the floor height plus the 0.15 m slab', () => {
+describe('wingDropM (legacy surfaceDropFt, the whole-wing drawing rule only)', () => {
+  test('flat ground: the floor height plus the legacy 0.15 m slab, kept so the old rule never draws fewer guards (the drop shown and required is railRules edgeDropM, with no slab)', () => {
     expect(wingDropM(deck, 1, () => 0)).toBeCloseTo(1.15)
   })
   test('reads the ground 0.9 m outside the outline, where a slope falls away', () => {

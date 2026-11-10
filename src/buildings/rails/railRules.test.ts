@@ -18,25 +18,36 @@ describe('outwardNormal', () => {
   })
 })
 
-describe('edgeDropM (legacy edgeDropFt)', () => {
+describe('edgeDropM: the drop from the drawn walking surface (R3.6)', () => {
   const poly = massPoly(house({ kind: 'deck' })[1])
-  test('flat ground: floor height plus the slab on every edge', () => {
-    expect(edgeDropM(poly, 0, 1, flat(0))).toBeCloseTo(1.15)
+  const IN = 0.0254
+  test('flat ground: the floor height, with no 0.15 m slab (decks and porches are drawn with their top at the floor)', () => {
+    expect(edgeDropM(poly, 0, 1, flat(0))).toBeCloseTo(1)
   })
-  test('each edge reads the ground 0.9 m outside it, so a slope gives each edge its own drop', () => {
+  test('a deck 24.4 in up reports 2.03 ft and needs no guard; one 31 in up does', () => {
+    expect(edgeDropM(poly, 2, 24.4 * IN, flat(0)) / FT).toBeCloseTo(2.03, 2)
+    expect(resolveEdges(house({ kind: 'deck', rails: {} }), 1, site(24.4 * IN))![2].required).toBe(false)
+    expect(resolveEdges(house({ kind: 'deck', rails: {} }), 1, site(31 * IN))![2].required).toBe(true)
+  })
+  test('each edge reads the lowest ground within 0.9 m outside it, so a slope gives each edge its own drop', () => {
     // ground falls 0.1 m per foot toward +x
     const ground = (x: number) => -0.1 * x
     const right = edgeDropM(poly, 1, 0, ground)
     const left = edgeDropM(poly, 3, 0, ground)
-    expect(right).toBeCloseTo(0.1 * (6 + 0.9 / FT) + 0.15)
+    expect(right).toBeCloseTo(0.1 * (6 + 0.9 / FT))
     // the ground on the left is higher than the floor
     expect(left).toBe(0)
     // the back edge takes its lower end, probed straight out behind it
-    expect(edgeDropM(poly, 0, 0, ground)).toBeCloseTo(0.1 * 6 + 0.15)
+    expect(edgeDropM(poly, 0, 0, ground)).toBeCloseTo(0.1 * 6)
   })
-  test('never below zero, and no slab for a standalone deck', () => {
+  test('a hollow nearer the edge than 0.9 m, or between its ends and middle, is not missed', () => {
+    // the front edge (2) runs along z = 4 in the wing frame; a 0.5 m ditch 0.45 m out from it, 3 ft from its middle
+    const edgeZ = Math.max(...poly.map((p) => p[1]))
+    const ditch = (x: number, z: number) => (Math.abs(z - edgeZ - 0.45 / FT) < 0.6 && Math.abs(x - 3) < 1.2 ? -0.5 : 0)
+    expect(edgeDropM(poly, 2, 0.5, ditch)).toBeCloseTo(1)
+  })
+  test('never below zero', () => {
     expect(edgeDropM(poly, 0, -5, flat(0))).toBe(0)
-    expect(edgeDropM(poly, 0, 1, flat(0), 0)).toBeCloseTo(1)
   })
 })
 
