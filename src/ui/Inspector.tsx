@@ -17,6 +17,7 @@ import { ftToM, mToFt } from '../site/units'
 import { isObjectLocked, pickedPartOf, usePlanStore } from '../store/planStore'
 import { LAYER_NAMES, layerOf } from '../store/types'
 import { NumField, TextField } from './fields'
+import { ColourInput } from './ColourInput'
 import { HEIGHT_LIMIT_FT, PLACE_LIMIT_FT, SIZE_LIMIT_FT, TURN_LIMIT_DEG } from './numInput'
 import { OpeningsPanel } from '../buildings/openings/OpeningsPanel'
 import { PartInspector } from '../buildings/parts/PartInspector'
@@ -42,7 +43,8 @@ const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path',
 export function Inspector() {
   const selection = usePlanStore((s) => s.selection)
   if (selection.length > 1) return <MultiInspector ids={selection} />
-  return <SingleInspector id={selection[0]} />
+  // keyed by the object, so a field's draft or message never carries over to the next selection
+  return <SingleInspector key={selection[0]} id={selection[0]} />
 }
 
 function SingleInspector({ id }: { readonly id: string }) {
@@ -128,7 +130,7 @@ function SingleInspector({ id }: { readonly id: string }) {
         {picked === null && (
           <label className="row">
             <span>Colour</span>
-            <input type="color" value={color} disabled={dis} onChange={(e) => a.params(id, { color: e.target.value })} />
+            <ColourInput key={`${id}|${color}`} value={color} disabled={dis} testId="object-color" label="Colour" onCommit={(c) => a.params(id, { color: c })} />
           </label>
         )}
         {(o.type === 'house' || o.type === 'deck') && <ExteriorPanel id={id} />}

@@ -111,3 +111,61 @@ test('the Openings panel adds and resizes a window as undoable steps, and a lock
   await page.evaluate((id) => (window as any).islandale.store.getState().addOpening(id, 0, { kind: 'window', edge: 0, x: 1, w: 2, h: 3, sill: 3 }), id)
   expect(await cuts()).toBe(before)
 })
+
+const undoSteps = (page: Page) => page.evaluate(() => (window as any).islandale.store.temporal.getState().pastStates.length as number)
+const selectHouse = (page: Page, n: number) =>
+  page.evaluate((n) => {
+    const s = (window as any).islandale.store.getState()
+    const id = s.plan.order.filter((i: string) => s.plan.objects[i].type === 'house')[n]
+    s.select([id])
+    return id as string
+  }, n)
+
+test('a colour dragged through in the inspector is one undo step (R6.3)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const id = await selectHouse(page, 0)
+  await openSection(page, 'look')
+  const well = page.getByTestId('object-color')
+  await expect(well).toBeVisible()
+  const before = await undoSteps(page)
+  // the native picker sends input events while a shade is dragged through, and change when it closes
+  await well.evaluate((el: HTMLInputElement) => {
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    for (const c of ['#112233', '#223344', '#334455']) {
+      setValue.call(el, c)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await expect.poll(() => page.evaluate((id) => (window as any).islandale.store.getState().plan.objects[id].params.color, id)).toBe('#334455')
+  expect(await undoSteps(page)).toBe(before + 1)
+})
+
+test('a refused size says why, Escape puts it back, and the message does not follow the selection (R6.1, R6.4)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const a = await selectHouse(page, 0)
+  const b = await page.evaluate((a) => {
+    const s = (window as any).islandale.store.getState()
+    const b = s.plan.order.filter((i: string) => s.plan.objects[i].type === 'house')[1]
+    s.resizeObject(b, { w: s.plan.objects[a].params.w, d: s.plan.objects[b].params.d })
+    return b as string
+  }, a)
+  const inspector = page.getByLabel('Inspector')
+  const width = page.locator('.inspector-section', { has: page.getByTestId('section-size') }).getByLabel('Width').first()
+  const shown = await width.inputValue()
+  await width.fill('99999')
+  await width.press('Enter')
+  await expect(inspector).toContainText('At most 300 ft')
+  await width.press('Escape')
+  await expect(width).toHaveValue(shown)
+  await expect(inspector).not.toContainText('At most 300 ft')
+
+  await width.fill('99999')
+  await width.press('Enter')
+  await expect(inspector).toContainText('At most 300 ft')
+  await page.evaluate((b) => (window as any).islandale.store.getState().select([b]), b)
+  await expect(inspector.getByLabel('Name')).toHaveValue(await nameOf(page, b))
+  await expect(inspector).not.toContainText('At most 300 ft')
+})

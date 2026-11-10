@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Tip } from '../../guide/Tip'
+import { ColourInput } from '../../ui/ColourInput'
 import {
   applyPreset,
   BRUSH_FIELDS,
@@ -149,7 +150,7 @@ export function ExteriorPanel({ id }: { readonly id: string }) {
             Colour {look.src.color && <em>({look.src.color})</em>}
           </span>
           <span className="row">
-            <ColourInput key={`${look.color}|${focusKey}`} value={look.color} disabled={locked} onCommit={(color) => write({ color })} />
+            <ColourInput key={`${look.color}|${focusKey}`} value={look.color} disabled={locked} testId="ext-color" label="Element colour" onCommit={(color) => write({ color })} />
             <Tip label="Drop this colour override">
               <button type="button" className="small" disabled={locked} aria-label="Drop this colour override" onClick={() => write({ color: null })}>
                 ×
@@ -215,25 +216,4 @@ function Choice<T extends string>({ label, value, options, name, disabled, testI
       </select>
     </label>
   )
-}
-
-/**
- * A colour well that commits once, when the picker closes (the native change
- * event, as the old panel listens), not on every shade dragged through: one
- * paint, one undo step. Remounted (by its key) when the value changes elsewhere.
- */
-function ColourInput({ value, disabled, onCommit }: { readonly value: string; readonly disabled: boolean; readonly onCommit: (color: string) => void }) {
-  const ref = useRef<HTMLInputElement>(null)
-  const commit = useRef(onCommit)
-  useEffect(() => {
-    commit.current = onCommit
-  })
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const onChange = () => el.value.toLowerCase() !== value.toLowerCase() && commit.current(el.value)
-    el.addEventListener('change', onChange)
-    return () => el.removeEventListener('change', onChange)
-  }, [value])
-  return <input ref={ref} type="color" defaultValue={value} disabled={disabled} data-testid="ext-color" aria-label="Element colour" />
 }
