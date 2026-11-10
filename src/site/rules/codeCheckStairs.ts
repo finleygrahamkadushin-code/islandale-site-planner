@@ -13,9 +13,11 @@ import { named, type CheckContext, type CodeRow, type NamedObject } from './code
  * sides are not checked, and the row says so.
  */
 
-export const STAIRS_LABEL = 'Stairs & ramps · IBC 1011.5, 1011.8, 1012.2, 1012.4'
-/** What the row covers, and what it does not, said on every verdict. */
-export const STAIRS_SCOPE = 'checks risers ≤ 7 in, treads ≥ 11 in, ≤ 12 ft per flight; ramps ≤ 1:12, ≤ 30 in per run. Not checked: landings, width, headroom, guards on open sides'
+export const STAIRS_LABEL = 'Stairs & ramps · IBC 1011, 1012'
+/** What the row does not check, said on every verdict. */
+export const STAIRS_UNCHECKED = 'not checked: landings, width, headroom, side guards'
+/** What it checks, said when it passes (a fail names what broke). */
+export const STAIRS_SCOPE = `risers ≤ 7 in, treads ≥ 11 in, 12 ft a flight, ramps 1:12 and 30 in a run; ${STAIRS_UNCHECKED}`
 
 interface Problem {
   readonly who: NamedObject
@@ -44,8 +46,8 @@ function problems(c: CheckContext): Problem[] {
 export function stairsRow(c: CheckContext): CodeRow {
   const label = STAIRS_LABEL
   const found = problems(c)
-  if (!found.length) return { id: 'stairs', label, text: `every stair and ramp fits; ${STAIRS_SCOPE}`, verdict: 'pass', names: [] }
+  if (!found.length) return { id: 'stairs', label, text: `every stair and ramp fits (${STAIRS_SCOPE})`, verdict: 'pass', names: [] }
   const names = [...new Map(found.map((p) => [p.who.name, p.who])).values()]
-  const text = `${found.map((p) => `${p.who.name} ${p.why}`).join('; ')}. The row ${STAIRS_SCOPE}`
+  const text = `${found.map((p) => `${p.who.name} ${p.why}`).join('; ')} (${STAIRS_UNCHECKED})`
   return { id: 'stairs', label, text, verdict: 'fail', names }
 }
