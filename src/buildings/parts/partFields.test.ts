@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { buildingMasses, wingMass } from '../masses'
-import { hudText, kindPatch, railChipLabel, railChipTitle, railDesc, railRowText, railSummary, railTarget, stairSummary } from './partFields'
+import { hudText, kindPatch, railChipLabel, railChipTitle, railDesc, railRowText, railSummary, railTarget, stairSummary, SUPPORTS_NOTE } from './partFields'
 import type { EdgeRail } from '../rails/railRules'
 import type { StairInfo } from '../stairs/stairPlan'
 
@@ -65,6 +65,11 @@ describe('stairSummary', () => {
   test('a stair gives its risers and treads and flags steep ones', () => {
     expect(stairSummary(info({}))).toEqual({ lines: ['3 risers of 6 in', 'Treads 11.5 in'], warn: null })
     expect(stairSummary(info({ ok: false, n: 1, rise: 8 * IN })).warn).toBe('Risers over 7 in or treads under 11 in')
+  })
+  test('a stair standing on posts says they are drawn, not sized (R3.8)', () => {
+    expect(SUPPORTS_NOTE).toBe('Posts and stringers are drawn to show the idea, not sized: an engineer sizes them')
+    expect(stairSummary(info({ posts: 2 })).lines).toEqual(['3 risers of 6 in', 'Treads 11.5 in', SUPPORTS_NOTE])
+    expect(stairSummary(info({ posts: 0 })).lines).toHaveLength(2)
   })
   test('flags a flight over 12 ft and a missing handrail (R3.1)', () => {
     expect(stairSummary(info({ n: 52, flightOver: true })).warn).toBe('Rises over 12 ft with no landing: use Connect to route it with landings')
