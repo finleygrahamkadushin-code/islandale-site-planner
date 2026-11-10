@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
-import { ExtrudeGeometry, Quaternion, Shape, Vector3, type BufferGeometry } from 'three'
-import { interior3d, type Bar3, type Box3, type Slab, type Wedge3 } from './interior3d'
+import { ExtrudeGeometry, Path, Quaternion, Shape, Vector3, type BufferGeometry } from 'three'
+import { interior3d, type Bar3, type Box3, type Prism, type Slab, type Wedge3 } from './interior3d'
 import type { DisplayStyle } from '../../store/types'
 import { M_PER_FT } from '../../site/units'
 import type { MeshHandlers } from '../../scene/buildingLook'
@@ -10,18 +10,21 @@ const SHEET_SKIP = { sheetSkip: true } as const
 
 /**
  * A cabin's rooms in 3D, drawn in the building's frame from its floor
- * plans (interior3d): partitions with door and window gaps, the upper
- * slab with its stair holes, indoor stairs with handrails and guards, and
- * furniture boxes. Seen with Roofs off, or through the windows; left out
+ * plans (interior3d): room floors, partitions with door and window gaps
+ * (one merged shape per height band), the upper slab with its stair
+ * holes, indoor stairs with handrails and guards, and furniture boxes. Seen with Roofs off, or through the windows; left out
  * of the elevation sheets (sheetSkip), which draw the outside only.
  */
 export function InteriorMesh({ params, style, handlers }: { readonly params: Record<string, unknown>; readonly style: DisplayStyle; readonly handlers: MeshHandlers }) {
   const model = useMemo(() => interior3d(params), [params])
-  if (!model.clusters.length && !model.slabs.length) return null
+  if (!model.clusters.length && !model.slabs.length && !model.prisms.length) return null
   return (
     <group scale={M_PER_FT} userData={SHEET_SKIP} {...handlers}>
       {model.slabs.map((s, i) => (
         <SlabMesh key={`s${i}`} slab={s} style={style} />
+      ))}
+      {model.prisms.map((p, i) => (
+        <PrismMesh key={`p${i}`} prism={p} style={style} />
       ))}
       {model.clusters.map((c, i) => (
         <group key={i} position={c.p as [number, number, number]} rotation={[0, c.ry, 0]}>
@@ -110,6 +113,33 @@ function SlabMesh({ slab, style }: { readonly slab: Slab; readonly style: Displa
   return (
     <mesh geometry={geo} castShadow receiveShadow userData={{ interiorPart: 'slab' }}>
       <Surface kind="trim" style={style} color="#e8e2d6" />
+    </mesh>
+  )
+}
+
+/** A plan shape (with its holes) extruded between two heights: a room floor or a band of partitions. */
+function PrismMesh({ prism, style }: { readonly prism: Prism; readonly style: DisplayStyle }) {
+  const geo = useMemo<BufferGeometry>(() => {
+    const sh = new Shape()
+    prism.outer.forEach(([x, z], i) => (i ? sh.lineTo(x, z) : sh.moveTo(x, z)))
+    sh.closePath()
+    for (const h of prism.holes) {
+      const path = new Path()
+      h.forEach(([x, z], i) => (i ? path.lineTo(x, z) : path.moveTo(x, z)))
+      path.closePath()
+      sh.holes.push(path)
+    }
+    const g = new ExtrudeGeometry(sh, { depth: prism.y1 - prism.y0, bevelEnabled: false })
+    // the shape's (x, y) onto the plan's (x, z), extruded downward from the top
+    g.rotateX(Math.PI / 2)
+    g.translate(0, prism.y1, 0)
+    return g
+  }, [prism])
+  useEffect(() => () => geo.dispose(), [geo])
+  const floor = prism.part === 'floor'
+  return (
+    <mesh geometry={geo} castShadow={!floor} receiveShadow userData={{ interiorPart: prism.part }}>
+      <Surface kind={floor ? 'trim' : 'wall'} style={style} color={prism.color} />
     </mesh>
   )
 }
