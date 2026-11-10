@@ -23,6 +23,8 @@ import { isObjectLocked } from './selectors'
 
 /** Name a cleared plan takes. */
 export const BLANK_PLAN_NAME = 'Blank plan'
+/** Undo steps kept; older ones are dropped (each holds a whole plan, shared where unchanged). History keeps saves further back. */
+export const UNDO_LIMIT = 200
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_SETBACKS,
@@ -478,6 +480,7 @@ export const usePlanStore = create<PlanState>()(
     {
       // Only the plan itself is undoable; selection and view settings are not.
       partialize: (s) => ({ plan: s.plan }),
+      limit: UNDO_LIMIT,
       equality: (a, b) => a.plan === b.plan,
     },
   ),

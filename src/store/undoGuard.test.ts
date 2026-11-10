@@ -78,3 +78,13 @@ describe('the selection only holds objects that exist (R6.10)', () => {
     expect(store().selection).toEqual([])
   })
 })
+
+describe('the undo history is bounded (R6.11)', () => {
+  test('past the limit, the oldest steps are dropped and the newest still undo', async () => {
+    const { UNDO_LIMIT } = await import('./planStore')
+    for (let i = 0; i < 260; i++) store().renameObject(firstId(), `Name ${i}`)
+    expect(history().pastStates.length).toBe(UNDO_LIMIT)
+    undoPlan()
+    expect(store().plan.objects[firstId()].name).toBe('Name 258')
+  })
+})
