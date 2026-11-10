@@ -1,4 +1,4 @@
-import { SEASONS, sunPosition } from './sun'
+import { clockZone, SEASONS, sunPosition } from './sun'
 import { usePlanStore } from '../../store/planStore'
 import { HOUR_RANGE, TIDE_RANGE_FT } from '../../store/types'
 import { Tip } from '../../guide/Tip'
@@ -11,7 +11,7 @@ const fmtHour = (h: number): string => {
   return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`
 }
 
-/** Season, time of day and tide. View settings: saved with the plan, not undo steps. */
+/** Season, time of day (clock time, with daylight saving in June and September) and tide. View settings: saved with the plan, not undo steps. */
 export function EnvironmentPanel() {
   const env = usePlanStore((s) => s.environment)
   const setEnvironment = usePlanStore((s) => s.setEnvironment)
@@ -30,7 +30,7 @@ export function EnvironmentPanel() {
       </div>
       <label className="field">
         <span className="muted small">
-          Time of day <em>{fmtHour(env.hour)}</em>
+          Time of day <em>{fmtHour(env.hour)}</em> {clockZone(env.season)}
           {sun.elevationDeg <= 0 ? ' · sun is down' : ''}
         </span>
         <input type="range" min={HOUR_RANGE.min} max={HOUR_RANGE.max} step={0.25} value={env.hour} aria-label="Time of day" onChange={(e) => setEnvironment({ hour: Number(e.target.value) })} />
