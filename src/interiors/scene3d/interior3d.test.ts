@@ -29,8 +29,8 @@ describe('interior in 3D', () => {
   test("C's gathering cabin gets its partitions and every piece of furniture, and no slab on one floor", () => {
     const m = interior3d(prow)
     const boxes = m.clusters.flatMap((c) => c.boxes)
-    expect(boxes.filter((b) => b.part === 'wall').length).toBeGreaterThan(4)
-    expect(boxes.filter((b) => b.part === 'header').length).toBeGreaterThan(0)
+    expect(m.prisms.filter((p) => p.part === 'wall').length).toBeGreaterThan(0)
+    expect(m.prisms.filter((p) => p.part === 'header').length).toBeGreaterThan(0)
     expect(boxes.filter((b) => b.part === 'furniture')).toHaveLength((prow.floors as { furniture: unknown[] }[])[0].furniture.length)
     expect(m.slabs).toEqual([])
   })
@@ -40,7 +40,9 @@ describe('interior in 3D', () => {
     const stair = { id: 1, type: 'stair', x: 0, z: 0, rot: 0, w: 3.5, d: 10, mirror: false }
     const m = interior3d({ ...box, floors: [{ name: 'Main floor', rooms: [], openings: [], furniture: [stair] }, { name: 'Upper floor', rooms: [], openings: [], furniture: [] }] })
     expect(m.slabs.every((s) => s.top === STOREY_FT)).toBe(true)
-    expect(m.slabs.reduce((a, s) => a + G.area(s.pts), 0)).toBeCloseTo(400 - 35, 6)
+    // 6K: the slab stops at the middle of the 0.66 ft walls, so it never reaches the siding
+    const inner = 20 - 0.66
+    expect(m.slabs.reduce((a, s) => a + G.area(s.pts), 0)).toBeCloseTo(inner * inner - 35, 3)
   })
 
   test('a straight stair has a tread per riser and handrails both sides; a spiral has a column, 11 treads and a landing', () => {
@@ -50,6 +52,7 @@ describe('interior in 3D', () => {
     const spiral = stairPieces({ type: 'spiral', w: 5, d: 5 })
     expect(spiral.cylinders).toHaveLength(1)
     expect(spiral.wedges).toHaveLength(12)
+    expect(stairPieces({ type: 'spiral', w: 5, d: 5 }, false).wedges).toHaveLength(11)
     expect(spiral.bars.length).toBeGreaterThan(10)
   })
 })

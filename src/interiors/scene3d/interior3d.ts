@@ -1,22 +1,25 @@
 import { num } from '../../buildings/footprint'
-import { envelopeOf } from '../envelope'
 import { FURNITURE, furnitureCorners, isStairType, STAIR_RISERS } from '../furniture/furniture'
 import * as G from '../geom'
 import type { Pt } from '../geom'
 import { readFloors } from '../model'
 import { openingGeom, partitionSegments } from '../rooms'
 import { WALL, type Floor, type Furniture } from '../types'
+import { baseHeight, floorPrisms, innerTiles, nearEnvelope, partitionPrisms, type PartitionPiece, type Prism } from './interiorShell'
+
+export type { Prism } from './interiorShell'
 
 /**
- * A cabin's interior in 3D (old int2/walls3d.js): partition walls with
- * their door, window and cased-opening gaps, the upper-floor slab with its
+ * A cabin's interior in 3D (old int2/walls3d.js): room floors, partition
+ * walls with their door, window and cased-opening gaps (merged per floor
+ * and clipped inside the exterior walls, 6K), the upper-floor slab with its
  * stair holes, indoor stairs with handrails and guards, and furniture as
  * boxes. All in building feet, y up from the main floor; the scene draws it
  * in the building's own frame.
  */
 
 export type V3 = readonly [number, number, number]
-export type InteriorPart = 'wall' | 'header' | 'sill' | 'slab' | 'furniture' | 'stair' | 'rail'
+export type InteriorPart = 'wall' | 'header' | 'sill' | 'slab' | 'floor' | 'furniture' | 'stair' | 'rail'
 
 export interface Box3 {
   /** Centre. */
@@ -77,6 +80,8 @@ export interface Slab {
 export interface Interior3D {
   readonly clusters: readonly Cluster[]
   readonly slabs: readonly Slab[]
+  /** Room floors and partitions, as plan shapes extruded between two heights. */
+  readonly prisms: readonly Prism[]
 }
 
 const WALL_COLOR = '#f2efe8'
@@ -86,8 +91,14 @@ const STEEL = '#5c5f61'
 /** Floor to floor, feet. */
 export const STOREY_FT = 9
 const SLAB_FT = 0.75
-/** Partition ends meeting the exterior wall stop this far short of it, feet. */
-const PULL = 0.25
+/** Partition ends at the exterior wall run this far past its outline, then are clipped inside the walls, feet. */
+const EXT_END = 1
+/** Partition ends meeting another partition run on by half a partition, so corners close. */
+const JOIN_END = WALL.int / 2
+/** How close an end must be to another partition to count as joined, feet. */
+const JOIN_TOL = 0.05
+/** Partition tops under a slab stop this far short of it, feet. */
+const SLAB_GAP = 0.01
 /** How far an opening may sit off a partition's line and still cut it, feet and radians. */
 const LINE_TOL = 0.05
 const ANG_TOL = 0.002
@@ -111,18 +122,18 @@ interface Seg {
   readonly gaps: { s0: number; s1: number; kind: string }[]
 }
 
-function partitionWalls(params: Record<string, unknown>, fi: number, floor: Floor, Hft: number): Box3[] {
-  const env = envelopeOf(params, fi)
-  const near = (p: Pt) => env.edges.some(([a, b]) => G.distToSeg(p, a, b).d <= G.ON + 0.05)
-  const segs: Seg[] = partitionSegments(params, fi, floor.rooms).flatMap((s) => {
+/** Partition stretches on floor fi: each line run out at its ends (past the exterior wall, or half a partition into another), cut by its doors and windows. */
+function partitionPieces(params: Record<string, unknown>, fi: number, floor: Floor, Hft: number): PartitionPiece[] {
+  const raw = partitionSegments(params, fi, floor.rooms)
+  const joined = (p: Pt, k: number) => raw.some((s, j) => j !== k && G.distToSeg(p, s.a, s.b).d <= JOIN_TOL)
+  const endRun = (p: Pt, k: number) => (nearEnvelope(params, fi, p, G.ON + 0.05) ? EXT_END : joined(p, k) ? JOIN_END : 0)
+  const segs: Seg[] = raw.flatMap((s, k) => {
     const L = Math.hypot(s.b[0] - s.a[0], s.b[1] - s.a[1])
-    if (L < 1e-9) return []
+    if (L <= 0.05) return []
     const u: Pt = [(s.b[0] - s.a[0]) / L, (s.b[1] - s.a[1]) / L]
-    const pa = near(s.a)
-    const pb = near(s.b)
-    const a: Pt = pa ? [s.a[0] + u[0] * PULL, s.a[1] + u[1] * PULL] : s.a
-    const L2 = L - (pa ? PULL : 0) - (pb ? PULL : 0)
-    return L2 > 0.05 ? [{ a, u, L: L2, gaps: [] }] : []
+    const ea = endRun(s.a, k)
+    const eb = endRun(s.b, k)
+    return [{ a: [s.a[0] - u[0] * ea, s.a[1] - u[1] * ea], u, L: L + ea + eb, gaps: [] }]
   })
   for (const op of floor.openings) {
     const g = openingGeom(params, fi, op, floor.rooms)
@@ -139,18 +150,8 @@ function partitionWalls(params: Record<string, unknown>, fi: number, floor: Floo
       break
     }
   }
-  const y0 = fi * STOREY_FT
   return segs.flatMap((s) =>
-    segmentPieces(s, Hft).map((pc): Box3 => {
-      const m = (pc.s0 + pc.s1) / 2
-      return {
-        p: [s.a[0] + s.u[0] * m, y0 + (pc.y0 + pc.y1) / 2, s.a[1] + s.u[1] * m],
-        size: [pc.s1 - pc.s0, pc.y1 - pc.y0, WALL.int],
-        ry: -Math.atan2(s.u[1], s.u[0]),
-        color: WALL_COLOR,
-        part: pc.y0 > 0.001 ? 'header' : pc.y1 < Hft - 0.001 ? 'sill' : 'wall',
-      }
-    }),
+    segmentPieces(s, Hft).map((pc): PartitionPiece => ({ a: s.a, u: s.u, s0: pc.s0, s1: pc.s1, y0: pc.y0, y1: pc.y1, full: pc.y0 <= 0.001 && pc.y1 >= Hft - 0.001 })),
   )
 }
 
@@ -191,21 +192,25 @@ function stairHole(it: Furniture): Pt[] | null {
   return G.ensureCCW(P)
 }
 
-/** The upper floor's slab: its envelope less the stair holes (stairs below, stair tops on it, else stair rooms). */
-function slabPieces(params: Record<string, unknown>, floors: readonly Floor[], fi: number): Slab[] {
-  let pieces: Pt[][] = envelopeOf(params, fi).tiles.map((P) => P.slice())
+/** The holes floor fi needs for its stairs: stairs below, stair tops on it, else stair rooms. */
+function stairHoles(floors: readonly Floor[], fi: number): Pt[][] {
   const items = [...floors[fi - 1].furniture.filter((it) => it.type === 'stair' || it.type === 'spiral'), ...floors[fi].furniture.filter((it) => it.type === 'stairdn' || it.type === 'spiraldn')]
-  let holes: Pt[][] = items.flatMap((it) => {
+  const holes: Pt[][] = items.flatMap((it) => {
     const h = stairHole(it)
     return h ? [h] : []
   })
-  if (!holes.length) holes = [floors[fi - 1], floors[fi]].flatMap((f) => f.rooms.filter((r) => r.type === 'stairs').map((r) => r.pts as Pt[]))
+  return holes.length ? holes : [floors[fi - 1], floors[fi]].flatMap((f) => f.rooms.filter((r) => r.type === 'stairs').map((r) => r.pts as Pt[]))
+}
+
+/** The upper floor's slab: the region inside its walls (to the middle of each wall, so it never reaches the siding) less the stair holes. */
+function slabPieces(params: Record<string, unknown>, holes: readonly Pt[][], fi: number): Slab[] {
+  let pieces: Pt[][] = innerTiles(params, fi)
   for (const S of holes) pieces = G.subtractRegion(pieces, S)
   return pieces.filter((P) => P.length >= 3 && G.area(P) > 1e-6).map((pts) => ({ pts, top: fi * STOREY_FT, depth: SLAB_FT }))
 }
 
-/** One indoor stair in its own frame (u → x, v → z, the low end at +v), as the old stairMesh builds it. */
-export function stairPieces(it: Pick<Furniture, 'type' | 'w' | 'd'>): Omit<Cluster, 'p' | 'ry'> {
+/** One indoor stair in its own frame (u → x, v → z, the low end at +v), as the old stairMesh builds it; a spiral's landing is left to the slab when there is one (`landing` false). */
+export function stairPieces(it: Pick<Furniture, 'type' | 'w' | 'd'>, landing = true): Omit<Cluster, 'p' | 'ry'> {
   const { w, d, type } = it
   const boxes: Box3[] = []
   const bars: Bar3[] = []
@@ -245,7 +250,7 @@ export function stairPieces(it: Pick<Furniture, 'type' | 'w' | 'd'>): Omit<Clust
   if (type === 'spiral') {
     cylinders.push({ p: [0, 6, 0], r: rp, h: 12, color: STEEL })
     for (let k = 1; k <= 11; k++) wedges.push({ a0: (k - 1) * 30 * D, a1: k * 30 * D, r: R, rp, top: k * rise, th: 0.15, color: WOOD })
-    wedges.push({ a0: 330 * D, a1: 360 * D, r: R, rp, top: STOREY_FT, th: SLAB_FT, color: WOOD })
+    if (landing) wedges.push({ a0: 330 * D, a1: 360 * D, r: R, rp, top: STOREY_FT, th: SLAB_FT, color: WOOD })
     let prev: V3 | null = null
     for (let a = 0; a <= 330; a += 15) {
       const q: V3 = [(R - 0.1) * Math.cos(a * D), Math.min(STOREY_FT, (a / 30 + 0.5) * rise) + 3, (R - 0.1) * Math.sin(a * D)]
@@ -274,14 +279,21 @@ export function interior3d(params: Record<string, unknown>): Interior3D {
   const floors = readFloors(params)
   const clusters: Cluster[] = []
   const slabs: Slab[] = []
+  const prisms: Prism[] = []
   floors.forEach((floor, fi) => {
-    const y0 = fi * STOREY_FT
-    const loose: Box3[] = partitionWalls(params, fi, floor, wallHeight(params, fi, floors.length))
-    if (fi >= 1) slabs.push(...slabPieces(params, floors, fi))
+    const under = fi < floors.length - 1
+    const Hft = wallHeight(params, fi, floors.length) - (under ? SLAB_GAP : 0)
+    const holes = fi >= 1 ? stairHoles(floors, fi) : []
+    if (fi >= 1) slabs.push(...slabPieces(params, holes, fi))
+    prisms.push(...floorPrisms(params, fi, floor, holes, STOREY_FT))
+    const mid = (pc: PartitionPiece): Pt => [pc.a[0] + pc.u[0] * ((pc.s0 + pc.s1) / 2), pc.a[1] + pc.u[1] * ((pc.s0 + pc.s1) / 2)]
+    prisms.push(...partitionPrisms(params, fi, partitionPieces(params, fi, floor, Hft), (pc) => baseHeight(params, fi, mid(pc), STOREY_FT), WALL_COLOR))
+    const loose: Box3[] = []
     for (const it of floor.furniture) {
       const ry = (-(it.rot || 0) * Math.PI) / 180
+      const y0 = baseHeight(params, fi, [it.x, it.z], STOREY_FT)
       if (isStairType(it.type)) {
-        clusters.push({ p: [it.x, y0, it.z], ry, ...stairPieces(it) })
+        clusters.push({ p: [it.x, y0, it.z], ry, ...stairPieces(it, !under) })
         continue
       }
       const t = FURNITURE[it.type]
@@ -291,5 +303,5 @@ export function interior3d(params: Record<string, unknown>): Interior3D {
     }
     if (loose.length) clusters.push({ p: [0, 0, 0], ry: 0, boxes: loose, ...EMPTY })
   })
-  return { clusters, slabs }
+  return { clusters, slabs, prisms }
 }

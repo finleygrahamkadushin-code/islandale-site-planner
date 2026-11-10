@@ -79,6 +79,7 @@ Each part is small enough to finish in one sitting. Each gets its own branch, a 
 | **6H · Site plan sheet** | A new Site sheet in Sheets: lot, contours, buildings, walks, setback bands and buffer line, the code-check and coverage notes, north arrow, scale bar, at true scale | Small to medium | It prints at 1" = 20' (or 1/16") on Tabloid with the 5E numbers matching the app |
 | **6I · Section sheets** | One or two cuts per building, chosen on its plan sheet, showing floor, walls, roof, the cut ground, openings and heights in NAVD88 | Medium | A long and a cross section of every Scheme C building print at 1/4" = 1'-0" |
 | **6J · Render button** | `three-gpu-pathtracer` from the current camera or a saved view, with progress and Stop, then save as PNG; the live view stays as it is | Medium | A Golden hour still of Scheme C renders on Finley's Mac in a few minutes and saves as PNG |
+| **6K · Interiors pass** (added Nov 9) | Interior geometry, light, materials and floor-plan drawing, in four parts K1–K4; see [PLAN-6K.md](PLAN-6K.md) | Medium to large | See PLAN-6K.md, per part |
 
 ## The export contract (6B), so Blender keeps working
 
