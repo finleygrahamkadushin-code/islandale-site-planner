@@ -17,6 +17,7 @@ import { ftToM, mToFt } from '../site/units'
 import { isObjectLocked, pickedPartOf, usePlanStore } from '../store/planStore'
 import { LAYER_NAMES, layerOf } from '../store/types'
 import { NumField, TextField } from './fields'
+import { HEIGHT_LIMIT_FT, PLACE_LIMIT_FT, SIZE_LIMIT_FT, TURN_LIMIT_DEG } from './numInput'
 import { OpeningsPanel } from '../buildings/openings/OpeningsPanel'
 import { PartInspector } from '../buildings/parts/PartInspector'
 import { RailingsPanel } from '../buildings/rails/RailingsPanel'
@@ -94,18 +95,18 @@ function SingleInspector({ id }: { readonly id: string }) {
         <InspectorSection id="placement" title="Placement" tourAnchor="placement">
           {beginner && <p className="muted small">East and North are feet from the centre of the lot. Or drag it in the view.</p>}
           <div className="grid2">
-            <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
-            <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
-            <NumField label={beginner ? 'Turned' : 'Rotation'} unit="°" value={o.rotation} disabled={dis} onCommit={(v) => a.rotate(id, v)} />
+            <NumField label="East" unit="ft" value={mToFt(o.position.x)} disabled={dis} min={-PLACE_LIMIT_FT} max={PLACE_LIMIT_FT} onCommit={(v) => a.move(id, { x: ftToM(v), n: o.position.n })} />
+            <NumField label="North" unit="ft" value={mToFt(o.position.n)} disabled={dis} min={-PLACE_LIMIT_FT} max={PLACE_LIMIT_FT} onCommit={(v) => a.move(id, { x: o.position.x, n: ftToM(v) })} />
+            <NumField label={beginner ? 'Turned' : 'Rotation'} unit="°" value={o.rotation} disabled={dis} min={-TURN_LIMIT_DEG} max={TURN_LIMIT_DEG} onCommit={(v) => a.rotate(id, v)} />
           </div>
         </InspectorSection>
       )}
       {picked === null && (
         <InspectorSection id="size" title="Size and shape">
           <div className="grid2">
-            <NumField label={beginner ? (o.type === 'house' ? 'How tall the walls are' : 'How tall') : 'Height'} unit="ft" value={h} disabled={dis} min={0.1} onCommit={(v) => a.params(id, { h: v })} />
-            {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w: v, d })} />}
-            {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} onCommit={(v) => a.resize(id, { w, d: v })} />}
+            <NumField label={beginner ? (o.type === 'house' ? 'How tall the walls are' : 'How tall') : 'Height'} unit="ft" value={h} disabled={dis} min={0.1} max={HEIGHT_LIMIT_FT} onCommit={(v) => a.params(id, { h: v })} />
+            {sizeable && <NumField label="Width" unit="ft" value={w} disabled={dis} min={1} max={SIZE_LIMIT_FT} onCommit={(v) => a.resize(id, { w: v, d })} />}
+            {sizeable && <NumField label="Depth" unit="ft" value={d} disabled={dis} min={1} max={SIZE_LIMIT_FT} onCommit={(v) => a.resize(id, { w, d: v })} />}
           </div>
           {o.type === 'house' && <ShapeFields p={o.params} pad={false} disabled={dis} set={(patch) => a.params(id, patch)} />}
           {PAD_TYPES.has(o.type) && typeof o.params.kind !== 'string' && (
