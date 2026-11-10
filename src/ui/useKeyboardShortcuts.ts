@@ -10,24 +10,24 @@ import { requestDelete } from '../guide/confirm'
 import { isPresenting, usePresent } from '../present/present'
 import { useConfirm } from '../guide/confirm'
 import { useIsolate } from '../tools/isolate'
+import { keepsKey, keyTargetOf } from './keyOwner'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
 
-const TEXT_INPUT_TYPES = new Set(['text', 'number', 'search', 'email', 'url', 'password', 'tel'])
-
-/** True when the key press belongs to a text field, not to the plan. */
-function isTyping(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return true
-  return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.has(target.type)
-}
+/** A layer that covers the plan without holding focus inside it (the old planner's overlay). */
+const MODAL_SELECTOR = '[aria-modal="true"]'
 
 /** Undo/redo, duplicate, group (Cmd+G, Shift ungroups), the tool keys (toolKeys), delete, escape, Q / E / R turns and arrow-key nudges for the selection; a picked part takes its keys first (partKeys). */
 export function useKeyboardShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target)) return
+      // a control that already acted on the key (a tab or radio moving on) keeps it. Not Escape: a tooltip closing
+      // on it marks it handled too, and must not cost the plan its Escape; a layer that owns Escape stops it itself
+      if (e.defaultPrevented && e.key !== 'Escape') return
+      // so does a text field, a slider or tab under its arrow keys, and anything inside a dialog or menu (keyOwner)
+      if (keepsKey(keyTargetOf(e.target), e.key)) return
+      if (document.querySelector(MODAL_SELECTOR)) return
       // Present mode (4D): no editing keys; Escape leaves
       if (isPresenting()) {
         if (e.key === 'Escape') usePresent.getState().leave()
@@ -35,6 +35,15 @@ export function useKeyboardShortcuts(): void {
       }
       const s = usePlanStore.getState()
       const mod = e.metaKey || e.ctrlKey
+      // Cmd/Ctrl+K: command search; ? : the shortcuts sheet; while either is open it takes the keys (4B)
+      const overlay = useOverlay.getState()
+      if (mod && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        overlay.setOpen(overlay.open === 'commands' ? null : 'commands')
+        return
+      }
+      // an open overlay or delete question takes every other key, undo and redo included
+      if (overlay.open || useConfirm.getState().ask) return
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
         if (e.shiftKey) usePlanStore.temporal.getState().redo()
@@ -46,14 +55,6 @@ export function useKeyboardShortcuts(): void {
         usePlanStore.temporal.getState().redo()
         return
       }
-      // Cmd/Ctrl+K: command search; ? : the shortcuts sheet; while either is open it takes the keys (4B)
-      const overlay = useOverlay.getState()
-      if (mod && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        overlay.setOpen(overlay.open === 'commands' ? null : 'commands')
-        return
-      }
-      if (overlay.open || useConfirm.getState().ask) return
       if (!mod && e.key === '?') {
         e.preventDefault()
         overlay.setOpen('help')

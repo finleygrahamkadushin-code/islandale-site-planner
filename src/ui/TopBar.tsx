@@ -262,7 +262,10 @@ function useCloseOnOutside(bar: RefObject<HTMLElement | null>, open: boolean, cl
       if (!bar.current?.contains(e.target as Node)) close()
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+      if (e.key !== 'Escape') return
+      // handled here: the plan's own Escape (clear the selection) must not run as well
+      e.stopPropagation()
+      close()
     }
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey)

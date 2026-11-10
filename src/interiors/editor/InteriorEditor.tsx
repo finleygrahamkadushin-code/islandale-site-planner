@@ -114,7 +114,7 @@ export function InteriorEditor() {
   const fi = Math.min(v.fi, floors.length - 1)
   const blocked = upperFloorBlocked(o)
   return (
-    <div className="int-editor" role="dialog" aria-label={`Interior of ${o.name}`}>
+    <div className="int-editor" role="dialog" aria-label={`Interior of ${o.name}`} data-plan-keys="">
       <header className="int-bar">
         <strong>Interior · {o.name}</strong>
         <nav className="int-floors" aria-label="Floors">

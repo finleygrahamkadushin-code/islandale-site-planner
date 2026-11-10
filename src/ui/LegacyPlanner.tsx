@@ -18,7 +18,7 @@ export function LegacyPlanner({ onClose }: Props) {
   }, [onClose])
 
   return createPortal(
-    <div className="legacy-planner" role="dialog" aria-label="The old planner">
+    <div className="legacy-planner" role="dialog" aria-modal="true" aria-label="The old planner">
       <div className="legacy-bar">
         <strong>Old planner</strong>
         <span className="muted small">Its layout saves to the hosted home too</span>

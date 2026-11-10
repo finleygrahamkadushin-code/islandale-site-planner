@@ -79,9 +79,14 @@ export function TourCard() {
           aria-label={`Tour, step ${step + 1} of ${TOUR_STEPS.length}: ${current.title}`}
           data-testid="tour"
           data-step={current.id}
+          data-plan-keys=""
           onInteractOutside={(e) => e.preventDefault()}
           onFocusOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={end}
+          onEscapeKeyDown={(e) => {
+            // ends the tour only: the plan's own Escape (clear the selection) must not run as well
+            e.stopPropagation()
+            end()
+          }}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <p className="tour-count muted small">

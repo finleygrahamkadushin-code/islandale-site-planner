@@ -15,6 +15,7 @@ How the screen is organised (Phase 4B): the Site / Build / Interior / Present ta
 | The command search and shortcuts dialogs | `Overlays.tsx` (`useOverlay` says which is open); the search itself is `CommandMenu.tsx`, loaded on first use (`../app/prefetch.ts` fetches it after the first frame) |
 | The shortcuts sheet's list | `shortcuts.ts` (one table) |
 | Keys 1–4, F, I, W | `viewKeys.ts`; Cmd/Ctrl+K and ? are in `../ui/useKeyboardShortcuts.ts` |
+| Which keys the focused control keeps from the plan (text fields, sliders, tabs and radios, anything inside a dialog or menu) | `../ui/keyOwner.ts` (`keepsKey`, pure); a layer that edits the plan opts back in with `data-plan-keys` (the interior editor, the tour card) |
 | How tabs, the bottom bar and the dialogs look | the "Layout (4B)" and "Command search" blocks in `../app/styles.css` |
 
 ## How it fits together
