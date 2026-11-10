@@ -400,3 +400,91 @@ describe('a save with one bad object (R6.5)', () => {
     expect(f.db.get(AUTOSAVE_KEY)).toBe(broken.text)
   })
 })
+
+describe('saving cost and order (R6.12)', () => {
+  let running: Autosave | null = null
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    usePlanStore.temporal.getState().clear()
+  })
+  afterEach(async () => {
+    await running?.stop()
+    running = null
+  })
+
+  test('a slow save is never overtaken by a later one: the last change is what stays saved', async () => {
+    const f = fakeBackend()
+    let holdNext = false
+    let release: () => void = () => {}
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k === AUTOSAVE_KEY && holdNext) {
+          holdNext = false
+          await new Promise<void>((r) => (release = r))
+        }
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    holdNext = true
+    store().renameObject(firstId(), 'First')
+    const first = running.flush()
+    await settle()
+    store().renameObject(firstId(), 'Second')
+    const second = running.flush()
+    await settle()
+    release()
+    await Promise.all([first, second])
+    expect(savedPlan(f.db).objects[firstId()].name).toBe('Second')
+  })
+
+  test('saves less than a minute apart do not rewrite the whole history each time', async () => {
+    let t = Date.parse('2026-11-10T10:00:00Z')
+    const now = () => new Date(t)
+    const f = fakeBackend()
+    let historyWrites = 0
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k === HISTORY_KEY) historyWrites++
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page, now })
+    await running.ready
+    const afterOpen = historyWrites
+    for (let i = 0; i < 6; i++) {
+      t += 5_000
+      store().renameObject(firstId(), `Name ${i}`)
+      await running.flush()
+    }
+    // the first save starts a new entry (written); the rest only change it in memory
+    expect(historyWrites - afterOpen).toBe(1)
+    expect(running.history()[0].text).toContain('Name 5')
+    await running.stop()
+    running = null
+    // stopping writes the history as it stands
+    expect((f.db.get(HISTORY_KEY) as { text: string }[])[0].text).toContain('Name 5')
+  })
+
+  test('the history waiting to be written is written when the tab is hidden', async () => {
+    let t = Date.parse('2026-11-10T10:00:00Z')
+    const now = () => new Date(t)
+    const { backend, db } = fakeBackend()
+    const { page, fire } = fakePage()
+    running = startAutosave({ backend, page, now })
+    await running.ready
+    t += 5_000
+    store().renameObject(firstId(), 'One')
+    await running.flush()
+    t += 5_000
+    store().renameObject(firstId(), 'Two')
+    fire('hidden')
+    await settle()
+    await settle()
+    expect((db.get(HISTORY_KEY) as { text: string }[])[0].text).toContain('Two')
+  })
+})

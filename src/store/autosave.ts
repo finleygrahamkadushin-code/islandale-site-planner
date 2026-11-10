@@ -10,7 +10,7 @@ import {
   type ReadResult,
   type SaveBackend,
 } from './persistence'
-import { HISTORY_KEY, OPENED_LABEL, addToHistory, describeChange, readHistory, type HistoryEntry } from './history'
+import { HISTORY_KEY, HISTORY_MIN_GAP_MS, OPENED_LABEL, addToHistory, describeChange, readHistory, type HistoryEntry } from './history'
 import type { Plan } from './types'
 import { createHomeSync } from './homeSync'
 import type { PlanHome } from './planHome'
@@ -135,16 +135,53 @@ export function startAutosave({
     return serializePlan(s.plan, viewOf(s), now())
   }
 
+  let historyDirty = false
+  let historyWrittenAt = Number.NEGATIVE_INFINITY
+
+  /** Write the history as it stands, if it changed since it was last written. */
+  const writeHistory = async () => {
+    if (!historyDirty) return
+    historyDirty = false
+    historyWrittenAt = now().getTime()
+    try {
+      await backend.write(HISTORY_KEY, entries)
+    } catch (err) {
+      historyDirty = true
+      console.error('[autosave] could not write the history', err)
+    }
+  }
+
+  /**
+   * Add a save to the history. A new entry is written straight away; a save
+   * that only updates the newest entry (saves less than a minute apart) waits,
+   * since each write holds up to 20 whole plans: it is written a minute on, or
+   * when the tab is hidden or closed, or autosave stops. The main save always
+   * holds the latest plan, so nothing waits that could be lost.
+   */
   const recordHistory = async (text: string, plan: Plan, force = false, forcedLabel = OPENED_LABEL) => {
     const label = force ? forcedLabel : describeChange(lastPlan, plan)
     lastPlan = plan
+    const before = entries
     entries = addToHistory(entries, { savedAt: now().toISOString(), label, text }, force)
-    await backend.write(HISTORY_KEY, entries)
+    historyDirty = true
+    const newEntry = entries.length !== before.length || entries[0]?.savedAt !== before[0]?.savedAt
+    if (newEntry || now().getTime() - historyWrittenAt >= HISTORY_MIN_GAP_MS) await writeHistory()
   }
 
-  const saveNow = async () => {
+  /** Saves run one at a time, so a slow write can never land after, and over, a later one. */
+  let chain: Promise<void> = Promise.resolve()
+  const serial = (job: () => Promise<void>): Promise<void> => {
+    chain = chain.then(job, job)
+    return chain
+  }
+
+  const saveNow = (): Promise<void> => {
     if (timer) clearTimeout(timer)
     timer = null
+    return serial(saveOnce)
+  }
+
+  const saveOnce = async () => {
     if (!dirty || !canSave()) return
     dirty = false
     const plan = store.getState().plan
@@ -169,6 +206,12 @@ export function startAutosave({
     }
   }
 
+  /** Save what is pending and the history waiting to be written (the tab is going, or autosave stops). */
+  const saveAll = (): Promise<void> => {
+    void saveNow()
+    return serial(writeHistory)
+  }
+
   const schedule = () => {
     if (!canSave()) return
     dirty = true
@@ -179,13 +222,14 @@ export function startAutosave({
 
   /** The tab is going away: write a synchronous copy first, since IndexedDB may not finish. */
   const onLeave = () => {
-    if (!dirty || !canSave()) return
-    try {
-      backend.writeSync(SHADOW_KEY, textNow())
-    } catch (err) {
-      console.error('[autosave] could not write the closing copy', err)
+    if (dirty && canSave()) {
+      try {
+        backend.writeSync(SHADOW_KEY, textNow())
+      } catch (err) {
+        console.error('[autosave] could not write the closing copy', err)
+      }
     }
-    void saveNow()
+    void saveAll()
   }
 
   const unsubscribe = store.subscribe((state, prev) => {
@@ -301,6 +345,8 @@ export function startAutosave({
     reload: async () => {
       if (timer) clearTimeout(timer)
       dirty = false
+      // a save still in flight finishes before the plan is read back
+      await chain
       await load()
     },
     history: () => entries,
@@ -316,7 +362,7 @@ export function startAutosave({
     },
     stop: async () => {
       await ready
-      await saveNow()
+      await saveAll()
       stopped = true
       unsubscribe()
       for (const off of offEvents) off()
