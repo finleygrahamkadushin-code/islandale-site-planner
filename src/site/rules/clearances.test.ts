@@ -77,7 +77,8 @@ describe('clearances for one object (5E)', () => {
     expect(textsOf('C-0')).toEqual([`80'-1" to shore · 35'-1" past bank`, `21'-6" to lot line`, `1'-9" to Madrone · keep`])
     expect(textsOf('C-1')).toEqual([`84'-8" to shore`, `11'-5" to lot line`, `3'-2" to Family twin pod`])
     expect(textsOf('C-2')).toEqual([`82'-1" to shore`, `11' to lot line`, `1'-4" to Family lantern`])
-    expect(textsOf('C-3')).toEqual([`50'-11" to shore`, `10'-8" to lot line`, `3' to Madrone · keep`])
+    // measured from the walls (R2.3): the Elders' cabin's walls come 2 in nearer than its corners did (50'-11", 10'-8")
+    expect(textsOf('C-3')).toEqual([`50'-9" to shore`, `10'-6" to lot line`, `3' to Madrone · keep`])
   })
 
   test('no bank offset: the past-bank part is dropped', () => {

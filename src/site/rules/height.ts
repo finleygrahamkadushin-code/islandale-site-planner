@@ -1,4 +1,4 @@
-import { buildingMasses, massPoly, type Mass } from '../../buildings/masses'
+import { massPoly, type Mass } from '../../buildings/masses'
 import { buildRoof, normaliseRoof, roofParamsOf } from '../../buildings/roofs/roof'
 import { isSculpted, sculptRiseFt } from '../../buildings/roofs/sculptRoof'
 import { baseElevation } from '../../scene/placement'
@@ -6,7 +6,7 @@ import { elevationAt } from '../terrain'
 import type { Terrain } from '../types'
 import { ftToM, mToFt } from '../units'
 import type { PlanObject } from '../../store/types'
-import { rulePoints } from './ruleOutline'
+import { hasMasses, ruleMasses, rulePoints } from './ruleOutline'
 
 /**
  * Building height (5E, Finley's decision of Nov 5 2026): from average grade,
@@ -15,7 +15,7 @@ import { rulePoints } from './ruleOutline'
  * average grade. Pure: building and terrain in, feet out.
  */
 
-/** SJCC height limit, feet above average grade. */
+/** Height limit, feet above average grade (the old planner's SJCC figure; assumed, see ruleSources). */
 export const HEIGHT_LIMIT_FT = 35
 
 /** Highest point of a mass's roof above its wall top, metres, from the roof code the scene draws with. */
@@ -47,10 +47,14 @@ export interface BuildingHeight {
   readonly topM: number
 }
 
-/** A building's height above average grade, feet. */
+/**
+ * A building's height above average grade, feet. Cabins, sheds and shops
+ * (a shed's missing fields from the library) to their highest roof; a pool,
+ * which has no masses, to its coping.
+ */
 export function buildingHeight(o: PlanObject, terrain: Terrain): BuildingHeight {
   const floor = baseElevation(terrain, o)
-  const topM = Math.max(...buildingMasses(o.params).map((m) => massTopM(m, floor)))
+  const topM = hasMasses(o) ? Math.max(...ruleMasses(o).map((m) => massTopM(m, floor))) : floor
   const gradeM = averageGradeM(o, terrain)
   return { ft: mToFt(topM - gradeM), gradeM, topM }
 }

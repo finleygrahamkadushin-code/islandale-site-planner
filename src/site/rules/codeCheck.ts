@@ -8,11 +8,12 @@ import type { CheckContext, CodeRow } from './codeCheckTypes'
 import { guardsRow, handrailsRow, railClearanceRow } from './codeCheckRails'
 import { stairsRow } from './codeCheckStairs'
 import { levelsRow, pathPiecesRow, routeRow } from './codeCheckPaths'
-import { decksInBufferRow, heightRow, lotWidthRow, shoreRow, treeZoneRow } from './codeCheckRows'
+import { decksInBufferRow, heightRow, inLotRow, lotWidthRow, shoreRow, sideRow, treeZoneRow } from './codeCheckRows'
 
 /**
  * The code check (5E, old `refreshCode` and the rows later blocks add):
- * one row per rule, in the old planner's order, each with a verdict and
+ * one row per rule, in the old planner's order (with the side-setback and
+ * inside-the-lot rows the review added after the buffer rows), each with a verdict and
  * the objects it names. Pure: plan objects, site and setbacks in, rows out.
  * Hidden objects are left out. A rules-off scheme (D, E, F) turns every
  * verdict into a note.
@@ -43,6 +44,8 @@ export interface CodeCheckInput {
 const ROWS: readonly ((c: CheckContext) => CodeRow)[] = [
   shoreRow,
   decksInBufferRow,
+  sideRow,
+  inLotRow,
   lotWidthRow,
   heightRow,
   guardsRow,
