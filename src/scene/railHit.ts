@@ -18,12 +18,15 @@ function massGroup(hit: Object3D): Object3D | null {
  * hit point goes into the mass's own frame, feet, for railEdgeAt.
  */
 export function railHit(o: PlanObject, mass: number, e: ThreeEvent<MouseEvent>): number | undefined {
-  const hit = e.object
+  // the nearest thing under the pointer, whichever of the cabin's meshes this handler call is for (a click can reach the floor behind a rail too)
+  const first = e.intersections[0]
+  if (!first) return undefined
+  const hit = first.object
   const edges = hit.userData.edges
   if (hit.userData.part !== 'rail' || !Array.isArray(edges)) return undefined
   const m = buildingMasses(o.params)[mass]
   const g = massGroup(hit)
   if (!m || !g) return undefined
-  const p = g.worldToLocal(e.point.clone())
+  const p = g.worldToLocal(first.point.clone())
   return railEdgeAt(m, edges as number[], [p.x / FT, p.z / FT]) ?? undefined
 }
