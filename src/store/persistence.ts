@@ -1,4 +1,4 @@
-import { get as idbGet, set as idbSet } from 'idb-keyval'
+import { get as idbGet, keys as idbKeys, set as idbSet } from 'idb-keyval'
 import { DISPLAY_TOGGLES, type DisplayOptions } from '../scene/displayOptions'
 import {
   DEFAULT_ENVIRONMENT,
@@ -39,15 +39,37 @@ export function serializePlan(plan: Plan, view: PlanFile['view'], now = new Date
   return JSON.stringify(file, null, 2)
 }
 
-/** Parse and validate a plan file. Throws a readable error on anything malformed. */
+/** An object left out when a plan was read, because the app could not draw or edit it safely. */
+export interface SkippedObject {
+  readonly id: string
+  readonly name: string
+  readonly reason: string
+}
+
+/** A plan file as read: the plan with every readable object, and the ones left out. */
+export interface ReadResult {
+  readonly file: PlanFile
+  /** It came from a newer app and must open read-only. */
+  readonly newer: boolean
+  readonly skipped: readonly SkippedObject[]
+}
+
+/** Parse and validate a plan file. Throws a readable error when the plan as a whole is malformed. */
 export function parsePlanFile(text: string): PlanFile {
+  return readPlanFileText(text).file
+}
+
+/** Parse a plan file for import, keeping every readable object and naming the ones left out. */
+export function readPlanFileText(text: string): ReadResult {
   let raw: unknown
   try {
     raw = JSON.parse(text)
   } catch {
     throw new Error('This is not a JSON file.')
   }
-  return validatePlanFile(raw)
+  if (isRecord(raw) && isNum(raw.version) && raw.version > PLAN_FILE_VERSION)
+    throw new Error(`Unsupported plan file version ${raw.version}.`)
+  return migratePlanFile(raw)
 }
 
 export function validatePlanFile(raw: unknown): PlanFile {
@@ -61,46 +83,93 @@ export function validatePlanFile(raw: unknown): PlanFile {
  * version of the app is read as far as possible and flagged `newer`, so the
  * caller can open it read-only instead of rejecting it and then overwriting it.
  */
-export function migratePlanFile(raw: unknown): { readonly file: PlanFile; readonly newer: boolean } {
+export function migratePlanFile(raw: unknown): ReadResult {
   if (!isRecord(raw)) throw new Error('Plan file must be an object.')
   if (!isNum(raw.version) || raw.version < 1) throw new Error(`Unsupported plan file version ${String(raw.version)}.`)
   const newer = raw.version > PLAN_FILE_VERSION
-  return { file: readCurrent(raw), newer }
-}
-
-function readCurrent(raw: Record<string, unknown>): PlanFile {
-  const plan = validatePlan(raw.plan)
+  const { plan, skipped } = readPlan(raw.plan)
   const view = validateView(raw.view)
-  return { version: PLAN_FILE_VERSION, app: 'islandale-site-planner', savedAt: str(raw.savedAt, ''), plan, view }
+  const file: PlanFile = { version: PLAN_FILE_VERSION, app: 'islandale-site-planner', savedAt: str(raw.savedAt, ''), plan, view }
+  return { file, newer, skipped }
 }
 
 export function validatePlan(raw: unknown): Plan {
+  return readPlan(raw).plan
+}
+
+/** Ids that would rewrite an object's prototype if used as a key. */
+const UNSAFE_IDS = new Set(['__proto__'])
+
+/**
+ * Read a plan. A fault in the plan as a whole throws; a fault in one object
+ * leaves that object out and names it, so the rest of the plan still opens.
+ */
+export function readPlan(raw: unknown): { readonly plan: Plan; readonly skipped: readonly SkippedObject[] } {
   if (!isRecord(raw)) throw new Error('Plan is missing.')
   if (raw.siteId !== 'islandale') throw new Error('Plan is not for the Islandale site.')
   if (!isRecord(raw.objects)) throw new Error('Plan has no objects.')
   if (!Array.isArray(raw.order)) throw new Error('Plan has no draw order.')
-  const objects: Record<string, PlanObject> = {}
-  for (const [id, o] of Object.entries(raw.objects)) objects[id] = validateObject(id, o)
-  const order = raw.order.filter((id): id is string => typeof id === 'string' && id in objects)
-  for (const id of Object.keys(objects)) if (!order.includes(id)) order.push(id)
+  const entries: [string, PlanObject][] = []
+  const skipped: SkippedObject[] = []
+  for (const [id, o] of Object.entries(raw.objects)) {
+    const fault = UNSAFE_IDS.has(id) ? 'its id is not allowed' : objectFault(o)
+    if (fault) skipped.push({ id, name: isRecord(o) && typeof o.name === 'string' && o.name ? o.name : id, reason: fault })
+    else entries.push([id, readObject(id, o as Record<string, unknown>)])
+  }
+  const objects: Record<string, PlanObject> = Object.fromEntries(entries)
+  const order: string[] = []
+  const seen = new Set<string>()
+  const place = (id: string) => {
+    if (seen.has(id) || !Object.hasOwn(objects, id)) return
+    seen.add(id)
+    order.push(id)
+  }
+  for (const id of raw.order) if (typeof id === 'string') place(id)
+  for (const id of Object.keys(objects)) place(id)
   return {
-    name: str(raw.name, 'Untitled plan'),
-    siteId: 'islandale',
-    schemeId: typeof raw.schemeId === 'string' ? raw.schemeId : null,
-    objects,
-    order,
+    plan: {
+      name: str(raw.name, 'Untitled plan'),
+      siteId: 'islandale',
+      schemeId: typeof raw.schemeId === 'string' ? raw.schemeId : null,
+      objects,
+      order,
+    },
+    skipped,
   }
 }
 
-function validateObject(id: string, raw: unknown): PlanObject {
-  if (!isRecord(raw)) throw new Error(`Object ${id} is malformed.`)
+/** Sizes (feet) that must be above zero when present. */
+const SIZE_KEYS = ['w', 'd'] as const
+/** Numbers (feet) that must be finite when present; a NaN is saved as null. */
+const NUMBER_KEYS = ['h', 'lift'] as const
+/** Lists the drawing code walks when present. */
+const LIST_KEYS = ['wings', 'cuts', 'floors', 'pts', 'route'] as const
+
+/**
+ * Why an object cannot be read, or null when it can. Only the fields the app
+ * cannot survive being wrong are checked; the rest of `params` is each feature's own.
+ */
+function objectFault(raw: unknown): string | null {
+  if (!isRecord(raw)) return 'it is not an object'
   const pos = raw.position
-  if (!isRecord(pos) || !isNum(pos.x) || !isNum(pos.n)) throw new Error(`Object ${id} has no position.`)
-  if (typeof raw.type !== 'string') throw new Error(`Object ${id} has no type.`)
+  if (!isRecord(pos) || !isNum(pos.x) || !isNum(pos.n)) return 'it has no position'
+  if (typeof raw.type !== 'string' || !raw.type) return 'it has no type'
+  if (raw.params === undefined) return null
+  if (!isRecord(raw.params)) return 'its settings are not readable'
+  const p = raw.params
+  for (const k of SIZE_KEYS) if (k in p && !(isNum(p[k]) && p[k] > 0)) return `its size ${k} is not a number above zero`
+  for (const k of NUMBER_KEYS) if (k in p && !isNum(p[k])) return `its ${k} is not a number`
+  for (const k of LIST_KEYS) if (k in p && !Array.isArray(p[k])) return `its ${k} is not a list`
+  return null
+}
+
+function readObject(id: string, raw: Record<string, unknown>): PlanObject {
+  const pos = raw.position as { x: number; n: number }
+  const type = raw.type as string
   return {
     id,
-    type: raw.type,
-    name: str(raw.name, raw.type),
+    type,
+    name: str(raw.name, type),
     position: { x: pos.x, n: pos.n },
     rotation: isNum(raw.rotation) ? raw.rotation : 0,
     params: isRecord(raw.params) ? raw.params : {},
@@ -109,6 +178,16 @@ function validateObject(id: string, raw: unknown): PlanObject {
     labelVisible: raw.labelVisible !== false,
     ...(typeof raw.group === 'string' && raw.group ? { group: raw.group } : {}),
   }
+}
+
+/** One sentence naming what was left out, for a toast. */
+export function describeSkipped(skipped: readonly SkippedObject[]): string {
+  if (!skipped.length) return ''
+  const named = skipped.slice(0, 3).map((s) => `${s.name} (${s.reason})`)
+  const more = skipped.length > 3 ? ` and ${skipped.length - 3} more` : ''
+  return skipped.length === 1
+    ? `1 object could not be read and was left out: ${named[0]}`
+    : `${skipped.length} objects could not be read and were left out: ${named.join('; ')}${more}`
 }
 
 function validateView(raw: unknown): PlanFile['view'] {
@@ -161,6 +240,8 @@ export interface SaveBackend {
   readonly write: (key: string, value: unknown) => Promise<void>
   readonly readSync: (key: string) => string | null
   readonly writeSync: (key: string, value: string) => void
+  /** Every key in the async store, to find set-aside copies; optional, since only listing needs it. */
+  readonly keys?: () => Promise<readonly string[]>
 }
 
 export const browserBackend: SaveBackend = {
@@ -168,10 +249,11 @@ export const browserBackend: SaveBackend = {
   write: (key, value) => idbSet(key, value),
   readSync: (key) => localStorage.getItem(key),
   writeSync: (key, value) => localStorage.setItem(key, value),
+  keys: async () => (await idbKeys()).map(String),
 }
 
 /** Parse saved text; `newer` means it came from a newer app and must open read-only. */
-export function readSavedText(text: string): { readonly file: PlanFile; readonly newer: boolean } {
+export function readSavedText(text: string): ReadResult {
   let raw: unknown
   try {
     raw = JSON.parse(text)

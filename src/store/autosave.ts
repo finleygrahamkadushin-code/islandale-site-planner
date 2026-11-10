@@ -4,9 +4,10 @@ import {
   SHADOW_KEY,
   UNREADABLE_PREFIX,
   browserBackend,
+  describeSkipped,
   readSavedText,
   serializePlan,
-  type PlanFile,
+  type ReadResult,
   type SaveBackend,
 } from './persistence'
 import { HISTORY_KEY, OPENED_LABEL, addToHistory, describeChange, readHistory, type HistoryEntry } from './history'
@@ -45,8 +46,17 @@ export interface Autosave {
   readonly reload: () => Promise<void>
   /** The saved copies, newest first, for the History menu. */
   readonly history: () => readonly HistoryEntry[]
+  /** Saves set aside because they could not be read whole, newest first, so they can be downloaded or opened. */
+  readonly setAside: () => Promise<readonly SetAsideCopy[]>
   /** Save what is pending, then stop listening. */
   readonly stop: () => Promise<void>
+}
+
+/** A save kept aside, exactly as it was found, so nothing in it is lost. */
+export interface SetAsideCopy {
+  readonly key: string
+  readonly savedAt: string
+  readonly text: string
 }
 
 interface Options {
@@ -57,10 +67,10 @@ interface Options {
   readonly home?: PlanHome | null
 }
 
-interface Candidate {
-  readonly file: PlanFile
-  readonly newer: boolean
+interface Candidate extends ReadResult {
   readonly source: 'main' | 'shadow' | 'home'
+  /** The text as found, set aside when objects had to be left out of it. */
+  readonly text: string
   /** Only for the home: it was edited outside this browser, so it wins. */
   readonly changedOutside?: boolean
 }
@@ -81,7 +91,37 @@ export function startAutosave({
   home = null,
 }: Options = {}): Autosave {
   const store = usePlanStore
-  const sync = home ? createHomeSync(home, backend) : null
+  let setAsideCount = 0
+  /** Keys set aside by this autosave, for a backend that cannot list its keys. */
+  const setAsideHere: string[] = []
+
+  /** Keys of the copies already set aside; empty when the backend cannot list them. */
+  const setAsideKeys = async (): Promise<string[]> => {
+    const all = backend.keys ? await backend.keys() : setAsideHere
+    return [...new Set(all.filter((k) => k.startsWith(UNREADABLE_PREFIX)))]
+  }
+
+  /**
+   * Keep a save exactly as it was found, under a key nothing else writes, so a
+   * later save cannot overwrite what could not be read. The same text is kept
+   * once. Gives the key, or null when it could not be kept: editing then goes off.
+   */
+  const keepAside = async (raw: string): Promise<string | null> => {
+    try {
+      for (const key of await setAsideKeys()) if ((await backend.read(key)) === raw) return key
+      const key = `${UNREADABLE_PREFIX}${now().toISOString()}${setAsideCount++ ? `-${setAsideCount}` : ''}`
+      await backend.write(key, raw)
+      setAsideHere.push(key)
+      return key
+    } catch (err) {
+      console.error('[autosave] could not keep the unreadable save', err)
+      store.getState().setReadOnly('unsafe-save')
+      store.getState().showToast('The saved plan could not be read, so editing is off to protect it')
+      return null
+    }
+  }
+
+  const sync = home ? createHomeSync(home, backend, { keepAside: async (text) => (await keepAside(text)) !== null }) : null
   let timer: ReturnType<typeof setTimeout> | null = null
   let hydrated = false
   let stopped = false
@@ -175,24 +215,18 @@ export function startAutosave({
 
   /** Set aside a save that could not be read, so the next change cannot overwrite it. */
   const quarantine = async (raw: string, err: unknown) => {
-    const key = `${UNREADABLE_PREFIX}${now().toISOString()}`
     console.error('[autosave] could not read the saved plan', err)
-    try {
-      await backend.write(key, raw)
-      store.getState().showToast(`The saved plan could not be read. It was kept as ${key}`)
-    } catch (writeErr) {
-      console.error('[autosave] could not keep the unreadable save', writeErr)
-      store.getState().setReadOnly('unsafe-save')
-      store.getState().showToast('The saved plan could not be read, so editing is off to protect it')
-    }
+    const key = await keepAside(raw)
+    if (key) store.getState().showToast(`The saved plan could not be read. It was kept as ${key} (History lists it)`)
   }
+
 
   const readCandidates = async (): Promise<Candidate[]> => {
     const found: Candidate[] = []
     const main = await backend.read(AUTOSAVE_KEY)
     if (typeof main === 'string') {
       try {
-        found.push({ ...readSavedText(main), source: 'main' })
+        found.push({ ...readSavedText(main), source: 'main', text: main })
       } catch (err) {
         await quarantine(main, err)
       }
@@ -205,13 +239,15 @@ export function startAutosave({
     }
     if (shadow) {
       try {
-        found.push({ ...readSavedText(shadow), source: 'shadow' })
+        found.push({ ...readSavedText(shadow), source: 'shadow', text: shadow })
       } catch (err) {
         console.error('[autosave] the closing copy is unreadable; ignoring it', err)
       }
     }
     const fromHome = await sync?.open()
     if (fromHome) found.push({ ...fromHome, source: 'home' })
+    // a copy with objects left out is kept whole before anything can be saved over it
+    for (const c of found) if (c.skipped.length) await keepAside(c.text)
     return found
   }
 
@@ -231,6 +267,7 @@ export function startAutosave({
         store.getState().hydrate({ plan: best.file.plan, ...best.file.view })
         store.temporal.getState().clear()
         if (best.newer) store.getState().setReadOnly('newer-file')
+        if (best.skipped.length) store.getState().showToast(`${describeSkipped(best.skipped)}. The save as it was is kept in History.`)
       }
       lastPlan = store.getState().plan
       store.getState().setSaveStatus(store.getState().readOnly ? 'error' : 'saved')
@@ -267,6 +304,16 @@ export function startAutosave({
       await load()
     },
     history: () => entries,
+    setAside: async () => {
+      const keys = await setAsideKeys()
+      const copies = await Promise.all(
+        keys.map(async (key): Promise<SetAsideCopy | null> => {
+          const text = await backend.read(key)
+          return typeof text === 'string' ? { key, savedAt: key.slice(UNREADABLE_PREFIX.length).replace(/-\d+$/, ''), text } : null
+        }),
+      )
+      return copies.filter((c): c is SetAsideCopy => c !== null).sort((a, b) => b.key.localeCompare(a.key))
+    },
     stop: async () => {
       await ready
       await saveNow()

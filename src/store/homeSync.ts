@@ -1,11 +1,11 @@
 import { usePlanStore } from './planStore'
-import { readSavedText, type PlanFile, type SaveBackend } from './persistence'
+import { describeSkipped, readSavedText, type ReadResult, type SaveBackend } from './persistence'
 import { HOME_REV_KEY, type PlanHome } from './planHome'
 
 /** What the home held when the plan was opened. */
-export interface HomeCopy {
-  readonly file: PlanFile
-  readonly newer: boolean
+export interface HomeCopy extends ReadResult {
+  /** The file's text as read, kept aside when objects had to be left out of it. */
+  readonly text: string
   /** The home changed since this browser last read or wrote it: someone else edited it. */
   readonly changedOutside: boolean
 }
@@ -24,7 +24,12 @@ export interface HomeSync {
  * edited the file), the home's version is loaded as one undoable step instead
  * of being overwritten, so nothing is lost either way.
  */
-export function createHomeSync(home: PlanHome, backend: SaveBackend): HomeSync {
+export interface HomeSyncOptions {
+  /** Keep a copy of the home's text aside before it is replaced; false when it could not be kept. */
+  readonly keepAside?: (text: string) => Promise<boolean>
+}
+
+export function createHomeSync(home: PlanHome, backend: SaveBackend, { keepAside }: HomeSyncOptions = {}): HomeSync {
   const store = usePlanStore
   let rev: string | null = readRev()
   let lastError = ''
@@ -66,8 +71,7 @@ export function createHomeSync(home: PlanHome, backend: SaveBackend): HomeSync {
       return null
     }
     try {
-      const { file, newer } = readSavedText(read.text)
-      return { file, newer, changedOutside: rev !== read.rev, rev: read.rev }
+      return { ...readSavedText(read.text), text: read.text, changedOutside: rev !== read.rev, rev: read.rev }
     } catch (err) {
       console.error('[plan home] the plan file is unreadable', err)
       warn(`${home.label} could not be read (${err instanceof Error ? err.message : 'unknown error'}); it is left as it is`)
@@ -86,9 +90,12 @@ export function createHomeSync(home: PlanHome, backend: SaveBackend): HomeSync {
       warn(`${home.label} was saved by a newer planner; it was not loaded, and this tab is read-only`)
       return
     }
+    // objects that could not be read would be lost by the next save to the home: keep the file as it was first
+    if (copy.skipped.length && keepAside && !(await keepAside(copy.text))) return
     setRev(copy.rev)
     store.getState().replacePlan(copy.file.plan)
-    store.getState().showToast(`Loaded the plan from ${home.label}. Undo to go back.`)
+    const left = copy.skipped.length ? ` ${describeSkipped(copy.skipped)}; the file as it was is kept in History.` : ''
+    store.getState().showToast(`Loaded the plan from ${home.label}. Undo to go back.${left}`)
   }
 
   const pushNow = async (text: string) => {

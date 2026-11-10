@@ -291,3 +291,112 @@ describe('the plan home', () => {
     expect(readSavedText(h.text()!).file.plan.name).toBe('Claude changed it')
   })
 })
+
+/** A save whose first object has lost its position, as a hand edit or a bug might leave it. */
+function withBrokenFirst(name = 'Broken one') {
+  const plan = store().plan
+  const raw = JSON.parse(serializePlan(plan, view)) as { plan: { objects: Record<string, Record<string, unknown>> } }
+  const id = plan.order[0]
+  raw.plan.objects[id] = { ...raw.plan.objects[id], name, position: null }
+  return { text: JSON.stringify(raw), id, rest: plan.order.slice(1) }
+}
+
+/** The fake backend, able to list its keys like IndexedDB. */
+function listingBackend(initial: Record<string, unknown> = {}, sync: Record<string, string> = {}) {
+  const f = fakeBackend(initial, sync)
+  return { ...f, backend: { ...f.backend, keys: async () => [...f.db.keys()].map(String) } }
+}
+
+describe('a save with one bad object (R6.5)', () => {
+  let running: Autosave | null = null
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    usePlanStore.temporal.getState().clear()
+  })
+  afterEach(async () => {
+    await running?.stop()
+    running = null
+  })
+
+  test('opens with every other object, names the bad one, and keeps the save as it was', async () => {
+    const broken = withBrokenFirst()
+    const { backend, db } = listingBackend({ [AUTOSAVE_KEY]: broken.text })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect(store().plan.order).toEqual(broken.rest)
+    expect(store().readOnly).toBeNull()
+    expect(store().toast?.text).toMatch(/Broken one/)
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept).toHaveLength(1)
+    store().renameObject(store().plan.order[0], 'Edited after')
+    await running.flush()
+    expect(db.get(kept[0])).toBe(broken.text)
+    expect(savedPlan(db).objects[store().plan.order[0]].name).toBe('Edited after')
+  })
+
+  test('the set-aside copy can be found again, with its text intact', async () => {
+    const broken = withBrokenFirst()
+    const { backend } = listingBackend({ [AUTOSAVE_KEY]: broken.text })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    const copies = await running.setAside()
+    expect(copies).toHaveLength(1)
+    expect(copies[0].text).toBe(broken.text)
+    expect(copies[0].savedAt).toMatch(/^\d{4}-/)
+  })
+
+  test('copies set aside before this version (an unreadable save) are listed too', async () => {
+    const { backend } = listingBackend({ [`${UNREADABLE_PREFIX}2026-11-01T10:00:00.000Z`]: '{"broken"' })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect((await running.setAside()).map((c) => c.savedAt)).toEqual(['2026-11-01T10:00:00.000Z'])
+  })
+
+  test('a plan file with a bad object is set aside before a save can replace it, once however often it is opened', async () => {
+    const broken = withBrokenFirst('Bad in the file')
+    const { backend, db } = listingBackend({}, { 'islandale-plan.home-rev': 'r0' })
+    const h = fakeHome(broken.text)
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    expect(store().plan.order).toEqual(broken.rest)
+    expect(store().toast?.text).toMatch(/Bad in the file/)
+    await running.stop()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept).toHaveLength(1)
+    expect(db.get(kept[0])).toBe(broken.text)
+  })
+
+  test('a plan file edited while open with a bad object is set aside, then loaded without it', async () => {
+    const { backend, db } = listingBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const broken = withBrokenFirst('Bad edit')
+    h.editOutside(broken.text)
+    await settle()
+    await settle()
+    expect(store().plan.order).toEqual(broken.rest)
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept.map((k) => db.get(k))).toEqual([broken.text])
+  })
+
+  test('when the copy cannot be set aside, editing goes off and nothing is overwritten', async () => {
+    const broken = withBrokenFirst()
+    const f = fakeBackend({ [AUTOSAVE_KEY]: broken.text })
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k.startsWith(UNREADABLE_PREFIX)) throw new Error('quota')
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect(store().readOnly).toBe('unsafe-save')
+    await running.flush()
+    expect(f.db.get(AUTOSAVE_KEY)).toBe(broken.text)
+  })
+})

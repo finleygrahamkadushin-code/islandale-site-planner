@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { usePlanStore } from './planStore'
-import { parsePlanFile, serializePlan, validatePlan } from './persistence'
+import { describeSkipped, parsePlanFile, readPlanFileText, readSavedText, serializePlan, validatePlan } from './persistence'
 import { DEFAULT_LAYERS } from './types'
 
 describe('plan files', () => {
@@ -57,3 +57,65 @@ describe('older plan files', () => {
   })
 })
 
+describe('one bad object (R6.5, R6.6, R6.7)', () => {
+  const good = { type: 'pad', name: 'Pad', position: { x: 1, n: 2 }, params: { w: 10, d: 12 } }
+  const fileWith = (objects: Record<string, unknown>, order: unknown[] = Object.keys(objects)) =>
+    JSON.stringify({ version: 1, plan: { siteId: 'islandale', name: 'P', objects, order }, view: {} })
+
+  test('a malformed object is skipped and named; every other object opens', () => {
+    const r = readPlanFileText(fileWith({ a: good, broken: { type: 'house', name: 'Gathering prow' }, b: good }))
+    expect(r.file.plan.order).toEqual(['a', 'b'])
+    expect(Object.keys(r.file.plan.objects)).toEqual(['a', 'b'])
+    expect(r.skipped).toEqual([{ id: 'broken', name: 'Gathering prow', reason: 'it has no position' }])
+    expect(describeSkipped(r.skipped)).toMatch(/Gathering prow/)
+  })
+
+  test('the saved-text reader skips too, so autosave and the plan home keep the rest', () => {
+    const r = readSavedText(fileWith({ a: good, x: 'not an object' }))
+    expect(Object.keys(r.file.plan.objects)).toEqual(['a'])
+    expect(r.skipped.map((s) => s.id)).toEqual(['x'])
+  })
+
+  test('sizes must be above zero and numbers finite; params must be an object', () => {
+    const r = readPlanFileText(
+      fileWith({
+        a: good,
+        zeroW: { ...good, params: { w: 0, d: 10 } },
+        textD: { ...good, params: { w: 10, d: '12' } },
+        badH: { ...good, params: { h: null } },
+        badParams: { ...good, params: [1, 2] },
+        badWings: { ...good, params: { wings: 'east' } },
+        noType: { ...good, type: '' },
+      }),
+    )
+    expect(Object.keys(r.file.plan.objects)).toEqual(['a'])
+    expect(r.skipped.map((s) => s.id)).toEqual(['zeroW', 'textD', 'badH', 'badParams', 'badWings', 'noType'])
+  })
+
+  test('the draw order keeps only own object ids, once each (R6.7)', () => {
+    const plan = validatePlan({ siteId: 'islandale', objects: { a: good }, order: ['constructor', 'toString', 'a', 'a', '__proto__'] })
+    expect(plan.order).toEqual(['a'])
+  })
+
+  test('an object id that would rewrite the prototype is skipped', () => {
+    const text = `{"version":1,"view":{},"plan":{"siteId":"islandale","order":["a"],"objects":{"a":${JSON.stringify(good)},"__proto__":${JSON.stringify(good)}}}}`
+    const r = readPlanFileText(text)
+    expect(Object.keys(r.file.plan.objects)).toEqual(['a'])
+    expect(Object.getPrototypeOf(r.file.plan.objects)).toBe(Object.prototype)
+    expect(r.skipped.map((s) => s.id)).toEqual(['__proto__'])
+  })
+
+  test('a whole-plan fault still refuses the file', () => {
+    expect(() => readPlanFileText('{"version":1,"plan":{"siteId":"islandale","objects":[],"order":[]}}')).toThrow(/no objects/)
+  })
+})
+
+test('every scheme reads back with nothing left out', () => {
+  const s = usePlanStore.getState()
+  for (const scheme of s.schemes) {
+    s.loadScheme(scheme.id)
+    const r = readPlanFileText(serializePlan(usePlanStore.getState().plan, { labelMode: 'all', layers: DEFAULT_LAYERS }))
+    expect(r.skipped, scheme.id).toEqual([])
+  }
+  s.loadScheme('C')
+})
