@@ -111,3 +111,96 @@ test('the Openings panel adds and resizes a window as undoable steps, and a lock
   await page.evaluate((id) => (window as any).islandale.store.getState().addOpening(id, 0, { kind: 'window', edge: 0, x: 1, w: 2, h: 3, sill: 3 }), id)
   expect(await cuts()).toBe(before)
 })
+
+const undoSteps = (page: Page) => page.evaluate(() => (window as any).islandale.store.temporal.getState().pastStates.length as number)
+const selectHouse = (page: Page, n: number) =>
+  page.evaluate((n) => {
+    const s = (window as any).islandale.store.getState()
+    const id = s.plan.order.filter((i: string) => s.plan.objects[i].type === 'house')[n]
+    s.select([id])
+    return id as string
+  }, n)
+
+test('a colour dragged through in the inspector is one undo step (R6.3)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const id = await selectHouse(page, 0)
+  await openSection(page, 'look')
+  const well = page.getByTestId('object-color')
+  await expect(well).toBeVisible()
+  const before = await undoSteps(page)
+  // the native picker sends input events while a shade is dragged through, and change when it closes
+  await well.evaluate((el: HTMLInputElement) => {
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    for (const c of ['#112233', '#223344', '#334455']) {
+      setValue.call(el, c)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await expect.poll(() => page.evaluate((id) => (window as any).islandale.store.getState().plan.objects[id].params.color, id)).toBe('#334455')
+  expect(await undoSteps(page)).toBe(before + 1)
+})
+
+test('a refused size says why, Escape puts it back, and the message does not follow the selection (R6.1, R6.4)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const a = await selectHouse(page, 0)
+  const b = await page.evaluate((a) => {
+    const s = (window as any).islandale.store.getState()
+    const b = s.plan.order.filter((i: string) => s.plan.objects[i].type === 'house')[1]
+    s.resizeObject(b, { w: s.plan.objects[a].params.w, d: s.plan.objects[b].params.d })
+    return b as string
+  }, a)
+  const inspector = page.getByLabel('Inspector')
+  const width = page.locator('.inspector-section', { has: page.getByTestId('section-size') }).getByLabel('Width').first()
+  const shown = await width.inputValue()
+  await width.fill('99999')
+  await width.press('Enter')
+  await expect(inspector).toContainText('At most 300 ft')
+  await width.press('Escape')
+  await expect(width).toHaveValue(shown)
+  await expect(inspector).not.toContainText('At most 300 ft')
+
+  await width.fill('99999')
+  await width.press('Enter')
+  await expect(inspector).toContainText('At most 300 ft')
+  await page.evaluate((b) => (window as any).islandale.store.getState().select([b]), b)
+  await expect(inspector.getByLabel('Name')).toHaveValue(await nameOf(page, b))
+  await expect(inspector).not.toContainText('At most 300 ft')
+})
+
+test('a plan file with one bad object opens with the rest, names it, and keeps the file in History (R6.5)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const broken = await page.evaluate(async () => {
+    const s = (window as any).islandale.store.getState()
+    // this tab only looks from here on, so it neither loads nor saves over the file written below
+    s.setReadOnly('other-tab')
+    const file = JSON.parse(JSON.stringify({ version: 1, app: 'islandale-site-planner', savedAt: new Date().toISOString(), plan: s.plan, view: { labelMode: 'all', layers: s.layers } }))
+    const bad = file.plan.order[0]
+    file.plan.objects[bad] = { ...file.plan.objects[bad], name: 'Broken by hand', position: null }
+    const text = JSON.stringify(file)
+    // the app is writing the plan file too: retry until the write names the current revision
+    for (let i = 0; i < 10; i++) {
+      const rev = (await fetch('/__plan', { cache: 'no-store' })).headers.get('ETag') ?? 'none'
+      if ((await fetch('/__plan', { method: 'PUT', body: text, headers: { 'If-Match': rev } })).ok) break
+    }
+    return { bad, rest: file.plan.order.slice(1) as string[] }
+  })
+  // a fresh browser, so the plan file is the only copy there is
+  await page.evaluate(() => {
+    indexedDB.deleteDatabase('keyval-store')
+    for (const k of Object.keys(localStorage)) if (k.startsWith('islandale-plan')) localStorage.removeItem(k)
+  })
+  await page.reload()
+  await ready(page)
+  await expect(page.getByRole('status').filter({ hasText: 'Broken by hand' })).toBeVisible({ timeout: 15_000 })
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().plan.order)).toEqual(broken.rest)
+
+  await page.getByRole('button', { name: 'History' }).click()
+  const kept = page.getByTestId('history-set-aside')
+  await expect(kept).toHaveCount(1)
+  await expect(kept).toContainText('1 object could not be read')
+  await expect(kept.getByRole('button', { name: /Download this set-aside save/ })).toBeVisible()
+})

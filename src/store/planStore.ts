@@ -23,6 +23,8 @@ import { isObjectLocked } from './selectors'
 
 /** Name a cleared plan takes. */
 export const BLANK_PLAN_NAME = 'Blank plan'
+/** Undo steps kept; older ones are dropped (each holds a whole plan, shared where unchanged). History keeps saves further back. */
+export const UNDO_LIMIT = 200
 import {
   DEFAULT_ENVIRONMENT,
   DEFAULT_SETBACKS,
@@ -167,16 +169,20 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly setReadOnly: (reason: ReadOnlyReason) => void
   readonly setOpeningFocus: (focus: OpeningFocus | null) => void
   readonly showToast: (text: string) => void
-  readonly hydrate: (saved: {
-    plan: Plan
-    labelMode?: LabelMode
-    layers?: Layers
-    environment?: Environment
-    setbacks?: Setbacks
-    displayStyle?: DisplayStyle
-    contours?: boolean | null
-    displayOptions?: DisplayOptions
-  }) => void
+  /** Take a saved file's view settings (not an undo step); a field left out keeps its current value. */
+  readonly applyView: (view: SavedView) => void
+  readonly hydrate: (saved: { plan: Plan } & SavedView) => void
+}
+
+/** The view settings a plan file carries. */
+export interface SavedView {
+  readonly labelMode?: LabelMode
+  readonly layers?: Layers
+  readonly environment?: Environment
+  readonly setbacks?: Setbacks
+  readonly displayStyle?: DisplayStyle
+  readonly contours?: boolean | null
+  readonly displayOptions?: DisplayOptions
 }
 
 /** Params whose change can move a cabin's walls, so its openings are re-fitted. */
@@ -411,11 +417,15 @@ export const usePlanStore = create<PlanState>()(
         ...toolActions({ get, set, writable, isLocked: (id) => isObjectLocked(get(), id), terrain: site.terrain, ground: siteGround }),
 
         // the picked part survives only a selection of exactly its own building
-        select: (ids) =>
-          set((s) => ({
-            selection: [...ids],
-            pickedPart: s.pickedPart && ids.length === 1 && ids[0] === s.pickedPart.objectId ? s.pickedPart : null,
-          })),
+        // only ids of objects that exist, once each; a lone id passed as a string (from the console) is one id
+        select: (given) =>
+          set((s) => {
+            const ids = [...new Set(typeof given === 'string' ? [given] : given)].filter((id) => Object.hasOwn(s.plan.objects, id))
+            return {
+              selection: ids,
+              pickedPart: s.pickedPart && ids.length === 1 && ids[0] === s.pickedPart.objectId ? s.pickedPart : null,
+            }
+          }),
         toggleSelect: (id) =>
           set((s) => ({
             selection: s.selection.includes(id) ? s.selection.filter((x) => x !== id) : [...s.selection, id],
@@ -463,30 +473,56 @@ export const usePlanStore = create<PlanState>()(
         setReadOnly: (readOnly) => set({ readOnly }),
         setOpeningFocus: (openingFocus) => set({ openingFocus }),
         showToast: (text) => set({ toast: { id: ++toastSeq, text } }),
-        hydrate: ({ plan, labelMode, layers, environment, setbacks, displayStyle, displayOptions, contours }) =>
-          set({
-            plan,
-            labelMode: labelMode ?? get().labelMode,
-            layers: layers ?? get().layers,
-            environment: environment ? clampEnvironment(environment) : get().environment,
-            setbacks: setbacks ? clampSetbacks(setbacks) : get().setbacks,
-            displayStyle: displayStyle ?? get().displayStyle,
-            contours: contours === undefined ? get().contours : contours,
-            displayOptions: displayOptions ?? get().displayOptions,
-            selection: [],
-            pickedPart: null,
-          }),
+        applyView: (view) => set(viewPatch(get(), view)),
+        hydrate: ({ plan, ...view }) => set({ plan, ...viewPatch(get(), view), selection: [], pickedPart: null }),
       }
     },
     {
       // Only the plan itself is undoable; selection and view settings are not.
       partialize: (s) => ({ plan: s.plan }),
+      limit: UNDO_LIMIT,
       equality: (a, b) => a.plan === b.plan,
     },
   ),
 )
 
+/** The store fields a saved view sets; a field left out keeps its current value. */
+function viewPatch(s: PlanState, { labelMode, layers, environment, setbacks, displayStyle, displayOptions, contours }: SavedView) {
+  return {
+    labelMode: labelMode ?? s.labelMode,
+    layers: layers ?? s.layers,
+    environment: environment ? clampEnvironment(environment) : s.environment,
+    setbacks: setbacks ? clampSetbacks(setbacks) : s.setbacks,
+    displayStyle: displayStyle ?? s.displayStyle,
+    contours: contours === undefined ? s.contours : contours,
+    displayOptions: displayOptions ?? s.displayOptions,
+  }
+}
+
 export const useTemporalStore = usePlanStore.temporal
+
+/** Undo and redo for every button, key and command: refused, with the reason, when this tab may not change the plan. */
+const unlessReadOnly = (step: () => void) => (): void => {
+  const s = usePlanStore.getState()
+  if (s.readOnly) s.showToast(READ_ONLY_TEXT[s.readOnly])
+  else step()
+}
+export const undoPlan = unlessReadOnly(() => usePlanStore.temporal.getState().undo())
+export const redoPlan = unlessReadOnly(() => usePlanStore.temporal.getState().redo())
+
+/** After any change to the plan (undo and redo included), what points at an object that is gone lets go of it. */
+usePlanStore.subscribe((s, prev) => {
+  if (s.plan === prev.plan) return
+  const has = (id: ObjectId) => Object.hasOwn(s.plan.objects, id)
+  const selection = s.selection.filter(has)
+  const patch: Partial<PlanState> = {
+    ...(selection.length < s.selection.length ? { selection } : {}),
+    ...(s.hovered !== null && !has(s.hovered) ? { hovered: null } : {}),
+    ...(s.openingFocus && !has(s.openingFocus.objectId) ? { openingFocus: null } : {}),
+    ...(s.paintFocus && !has(s.paintFocus.objectId) ? { paintFocus: null } : {}),
+  }
+  if (Object.keys(patch).length) usePlanStore.setState(patch)
+})
 
 watchPickedPart(usePlanStore)
 

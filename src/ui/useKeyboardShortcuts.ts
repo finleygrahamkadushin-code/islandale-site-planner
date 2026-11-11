@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { usePlanStore } from '../store/planStore'
+import { redoPlan, undoPlan, usePlanStore } from '../store/planStore'
 import { ftToM } from '../site/units'
 import { partKey, TURN_KEYS } from '../buildings/parts/partKeys'
 import { toolKey } from '../tools/toolKeys'
@@ -46,13 +46,13 @@ export function useKeyboardShortcuts(): void {
       if (overlay.open || useConfirm.getState().ask) return
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault()
-        if (e.shiftKey) usePlanStore.temporal.getState().redo()
-        else usePlanStore.temporal.getState().undo()
+        if (e.shiftKey) redoPlan()
+        else undoPlan()
         return
       }
       if (mod && e.key.toLowerCase() === 'y') {
         e.preventDefault()
-        usePlanStore.temporal.getState().redo()
+        redoPlan()
         return
       }
       if (!mod && e.key === '?') {

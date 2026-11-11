@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { formatFeetInches, readLength } from './feetInches'
+import { formatLengthField, readLength } from './feetInches'
+import { NUM_FIELD_LIMIT } from './numInput'
 
 interface Props {
   readonly label: string
@@ -10,9 +11,9 @@ interface Props {
   readonly onCommit: (ft: number) => void
 }
 
-/** A length typed in feet and inches (2' 9", 33 in or 2.75), snapped to the inch, committed on blur or Enter. */
-export function FeetInchesField({ label, value, disabled, min = 0, max = Infinity, onCommit }: Props) {
-  const shown = formatFeetInches(value)
+/** A length typed in feet and inches (2' 9 1/2", 33 in or 2.75), shown and snapped to the quarter inch, committed on blur or Enter. */
+export function FeetInchesField({ label, value, disabled, min = 0, max = NUM_FIELD_LIMIT, onCommit }: Props) {
+  const shown = formatLengthField(value)
   const [draft, setDraft] = useState(shown)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {

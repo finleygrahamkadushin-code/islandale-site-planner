@@ -140,7 +140,8 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 .opening input[type='number'] { width: 44px; }
 .ft-in input { width: 100%; }
 .ft-in.bad input { border-color: var(--danger); }
-.ft-in .err { color: var(--danger); font-size: 10px; font-style: normal; }
+.ft-in .err, .field.num .err { color: var(--danger); font-size: 10px; font-style: normal; }
+.field.num.bad input { border-color: var(--danger); }
 .fit-notes { margin: 0; padding-left: 16px; color: var(--muted); }
 .fit-notes .warn { color: var(--danger); }
 .fit-warn { color: var(--danger); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

@@ -291,3 +291,200 @@ describe('the plan home', () => {
     expect(readSavedText(h.text()!).file.plan.name).toBe('Claude changed it')
   })
 })
+
+/** A save whose first object has lost its position, as a hand edit or a bug might leave it. */
+function withBrokenFirst(name = 'Broken one') {
+  const plan = store().plan
+  const raw = JSON.parse(serializePlan(plan, view)) as { plan: { objects: Record<string, Record<string, unknown>> } }
+  const id = plan.order[0]
+  raw.plan.objects[id] = { ...raw.plan.objects[id], name, position: null }
+  return { text: JSON.stringify(raw), id, rest: plan.order.slice(1) }
+}
+
+/** The fake backend, able to list its keys like IndexedDB. */
+function listingBackend(initial: Record<string, unknown> = {}, sync: Record<string, string> = {}) {
+  const f = fakeBackend(initial, sync)
+  return { ...f, backend: { ...f.backend, keys: async () => [...f.db.keys()].map(String) } }
+}
+
+describe('a save with one bad object (R6.5)', () => {
+  let running: Autosave | null = null
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    usePlanStore.temporal.getState().clear()
+  })
+  afterEach(async () => {
+    await running?.stop()
+    running = null
+  })
+
+  test('opens with every other object, names the bad one, and keeps the save as it was', async () => {
+    const broken = withBrokenFirst()
+    const { backend, db } = listingBackend({ [AUTOSAVE_KEY]: broken.text })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect(store().plan.order).toEqual(broken.rest)
+    expect(store().readOnly).toBeNull()
+    expect(store().toast?.text).toMatch(/Broken one/)
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept).toHaveLength(1)
+    store().renameObject(store().plan.order[0], 'Edited after')
+    await running.flush()
+    expect(db.get(kept[0])).toBe(broken.text)
+    expect(savedPlan(db).objects[store().plan.order[0]].name).toBe('Edited after')
+  })
+
+  test('the set-aside copy can be found again, with its text intact', async () => {
+    const broken = withBrokenFirst()
+    const { backend } = listingBackend({ [AUTOSAVE_KEY]: broken.text })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    const copies = await running.setAside()
+    expect(copies).toHaveLength(1)
+    expect(copies[0].text).toBe(broken.text)
+    expect(copies[0].savedAt).toMatch(/^\d{4}-/)
+  })
+
+  test('copies set aside before this version (an unreadable save) are listed too', async () => {
+    const { backend } = listingBackend({ [`${UNREADABLE_PREFIX}2026-11-01T10:00:00.000Z`]: '{"broken"' })
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect((await running.setAside()).map((c) => c.savedAt)).toEqual(['2026-11-01T10:00:00.000Z'])
+  })
+
+  test('a plan file with a bad object is set aside before a save can replace it, once however often it is opened', async () => {
+    const broken = withBrokenFirst('Bad in the file')
+    const { backend, db } = listingBackend({}, { 'islandale-plan.home-rev': 'r0' })
+    const h = fakeHome(broken.text)
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    expect(store().plan.order).toEqual(broken.rest)
+    expect(store().toast?.text).toMatch(/Bad in the file/)
+    await running.stop()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept).toHaveLength(1)
+    expect(db.get(kept[0])).toBe(broken.text)
+  })
+
+  test('a plan file edited while open with a bad object is set aside, then loaded without it', async () => {
+    const { backend, db } = listingBackend()
+    const h = fakeHome()
+    running = startAutosave({ backend, page: fakePage().page, home: h.home })
+    await running.ready
+    const broken = withBrokenFirst('Bad edit')
+    h.editOutside(broken.text)
+    await settle()
+    await settle()
+    expect(store().plan.order).toEqual(broken.rest)
+    const kept = [...db.keys()].filter((k) => k.startsWith(UNREADABLE_PREFIX))
+    expect(kept.map((k) => db.get(k))).toEqual([broken.text])
+  })
+
+  test('when the copy cannot be set aside, editing goes off and nothing is overwritten', async () => {
+    const broken = withBrokenFirst()
+    const f = fakeBackend({ [AUTOSAVE_KEY]: broken.text })
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k.startsWith(UNREADABLE_PREFIX)) throw new Error('quota')
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    expect(store().readOnly).toBe('unsafe-save')
+    await running.flush()
+    expect(f.db.get(AUTOSAVE_KEY)).toBe(broken.text)
+  })
+})
+
+describe('saving cost and order (R6.12)', () => {
+  let running: Autosave | null = null
+  beforeEach(() => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    usePlanStore.temporal.getState().clear()
+  })
+  afterEach(async () => {
+    await running?.stop()
+    running = null
+  })
+
+  test('a slow save is never overtaken by a later one: the last change is what stays saved', async () => {
+    const f = fakeBackend()
+    let holdNext = false
+    let release: () => void = () => {}
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k === AUTOSAVE_KEY && holdNext) {
+          holdNext = false
+          await new Promise<void>((r) => (release = r))
+        }
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page })
+    await running.ready
+    holdNext = true
+    store().renameObject(firstId(), 'First')
+    const first = running.flush()
+    await settle()
+    store().renameObject(firstId(), 'Second')
+    const second = running.flush()
+    await settle()
+    release()
+    await Promise.all([first, second])
+    expect(savedPlan(f.db).objects[firstId()].name).toBe('Second')
+  })
+
+  test('saves less than a minute apart do not rewrite the whole history each time', async () => {
+    let t = Date.parse('2026-11-10T10:00:00Z')
+    const now = () => new Date(t)
+    const f = fakeBackend()
+    let historyWrites = 0
+    const backend: SaveBackend = {
+      ...f.backend,
+      write: async (k, v) => {
+        if (k === HISTORY_KEY) historyWrites++
+        f.db.set(k, v)
+      },
+    }
+    running = startAutosave({ backend, page: fakePage().page, now })
+    await running.ready
+    const afterOpen = historyWrites
+    for (let i = 0; i < 6; i++) {
+      t += 5_000
+      store().renameObject(firstId(), `Name ${i}`)
+      await running.flush()
+    }
+    // the first save starts a new entry (written); the rest only change it in memory
+    expect(historyWrites - afterOpen).toBe(1)
+    expect(running.history()[0].text).toContain('Name 5')
+    await running.stop()
+    running = null
+    // stopping writes the history as it stands
+    expect((f.db.get(HISTORY_KEY) as { text: string }[])[0].text).toContain('Name 5')
+  })
+
+  test('the history waiting to be written is written when the tab is hidden', async () => {
+    let t = Date.parse('2026-11-10T10:00:00Z')
+    const now = () => new Date(t)
+    const { backend, db } = fakeBackend()
+    const { page, fire } = fakePage()
+    running = startAutosave({ backend, page, now })
+    await running.ready
+    t += 5_000
+    store().renameObject(firstId(), 'One')
+    await running.flush()
+    t += 5_000
+    store().renameObject(firstId(), 'Two')
+    fire('hidden')
+    await settle()
+    await settle()
+    expect((db.get(HISTORY_KEY) as { text: string }[])[0].text).toContain('Two')
+  })
+})
