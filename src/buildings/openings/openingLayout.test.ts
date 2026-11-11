@@ -113,6 +113,83 @@ describe('opening fit rules', () => {
   })
 })
 
+describe('openings on curved and outline walls (along-cuts) keep the fit rules', () => {
+  // a 24 x 16 ft ellipse as 48 short chords: one wall all the way round
+  const ellipse: LocalPoint[] = Array.from({ length: 48 }, (_, i) => {
+    const a = (i / 48) * 2 * Math.PI
+    return [12 * Math.cos(a), 8 * Math.sin(a)] as const
+  })
+  const perimOf = (poly: readonly LocalPoint[]) => poly.reduce((s, a, i) => s + Math.hypot(poly[(i + 1) % poly.length][0] - a[0], poly[(i + 1) % poly.length][1] - a[1]), 0)
+  const piecesWidth = (o: { pieces: readonly { w: number }[] }) => o.pieces.reduce((s, q) => s + q.w, 0)
+
+  test('two overlapping along-cuts end at least 4 in apart, with no conflict when there is room', () => {
+    const r = layoutOpenings(
+      ellipse,
+      [
+        { id: 1, kind: 'window', along: true, x: 10, w: 6, h: 4, sill: 3 },
+        { id: 2, kind: 'window', along: true, x: 13, w: 6, h: 4, sill: 3 },
+      ],
+      opts,
+    )
+    const [a, b] = r.openings
+    expect(b.x - b.trim - (a.x + a.w + a.trim)).toBeGreaterThanOrEqual(FIT.gapFt - 1e-9)
+    expect(b.w).toBeCloseTo(6, 9)
+    expect(b.conflict).toBe(false)
+    expect(r.notes.some((n) => n.id === 2 && n.field === 'x' && n.reason.includes('next opening'))).toBe(true)
+  })
+
+  test('along-cuts that cannot all fit round the wall are marked as a conflict', () => {
+    const perim = perimOf(ellipse)
+    // like a straight wall: the third is narrowed into what is left, the fourth has no room at all
+    const cuts = [0, 1, 2, 3].map((k) => ({ id: k + 1, kind: 'window', along: true, x: k * 2, w: perim / 2.5, h: 4, sill: 3 }))
+    const r = layoutOpenings(ellipse, cuts, opts)
+    expect(r.openings.some((o) => o.conflict)).toBe(true)
+  })
+
+  test('an along-cut keeps clear of a straight-wall opening on the walls it runs along, and the other way round', () => {
+    const edgeCut = { id: 1, kind: 'window', edge: 0, x: 8, w: 4, h: 4, sill: 3 }
+    const alongCut = { id: 2, kind: 'window', along: true, x: 6, w: 4, h: 4, sill: 3 }
+    for (const cuts of [[edgeCut, alongCut], [alongCut, edgeCut]]) {
+      const r = layoutOpenings(box, cuts, opts)
+      const e = r.openings.find((o) => !o.along)!
+      const a = r.openings.find((o) => o.along)!
+      // the edge cut's outer frame, measured from vertex 0 like the along-cut
+      const eFrame = [20 - (e.x + e.w + e.trim), 20 - (e.x - e.trim)]
+      const aFrame = [a.x - a.trim, a.x + a.w + a.trim]
+      const gap = Math.max(eFrame[0] - aFrame[1], aFrame[0] - eFrame[1])
+      expect(gap).toBeGreaterThanOrEqual(FIT.gapFt - 1e-9)
+      expect(r.openings.some((o) => o.conflict)).toBe(false)
+    }
+  })
+
+  test('an along-cut that runs past vertex 0 carries on round the wall instead of being cut short', () => {
+    const perim = perimOf(ellipse)
+    const r = one({ id: 1, kind: 'window', along: true, x: perim - 2, w: 6, h: 4, sill: 3 }, ellipse)
+    expect(piecesWidth(r.openings[0])).toBeCloseTo(6, 6)
+  })
+
+  test('a door too wide for a 1.2 ft wall stays on that wall and is marked as a conflict', () => {
+    const k = 1.2 / Math.SQRT2
+    // a box with one corner chamfered by a 1.2 ft wall (edge 3)
+    const chamfered: LocalPoint[] = [[-5, -5], [5, -5], [5, 5], [-5 + k, 5], [-5, 5 - k]]
+    const r = one({ id: 1, kind: 'door', edge: 3, x: 0, w: 3, h: 7, sill: 0 }, chamfered)
+    const o = r.openings[0]
+    expect(o.conflict).toBe(true)
+    expect(o.x - o.trim).toBeGreaterThanOrEqual(-1e-9)
+    expect(o.x + o.w + o.trim).toBeLessThanOrEqual(1.2 + 1e-9)
+    expect(o.w).toBeGreaterThan(0)
+  })
+
+  test('on a wall too low for the head clearance the height is never negative and stays inside the wall', () => {
+    for (const cut of [{ id: 1, kind: 'door', edge: 0, x: 8, w: 3, h: 7, sill: 0 }, { id: 2, kind: 'window', along: true, x: 4, w: 3, h: 4, sill: 3 }]) {
+      const o = one(cut, box, { wallHeightFt: 0.3 }).openings[0]
+      expect(o.h).toBeGreaterThanOrEqual(0)
+      expect(o.sill).toBeGreaterThanOrEqual(0)
+      expect(o.sill + o.h).toBeLessThanOrEqual(0.3 + 1e-9)
+    }
+  })
+})
+
 describe('the opening check list for Scheme C and its prow variants', () => {
   test.each(['C', 'C2', 'C3', 'C4'])('Scheme %s: after Fit all, openings clear corners, keep 4 in apart, stay under the eave and on the floor', (schemeId) => {
     const plan = planFromScheme(schemeById(loadSchemes(), schemeId))

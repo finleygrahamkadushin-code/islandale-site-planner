@@ -21,6 +21,8 @@ const FT = 0.3048
 export const GLASS_WALL_FT = 0.06 / FT
 /** An inside corner moves in at most thickness / this, so a needle-sharp corner stays in the wall (legacy c ≥ 0.35). */
 const MIN_MITRE = 0.35
+/** Below this cross product of two wall normals the walls are parallel, and have no corner to mitre to. */
+const PARALLEL_DET = 1e-9
 /** Holes narrower or shorter than this are not cut (legacy cw, ch > 5 cm). */
 const MIN_HOLE_FT = 0.05
 const EPS = 1e-6
@@ -107,12 +109,13 @@ function perimeter(poly: readonly LocalPoint[]): Perimeter {
 
 /** Where the inside faces of two walls meet at a vertex, relative to it (legacy IN, with a true mitre for unequal walls). */
 function mitre(fp: Vec2, fq: Vec2, tp: number, tq: number, vn: Vec2, crease: boolean): Vec2 {
-  if (tp === tq || !crease) {
+  const det = fp[0] * fq[1] - fp[1] * fq[0]
+  // parallel walls (a wall folding straight back on itself) never cross: average them as on a curve
+  if (tp === tq || !crease || Math.abs(det) < PARALLEL_DET) {
     const t = (tp + tq) / 2
     const c = Math.max(MIN_MITRE, dot2(vn, fq))
     return [(-vn[0] * t) / c, (-vn[1] * t) / c]
   }
-  const det = fp[0] * fq[1] - fp[1] * fq[0]
   const d: Vec2 = [(fp[1] * tq - fq[1] * tp) / det, (fq[0] * tp - fp[0] * tq) / det]
   const reach = Math.max(tp, tq) / MIN_MITRE
   const l = Math.hypot(d[0], d[1])

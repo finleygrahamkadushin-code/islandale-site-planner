@@ -36,6 +36,30 @@ describe('roofs fitted to the outline', () => {
     }
   })
 
+  test('a U-shaped outline gets no roof over its courtyard', () => {
+    // 30 × 24 ft, 8 ft arms round a 14 ft courtyard open to the front; the mass origin sits in the courtyard
+    const u: LocalPoint[] = [[-15, -12], [15, -12], [15, 12], [7, 12], [7, -2], [-7, -2], [-7, 12], [-15, 12]]
+    const grownFt = offsetOutline(u, 1)
+    const grown = offsetOutline(u, 1.05).map(([x, z]) => [x * FT, z * FT] as const)
+    const grownArea = Math.abs(grownFt.reduce((a, p, i) => { const q = grownFt[(i + 1) % grownFt.length]; return a + p[0] * q[1] - q[0] * p[1] }, 0) / 2) * FT * FT
+    for (const type of ['gable', 'hip', 'shed', 'butterfly', 'gambrel']) {
+      for (const ridge of ['x', 'z'] as const) {
+        const r = polyRoof(u, type, 6, ridge, 1)
+        const v = vertices(r.roof)
+        let planArea = 0
+        for (let i = 0; i < v.length; i += 3) {
+          const [a, b, c] = [v[i], v[i + 1], v[i + 2]]
+          const cx = (a[0] + b[0] + c[0]) / 3
+          const cz = (a[2] + b[2] + c[2]) / 3
+          expect(pointInPolygon(grown, cx, cz), `${type} ${ridge}: face centre ${cx.toFixed(2)}, ${cz.toFixed(2)}`).toBe(true)
+          planArea += Math.abs((b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2])) / 2
+        }
+        expect(planArea / grownArea, `${type} ${ridge}`).toBeCloseTo(1, 3)
+        expect(r.rise).toBeGreaterThan(0)
+      }
+    }
+  })
+
   test('buildRoof keeps the box roof on rectangles and fits other outlines', () => {
     const rect: LocalPoint[] = [[-10, -8], [10, -8], [10, 8], [-10, 8]]
     expect(buildRoof(rect, { type: 'hip', pitch: 6, ridge: 'x', overhangFt: 1 }).glass.positions).toHaveLength(0)
@@ -47,13 +71,22 @@ describe('roofs fitted to the outline', () => {
 })
 
 describe('fitted roofs keep their creases where an outline edge crosses them', () => {
-  // the outline's points on the ring at the eave, and the roof height there
-  const ringHeights = (r: ReturnType<typeof polyRoof>) => vertices(r.roof).filter(([x, , z]) => Math.hypot(x, z) > 1e-6)
+  // the roof's points on the eave ring (the outline grown by the overhang), with the roof height there
+  const ringHeights = (r: ReturnType<typeof polyRoof>, poly: readonly LocalPoint[], overhangFt = 0) => {
+    const ring = offsetOutline(poly, overhangFt).map(([x, z]) => [x * FT, z * FT] as const)
+    const onEdge = (x: number, z: number) => ring.some((a, i) => {
+      const b = ring[(i + 1) % ring.length]
+      const [dx, dz] = [b[0] - a[0], b[1] - a[1]]
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz)))
+      return Math.hypot(x - a[0] - t * dx, z - a[1] - t * dz) < 1e-6
+    })
+    return vertices(r.roof).filter(([x, , z]) => onEdge(x, z))
+  }
   const trap: LocalPoint[] = [[-6, -8], [6, -8], [10, 8], [-10, 8]]
 
   test('a butterfly on a trapezoid dips to its valley on both slanted sides, so the ends read as a V', () => {
     const r = polyRoof(trap, 'butterfly', 6, 'x', 0)
-    const valley = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+    const valley = ringHeights(r, trap).filter(([, , z]) => Math.abs(z) < 1e-6)
     // one valley point on each slanted side, at the valley's height (0.25 m)
     expect(new Set(valley.map(([x]) => Math.sign(x)))).toEqual(new Set([-1, 1]))
     for (const [, y] of valley) expect(y).toBeCloseTo(0.25, 6)
@@ -64,7 +97,7 @@ describe('fitted roofs keep their creases where an outline edge crosses them', (
 
   test('a gable on a trapezoid peaks at its ridge on both slanted sides', () => {
     const r = polyRoof(trap, 'gable', 6, 'x', 0)
-    const ridge = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+    const ridge = ringHeights(r, trap).filter(([, , z]) => Math.abs(z) < 1e-6)
     expect(ridge.length).toBeGreaterThanOrEqual(2)
     for (const [, y] of ridge) expect(y).toBeCloseTo(r.rise, 6)
   })
@@ -80,7 +113,7 @@ describe('fitted roofs keep their creases where an outline edge crosses them', (
     for (const [id, name] of [['A', 'Family pods'], ['B', 'Gathering fan']] as const) {
       const m = mainOf(id, name)
       const r = polyRoof(massPoly(m), m.roof, m.pitch, m.ridge, m.overhang)
-      const valley = ringHeights(r).filter(([, , z]) => Math.abs(z) < 1e-6)
+      const valley = ringHeights(r, massPoly(m), m.overhang).filter(([, , z]) => Math.abs(z) < 1e-6)
       expect(new Set(valley.map(([x]) => x.toFixed(3))).size, `${id} ${name}`).toBe(2)
       for (const [, y] of valley) expect(y).toBeCloseTo(0.25, 6)
     }

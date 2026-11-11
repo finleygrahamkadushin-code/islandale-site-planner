@@ -56,14 +56,28 @@ export function roofFinishOf(m: Pick<Mass, 'roofMat' | 'roof'> & Partial<Pick<Ma
   return isRoofFinish(r) ? r : null
 }
 
-/** Highest point of a sculpted roof above the wall top, feet (legacy sculptRiseFt, used by the height check). */
-export function sculptRiseFt(m: Pick<Mass, 'roof' | 'pitch' | 'ridge' | 'overhang' | 'w' | 'd' | 'curl'>): number {
+/** The slab thickness a finish sets, metres (thin glass, a sod layer over another type), or undefined for the type's own. */
+export function finishSlabM(type: SculptedType, finish: RoofFinish | null): number | undefined {
+  return finish === 'glass' ? GLASS_SLAB_M : finish === 'sod' && type !== 'sod' ? SOD_OVER_M : undefined
+}
+
+/** The slab's thickness at the roof's highest point, metres: the finish's, else the type's own (a shell tapers to half at its peak). */
+function peakSlabM(type: SculptedType, finish: RoofFinish | null): number {
+  return finishSlabM(type, finish) ?? (type === 'shell' ? SLAB_M.shell / 2 : SLAB_M[type])
+}
+
+/**
+ * Highest point of a sculpted roof above the wall top, feet (legacy
+ * sculptRiseFt, used by the height check), with the slab as the roof is
+ * built: its finish's thickness, which the legacy ignored.
+ */
+export function sculptRiseFt(m: Pick<Mass, 'roof' | 'pitch' | 'ridge' | 'overhang' | 'w' | 'd' | 'curl' | 'roofMat'>): number {
   const p = (m.pitch ?? 6) / 12
   const oh = m.overhang || 0
   const w = m.w + 2 * oh
   const d = m.d + 2 * oh
   const c = clamp(m.curl ?? 0.5, 0, 1)
-  const th = (m.roof === 'sod' ? 0.42 : 0.2) / FT
+  const th = (isSculpted(m.roof) ? peakSlabM(m.roof, roofFinishOf(m)) : SLAB_M.dome) / FT
   if (m.roof === 'vault') return (p * (m.ridge === 'z' ? w : d)) / 2 + th
   if (m.roof === 'shell') return ((p * (m.ridge === 'z' ? w : d)) / 2) * (0.75 + 0.5 * c) + th
   return (p * Math.min(w, d)) / 2 + th
@@ -804,7 +818,7 @@ export function sculptedSurface(poly: readonly LocalPoint[], m: SculptMass): Scu
   const type = m.roof
   const finish = roofFinishOf(m)
   const outline = toMetres(polyOffset(poly, Math.max(0, m.overhang)))
-  const th = finish === 'glass' ? GLASS_SLAB_M : finish === 'sod' && type !== 'sod' ? SOD_OVER_M : undefined
+  const th = finishSlabM(type, finish)
   return { type, finish, outline, surf: roofSurface(outline, type, { pitch: m.pitch, ridge: m.ridge, curl: m.curl, th }) }
 }
 
