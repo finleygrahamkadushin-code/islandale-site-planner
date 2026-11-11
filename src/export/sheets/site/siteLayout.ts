@@ -86,6 +86,12 @@ const NOTES_SAFETY = 1.12
 
 const linesFor = (chars: number, widthIn: number, charIn: number) => Math.max(1, Math.ceil((chars * charIn) / Math.max(0.5, widthIn)))
 
+/** The names a code row prints after its text: only those the text doesn't already say (as NotesColumn prints them). */
+const extraNames = (r: SiteNotes['code']['rows'][number]): string => {
+  const extra = r.names.filter((n) => !r.text.includes(n))
+  return extra.length ? ` (${extra.join(', ')})` : ''
+}
+
 /**
  * About how tall the notes column runs at a width, inches: each block's
  * caption, rows wrapped at the width their column leaves, small print, the
@@ -101,7 +107,7 @@ export function notesHeightIn(notes: SiteNotes, widthIn: number): number {
   }
   h += CAPTION_IN + BLOCK_GAP_IN
   if (notes.code.rulesOff) h += 2 * NOTE_LINE_IN + 0.08
-  for (const r of notes.code.rows) h += linesFor(r.label.length + r.text.length + r.names.join(', ').length + 6, widthIn - 0.35, NOTE_CHAR_IN) * NOTE_LINE_IN
+  for (const r of notes.code.rows) h += linesFor(r.label.length + r.text.length + extraNames(r).length + 6, widthIn - 0.35, NOTE_CHAR_IN) * NOTE_LINE_IN
   for (const n of notes.code.notes) h += linesFor(n.length, widthIn, SMALL_CHAR_IN) * SMALL_LINE_IN
   h += CAPTION_IN + LEGEND_IN + BLOCK_GAP_IN + 3 * SMALL_LINE_IN
   return h * NOTES_SAFETY

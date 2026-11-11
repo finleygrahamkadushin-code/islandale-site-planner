@@ -4,7 +4,7 @@ import type { Mass } from '../../buildings/masses'
 import { massSite, railOwner, surfaceZ } from '../../buildings/rails/railWorld'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
-import { isDriveway, isPathPiece, pieceEnds, pieceKind, pieceLength, pieceProfile, pieceWidth, railOn, type Ground } from '../pieces'
+import { isDriveway, isPathPiece, pieceEnds, pieceKind, pieceLength, pieceProfile, pieceSurface, pieceWidth, railOn, type Ground } from '../pieces'
 import { JOIN_M, type P2, type RouteAnchor, type RouteItem } from './routeGraph'
 
 /**
@@ -52,6 +52,7 @@ export function bridgeItem(o: PlanObject): RouteItem | null {
     ],
     profile,
     rail: true,
+    surface: 'boardwalk',
   }
 }
 
@@ -84,6 +85,7 @@ export function routeItems(objects: readonly PlanObject[], ground: Ground): Rout
         ],
         profile: profile.map((p) => ({ s: p.s, z: p.z, cross: p.cross })),
         rail: railOn(o, ground),
+        surface: pieceSurface(o),
       },
     ]
   })

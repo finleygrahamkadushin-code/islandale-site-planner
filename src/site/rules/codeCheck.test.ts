@@ -41,11 +41,14 @@ describe('code check', () => {
     expect(r.rows.map((x) => x.label)).toEqual([
       'Shoreline setback',
       'Decks over 30 in in buffer',
+      'Side and rear setback',
+      'Inside the lot',
       'Lot-width rule',
       'Height ≤ 35 ft',
       'Guards · IRC R312.1',
       'Rail clearance',
-      'Handrails · R311.7.8 / R311.8.3',
+      // the 6 in ramp trigger is ADA 405.8; IRC R311.8.3 asks for a handrail on ramps steeper than 1:12 (R2.9)
+      'Handrails · IRC R311.7.8 / ADA 405.8',
       'Stair risers & treads · R311.7.5 / R311.8.1',
       'Tree zone 1 (0–35 ft)',
       'Accessible route · ADA 402–405',
@@ -54,16 +57,20 @@ describe('code check', () => {
     ])
   })
 
+  // measured wall to shore and wall to lot line (R2.3), Scheme C still passes every site row
   it('passes Scheme C on the site rules at the default setbacks', () => {
     const { rows } = check(C, 'C')
     expect(row(rows, 'shore')).toMatchObject({ verdict: 'pass', text: 'all buildings clear', names: [] })
     expect(row(rows, 'decks').verdict).toBe('pass')
+    expect(row(rows, 'side')).toMatchObject({ verdict: 'pass', text: 'all buildings 10 ft or more from the lot lines' })
+    expect(row(rows, 'in-lot').verdict).toBe('pass')
     expect(row(rows, 'lot-width')).toMatchObject({ verdict: 'pass', text: '56 ft of 57 ft allowed (lot 115 ft wide there)' })
     expect(row(rows, 'height')).toMatchObject({ verdict: 'pass', text: 'tallest 22.7 ft (Gathering prow)' })
     expect(row(rows, 'guards').verdict).toBe('pass')
     expect(row(rows, 'handrails').verdict).toBe('pass')
     expect(row(rows, 'rail-clearance').verdict).toBe('note')
-    expect(row(rows, 'tree-zone').verdict).toBe('note')
+    // its boardwalk runs through tree zone 1: named, but paths are allowed there
+    expect(row(rows, 'tree-zone')).toMatchObject({ verdict: 'note', text: 'paths and low decks only: Elders’ walk · 1:21 boardwalk' })
   })
 
   it('fails the stair row on Scheme C: the prow stair runs into the ground, the family stairs are too steep and the twin pod meets nothing', () => {
@@ -99,7 +106,7 @@ describe('code check', () => {
   it('gives only notes for a rules-off scheme', () => {
     const r = check(objectsOf('D'), 'D')
     expect(r.rulesOff).toBe(true)
-    expect(r.rows).toHaveLength(12)
+    expect(r.rows).toHaveLength(14)
     expect(r.rows.every((x) => x.verdict === 'note')).toBe(true)
   })
 })

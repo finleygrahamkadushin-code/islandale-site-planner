@@ -12,7 +12,7 @@ import { nearestShore, pointInLot } from './setbacks'
 /** Directions tried for the narrowest chord, degrees. */
 const SWEEP_STEP_DEG = 2
 const SWEEP_LAST_DEG = 178
-/** Under this lot width (ft) the allowance is a flat 40 ft. */
+/** Under this lot width (ft) the allowance is a flat 40 ft. These three are assumed (review R2.8): no code section named; see ruleSources. */
 export const NARROW_LOT_FT = 80
 export const NARROW_ALLOWED_FT = 40
 export const WIDTH_SHARE = 0.5

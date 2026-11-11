@@ -7,6 +7,8 @@ import { siteContours } from '../../../site/siteContours'
 import { distToSegment, insidePoly } from './siteGeom'
 import type { Pt } from '../svgDims'
 import { siteSheetModel } from './siteModel'
+import { shadowPieces } from './siteObjects'
+import { sunPosition } from '../../../site/environment/sun'
 import { earthworksFor, modelInputFor, objectsOf, planOf, SITE } from './siteTestKit'
 
 const planC = planOf('C')
@@ -93,6 +95,12 @@ describe('site sheet model · Scheme C', () => {
     const cy = (pts: readonly (readonly [number, number])[]) => pts.reduce((s, p) => s + p[1], 0) / pts.length
     expect(cx(moved)).toBeGreaterThan(cx(caster.poly))
     expect(cy(moved)).toBeGreaterThan(cy(caster.poly))
+  })
+
+  test('a 20 ft wall’s roof shadow at 3 pm in June runs about 13 ft, as the real sun casts it (R2.6, clock time with daylight saving)', () => {
+    const square: Pt[] = [[0, 0], [10, 0], [10, 10], [0, 10]]
+    const moved = shadowPieces(square, 20, sunPosition('jun', 15).direction)[1]
+    expect(Math.hypot(moved[0][0] - square[0][0], moved[0][1] - square[0][1])).toBeCloseTo(13, 0)
   })
 
   test('the sun says it is up even when nothing casts a shadow, and is down at night', () => {

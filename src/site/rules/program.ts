@@ -9,7 +9,7 @@ import { ringArea } from '../parcel'
  * whole square feet out.
  */
 
-/** Enclosed floor area allowed across every building, sq ft. */
+/** Enclosed floor area allowed across every building, sq ft. Assumed with the one below (review R2.8): no source named; see ruleSources. */
 export const PROGRAM_CAP_SQFT = 1600
 /** Enclosed floor area allowed in any one building, sq ft. */
 export const BUILDING_CAP_SQFT = 800

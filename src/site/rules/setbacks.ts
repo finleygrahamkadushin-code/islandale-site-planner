@@ -14,7 +14,7 @@ import type { Setbacks } from '../../store/types'
 
 /** Last ring edge of the east (banked) shore; the edges after it, to the shoreline's end, are the gentle south-west shore. */
 export const EAST_BANK_LAST_EDGE = 120
-/** Tree protection zones, feet from the water: no removal, then limited removal. */
+/** Tree protection zones, feet from the water: no removal, then limited removal. Assumed (review R2.8): no code section named; see ruleSources. */
 export const TREE_ZONE_1_FT = 35
 export const TREE_ZONE_2_FT = 110
 

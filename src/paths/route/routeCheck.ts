@@ -8,7 +8,10 @@ import { LEVEL_M, nodeName, type P2, type RouteGraph, type RouteItem } from './r
  * ramp rise, handrails, level landings, and the joins at each end (steps,
  * gaps, landings and turns at a ramp's ends). Stairs are never part of an
  * accessible route, so they are not checked here. The wording is the old
- * planner's.
+ * planner's. Added by the review (R2.10, R2.11): a grass surface fails
+ * (ADA 302.1), and a piece whose numbers are not finite or that runs off
+ * the surveyed ground fails rather than passing on made-up levels.
+ * Gravel passes, taken as compacted; loose gravel would not.
  */
 
 export const RULES = {
@@ -40,6 +43,7 @@ export const CITE = {
   turn: 'ADA 405.7.4 / A117.1 405.7.4',
   rail: 'ADA 405.8 / A117.1 405.8',
   stair: 'ADA 402.2 / A117.1 402.2',
+  surface: 'ADA 302.1 / A117.1 302.1',
 } as const
 
 export type IssueCode =
@@ -55,6 +59,9 @@ export type IssueCode =
   | 'turn'
   | 'landing-top'
   | 'landing-bottom'
+  | 'surface'
+  | 'bad-input'
+  | 'off-survey'
 
 export interface RouteIssue {
   readonly code: IssueCode
@@ -306,6 +313,24 @@ function endIssues(G: RouteGraph, geoms: ReadonlyMap<ObjectId, PieceGeom>, p: Ro
   return [...out, issue(endWord === 'top' ? 'landing-top' : 'landing-bottom', `No level 60 in landing at the ${endWord} of the ramp run — ${CITE.landing}`, `add a 5 ft landing at the ${endWord}`, `no landing at ${endWord}`)]
 }
 
+/** Surfaces that are not firm, stable and slip resistant (ADA 302.1). */
+const UNSTABLE_SURFACES: ReadonlySet<string> = new Set(['grass'])
+
+function surfaceIssues(p: RouteItem): RouteIssue[] {
+  if (!p.surface || !UNSTABLE_SURFACES.has(p.surface)) return []
+  return [issue('surface', `Surface is ${p.surface}, which is not firm, stable and slip resistant — ${CITE.surface}`, 'pave it: concrete, pavers, compacted gravel or a boardwalk', `${p.surface} surface`)]
+}
+
+const finite = (...vs: readonly number[]) => vs.every(Number.isFinite)
+
+/** A piece whose size, ends or levels are not numbers can't be measured; one off the survey has made-up levels. */
+function inputIssue(p: RouteItem): RouteIssue | null {
+  const numbers = finite(p.widthFt, p.lengthM, ...p.ends.flatMap((e) => [e.x, e.n, e.z]), ...p.profile.flatMap((q) => [q.s, q.z, q.cross]))
+  if (!numbers) return issue('bad-input', 'Its position, size or levels are not numbers, so it cannot be checked', 'set its position and size again, or delete it', 'cannot be measured')
+  if (p.offSurvey) return issue('off-survey', 'It runs off the surveyed ground, where the levels are not known, so it cannot be checked', 'move it onto the lot', 'off the survey')
+  return null
+}
+
 /** Every piece's verdict, by id. */
 export function checkPieces(G: RouteGraph): ReadonlyMap<ObjectId, PieceVerdict> {
   const geoms = new Map(G.items.map((p) => [p.id, pieceGeom(p)] as const))
@@ -316,7 +341,9 @@ export function checkPieces(G: RouteGraph): ReadonlyMap<ObjectId, PieceVerdict> 
       const base = { kind: p.kind, slope: p.kind === 'stair' ? g.overall : g.slope, cross: g.cross, riseIn, lengthFt: g.L / FT }
       if (p.kind === 'stair')
         return [p.id, { ...base, verdict: 'n/a', ok: true, issues: [], note: `stairs — fine off the route, never part of an accessible route (${CITE.stair})` }]
-      const issues = [...slopeIssues(p, g), ...crossAndWidth(p, g), ...endIssues(G, geoms, p, g, 0), ...endIssues(G, geoms, p, g, 1)]
+      const bad = inputIssue(p)
+      if (bad) return [p.id, { ...base, verdict: 'fail', ok: false, issues: [bad] }]
+      const issues = [...surfaceIssues(p), ...slopeIssues(p, g), ...crossAndWidth(p, g), ...endIssues(G, geoms, p, g, 0), ...endIssues(G, geoms, p, g, 1)]
       return [p.id, { ...base, verdict: issues.length ? 'fail' : 'pass', ok: !issues.length, issues }]
     }),
   )

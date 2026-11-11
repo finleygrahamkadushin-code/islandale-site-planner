@@ -1,20 +1,22 @@
 import { localToSite, num, siteFootprint, type LocalPoint } from '../../buildings/footprint'
-import { buildingMasses, massToBuilding } from '../../buildings/masses'
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { massToBuilding } from '../../buildings/masses'
 import { formatFeetInches } from '../../ui/feetInches'
 import type { Site, SitePoint } from '../types'
 import { FT_PER_M, ftToM } from '../units'
 import { layerOf, type Layers, type Plan, type PlanObject, type Setbacks } from '../../store/types'
-import { closestOnSeg, nearestLotLine, nearestShore, pointInLot } from './setbacks'
-import { isRuleBuilding, ruleOutline } from './ruleOutline'
+import { polyDistance, type Poly } from './polyGeom'
+import { outlineInLot, outlineLotLine, outlineShore } from './outlineDistance'
+
+export { polyDistance, segDistance } from './polyGeom'
+import { hasMasses, ruleMasses, ruleOutline } from './ruleOutline'
 
 /**
  * Clearances for one selected object (5E, old `refreshSel`, `rebuildClearance`
  * and `drawLabels`): how far its rule outline is from the shore, the nearest
  * side or rear lot line and the nearest other object, and the lengths of its
  * box edges. Pure: plan, site and setbacks in, metres out (site frame).
- * Measured from the rule outline, not the old bounding-box corners, so a
- * clearance and its code-check row agree.
+ * Measured from the rule outline's walls, edge to edge, not the old
+ * bounding-box corners, so a clearance and its code-check row agree.
  */
 
 export interface ShoreClearance {
@@ -33,7 +35,7 @@ export interface LotClearance {
   readonly from: SitePoint
   readonly to: SitePoint
   readonly insideSetback: boolean
-  /** Some outline point is outside the lot. */
+  /** Some of the outline is outside the lot, or a wall crosses the lot line. */
   readonly crossesLot: boolean
 }
 
@@ -59,37 +61,27 @@ export interface Clearances {
   readonly dimensions: readonly DimensionLabel[]
 }
 
-type Poly = readonly SitePoint[]
-
 export function clearances(o: PlanObject, plan: Plan, site: Site, setbacks: Setbacks, layers?: Layers): Clearances {
   const outline = ruleOutline(o, site.terrain)
-  const points = outline.flat()
   return {
-    shore: shoreClearance(points, site, setbacks),
-    lot: lotClearance(points, site, setbacks),
+    shore: shoreClearance(outline, site, setbacks),
+    lot: lotClearance(outline, site, setbacks),
     nearest: nearestObject(o, outline, plan, layers),
     dimensions: dimensionLabels(o),
   }
 }
 
-function shoreClearance(points: Poly, site: Site, setbacks: Setbacks): ShoreClearance | null {
-  let best: ShoreClearance | null = null
-  for (const [x, n] of points) {
-    const hit = nearestShore(site.parcel, x, n, setbacks.bankFt)
-    if (!hit || (best && hit.past >= best.past)) continue
-    best = { d: hit.d, past: hit.past, banked: hit.banked, from: [x, n], to: hit.at, insideBuffer: hit.past < ftToM(setbacks.shoreFt) }
-  }
-  return best
+/** Measured wall to shore (R2.3), not corner to shore, so a wall closer than its corners counts. */
+function shoreClearance(outline: readonly Poly[], site: Site, setbacks: Setbacks): ShoreClearance | null {
+  const hit = outlineShore(site.parcel, outline, setbacks.bankFt)
+  if (!hit) return null
+  return { d: hit.d, past: hit.past, banked: hit.banked, from: hit.from, to: hit.to, insideBuffer: hit.past < ftToM(setbacks.shoreFt) }
 }
 
-function lotClearance(points: Poly, site: Site, setbacks: Setbacks): LotClearance | null {
-  const crossesLot = points.some(([x, n]) => !pointInLot(site.parcel, x, n))
-  let best: { d: number; from: SitePoint; to: SitePoint } | null = null
-  for (const [x, n] of points) {
-    const hit = nearestLotLine(site.parcel, x, n)
-    if (hit && (!best || hit.d < best.d)) best = { d: hit.d, from: [x, n], to: hit.at }
-  }
-  return best && { ...best, insideSetback: best.d < ftToM(setbacks.sideFt), crossesLot }
+function lotClearance(outline: readonly Poly[], site: Site, setbacks: Setbacks): LotClearance | null {
+  const hit = outlineLotLine(site.parcel, outline)
+  if (!hit) return null
+  return { ...hit, insideSetback: hit.d < ftToM(setbacks.sideFt), crossesLot: !outlineInLot(site.parcel, outline) }
 }
 
 const visible = (o: PlanObject, layers?: Layers): boolean => !o.hidden && (!layers || layers[layerOf(o)].visible)
@@ -111,59 +103,9 @@ function nearestObject(o: PlanObject, outline: readonly Poly[], plan: Plan, laye
   return best
 }
 
-/** Shortest distance between two polygons' edges; 0 where they cross or one sits inside the other. */
-export function polyDistance(a: Poly, b: Poly): { d: number; from: SitePoint; to: SitePoint } {
-  const inside = a.find(([x, n]) => pointInPolygon(b, x, n)) ?? b.find(([x, n]) => pointInPolygon(a, x, n))
-  if (inside) return { d: 0, from: inside, to: inside }
-  let best = { d: Infinity, from: a[0], to: b[0] }
-  forEdges(a, (a0, a1) =>
-    forEdges(b, (b0, b1) => {
-      const hit = segDistance(a0, a1, b0, b1)
-      if (hit.d < best.d) best = hit
-    }),
-  )
-  return best
-}
-
-/** Shortest distance between segments a0–a1 and b0–b1, with the nearest point on each. */
-export function segDistance(a0: SitePoint, a1: SitePoint, b0: SitePoint, b1: SitePoint): { d: number; from: SitePoint; to: SitePoint } {
-  const cross = crossing(a0, a1, b0, b1)
-  if (cross) return { d: 0, from: cross, to: cross }
-  const onB0 = closestOnSeg(a0[0], a0[1], b0, b1)
-  const onB1 = closestOnSeg(a1[0], a1[1], b0, b1)
-  const onA0 = closestOnSeg(b0[0], b0[1], a0, a1)
-  const onA1 = closestOnSeg(b1[0], b1[1], a0, a1)
-  const options = [
-    { d: onB0.d, from: a0, to: onB0.at },
-    { d: onB1.d, from: a1, to: onB1.at },
-    { d: onA0.d, from: onA0.at, to: b0 },
-    { d: onA1.d, from: onA1.at, to: b1 },
-  ]
-  return options.reduce((m, c) => (c.d < m.d ? c : m))
-}
-
-function crossing(a0: SitePoint, a1: SitePoint, b0: SitePoint, b1: SitePoint): SitePoint | null {
-  const rx = a1[0] - a0[0]
-  const rn = a1[1] - a0[1]
-  const sx = b1[0] - b0[0]
-  const sn = b1[1] - b0[1]
-  const den = rx * sn - rn * sx
-  if (Math.abs(den) < 1e-12) return null
-  const qx = b0[0] - a0[0]
-  const qn = b0[1] - a0[1]
-  const t = (qx * sn - qn * sx) / den
-  const u = (qx * rn - qn * rx) / den
-  if (t < 0 || t > 1 || u < 0 || u > 1) return null
-  return [a0[0] + t * rx, a0[1] + t * rn]
-}
-
-function forEdges(poly: Poly, f: (p: SitePoint, q: SitePoint) => void): void {
-  for (let i = 0; i < poly.length; i++) f(poly[i], poly[(i + 1) % poly.length])
-}
-
 /** The four edges of the box to label: a cabin's main mass, anything else its footprint box. */
 export function dimensionLabels(o: PlanObject): readonly DimensionLabel[] {
-  const main = isRuleBuilding(o) ? buildingMasses(o.params)[0] : null
+  const main = hasMasses(o) ? ruleMasses(o)[0] : null
   const w = main ? main.w : num(o.params.w, 10)
   const d = main ? main.d : num(o.params.d, 10)
   const toBuilding = (p: LocalPoint): LocalPoint => (main ? massToBuilding(main, p) : p)

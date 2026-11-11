@@ -11,6 +11,7 @@ import { usePlanStore } from '../../../store/planStore'
 import { DEFAULT_SETBACKS, type Plan } from '../../../store/types'
 import { CURRENT_SCHEME_ID } from '../../../site/schemes'
 import { clearanceRows } from '../../../ui/selectionStats'
+import { PLANNING_AID_NOTE } from '../../../site/rules/ruleSources'
 import { siteNotes, VERDICT_TEXT, type SiteNotes } from './siteNotes'
 import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
 
@@ -98,6 +99,21 @@ describe('the real panels, Scheme C (the plan the app opens on)', () => {
       expect(text).toContain(squeeze(`${r.label} · ${r.text}`))
       expect(VERDICT_TEXT[r.verdict]).toBeTruthy()
     }
+  })
+})
+
+describe('a planning aid, not a code review (R2.7, R2.8)', () => {
+  const notes = notesFor(planOf(CURRENT_SCHEME_ID))
+
+  test('the sheet’s code check opens its small print with the planning-aid note', () => {
+    expect(notes.code.notes[0]).toBe(PLANNING_AID_NOTE)
+  })
+
+  test('the Code check panel says the same, word for word', () => {
+    const text = panelText(CodeCheckPanel)
+    expect(text).toContain(squeeze(PLANNING_AID_NOTE))
+    expect(text).toContain('Height 35 ft above average grade (assumed)')
+    expect(text).toContain('Ramp handrails rise over 6 in (ADA 405.8)')
   })
 })
 

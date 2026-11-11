@@ -74,6 +74,7 @@ export interface Setbacks {
   readonly shown: boolean
 }
 
+/** Assumed (review R2.8): the old planner's figures, not checked against the county text; see site/rules/ruleSources. */
 export const DEFAULT_SETBACKS: Setbacks = { shoreFt: 35, bankFt: 45, sideFt: 10, treeZones: true, shown: true }
 /** Slider ranges and steps, feet. */
 export const SETBACK_RANGES = {
@@ -81,7 +82,7 @@ export const SETBACK_RANGES = {
   bankFt: { min: 0, max: 80, step: 5 },
   sideFt: { min: 0, max: 50, step: 1 },
 } as const
-/** The strict reading of SJCC 18.50.540(C). */
+/** The strict reading of SJCC 18.50.540(C), as the old planner gives it; assumed, not checked against the county text. */
 export const STRICT_SHORE_FT = 50
 export const HOUR_RANGE = { min: 7, max: 19 } as const
 export const TIDE_RANGE_FT = { min: 0, max: 12 } as const
