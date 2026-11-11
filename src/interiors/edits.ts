@@ -29,12 +29,52 @@ const MIN_DRAWN_AREA = 4
 const MIN_MOVED_SHARE = 0.5
 /** Room corners closer than this to a dragged wall move with it, feet. */
 const ON_WALL = 0.05
+/** More new overlap than this between two rooms refuses an edit, square feet (numerical slack). */
+const OVERLAP_SLACK = 0.5
+
+const CROSSES = "Walls can't cross: that would turn the room inside out."
+const IN_TWO = 'That would cut the room in two: split it with Split (S) instead.'
+const INTO_ROOM = "That wall would run into another room — rooms can't overlap."
 
 const r2 = (v: number) => Math.round(v * 100) / 100
 const fail = (message: string): EditResult => ({ ok: false, message })
 const done = (floor: Floor, nextId: () => number, select?: Selection): EditResult => ({ ok: true, floor: cleanFloor(floor, nextId), select })
 
 const withRoom = (floor: Floor, id: number, f: (r: Room) => Room): Floor => ({ ...floor, rooms: floor.rooms.map((r) => (r.id === id ? f(r) : r)) })
+
+/** Area two outlines share, square feet. */
+function sharedArea(P: readonly Pt[], Q: readonly Pt[]): number {
+  const a = G.bbox([P])
+  const b = G.bbox([Q])
+  if (a.x2 <= b.x1 || b.x2 <= a.x1 || a.z2 <= b.z1 || b.z2 <= a.z1) return 0
+  return G.area(P) - G.subtractRegion(G.toPieces(P), Q).reduce((s, L) => s + G.area(L), 0)
+}
+
+/** Does any changed room now overlap another room more than it did before? (Plans that already overlap stay editable.) */
+function newOverlap(before: readonly Room[], after: readonly Room[], changed: ReadonlySet<number>): boolean {
+  const old = new Map(before.map((r) => [r.id, r]))
+  return after.some(
+    (r, i) =>
+      changed.has(r.id) &&
+      after.some((q, j) => {
+        if (j === i || (changed.has(q.id) && j < i) || r.type === 'porch' || q.type === 'porch') return false
+        const now = sharedArea(r.pts, q.pts)
+        if (now <= OVERLAP_SLACK) return false
+        const r0 = old.get(r.id)
+        const q0 = old.get(q.id)
+        return now > (r0 && q0 ? sharedArea(r0.pts, q0.pts) : 0) + OVERLAP_SLACK
+      }),
+  )
+}
+
+/** A room reshaped by a corner edit, fitted to the walls and its neighbours, or why not. */
+function refit(params: Params, fi: number, floor: Floor, r: Room, pts: readonly Pt[], refuse: string): EditResult | Poly {
+  if (!G.isSimple(pts)) return fail(CROSSES)
+  const res = fitRoom(params, fi, pts, r.type, r.id, floor.rooms)
+  if (!res.polys.length || res.hole) return fail(refuse)
+  if (res.polys.length > 1) return fail(IN_TWO)
+  return res.polys[0]
+}
 
 /** Re-anchor every opening to where it sat before the rooms changed. */
 const reanchor = (params: Params, fi: number, floor: Floor, cap: Map<number, OpeningPlace>): Floor => ({ ...floor, openings: reanchorOpenings(params, fi, floor, cap) })
@@ -126,6 +166,7 @@ export function moveRoom(params: Params, fi: number, floor: Floor, id: number, d
   if (!r) return fail('No such room')
   const res = fitRoom(params, fi, G.translate(r.pts, dx, dz), r.type, id, floor.rooms)
   if (!res.polys.length || res.hole || G.area(res.polys[0]) < MIN_MOVED_SHARE * G.area(r.pts)) return fail('No room there')
+  if (res.polys.length > 1) return fail(IN_TWO)
   const cap = captureOpenings(params, fi, floor)
   for (const op of floor.openings) {
     const e = op.room === id ? cap.get(op.id) : undefined
@@ -144,10 +185,10 @@ export function moveCorner(params: Params, fi: number, floor: Floor, id: number,
   const moved = pts.map((q, k): Pt => (k === i ? [r2(p[0]), r2(p[1])] : [q[0], q[1]]))
   const r = floor.rooms.find((x) => x.id === id)
   if (!r) return fail('No such room')
-  const res = fitRoom(params, fi, moved, r.type, id, floor.rooms)
-  if (!res.polys.length || res.hole) return fail("That corner can't go there")
+  const P = refit(params, fi, floor, r, moved, "That corner can't go there")
+  if (!Array.isArray(P)) return P
   const cap = captureOpenings(params, fi, floor)
-  return done(reanchor(params, fi, withRoom(floor, id, (x) => ({ ...x, pts: res.polys[0] })), cap), nextId, { room: id })
+  return done(reanchor(params, fi, withRoom(floor, id, (x) => ({ ...x, pts: P })), cap), nextId, { room: id })
 }
 
 /** A room outline with a new corner on edge i at q (none when q is within 0.1 ft of a corner). */
@@ -163,10 +204,10 @@ export function removeCorner(params: Params, fi: number, floor: Floor, id: numbe
   const r = floor.rooms.find((x) => x.id === id)
   if (!r) return fail('No such room')
   if (r.pts.length <= 3) return fail('A room needs at least 3 corners')
-  const res = fitRoom(params, fi, r.pts.filter((_, k) => k !== i), r.type, id, floor.rooms)
-  if (!res.polys.length || res.hole) return fail("That corner can't be removed")
+  const P = refit(params, fi, floor, r, r.pts.filter((_, k) => k !== i), "That corner can't be removed")
+  if (!Array.isArray(P)) return P
   const cap = captureOpenings(params, fi, floor)
-  return done(reanchor(params, fi, withRoom(floor, id, (x) => ({ ...x, pts: res.polys[0] })), cap), nextId, { room: id })
+  return done(reanchor(params, fi, withRoom(floor, id, (x) => ({ ...x, pts: P })), cap), nextId, { room: id })
 }
 
 /** The rooms (and which of their corners) lying on edge `edge` of room `id`: they move with it. */
@@ -195,20 +236,28 @@ export function movedWall(floor: Floor, id: number, edge: number, del: number): 
   })
 }
 
-/** Move one wall of a room, and the rooms on the other side of it, by `del` feet (old finishEdge). */
+/**
+ * Move one wall of a room, and the rooms on the other side of it, by `del`
+ * feet (old finishEdge). The rooms stop at the cabin's walls; a move that
+ * would run into another room, take a room past its far side, or cut one
+ * in two is refused.
+ */
 export function moveWall(params: Params, fi: number, floor: Floor, id: number, edge: number, del: number, nextId: () => number): EditResult {
   const movers = wallMovers(floor, id, edge)
   const rooms = movedWall(floor, id, edge, del)
   const fitted: Room[] = []
-  for (const x of rooms) {
+  for (const [k, x] of rooms.entries()) {
     if (!movers.has(x.id)) {
       fitted.push(x)
       continue
     }
+    if (!G.isSimple(x.pts) || Math.sign(G.sarea(x.pts)) !== Math.sign(G.sarea(floor.rooms[k].pts))) return fail(CROSSES)
     const res = fitRoom(params, fi, x.pts, x.type, x.id, [])
     if (!res.polys.length) return fail("That wall can't go there")
+    if (res.polys.length > 1) return fail(IN_TWO)
     fitted.push({ ...x, pts: res.polys[0] })
   }
+  if (newOverlap(floor.rooms, fitted, new Set(movers.keys()))) return fail(INTO_ROOM)
   const cap = captureOpenings(params, fi, floor)
   return done(reanchor(params, fi, { ...floor, rooms: fitted }, cap), nextId, { room: id })
 }

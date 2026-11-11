@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest'
-import { addFurniture, addOpening, addRoom, newOpening, setRoom } from '../interiors/edits'
+import { addFurniture, addOpening, addRoom, moveWall, newOpening, setRoom } from '../interiors/edits'
 import * as G from '../interiors/geom'
 import { readFloors } from '../interiors/model'
 import { UPPER_FLOOR_MIN_H } from './interiorActions'
@@ -49,6 +49,16 @@ describe('interior actions', () => {
     expect(store().editFloor(PROW, 0, (p, f, next) => addRoom(p, 0, f, G.rectPoly(200, 200, 10, 10), 'bedroom', 'Bedroom', next))).toBeNull()
     expect(store().plan).toBe(before)
     expect(store().toast?.text).toMatch(/Nothing left to fill/)
+  })
+
+  test('a wall dragged through the rooms is refused: no change, no undo step, and the reason shown', () => {
+    const before = store().plan
+    const room = floors()[0].rooms[0]
+    // 100 ft inward takes the wall far past the room's other side
+    expect(store().editFloor(PROW, 0, (p, f, next) => moveWall(p, 0, f, room.id, 0, 100, next))).toBeNull()
+    expect(store().plan).toBe(before)
+    expect(history().pastStates).toHaveLength(0)
+    expect(store().toast?.text).toMatch(/cross|another room|can't go/)
   })
 
   test('a locked cabin refuses floor-plan edits, as does a locked layer', () => {

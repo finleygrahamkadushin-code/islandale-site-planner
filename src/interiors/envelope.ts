@@ -18,6 +18,8 @@ export interface Envelope {
   readonly loops: Poly[]
   readonly edges: [Pt, Pt][]
   readonly area: number
+  /** Floor inside the walls as built (to the smooth outline), square feet: a little more than `area` on a curved cabin, whose chords cut inside the curve. */
+  readonly smoothArea: number
   readonly open: Poly[]
   readonly openTiles: Poly[]
   readonly access: { readonly m: Mass; readonly P: Poly }[]
@@ -243,13 +245,15 @@ export function envelopeOf(params: Record<string, unknown>, fi = 0): Envelope {
     smooth = SM.length === 1 ? SM : G.unionPieces(G.disjointTiles(SM)).outer
     if (!smooth.length) smooth = null
   }
+  const tilesArea = tiles.reduce((s, T) => s + G.area(T), 0)
   const env: Envelope = {
     smooth,
     masses: M,
     tiles,
     loops,
     edges,
-    area: tiles.reduce((s, T) => s + G.area(T), 0),
+    area: tilesArea,
+    smoothArea: smooth ? smooth.reduce((s, L) => s + G.area(L), 0) : tilesArea,
     open,
     openTiles,
     access: list.filter((e) => isAccess(e.m) && onFloor(e.m)).map((e) => ({ m: e.m, P: e.P })),
@@ -259,4 +263,17 @@ export function envelopeOf(params: Record<string, unknown>, fi = 0): Envelope {
   if (cache.size >= CACHE_MAX) cache.clear()
   cache.set(key, env)
   return env
+}
+
+const smoothCache = new WeakMap<Envelope, Poly[]>()
+
+/** The floor inside the walls as built, as convex tiles: the smooth outline cut up (slow on a long curve, so only on demand), else the tiles. */
+export function smoothTilesOf(env: Envelope): Poly[] {
+  if (!env.smooth) return env.tiles
+  let T = smoothCache.get(env)
+  if (!T) {
+    T = G.disjointTiles(env.smooth)
+    smoothCache.set(env, T)
+  }
+  return T
 }

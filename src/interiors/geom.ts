@@ -624,6 +624,23 @@ export function segIntersect(a: RPt, b: RPt, c: RPt, d: RPt): { readonly t: numb
   return { t, u, p: [a[0] + r[0] * t, a[1] + r[1] * t] }
 }
 
+/**
+ * Does the outline go round without its walls crossing or touching each
+ * other (no bow-tie, no corner standing on another wall)? Repeated corners
+ * are ignored; fewer than three corners is not an outline.
+ */
+export function isSimple(P0: RPoly): boolean {
+  const P = dedupe(P0, 1e-6)
+  const n = P.length
+  if (n < 3) return false
+  for (let i = 0; i < n; i++)
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue
+      if (segIntersect(P[i], P[(i + 1) % n], P[j], P[(j + 1) % n])) return false
+    }
+  return true
+}
+
 export function lineIntersect(a: RPt, b: RPt, c: RPt, d: RPt): Pt | null {
   const r = sub(b, a)
   const s = sub(d, c)
