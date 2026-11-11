@@ -3,7 +3,8 @@ import schemes from '../../../data/islandale/schemes.json'
 import { loadIslandaleTerrain } from '../../site/islandale'
 import { surfaceElevationAt } from '../../site/terrain'
 import { boardwalkPath } from './boardwalk'
-import { bridgeDims, bridgeLayout, bridgeStyle, buildBridge, mainCable, mastHeight, trussNodes } from './bridges'
+import { BRIDGE_PICKET_M, bridgeDims, bridgeGuard, bridgeLayout, bridgeStyle, buildBridge, mainCable, mastHeight, trussNodes } from './bridges'
+import { bounds } from '../geom'
 
 const FT = 0.3048
 const SPAN_M = 30
@@ -126,4 +127,26 @@ describe('Scheme F (Sky Datum): three bridges, one of each style', () => {
     expect(m.deck.positions.length).toBeGreaterThan(0)
     expect(m.posts.positions.length + m.piers.positions.length).toBeGreaterThan(0)
   })
+})
+
+describe('the guard along a truss or cable bridge (R3.7)', () => {
+  const FOUR = 4 * 0.0254
+  const curved = boardwalkPath([[0, 0, DECK_E], [12, 6, DECK_E + 1], [26, 2, DECK_E + 2]])!
+  for (const style of ['truss', 'cable'] as const) {
+    for (const [name, path] of [['level', level], ['curved and climbing', curved]] as const) {
+      test(`${style}, ${name}: pickets from the deck to the handrail leave no gap a 4 in sphere passes`, () => {
+        const layout = bridgeLayout(path, 2, style, low)
+        for (const side of [1, -1] as const) {
+          const feet = bridgeGuard(layout, side)
+          expect(feet.length).toBeGreaterThan(path.length / 0.11)
+          for (let k = 1; k < feet.length; k++) {
+            const [a, b] = [feet[k - 1], feet[k]]
+            expect(Math.hypot(b[0] - a[0], b[2] - a[2]) - BRIDGE_PICKET_M).toBeLessThan(FOUR)
+          }
+        }
+        const m = buildBridge(layout, low)
+        expect(bounds(m.rail).max[1]).toBeGreaterThan(Math.min(...path.samples.map((s) => s.e)) + 1)
+      })
+    }
+  }
 })

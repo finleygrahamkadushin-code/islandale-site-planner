@@ -30,7 +30,12 @@ export function partFrame(o: PlanObject, terrain: Terrain, ground: Ground): Part
     const [x, n] = localToSite(o.position, o.rotation, p)
     return ground(x, n)
   }
-  if (!standalone) return { masses: buildingMasses(o.params), standalone, base: baseElevation(terrain, o), site: { floor: baseElevation(terrain, o), groundAt } }
+  if (!standalone) {
+    const floor = baseElevation(terrain, o)
+    // the floor once a wing is added: the cabin stands on the highest ground round all its parts (attach sizes stairs and ramps from it)
+    const floorWith = (wing: Record<string, unknown>) => baseElevation(terrain, { ...o, params: { ...o.params, wings: [...(Array.isArray(o.params.wings) ? o.params.wings : []), wing] } })
+    return { masses: buildingMasses(o.params), standalone, base: floor, site: { floor, groundAt, floorWith } }
+  }
   const top = baseElevation(terrain, o, ground) + ftToM(Math.max(0, num(o.params.h, 0)))
   return { masses: [deckObjectMass(o.params)], standalone, base: top, site: { floor: top, groundAt, slabM: 0 } }
 }

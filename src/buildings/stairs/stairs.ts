@@ -1,6 +1,10 @@
 const IN = 0.0254
 
-/** Legacy stair rule (walk-model): risers of 7 in or less, 11 in treads. */
+/**
+ * The planner's stair rule (legacy walk-model numbers, kept: decision 2 in
+ * PLAN-REVIEW-FIXES.md): risers of 7 in or less and treads of 11 in or more,
+ * the IBC 1011.5.2 commercial numbers, stricter than the IRC's 7¾ in / 10 in.
+ */
 export const MAX_RISER_IN = 7
 export const TREAD_IN = 11
 /** Path-piece stair handrails (5C); stair and ramp wings use WING_RAIL_M. */
@@ -9,6 +13,15 @@ export const HANDRAIL_IN = 34
 /** stair-geom limits: a riser of at most 7 in, a tread of at least 11 in (metres). */
 export const RISER_MAX_M = MAX_RISER_IN * IN
 export const TREAD_MIN_M = TREAD_IN * IN
+
+/** A flight of stairs rises at most 12 ft between landings (IBC 1011.8); a stair wing has no landings. */
+export const FLIGHT_RISE_MAX_M = 144 * IN
+/** A flight of four or more risers needs a handrail (IRC R311.7.8). */
+export const HANDRAIL_RISERS = 4
+/** A ramp run rises at most 30 in between landings (IBC 1012.4); a ramp wing is one run. */
+export const RAMP_RUN_RISE_MAX_M = 30 * IN
+/** A ramp rising more than 6 in needs handrails (IBC 1012.8). */
+export const RAMP_HANDRAIL_RISE_M = 6 * IN
 
 export interface StairMath {
   readonly risers: number

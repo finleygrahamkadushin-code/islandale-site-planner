@@ -1,6 +1,7 @@
 import { emptyMesh, type MeshData } from '../geom'
 import type { RailStyle } from '../rails/railEdits'
 import { beam, box, prismX } from './stairMesh'
+import { CABLE_CLEAR_M, INFILL_CLEAR_M } from '../rails/railStyles'
 
 /** Stair and ramp wing handrails stand 0.9 m over the nosing line or slope (legacy railH). */
 export const WING_RAIL_M = 0.9
@@ -10,10 +11,14 @@ const POST_GAP_M = 1.2
 const MIN_RAIL_M = 0.25
 /** With a door at the top, the handrail starts this much further down and has no top post. */
 export const CLEAR_TOP_M = 0.3
-const BALUSTER_GAP_M = 0.1
 /** A joined handrail's newel stands this far in from the host edge. */
 const JOIN_IN_M = 0.03
+/** Vertical bars: wood balusters and steel pickets, square. */
 const BALUSTER_M = 0.015
+const PICKET_M = 0.012
+const CABLE_M = 0.006
+/** The lowest cable or glass edge over the nosing line (the triangle under a stair rail may be larger than 4 in). */
+const GLASS_BASE_M = 0.1
 
 /** Rail section: 0.06 for wood and glass, 0.035 for steel and cable (legacy rT). */
 export const railSection = (style: RailStyle): number => (style === 'steel' || style === 'cable' ? 0.035 : 0.06)
@@ -26,7 +31,12 @@ export interface StairRailInfo {
   readonly zb: number
   /** Post positions along z. */
   readonly posts: readonly number[]
+  /** Wood balusters or steel pickets: their count, their z, their width. */
   readonly balusters: number
+  readonly infill: readonly number[]
+  readonly infillW: number
+  /** Cables: their centres' heights over the nosing line. */
+  readonly cables: readonly number[]
   readonly skipped: boolean
   /** Carried on over the landing to the railing at the top (Join). */
   readonly joined?: boolean
@@ -53,14 +63,16 @@ export interface Handrail {
  * top rail rT square along line(z) + H from za (5 cm past the host, or the
  * top nosing; 0.3 m further with a door at the top) to zb, posts at most
  * 1.2 m apart from the surface up (no top post with clearTop), and the
- * style's infill: wood balusters every 0.1 m, two steel rails, cables every
- * 0.08 m, or a glass pane.
+ * style's infill, laid out bay by bay between the posts so no opening is
+ * over 3.5 in (R3.7, the 4 in sphere rule): wood balusters, steel pickets
+ * (deliberate change: the legacy two steel rails left 10 to 12 in
+ * openings), cables no more than 3 in apart up to the rail, or a glass pane.
  */
 export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number, line: (z: number) => number, surf: (z: number) => number, join = false): Handrail {
   const xr = sg * (c.w / 2 - 0.03)
   const za = Math.max(zMin, c.zt(xr) + 0.05) + (c.clearTop ? CLEAR_TOP_M : 0)
   const zb = zMax
-  if (zb - za < MIN_RAIL_M) return { info: { side: sg, za, zb, posts: [], balusters: 0, skipped: true }, frame: null, glass: null }
+  if (zb - za < MIN_RAIL_M) return { info: { side: sg, za, zb, posts: [], balusters: 0, infill: [], infillW: 0, cables: [], skipped: true }, frame: null, glass: null }
   const { H, rT } = c
   const gb = emptyMesh()
   beam(gb, xr, za, line(za) + H, zb, line(zb) + H, rT, rT)
@@ -78,27 +90,19 @@ export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number,
     posts.push(zq)
     box(gb, xr - rT / 2, xr + rT / 2, surf(zq), line(zq) + H, zq - rT / 2, zq + rT / 2)
   }
-  let balusters = 0
-  if (c.style === 'wood') {
-    for (let k = 1; ; k++) {
-      const zq = za + BALUSTER_GAP_M * k
-      if (zq > zb - 0.05) break
-      if (posts.some((p) => Math.abs(p - zq) < 0.06)) continue
-      balusters++
-      box(gb, xr - BALUSTER_M / 2, xr + BALUSTER_M / 2, surf(zq), line(zq) + H - rT / 2, zq - BALUSTER_M / 2, zq + BALUSTER_M / 2)
-    }
-  } else if (c.style === 'steel') {
-    for (const f of [0.35, 0.65]) beam(gb, xr, za, line(za) + H * f, zb, line(zb) + H * f, 0.02, 0.02)
-  } else if (c.style === 'cable') {
-    for (let y = 0.1; y < H - 0.08; y += 0.08) beam(gb, xr, za, line(za) + y, zb, line(zb) + y, 0.006, 0.006)
-  }
+  const bars = c.style === 'wood' || c.style === 'steel'
+  const barW = c.style === 'wood' ? BALUSTER_M : PICKET_M
+  const infill = bars ? bayBars(za, posts, rT, barW) : []
+  for (const zq of infill) box(gb, xr - barW / 2, xr + barW / 2, surf(zq), line(zq) + H - rT / 2, zq - barW / 2, zq + barW / 2)
+  const cables = c.style === 'cable' ? cableOffsets(H - rT / 2) : []
+  for (const y of cables) beam(gb, xr, za, line(za) + y, zb, line(zb) + y, CABLE_M, CABLE_M)
   const glass =
     c.style === 'glass'
       ? prismX(
           emptyMesh(),
           [
-            [za, line(za) + 0.1],
-            [zb, line(zb) + 0.1],
+            [za, line(za) + GLASS_BASE_M],
+            [zb, line(zb) + GLASS_BASE_M],
             [zb, line(zb) + H - 0.08],
             [za, line(za) + H - 0.08],
           ],
@@ -106,5 +110,30 @@ export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number,
           xr + 0.006,
         )
       : null
-  return { info: { side: sg, za, zb, posts, balusters, skipped: false, joined }, frame: gb, glass }
+  return { info: { side: sg, za, zb, posts, balusters: infill.length, infill, infillW: bars ? barW : 0, cables, skipped: false, joined }, frame: gb, glass }
+}
+
+/**
+ * Bars of width w along each bay, evenly, so no clear gap is over 3.5 in:
+ * from the rail's start (za, open at a door) to the first post, then
+ * between each pair of posts (width rT).
+ */
+function bayBars(za: number, posts: readonly number[], rT: number, w: number): number[] {
+  const ends = [[za, 0] as const, ...posts.map((p) => [p, rT] as const)]
+  return ends.slice(1).flatMap(([q, wq], k) => {
+    const [p, wp] = ends[k]
+    const lo = p + wp / 2
+    const clear = q - wq / 2 - lo
+    if (clear <= INFILL_CLEAR_M) return []
+    const n = Math.ceil((clear - INFILL_CLEAR_M) / (INFILL_CLEAR_M + w) - 1e-9)
+    const gap = (clear - n * w) / (n + 1)
+    return Array.from({ length: n }, (_, j) => lo + (j + 1) * gap + j * w + w / 2)
+  })
+}
+
+/** Cable centres over the nosing line, evenly from it up to the rail's underside (span), no gap over 3 in. */
+function cableOffsets(span: number): number[] {
+  const n = Math.ceil((span - CABLE_CLEAR_M) / (CABLE_CLEAR_M + CABLE_M) - 1e-9)
+  const gap = (span - n * CABLE_M) / (n + 1)
+  return Array.from({ length: n }, (_, k) => (k + 1) * gap + k * CABLE_M + CABLE_M / 2)
 }

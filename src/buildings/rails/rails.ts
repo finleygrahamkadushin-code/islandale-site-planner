@@ -12,12 +12,20 @@ export const CURVED_EDGES = 24
 /** Legacy surfaceDropFt and edgeDropFt probe the ground this far outside an outline (0.9 m). */
 export const DROP_PROBE_M = 0.9
 const DROP_PROBE_FT = DROP_PROBE_M / FT
-/** Legacy SLAB_M: a wing's walking surface sits this far above its floor, so it adds to the drop. */
+/**
+ * Legacy SLAB_M: the old planner drew a wing's walking surface this far above
+ * its floor. The new app draws decks and porches with their top at the floor,
+ * so the guard a code check asks for is judged without it (railRules
+ * edgeDropM, R3.6); the legacy whole-wing drawing rule (wingDropM) still adds
+ * it, which only ever draws more guards.
+ */
 export const SLAB_M = 0.15
 
 /**
- * Port of legacy surfaceDropFt(): the largest drop from a wing's walking
- * surface to the ground just outside it, metres. The ground is read 0.9 m
+ * Port of legacy surfaceDropFt(), for the legacy whole-wing drawing rule
+ * only: the largest drop from the old planner's walking surface (floor plus
+ * the 0.15 m slab, kept: it errs toward drawing a guard) to the ground just
+ * outside it, metres. The ground is read 0.9 m
  * out from each corner and edge midpoint, away from the outline's centre.
  * `groundAt` takes a point in the outline's own frame (feet).
  */

@@ -87,12 +87,43 @@ describe('planStair: a stair', () => {
     expect(of(planStair({ ...base, style: 'none' }).items, 'rail')).toHaveLength(0)
   })
 
-  test('styles: glass adds panes, steel and cable a thinner section and no balusters', () => {
-    expect(of(planStair({ ...base, style: 'glass' }).items, 'glass')).toHaveLength(2)
+  test('styles: glass adds panes; steel has pickets (R3.7: not two rails with 10 in openings); cable its cables', () => {
+    const glass = planStair({ ...base, style: 'glass' })
+    expect(of(glass.items, 'glass')).toHaveLength(2)
     const steel = planStair({ ...base, style: 'steel' })
-    expect(steel.info.rails[0].balusters).toBe(0)
+    expect(steel.info.rails[0].balusters).toBeGreaterThan(10)
     expect(of(steel.items, 'glass')).toHaveLength(0)
-    expect(tris(of(planStair({ ...base, style: 'cable' }).items, 'rail'))).toBeGreaterThan(tris(of(steel.items, 'rail')))
+    expect(tris(of(planStair({ ...base, style: 'cable' }).items, 'rail'))).toBeGreaterThan(tris(of(glass.items, 'rail')))
+  })
+
+  describe('no opening a 4 in sphere passes (R3.7)', () => {
+    const FOUR = 4 * 0.0254
+    /** The clear gaps along the run between posts and bars, and from the rail's start to the first one. */
+    const gaps = (r: ReturnType<typeof planStair>['info']['rails'][number], rT: number) => {
+      const members = [...r.posts.map((z) => [z, rT] as const), ...r.infill.map((z) => [z, r.infillW] as const)].sort((a, b) => a[0] - b[0])
+      return members.slice(1).map(([z, w], k) => z - w / 2 - (members[k][0] + members[k][1] / 2))
+    }
+    for (const style of ['wood', 'steel'] as const) {
+      for (const clearTop of [false, true]) {
+        test(`${style}${clearTop ? ', door at the top' : ''}: every gap between posts and bars is under 4 in`, () => {
+          for (const run of [1.4, 2, 2.9, 4.1]) {
+            const { info } = planStair({ ...base, run, style, clearTop })
+            for (const r of info.rails) {
+              const g = gaps(r, style === 'wood' ? 0.06 : 0.035)
+              expect(Math.max(...g), `${style} run ${run}`).toBeLessThan(FOUR)
+              expect(Math.min(...g)).toBeGreaterThan(0)
+            }
+          }
+        })
+      }
+    }
+    test('cable: no gap over 3 in from the nosing line up to the rail', () => {
+      const { info } = planStair({ ...base, style: 'cable' })
+      const r = info.rails[0]
+      const H = WING_RAIL_M
+      const edges = [0, ...r.cables.flatMap((y) => [y - 0.003, y + 0.003]), H - 0.035 / 2]
+      for (let k = 0; k + 1 < edges.length; k += 2) expect(edges[k + 1] - edges[k]).toBeLessThanOrEqual(3 * 0.0254 + 1e-9)
+    })
   })
 
   test('support posts stand every 2.4 m where the stringer is more than 0.4 m off the ground', () => {
@@ -237,5 +268,36 @@ describe('stair wings', () => {
     expect(spec.kind).toBe('ramp')
     expect(spec.rail).toBe(false)
     expect(planStair(spec).info.rails).toEqual([])
+  })
+})
+
+describe('planStair: the flight and handrail checks (R3.1)', () => {
+  const IN = 0.0254
+  test('a 30 ft drop in one flight meets 7 in / 11 in but rises over 12 ft with no landing', () => {
+    const drop = 30 * FT
+    const { info } = planStair({ kind: 'stair', w: 1.2, run: 52 * 11 * IN, drop, groundAt: flatGround(drop) })
+    expect(info.n).toBe(52)
+    expect(info.ok).toBe(true)
+    expect(info.flightOver).toBe(true)
+  })
+  test('a 12 ft flight is not over; a hair more is', () => {
+    const at = (drop: number) => planStair({ kind: 'stair', w: 1.2, run: 25 * 11 * IN, drop, groundAt: flatGround(drop) }).info.flightOver
+    expect(at(144 * IN)).toBe(false)
+    expect(at(144.1 * IN)).toBe(true)
+  })
+  test('four risers with the rails off has no handrail where one is needed; three do not need one', () => {
+    const rise = (n: number) => n * 6.5 * IN
+    const plain = (n: number, rail: boolean) => planStair({ kind: 'stair', w: 1.2, run: n * 12 * IN, drop: rise(n), rail, groundAt: flatGround(rise(n)) }).info.handrailMissing
+    expect(plain(4, false)).toBe(true)
+    expect(plain(4, true)).toBe(false)
+    expect(plain(3, false)).toBe(false)
+  })
+  test('a ramp with a 38 in rise at 1:12 is not steep but rises over 30 in in one run; one with no rails over 6 in has no handrail', () => {
+    const ramp = (dropIn: number, rail = true) => planStair({ kind: 'ramp', w: 1.2, run: dropIn * FT, drop: dropIn * IN, rail, groundAt: flatGround(dropIn * IN) }).info
+    expect(ramp(38).steep).toBe(false)
+    expect(ramp(38).flightOver).toBe(true)
+    expect(ramp(30).flightOver).toBe(false)
+    expect(ramp(12, false).handrailMissing).toBe(true)
+    expect(ramp(5, false).handrailMissing).toBe(false)
   })
 })

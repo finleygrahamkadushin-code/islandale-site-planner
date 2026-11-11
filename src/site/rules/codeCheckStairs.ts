@@ -4,10 +4,20 @@ import { named, type CheckContext, type CodeRow, type NamedObject } from './code
 
 /**
  * The stair-geometry row (deliberate addition, PLAN.md): every stair wing's
- * risers and treads against the planner's 7 in / 11 in rule (inside IRC
- * R311.7.5's 7¾ in / 10 in), every ramp against 1:12, and any stair or ramp
- * that runs into the ground at its foot or meets nothing at its top.
+ * risers and treads against the planner's 7 in / 11 in rule (the IBC
+ * 1011.5.2 numbers, stricter than the IRC's 7¾ in / 10 in) and its rise
+ * against one 12 ft flight (IBC 1011.8), every ramp against 1:12 (IBC
+ * 1012.2) and one 30 in run (IBC 1012.4), and any stair or ramp that runs
+ * into the ground at its foot or meets nothing at its top. Handrails have
+ * their own row; landings, width, headroom and guards on a stair's open
+ * sides are not checked, and the row says so.
  */
+
+export const STAIRS_LABEL = 'Stairs & ramps · IBC 1011, 1012'
+/** What the row does not check, said on every verdict. */
+export const STAIRS_UNCHECKED = 'not checked: landings, width, headroom, side guards'
+/** What it checks, said when it passes (a fail names what broke). */
+export const STAIRS_SCOPE = `risers ≤ 7 in, treads ≥ 11 in, 12 ft a flight, ramps 1:12 and 30 in a run; ${STAIRS_UNCHECKED}`
 
 interface Problem {
   readonly who: NamedObject
@@ -25,6 +35,7 @@ function problems(c: CheckContext): Problem[] {
         const out: Problem[] = []
         if (info.kind === 'stair' && !info.ok) out.push({ who, why: 'too steep' })
         if (info.kind === 'ramp' && info.steep) out.push({ who, why: 'over 1:12' })
+        if (info.flightOver) out.push({ who, why: info.kind === 'stair' ? 'rises over 12 ft with no landing' : 'rises over 30 in with no landing' })
         if (info.footAbove) out.push({ who, why: 'runs into the ground' })
         if (!stairAttached(o, mi)) out.push({ who, why: 'meets nothing at its top' })
         return out
@@ -33,10 +44,10 @@ function problems(c: CheckContext): Problem[] {
 }
 
 export function stairsRow(c: CheckContext): CodeRow {
-  const label = 'Stair risers & treads · R311.7.5 / R311.8.1'
+  const label = STAIRS_LABEL
   const found = problems(c)
-  if (!found.length) return { id: 'stairs', label, text: 'every stair and ramp fits', verdict: 'pass', names: [] }
+  if (!found.length) return { id: 'stairs', label, text: `every stair and ramp fits (${STAIRS_SCOPE})`, verdict: 'pass', names: [] }
   const names = [...new Map(found.map((p) => [p.who.name, p.who])).values()]
-  const text = found.map((p) => `${p.who.name} ${p.why}`).join('; ')
+  const text = `${found.map((p) => `${p.who.name} ${p.why}`).join('; ')} (${STAIRS_UNCHECKED})`
   return { id: 'stairs', label, text, verdict: 'fail', names }
 }

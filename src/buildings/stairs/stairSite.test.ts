@@ -121,3 +121,63 @@ describe('Snap to porch and Fit to code', () => {
     expect(fitStairRun(world, plan.objects['D-0'], 0)).toBeNull()
   })
 })
+
+/** Every stair and ramp wing of every shipped scheme, with the rail world it stands in. */
+function everyAccessWing() {
+  return loadSchemes().flatMap((s) => {
+    const { plan, world } = scheme(s.id)
+    return plan.order
+      .map((k) => plan.objects[k])
+      .filter((o): o is PlanObject => !!o && o.type === 'house')
+      .flatMap((o) => buildingMasses(o.params).flatMap((m, mi) => (m.kind === 'stair' || m.kind === 'ramp' ? [{ id: `${o.id} mass ${mi}`, o, mi, world }] : [])))
+  })
+}
+
+/** Whether a stair meets 7 in / 11 in and a ramp 1:12, each within one flight's rise: what Fit to code promises. */
+const fitsRule = (info: NonNullable<ReturnType<typeof stairInfo>>) => (info.kind === 'stair' ? info.ok : !info.steep) && !info.flightOver
+
+describe('Fit to code fits in one click (R3.2)', () => {
+  test('every stair and ramp Fit to code applies to, in every scheme, passes after one click', () => {
+    const wings = everyAccessWing()
+    expect(wings.length).toBeGreaterThan(30)
+    const left = wings.flatMap(({ id, o, mi, world }) => {
+      const fit = fitStairRun(world, o, mi)
+      if (!fit) return []
+      const after = patched(o, mi, fit)
+      const info = stairInfo(world, after, mi)!
+      return fitsRule(info) && fitStairRun(world, after, mi) === null ? [] : [`${id}: d ${fit.d}, tread ${(info.tread / 0.0254).toFixed(4)} in`]
+    })
+    expect(left).toEqual([])
+  })
+
+  test("A-0 mass 4: the run is rounded up, not down to a hair under 11 in treads", () => {
+    const { plan, world } = scheme('A')
+    const a0 = plan.objects['A-0']
+    const info = stairInfo(world, patched(a0, 4, fitStairRun(world, a0, 4)!), 4)!
+    expect(info.ok).toBe(true)
+  })
+
+  test("a stair down falling ground needs one click, not two (H-0's stair raised 3.25 ft took more than the old four passes)", () => {
+    const { plan, world } = scheme('H')
+    const raised = patched(plan.objects['H-0'], 2, { lvl: 3.25 })
+    const fit = fitStairRun(world, raised, 2)!
+    const after = patched(raised, 2, fit)
+    expect(fit.d).toBeGreaterThan(12.8)
+    expect(fitsRule(stairInfo(world, after, 2)!)).toBe(true)
+    expect(fitStairRun(world, after, 2)).toBeNull()
+  })
+
+  test("D-0's long stair raised 4 ft rises 13.5 ft, more than one flight, so Fit to code offers nothing", () => {
+    const { plan, world } = scheme('D')
+    const raised = patched(plan.objects['D-0'], 4, { lvl: 4 })
+    expect(stairInfo(world, raised, 4)!.flightOver).toBe(true)
+    expect(fitStairRun(world, raised, 4)).toBeNull()
+  })
+
+  test('Fit to code offers nothing for a stair over 12 ft high, which no run can fit (F-1 mass 2)', () => {
+    const { plan, world } = scheme('F')
+    const info = stairInfo(world, plan.objects['F-1'], 2)!
+    expect(info.flightOver).toBe(true)
+    expect(fitStairRun(world, plan.objects['F-1'], 2)).toBeNull()
+  })
+})
