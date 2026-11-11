@@ -6,6 +6,7 @@ import { toolOf } from '../store/toolActions'
 import type { PlanObject } from '../store/types'
 import { useLiveDrag } from '../scene/editing'
 import { snapPoint } from './snap'
+import { startDragSession, type DragSession } from './dragSession'
 
 /** Nothing moves until the pointer has gone this far, so a click stays a click (legacy). */
 const DRAG_SLOP_PX = 4
@@ -27,8 +28,9 @@ interface Live {
  * with the Select tool on and nothing of it picked. The object follows the
  * pointer live (snapped to the 1 ft grid when Snap is on; Shift drags
  * freely), and the move is committed once on release as one undo step.
- * Esc drops the drag. Locked objects and bridges (moved by their gizmo
- * route) do not drag.
+ * Esc, a cancelled pointer, lost capture, the window losing focus or the
+ * object going away drops the drag with no undo step. Locked objects and
+ * bridges (moved by their gizmo route) do not drag.
  */
 export function useDragMove(o: PlanObject) {
   const controls = useThree((s) => s.controls) as { enabled: boolean } | null
@@ -36,37 +38,28 @@ export function useDragMove(o: PlanObject) {
   const plane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), [])
   const hit = useMemo(() => new Vector3(), [])
 
-  // one stable key listener for the life of the hook, calling the latest handler
-  const keyHandler = useRef<(e: KeyboardEvent) => void>(() => {})
-  const onKey = useMemo(() => (e: KeyboardEvent) => keyHandler.current(e), [])
+  // the live drag's window listeners: while it is live every key stops there first (Delete or Undo could pull the object out from under it)
+  const session = useRef<DragSession | null>(null)
   const end = useCallback(
     (commit: boolean) => {
       const l = live.current
       live.current = null
+      session.current?.stop()
+      session.current = null
       if (controls) controls.enabled = true
-      window.removeEventListener('keydown', onKey, true)
       useLiveDrag.getState().setDrag(null)
       if (!commit || !l?.at) return
       const s = usePlanStore.getState()
       if (l.group) s.nudgeObjects(l.group, l.at.x - l.x0, l.at.n - l.n0)
       else s.transformObject(o.id, { position: l.at })
     },
-    [controls, o.id, onKey],
+    [controls, o.id],
   )
-  // while a drag is live every key stops here first (Delete or Undo could pull the object out from under it); Esc drops it
-  keyHandler.current = (e: KeyboardEvent) => {
-    if (!live.current) return
-    e.stopImmediatePropagation()
-    if (e.key !== 'Escape') return
-    e.preventDefault()
-    end(false)
-  }
-  useEffect(
-    () => () => {
-      if (live.current) end(false)
-    },
-    [end],
-  )
+  /** Drop a live drag without a step (Present mode starting, the object going away). */
+  const cancel = useCallback(() => {
+    if (live.current) end(false)
+  }, [end])
+  useEffect(() => cancel, [cancel])
 
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -80,9 +73,10 @@ export function useDragMove(o: PlanObject) {
       ;(e.target as Element).setPointerCapture(e.pointerId)
       if (controls) controls.enabled = false
       live.current = { group, x0: o.position.x, n0: o.position.n, hitX: e.point.x, hitZ: e.point.z, px: e.nativeEvent.clientX, py: e.nativeEvent.clientY, at: null }
-      window.addEventListener('keydown', onKey, true)
+      session.current?.stop()
+      session.current = startDragSession(window, { pointerId: e.pointerId, holdKeys: true, onCancel: () => end(false) })
     },
-    [o, controls, plane, onKey],
+    [o, controls, plane, end],
   )
 
   const onPointerMove = useCallback(
@@ -107,11 +101,12 @@ export function useDragMove(o: PlanObject) {
     (e: ThreeEvent<PointerEvent>) => {
       if (!live.current) return
       e.stopPropagation()
-      ;(e.target as Element).releasePointerCapture?.(e.pointerId)
+      // commit first: releasing capture fires lostpointercapture, which would otherwise drop the drag
       end(true)
+      ;(e.target as Element).releasePointerCapture?.(e.pointerId)
     },
     [end],
   )
 
-  return { onPointerDown, onPointerMove, onPointerUp, isDragging: () => live.current?.at != null }
+  return { onPointerDown, onPointerMove, onPointerUp, cancel, isDragging: () => live.current?.at != null }
 }

@@ -113,11 +113,31 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 .hidden-list { display: flex; flex-direction: column; gap: 4px; }
 .panel p { margin: 0; }
 
+/* the message line: always mounted (its live region must be), shown when it has text;
+   above the interior editor (40), the sheets (60) and dialogs (70), so a problem is never hidden */
 .toast {
-  position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 3;
-  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+  position: fixed; left: 50%; bottom: 24px; z-index: 80;
+  display: flex; align-items: flex-start; gap: 10px; max-width: min(560px, calc(100% - 32px));
+  padding: 8px 8px 8px 14px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--panel); color: var(--fg); box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  transform: translateX(-50%); transition: opacity .15s ease, transform .15s ease;
 }
+.toast[data-open='false'] { opacity: 0; transform: translate(-50%, 6px); pointer-events: none; }
+.toast[data-kind='problem'] { border-color: var(--danger); border-left-width: 4px; }
+.toast[data-kind='refused'] { border-left: 4px solid var(--warn); }
+.toast-text { padding: 2px 0; overflow-wrap: anywhere; }
+.toast-close { flex: none; width: 24px; height: 24px; padding: 0; border-color: transparent; color: var(--muted); font-size: 18px; line-height: 1; }
+.toast-close:hover:not(:disabled), .toast-close:focus-visible { color: var(--fg); border-color: var(--line); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } .toast[data-open='false'] { transform: translateX(-50%); } }
+@media print { .toast { display: none; } }
+
+/* what an error boundary shows in place of a part that broke (the 3D view, the room editor) */
+/* flex, not grid: .int-editor (later in this file) sets display: flex and keeps these */
+.crash-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; background: var(--bg); }
+.crash-note { max-width: 420px; padding: 20px 22px; border: 1px solid var(--line); border-left: 4px solid var(--danger); border-radius: 10px; background: var(--panel); }
+.crash-note h2 { margin: 0 0 8px; font-size: 16px; }
+.crash-note p { margin: 0 0 16px; color: var(--muted); }
+.crash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .viewstrip {
   position: absolute; left: 12px; bottom: 12px; z-index: 2;

@@ -39,6 +39,7 @@ import { Splash } from '../present/Splash'
 import { NoWebGL } from '../present/NoWebGL'
 import { hasWebGL2 } from '../present/webgl'
 import { useIsolate, wasClaimed } from '../tools/isolate'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
 
 /** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
 const ORBIT_SPEED = 0.6
@@ -86,9 +87,12 @@ export function Scene() {
       <LabelProjector drag={drag} />
       {!presenting && <EditGizmos drag={drag} setDrag={setDrag} />}
       {firstFrameDrawn && (
-        <Suspense fallback={null}>
-          <Effects />
-        </Suspense>
+        // effects that would not load or broke leave the plain view, never a blank one
+        <ErrorBoundary name="View effects" fallback={null}>
+          <Suspense fallback={null}>
+            <Effects />
+          </Suspense>
+        </ErrorBoundary>
       )}
       <CameraRig />
       <SheetCapture />

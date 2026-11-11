@@ -1,5 +1,5 @@
 import type { ThreeEvent } from '@react-three/fiber'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { massOf } from '../buildings/parts/partFrame'
@@ -32,6 +32,12 @@ export function useObjectInteraction(o: PlanObject) {
   const setHovered = usePlanStore((s) => s.setHovered)
   const selected = usePlanStore((s) => s.selection.includes(o.id))
   const hovered = usePlanStore((s) => s.hovered === o.id)
+  const presenting = usePresent((s) => s.presenting)
+  // Present mode swaps in handlers that ignore the release, so a drag still live when it starts is dropped here
+  const cancelDrag = dragMove.cancel
+  useEffect(() => {
+    if (presenting) cancelDrag()
+  }, [presenting, cancelDrag])
 
   const onClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
@@ -91,7 +97,6 @@ export function useObjectInteraction(o: PlanObject) {
   }, [setHovered])
 
   // Present mode (4D) shows the plan; nothing in it can be picked or dragged
-  const presenting = usePresent((s) => s.presenting)
   if (presenting) return { selected, hovered, handlers: PRESENT_HANDLERS }
   return {
     selected,
