@@ -3,7 +3,7 @@ import { massBuildingPoly, massPoly, massToBuilding, partName, type Mass } from 
 import { buildingSupports, deckSupports } from '../../../buildings/foundation/supportParams'
 import { BEAM_H_M, BEAM_W_M, FOOTING_R_M, MAST_FOOT_R, MAST_HEAD_R, SUPPORT_EMBED_M, supportPlan, type SupportPlan } from '../../../buildings/foundation/supports'
 import { DECK_BEAM_M, DECK_M, DECK_POST_M, deckPostPoints, deckRimOutline, insideAny, keptPorchPosts, PORCH_POST_M, standingPosts } from '../../../buildings/decks/wingPosts'
-import { ftToM, mToFt } from '../../../site/units'
+import { FT_PER_M, ftToM, mToFt } from '../../../site/units'
 import { objectRailSite } from '../../../buildings/rails/railSite'
 import { groundUnder, type PartSite } from '../model/parts'
 import type { SheetStrut, SheetSupport, SheetSupportPost } from '../types'
@@ -16,7 +16,6 @@ import type { SheetStrut, SheetSupport, SheetSupportPost } from '../types'
  */
 
 type Seg = readonly [LocalPoint, LocalPoint]
-const FT_PER_M = mToFt(1)
 
 /** Everything a mass's supports are worked out from, in its own frame. */
 interface MassFrame {

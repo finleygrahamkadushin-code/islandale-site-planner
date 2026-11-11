@@ -5,8 +5,7 @@ import { elementLabel, nearestEdge, paintPartOf } from './paintPick'
 import type { PaintFocus } from '../../store/paintTypes'
 import type { PlanObject } from '../../store/types'
 import { massOf } from '../parts/partFrame'
-
-const FT = 0.3048
+import { M_PER_FT as FT } from '../../site/units'
 
 /** The part tag nearest the hit mesh (userData.part), stopping at the object's own group. */
 function partTagOf(hit: Object3D | null): unknown {

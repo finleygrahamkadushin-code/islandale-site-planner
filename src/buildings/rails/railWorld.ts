@@ -8,7 +8,7 @@ import { edgeFree, isRailable } from './railRules'
 import { SLAB_M } from './rails'
 import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
-import { ftToM } from '../../site/units'
+import { ftToM, M_PER_FT as FT } from '../../site/units'
 import type { ObjectId, PlanObject } from '../../store/types'
 import { baseElevation } from '../../scene/placement'
 
@@ -74,7 +74,6 @@ export interface RailWorld {
   readonly ends: readonly EndItem[]
 }
 
-const FT = 0.3048
 const WALK_KINDS = ['walk', 'ramp', 'stair', 'landing', 'boardwalk'] as const
 const WALK_WIDTH_FT: Record<string, number> = { walk: 20, ramp: 12, stair: 8, landing: 5, boardwalk: 16 }
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)

@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { chainOffset, deckStepChain, deckStepsPlan, STEP_RISE_M } from './deckSteps'
 import { RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
 import type { LocalPoint } from '../footprint'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 // a 20 x 10 ft deck, counter-clockwise; edge 0 runs along z = -5
 const deck: LocalPoint[] = [[-10, -5], [10, -5], [10, 5], [-10, 5]]
 

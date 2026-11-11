@@ -5,8 +5,8 @@ import { band, evalH, hostCurve } from './stairCurve'
 import { planStair, type StairItem, type StairSpec } from './stairPlan'
 import { CLEAR_TOP_M, WING_RAIL_M } from './stairRails'
 import { wingDropAtFoot, wingHost, wingStairSpec } from './stairWing'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const base: StairSpec = { kind: 'stair', w: 1.2, run: 2, drop: 0.9 }
 const flatGround = (drop: number) => () => -drop
 const of = (items: readonly StairItem[], role: StairItem['role']) => items.filter((i) => i.role === role)

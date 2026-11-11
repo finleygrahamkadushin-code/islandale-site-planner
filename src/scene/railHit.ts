@@ -3,8 +3,7 @@ import type { Object3D } from 'three'
 import { buildingMasses } from '../buildings/masses'
 import { railEdgeAt } from '../buildings/rails/railPick'
 import type { PlanObject } from '../store/types'
-
-const FT = 0.3048
+import { M_PER_FT as FT } from '../site/units'
 
 /** The group a mass is drawn in (userData.mass), above a hit mesh. */
 function massGroup(hit: Object3D): Object3D | null {

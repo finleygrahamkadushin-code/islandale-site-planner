@@ -5,7 +5,7 @@ import { massPoly, massToBuilding, type Mass } from '../../../buildings/masses'
 import { offsetOutline } from '../../../buildings/outline'
 import { buildRoof, normaliseRoof, offsetPolygon, roofForm, roofParamsOf, sculptOptionsOf, tipColumnTop, TIP_POST, type RoofForm, type RoofMesh } from '../../../buildings/roofs/roof'
 import { roofIsolines, roofLineSets, sculptedSurface, type SculptedSurface } from '../../../buildings/roofs/sculptRoof'
-import { ftToM, mToFt } from '../../../site/units'
+import { ftToM, mToFt, M_PER_FT as FT } from '../../../site/units'
 import { chainSegments, roofCreases, roofFaces, straighten, type Crease, type RoofFace } from './roofCreases'
 import type { SheetRoof, SheetRoofLevel, SheetRoofLine, SheetRoofLineKind } from '../types'
 
@@ -16,7 +16,6 @@ import type { SheetRoof, SheetRoofLevel, SheetRoofLine, SheetRoofLineKind } from
  * column.
  */
 
-const FT = 0.3048
 /** Heights closer than this are one level, feet (1 in). */
 const SAME_FT = 1 / 12
 /** Slopes are listed one by one up to this many; past it the stored pitch is given as nominal. */

@@ -2,6 +2,7 @@ import { Color, IcosahedronGeometry } from 'three'
 import { num, signedArea, type LocalPoint } from '../../buildings/footprint'
 import { pointInPolygon } from '../../buildings/foundation/foundation'
 import { seededRandom, treeSeed } from './treeShapes'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * Site objects drawn as themselves (legacy E-series earth objects and the
@@ -11,8 +12,6 @@ import { seededRandom, treeSeed } from './treeShapes'
  * (makeMesh). Pure: outlines in, marks and triangles out, in the object's
  * own frame in metres (x right, y up, z front), so the scene only places them.
  */
-
-const FT = 0.3048
 
 /**
  * An earth object's seed: its own `seed` (legacy o.seed), else one made

@@ -7,8 +7,8 @@ import { buildingMasses, massPoly, type Mass } from '../masses'
 import { polyOffset } from '../organic'
 import { buildRoof } from './roof'
 import { isSculpted, roofFinishOf, roofSurface, sculptedRoof, sculptRiseFt, type SculptMass } from './sculptRoof'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const toM = (P: readonly LocalPoint[]) => P.map(([x, z]) => [x * FT, z * FT] as const)
 const mass = (o: Partial<SculptMass> & Pick<SculptMass, 'roof'>): SculptMass => ({ pitch: 6, ridge: 'x', overhang: 0, open: false, ...o })
 const rect = (w: number, d: number) => toM(localFootprint({ w, d }))

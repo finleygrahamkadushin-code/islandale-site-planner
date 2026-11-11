@@ -3,8 +3,8 @@ import type { PlanObject } from '../store/types'
 import { pieceEnds, pieceProfile, railOn, stairInfo, isPathPiece, maxDrop } from './pieces'
 import { refreshedEnds, snapSolve } from './snap'
 import type { SnapTarget } from './targets'
+import { M_PER_FT as FT } from '../site/units'
 
-const FT = 0.3048
 const piece = (params: Record<string, unknown>, at = { x: 0, n: 0 }, rotation = 0): PlanObject => ({
   id: 'p', type: 'pad', name: 'Piece', position: at, rotation, params, locked: false, hidden: false, labelVisible: true,
 })

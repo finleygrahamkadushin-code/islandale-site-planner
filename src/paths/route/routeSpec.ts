@@ -1,4 +1,6 @@
 import { DEFAULT_SURFACE, type PathKind, type Surface } from '../pieces'
+import { M_PER_FT as FT } from '../../site/units'
+export { FT }
 
 /**
  * A new path piece to add, as the auto route and the piece fixes lay them
@@ -22,7 +24,6 @@ export interface PieceSpec {
   readonly switchback?: boolean
 }
 
-export const FT = 0.3048
 export const D2R = Math.PI / 180
 
 export const r4 = (v: number): number => Math.round(v * 1e4) / 1e4

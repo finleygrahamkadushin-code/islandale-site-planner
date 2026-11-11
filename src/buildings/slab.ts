@@ -2,8 +2,7 @@ import { ShapeUtils, Vector2 } from 'three'
 import { pointInPolygon } from './foundation/foundation'
 import type { LocalPoint } from './footprint'
 import { addPolygon, emptyMesh, type MeshData } from './geom'
-
-const FT = 0.3048
+import { M_PER_FT as FT } from '../site/units'
 
 /**
  * A flat slab over an outline (local feet), from y = top - thickness to top, in

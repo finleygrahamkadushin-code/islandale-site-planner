@@ -2,6 +2,7 @@ import { railOwner } from '../../buildings/rails/railWorld'
 import type { Ground } from '../../site/earthworks/earthworks'
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * A small synthetic site for the junction and level tests: flat ground at
@@ -12,7 +13,6 @@ import type { PlanObject } from '../../store/types'
 export const GROUND_Z = 2
 export const flatTerrain: Terrain = { lon0: 0, lat0: 0, spacing: 100, nx: 3, ny: 3, x0: -100, n0: -100, z: Array(9).fill(GROUND_Z) }
 export const flatGround: Ground = () => GROUND_Z
-const FT = 0.3048
 export const SIX_IN_M = 6 * 0.0254
 
 export const obj = (id: string, type: string, params: Record<string, unknown>, x = 0, n = 0, rotation = 0, name = id): PlanObject => ({

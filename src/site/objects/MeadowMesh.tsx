@@ -12,8 +12,8 @@ import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from '../earthworks/useEarthworks'
 import { useObjectInteraction } from '../../scene/useObjectInteraction'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 /** The meadow's ground is draped in cells this wide, feet (legacy drapeGeom, 0.6 m). */
 const MEADOW_CELL_FT = 2
 /** Its top lies this far over the ground, metres (with the drape's own 1 cm, the legacy 5 cm). */

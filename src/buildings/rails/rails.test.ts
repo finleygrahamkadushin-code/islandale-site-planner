@@ -4,9 +4,9 @@ import { buildingMasses, type Mass } from '../masses'
 import { GUARD_DROP_M, guardRule, joinEdgeRuns, wingDropM } from './rails'
 import type { LocalPoint } from '../footprint'
 import type { Interval } from './railOpenings'
+import { M_PER_FT as FT } from '../../site/units'
 
 const deck: LocalPoint[] = [[0, 0], [20, 0], [20, 10], [0, 10]]
-const FT = 0.3048
 const len = (i: number) => Math.hypot(deck[(i + 1) % 4][0] - deck[i][0], deck[(i + 1) % 4][1] - deck[i][1]) * FT
 const whole = (i: number): Interval[] => [[0, len(i)]]
 

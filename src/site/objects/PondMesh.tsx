@@ -10,8 +10,8 @@ import { seededRandom, treeSeed } from './treeShapes'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from '../earthworks/useEarthworks'
 import { useObjectInteraction } from '../../scene/useObjectInteraction'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 /** Legacy pond water: its colour (default #4f7f8c) darkened to 0.8, at 0.86 opacity. */
 const WATER = '#4f7f8c'
 const WATER_SHADE = 0.8

@@ -1,8 +1,8 @@
 import type { LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import type { RailStyle } from './railEdits'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const IN = 0.0254
 export const GUARD_HEIGHT_M = 36 * IN
 

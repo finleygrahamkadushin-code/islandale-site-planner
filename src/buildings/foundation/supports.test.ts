@@ -3,8 +3,8 @@ import type { LocalPoint } from '../footprint'
 import { pointInPolygon } from './foundation'
 import { bounds, emptyMesh } from '../geom'
 import { addPrism, specTops, supportMeshes, supportPlan, type SupportOptions } from './supports'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const rect: LocalPoint[] = [[-15, -10], [15, -10], [15, 10], [-15, 10]]
 const RADIUS_FT = 12
 const circle: LocalPoint[] = Array.from({ length: 64 }, (_, i) => {

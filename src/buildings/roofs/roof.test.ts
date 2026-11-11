@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { buildRoof, offsetPolygon, type RoofParams } from './roof'
 import { localFootprint, signedArea, type LocalPoint } from '../footprint'
 import type { MeshData } from '../geom'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const box = (w: number, d: number): LocalPoint[] => [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]
 const params = (type: string, ridge: 'x' | 'z', overhangFt = 0, pitch = 6): RoofParams => ({ type, pitch, ridge, overhangFt })
 const riseFt = (poly: readonly LocalPoint[], p: RoofParams) => buildRoof(poly, p).rise / FT

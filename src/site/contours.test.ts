@@ -3,8 +3,8 @@ import { contourLevels, isoSegments, terrainContours } from './contours'
 import { loadIslandale } from './islandale'
 import { terrainBounds } from './terrain'
 import type { Terrain } from './types'
+import { M_PER_FT as FT } from './units'
 
-const FT = 0.3048
 // a plane rising 1 m per metre eastward
 const ramp: Terrain = { lon0: 0, lat0: 0, spacing: 1, nx: 11, ny: 6, x0: 0, n0: 0, z: Array.from({ length: 66 }, (_, k) => k % 11) }
 

@@ -3,8 +3,8 @@ import { pointInPolygon } from '../foundation/foundation'
 import { signedArea, type LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { offsetOutline } from '../outline'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const FASCIA_M = 0.24
 /** Roof pieces smaller than this (m²) are slivers left by cutting along a crease. */
 const MIN_PIECE_M2 = 1e-9

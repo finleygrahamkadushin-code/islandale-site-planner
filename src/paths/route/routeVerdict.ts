@@ -5,6 +5,7 @@ import type { Ground } from '../pieces'
 import { CITE, checkPieces, pct, type PieceVerdict } from './routeCheck'
 import { routeAnchors, routeBuildings, routeItems } from './routeCollect'
 import { endKey, LEVEL_M, routeGraph, type RouteAnchor, type RouteGraph, type RouteItem } from './routeGraph'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The accessible-route verdict per building (old walk-check routes): a
@@ -40,7 +41,6 @@ export interface RouteReport {
   }
 }
 
-const FT = 0.3048
 const EPS = 1e-6
 
 const isTarget = (a: RouteAnchor, building: ObjectId): boolean => {

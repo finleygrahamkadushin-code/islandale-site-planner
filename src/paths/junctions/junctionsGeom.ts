@@ -6,6 +6,7 @@ import type { ObjectId, PlanObject } from '../../store/types'
 import { LEVEL_M, TOL_M, type HostEdge, type Junction } from './junctions'
 import { hostEdges, isHost, siteJunctions } from './junctionsSite'
 import { PATH_KINDS, pieceEnds, pieceWidth, type PathKind } from '../pieces'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Where things physically meet (old ext:join-geom): a threshold plate
@@ -17,7 +18,6 @@ import { PATH_KINDS, pieceEnds, pieceWidth, type PathKind } from '../pieces'
  */
 
 type P2 = readonly [number, number]
-const FT = 0.3048
 
 /** Threshold plate: across the wall (0.2 m) plus 0.1 m outside, 3 cm thick, 1 cm proud of the floor, at least 0.9 m wide. */
 const WALL_M = 0.2

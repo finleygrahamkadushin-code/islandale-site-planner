@@ -1,6 +1,7 @@
 import { localToSite, num, type LocalPoint } from '../buildings/footprint'
 import type { PlanObject } from '../store/types'
 import type { SitePoint } from '../site/types'
+import { M_PER_FT as FT } from '../site/units'
 
 /**
  * Path pieces (old ext:walk-model): a pad with a `kind` (walk, ramp,
@@ -25,7 +26,6 @@ export const DEFAULT_LENGTH: Readonly<Record<PathKind, number>> = { walk: 20, ra
 export const DEFAULT_WIDTH: Readonly<Record<PathKind, number>> = { walk: 4, ramp: 4, stair: 4, landing: 5, boardwalk: 4 }
 export const KIND_LABELS: Readonly<Record<PathKind, string>> = { walk: 'Walk', ramp: 'Ramp', stair: 'Stair', landing: 'Landing', boardwalk: 'Boardwalk' }
 
-const FT = 0.3048
 const IN = 0.0254
 /** Stairs: risers of 7 in or less, treads of 11 in or more. */
 export const MAX_RISER_IN = 7

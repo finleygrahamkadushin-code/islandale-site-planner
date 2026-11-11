@@ -5,8 +5,8 @@ import planFile from '../../../data/plans/islandale.plan.json'
 import { buildDrapedPad, drapeCells, DRAPE_LIFT_M } from './drape'
 import { loadIslandaleTerrain } from '../islandale'
 import { samplePosition, surfaceElevationAt } from '../terrain'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 const rect: LocalPoint[] = [[-10, -2], [10, -2], [10, 2], [-10, 2]]
 const ell: LocalPoint[] = [[0, 0], [12, 0], [12, 4], [4, 4], [4, 10], [0, 10]]
 

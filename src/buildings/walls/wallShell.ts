@@ -5,6 +5,7 @@ import type { LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { FIT, type CutData, type OpeningKind, type PlacedOpening } from '../openings/openingLayout'
 import { signedAreaOf } from '../organic'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Exterior walls with thickness and real holes (legacy curvedWallMesh and
@@ -16,7 +17,6 @@ import { signedAreaOf } from '../organic'
  * front), metres out; UVs in feet along the perimeter and up the wall.
  */
 
-const FT = 0.3048
 /** A glass curtain wall is one glazed skin, 6 cm thick (legacy wallMeshes t = 0.06). */
 export const GLASS_WALL_FT = 0.06 / FT
 /** An inside corner moves in at most thickness / this, so a needle-sharp corner stays in the wall (legacy c ≥ 0.35). */

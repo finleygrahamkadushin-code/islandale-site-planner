@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { connectPlan, straightChain, type ConnectOption } from './connectPlan'
 import { specAsPiece, specEnds, type ConnectEnd, type PieceSpec } from './connectSpec'
 import { stairInfo, type Ground } from '../pieces'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const MM = 0.001
 const BASE = 2
 const flat: Ground = () => BASE

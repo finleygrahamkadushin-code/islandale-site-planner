@@ -5,8 +5,8 @@ import { surfaceElevationAt } from '../../site/terrain'
 import { boardwalkPath } from './boardwalk'
 import { BRIDGE_PICKET_M, bridgeDims, bridgeGuard, bridgeLayout, bridgeStyle, buildBridge, mainCable, mastHeight, trussNodes } from './bridges'
 import { bounds } from '../geom'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const SPAN_M = 30
 const DECK_E = 5
 const level = boardwalkPath([[0, 0, DECK_E], [SPAN_M, 0, DECK_E]])!

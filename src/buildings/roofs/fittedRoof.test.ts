@@ -7,8 +7,8 @@ import { offsetOutline } from '../outline'
 import { pointInPolygon } from '../foundation/foundation'
 import { bounds, triangleCount, type MeshData } from '../geom'
 import type { LocalPoint } from '../footprint'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
 const scheme = (id: string) => all.find((s) => s.id === id)!

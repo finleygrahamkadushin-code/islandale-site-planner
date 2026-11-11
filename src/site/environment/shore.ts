@@ -1,5 +1,6 @@
 import { isoSegments, type Field, type IsoSegment } from '../contours'
 import type { Terrain } from '../types'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * The shore (4E): the foam line where the water meets the ground at the
@@ -8,7 +9,6 @@ import type { Terrain } from '../types'
  * are in `../terrainGeometry.ts` (`colourTerrain`).
  */
 
-const FT = 0.3048
 /** Driftwood lies along this height, feet NAVD88: just under the meadow's edge, the winter wrack line. */
 export const DRIFT_LINE_FT = 9.5
 /** About one log every this many metres of shore. */

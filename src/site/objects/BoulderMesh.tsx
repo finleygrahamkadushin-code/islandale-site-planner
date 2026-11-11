@@ -10,8 +10,7 @@ import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from '../earthworks/useEarthworks'
 import { useObjectInteraction } from '../../scene/useObjectInteraction'
-
-const FT = 0.3048
+import { M_PER_FT as FT } from '../units'
 
 /**
  * A boulder (legacy earthObjMesh): its seeded cluster of faceted rocks,

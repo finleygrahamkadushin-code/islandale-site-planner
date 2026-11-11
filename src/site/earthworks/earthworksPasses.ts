@@ -2,6 +2,7 @@ import { elevationAt } from '../terrain'
 import type { SitePoint, Terrain } from '../types'
 import { pondLevelOf, smoothMax, smoothstep, type EarthEdge } from './earthworksSpec'
 import { EARTH_CLASS, type BuildingEarthOp, type CellRect, type Ground, type PondEarthOp, type PondWater } from './earthworksTypes'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * The legacy earthRebuild passes on one raster, in their old order: bench
@@ -9,8 +10,6 @@ import { EARTH_CLASS, type BuildingEarthOp, type CellRect, type Ground, type Pon
  * works only over its object's box and keeps the signed distances it
  * needs for the next.
  */
-
-const FT = 0.3048
 
 /** Samples per patch before the raster is coarsened (legacy 110 000), and the finest split of a terrain cell. */
 const MAX_SAMPLES = 110000

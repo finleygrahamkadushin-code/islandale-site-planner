@@ -8,6 +8,7 @@ import { usePlanStore } from '../../../store/planStore'
 import type { PlanObject } from '../../../store/types'
 import { sheetBuildings } from './model'
 import type { SheetBuilding, SheetPart } from '../types'
+import { M_PER_FT as FT } from '../../../site/units'
 
 /**
  * The walls' thickness on the sheets, checked against the 3D shell: the
@@ -16,7 +17,6 @@ import type { SheetBuilding, SheetPart } from '../types'
  * turn, glass walls) and on scheme C.
  */
 
-const FT = 0.3048
 const SHAPES = ['rect', 'poly', 'ellipse', 'kidney', 'teardrop', 'blob', 'ribbon'] as const
 const TURNS = [0, 37, 200]
 const store = () => usePlanStore.getState()

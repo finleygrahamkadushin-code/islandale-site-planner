@@ -7,6 +7,7 @@ import { edgeFree, outwardNormal } from '../rails/railRules'
 import { SLAB_M } from '../rails/rails'
 import { MIN_DROP_M } from '../stairs/stairWing'
 import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Adding parts to a cabin's edges (legacy ext:attach-core and
@@ -16,7 +17,6 @@ import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, TREAD_MIN_M } from
  */
 
 type Params = Record<string, unknown>
-const FT = 0.3048
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const r3 = (v: number) => Math.round(v * 1000) / 1000
 const isAccess = (m: Pick<Mass, 'kind'>) => m.kind === 'stair' || m.kind === 'ramp'

@@ -6,6 +6,7 @@ import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
 import { isDriveway, isPathPiece, pieceEnds, pieceKind, pieceLength, pieceProfile, pieceSurface, pieceWidth, railOn, type Ground } from '../pieces'
 import { JOIN_M, type P2, type RouteAnchor, type RouteItem } from './routeGraph'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The route graph's items and anchors from the plan (old walkCollectItems):
@@ -14,7 +15,6 @@ import { JOIN_M, type P2, type RouteAnchor, type RouteItem } from './routeGraph'
  * and terrain come in.
  */
 
-const FT = 0.3048
 /** Doors are reached just outside the wall, metres (as walk-auto). */
 const DOOR_OUT_M = 0.15
 /** Widest kindless pad that counts as a path, feet. */

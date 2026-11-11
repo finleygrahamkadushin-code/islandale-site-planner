@@ -1,7 +1,7 @@
 import { terrainBounds } from './terrain'
 import type { Terrain } from './types'
+import { M_PER_FT as FT } from './units'
 
-const FT = 0.3048
 const INDEX_EVERY_FT = 10
 
 /** A sampled scalar field on a regular grid in the site frame (metres). */

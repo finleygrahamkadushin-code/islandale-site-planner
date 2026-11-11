@@ -6,6 +6,7 @@ import type { LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import type { Mass } from '../masses'
 import { polyOffset, signedAreaOf } from '../organic'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Sculpted roofs (legacy roofSurface, roofIsolines, roofLineSets, roofTufts,
@@ -26,7 +27,6 @@ export const SCULPTED_ROOFS = ['dome', 'vault', 'shell', 'saddle', 'sod'] as con
 export type SculptedType = (typeof SCULPTED_ROOFS)[number]
 export const isSculpted = (type: string): type is SculptedType => (SCULPTED_ROOFS as readonly string[]).includes(type)
 
-const FT = 0.3048
 /** Grid cells across the longer side of the outline (legacy res). */
 const RES = 30
 const SLAB_M: Readonly<Record<SculptedType, number>> = { dome: 0.18, vault: 0.18, shell: 0.2, saddle: 0.15, sod: 0.42 }

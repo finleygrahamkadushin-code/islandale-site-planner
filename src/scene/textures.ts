@@ -1,4 +1,5 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture } from 'three'
+import { FT_PER_M as M_FT } from '../site/units'
 
 /**
  * Procedural textures drawn on a canvas, so nothing is downloaded. Each is
@@ -212,8 +213,6 @@ export function gravel(): TileTexture {
     }
   })
 }
-
-const M_FT = 1 / 0.3048
 
 /** Cedar wall boards, vertical, seven to the metre with dark joints (legacy wallTex cedar), 1 m tile. */
 export function cedarBoards(): TileTexture {

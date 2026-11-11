@@ -3,11 +3,11 @@ import schemes from '../../../data/islandale/schemes.json'
 import { loadIslandaleTerrain } from '../../site/islandale'
 import { surfaceElevationAt } from '../../site/terrain'
 import { boardwalkColumns, boardwalkPath, RIBBON_DEPTH_M } from './boardwalk'
+import { M_PER_FT as FT } from '../../site/units'
 
 type Obj = { name: string; t: string; pts?: number[][] } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
 const walk = all.find((s) => s.id === 'C')!.objects.find((o) => o.t === 'bridge')!
-const FT = 0.3048
 // legacy route points are [x m, n m, elevation ft]
 const route = walk.pts!.map(([x, n, e]) => [x, n, e * FT] as const)
 

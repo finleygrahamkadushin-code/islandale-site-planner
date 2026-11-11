@@ -4,6 +4,7 @@ import { earthEdges, earthSides } from './earthworksSpec'
 import { retainingWalls, type RetainingWall } from './earthworksWalls'
 import { benchAndCut, berm, keepInsideDown, newRaster, pinBorder, pond, type Box, type Distances, type Prepared, type PreparedBuilding, type PreparedPond, type Raster } from './earthworksPasses'
 import type { CellRect, EarthField, EarthOp, Ground, PondWater, SiteEarthworks } from './earthworksTypes'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * The legacy earthRebuild passes on a fine raster: fill benches, sunk
@@ -14,8 +15,6 @@ import type { CellRect, EarthField, EarthOp, Ground, PondWater, SiteEarthworks }
  * signed distances per object, as the old code did); the ground is then a
  * lookup into the raster, cheap enough to call per terrain vertex.
  */
-
-const FT = 0.3048
 
 /** The cut floor sits this far under the building floor (legacy o.floor − 0.03), metres. */
 const CUT_UNDER_FLOOR_M = 0.03

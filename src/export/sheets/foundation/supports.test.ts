@@ -10,6 +10,7 @@ import type { PlanObject } from '../../../store/types'
 import { sheetBuildings } from '../model/model'
 import { sheetTables } from '../tables/table'
 import type { SheetBuilding, SheetSupport } from '../types'
+import { M_PER_FT as FT } from '../../../site/units'
 
 /**
  * What the parts stand on, on the sheets, checked against the support
@@ -18,7 +19,6 @@ import type { SheetBuilding, SheetSupport } from '../types'
  * deck and porch wings, a standalone deck, and schemes C to C4.
  */
 
-const FT = 0.3048
 const SHAPES = ['rect', 'poly', 'ellipse', 'kidney', 'teardrop', 'blob', 'ribbon'] as const
 const KINDS = ['posts', 'piers', 'pilings', 'mast', 'stilts', 'skirt', 'slab', 'earth'] as const
 const TURNS = [0, 37, 200]

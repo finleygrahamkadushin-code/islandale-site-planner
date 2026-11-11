@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { buildingMasses, deckObjectMass, massPoly, type Mass } from '../masses'
 import { materialise } from './railEdits'
 import { edgeDropM, edgeFree, outwardNormal, resolveEdges, type RailMassSite } from './railRules'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const flat = (z: number) => () => z
 /** A 20 × 20 ft main mass with one wing hung off its front (+z) wall. */
 const house = (wing: Record<string, unknown>, more: Record<string, unknown>[] = []): Mass[] =>

@@ -5,8 +5,8 @@ import { elevationAt } from '../../site/terrain'
 import { planFromScheme } from '../../store/fromLegacy'
 import { buildingMasses } from '../../buildings/masses'
 import { deckEdgeSegments, edgeTarget, nearestOnSegment, nearestTarget, wingTopTargets, type ConnectTarget, type EdgeSegment } from './connectTargets'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const terrain = loadIslandaleTerrain()
 const ground = (x: number, n: number) => elevationAt(terrain, x, n)
 const plan = planFromScheme(schemeById(loadSchemes(), 'C'))

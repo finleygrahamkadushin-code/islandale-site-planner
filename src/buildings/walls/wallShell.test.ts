@@ -5,8 +5,8 @@ import { bounds, type MeshData } from '../geom'
 import { buildingMasses, massPoly } from '../masses'
 import { FIT, layoutOpenings, type CutData } from '../openings/openingLayout'
 import { buildWallShell, curvedToAlong, edgeMesh, GLASS_WALL_FT, joinByEdge, joinMeshes, openingHoles, railHeightsFt, wallDecor, wallDecorByEdge, wallFaces, wallPlan, wallSpecsOf, wallThicknessFt, type WallShell } from './wallShell'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const T = FIT.wallFt
 const H = 9
 

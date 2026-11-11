@@ -6,6 +6,7 @@ import type { PlanObject } from '../../store/types'
 import { isFlush, LEVEL_M, sameJunction, type Junction } from './junctions'
 import { siteJunctions } from './junctionsSite'
 import { fmtIn, fmtSigned, levelReport, UPPER_FLOOR_FT, type LevelFix, type LevelItem, type LevelReport } from './levels'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The "Levels & junctions" inspector block (old level-floors panelModel
@@ -13,7 +14,6 @@ import { fmtIn, fmtSigned, levelReport, UPPER_FLOOR_FT, type LevelFix, type Leve
  * fixes, so Fix and Level everything know what to apply. Pure.
  */
 
-const FT = 0.3048
 const IN = 0.0254
 
 export type Severity = 'ok' | 'warn'

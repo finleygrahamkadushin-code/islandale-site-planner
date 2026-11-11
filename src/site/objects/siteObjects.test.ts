@@ -18,8 +18,8 @@ import {
   rockSeat,
   scatterIn,
 } from './siteObjects'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 const metres = (P: readonly LocalPoint[]): LocalPoint[] => P.map(([x, z]) => [x * FT, z * FT])
 
 describe('objectSeed', () => {

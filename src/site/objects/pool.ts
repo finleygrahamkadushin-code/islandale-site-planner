@@ -2,7 +2,7 @@ import { ShapeUtils, Vector2 } from 'three'
 import { num, signedArea, type LocalPoint } from '../../buildings/footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../../buildings/geom'
 import { polyOffset } from '../../buildings/organic'
-import { ftToM } from '../units'
+import { ftToM, M_PER_FT as FT } from '../units'
 
 /**
  * A pool (legacy poolPlanPoly, poolInfEdges, poolMesh, poolLevel): its
@@ -12,8 +12,6 @@ import { ftToM } from '../units'
  * ground round it, or at its fixed `elev`. Pure: feet in, metres out, in the
  * pool's own frame (x right, y up from the coping level, z front).
  */
-
-const FT = 0.3048
 
 /** Coping width when the pool has none of its own, feet. */
 export const POOL_COPING_FT = 1.2

@@ -1,6 +1,7 @@
 import { localToSite, num, type LocalPoint } from '../../buildings/footprint'
 import { elevationAt } from '../terrain'
 import type { SitePoint, Terrain } from '../types'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * What each earthworks object asks of the ground, before any raster is
@@ -8,7 +9,6 @@ import type { SitePoint, Terrain } from '../types'
  * functions of the plan data and the survey.
  */
 
-const FT = 0.3048
 /** Legacy isBuilding(): the types that can be set into the slope or bermed. */
 const BUILDING_TYPES = new Set(['house', 'shop', 'shed'])
 

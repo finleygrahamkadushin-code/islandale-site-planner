@@ -2,6 +2,7 @@ import type { PlanObject } from '../store/types'
 import type { Ground } from '../site/earthworks/earthworks'
 import { pieceEnds, pieceLength } from './pieces'
 import type { SnapTarget } from './targets'
+import { M_PER_FT as FT } from '../site/units'
 
 /**
  * End-to-end snapping (old walkSnapSolve): the end nearest a target within
@@ -10,7 +11,6 @@ import type { SnapTarget } from './targets'
  * refreshEnds).
  */
 
-const FT = 0.3048
 /** Snap reach, metres (3 ft). */
 export const SNAP_TOL_M = 3 * FT
 /** An end this close to a target takes its level, metres. */

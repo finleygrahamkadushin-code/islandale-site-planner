@@ -5,8 +5,8 @@ import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { polyRoof, prowRoof, SHELL_M, type ProwOptions } from './fittedRoof'
 import type { Mass } from '../masses'
 import { isSculpted, sculptedRoof, type SculptMass } from './sculptRoof'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const FASCIA_M = 0.24
 const FLAT_M = 0.3
 /** Gambrel: the ridge stands 1.3 times a gable's, the knuckle at a quarter span 0.72 of the way up (legacy roofGeometry). */

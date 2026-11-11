@@ -4,6 +4,7 @@ import { buildingToMass, massBuildingPoly, type Mass } from '../masses'
 import type { RailStyle } from '../rails/railEdits'
 import { boundaryPts, type TopEdge, type XZ } from './stairCurve'
 import { planStair, type StairPlan, type StairSpec } from './stairPlan'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * A stair or ramp wing's planStair input, as the old stairWingSpec builds
@@ -11,7 +12,6 @@ import { planStair, type StairPlan, type StairSpec } from './stairPlan'
  * another mass at its level, and the drop is measured once at the foot.
  */
 
-const FT = 0.3048
 /** The old planner's drop never goes under 0.3 m (legacy wdrop clamp). */
 export const MIN_DROP_M = 0.3
 /** A host edge counts when it passes within this of the stair's top centre (building feet). */
