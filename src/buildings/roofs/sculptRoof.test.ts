@@ -207,6 +207,25 @@ describe('roof finish', () => {
   })
 })
 
+describe('the height check reads the finish (review fix R4.5)', () => {
+  // the reported rise must change with the finish exactly as the built roof does
+  const circle = localFootprint({ w: 20, d: 20, shape: 'ellipse' })
+  const dims = { w: 20, d: 20, curl: 0.5 }
+  for (const roof of ['dome', 'vault', 'shell', 'saddle', 'sod'] as const) {
+    test(`${roof}: each finish adds to the reported rise what it adds to the built one`, () => {
+      const plain = mass({ roof })
+      const builtPlain = sculptedRoof(circle, plain).rise / FT
+      const toldPlain = sculptRiseFt({ ...plain, ...dims })
+      for (const roofMat of ['sod', 'glass', 'copper']) {
+        const m = mass({ roof, roofMat })
+        const built = sculptedRoof(circle, m).rise / FT - builtPlain
+        const told = sculptRiseFt({ ...m, ...dims }) - toldPlain
+        expect(told, `${roof} ${roofMat}`).toBeCloseTo(built, 2)
+      }
+    })
+  }
+})
+
 describe('schemes D–I', () => {
   const schemes = loadSchemes().slice(6, 12)
   const masses = schemes.flatMap((s) =>

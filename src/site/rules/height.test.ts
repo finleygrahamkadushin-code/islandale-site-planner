@@ -40,10 +40,12 @@ describe('building height', () => {
   })
 
   it('takes a dome and a shell from the sculpted roof rise', () => {
-    // dome: pitch/12 × min(w, d) / 2 with overhangs, plus the 0.2 m shell
-    expect(buildingHeight(house({ roof: 'dome' }), flat).ft).toBeCloseTo(9 + 4.5 + mToFt(0.2), 6)
-    // shell (curl 0.5): the vault rise across the ridge, × (0.75 + 0.25)
-    expect(buildingHeight(house({ roof: 'shell', curl: 0.5 }), flat).ft).toBeCloseTo(9 + 4.5 + mToFt(0.2), 6)
+    // dome: pitch/12 × min(w, d) / 2 with overhangs, plus its 0.18 m slab
+    expect(buildingHeight(house({ roof: 'dome' }), flat).ft).toBeCloseTo(9 + 4.5 + mToFt(0.18), 6)
+    // shell (curl 0.5): the vault rise across the ridge, × (0.75 + 0.25), plus its 0.2 m slab tapered to half at the peak
+    expect(buildingHeight(house({ roof: 'shell', curl: 0.5 }), flat).ft).toBeCloseTo(9 + 4.5 + mToFt(0.1), 6)
+    // a sod finish lays a 0.36 m slab over a dome
+    expect(buildingHeight(house({ roof: 'dome', roofMat: 'sod' }), flat).ft).toBeCloseTo(9 + 4.5 + mToFt(0.36), 6)
   })
 
   it('adds lift above grade', () => {
