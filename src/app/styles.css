@@ -131,6 +131,12 @@ button.icon.on { background: color-mix(in srgb, var(--accent) 25%, transparent);
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .toast[data-open='false'] { transform: translateX(-50%); } }
 @media print { .toast { display: none; } }
 
+/* what an error boundary shows in place of a part that broke (the 3D view, the room editor) */
+.crash-wrap { display: grid; place-items: center; padding: 16px; background: var(--bg); }
+.crash-note { max-width: 420px; padding: 20px 22px; border: 1px solid var(--line); border-left: 4px solid var(--danger); border-radius: 10px; background: var(--panel); }
+.crash-note h2 { margin: 0 0 8px; font-size: 16px; }
+.crash-note p { margin: 0 0 16px; color: var(--muted); }
+.crash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .viewstrip {
   position: absolute; left: 12px; bottom: 12px; z-index: 2;
