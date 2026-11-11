@@ -1,4 +1,4 @@
-import { pointInPolygon } from './foundation/foundation'
+import { pointInPolygon } from '../site/geom2d'
 import { signedArea, type LocalPoint } from './footprint'
 
 /**

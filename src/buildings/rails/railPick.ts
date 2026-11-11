@@ -1,5 +1,6 @@
 import type { LocalPoint } from '../footprint'
 import { massPoly, type Mass } from '../masses'
+import { pointSegmentDistance } from '../../site/geom2d'
 
 /**
  * Which rail a click landed on (deliberate addition, PLAN.md): of the
@@ -16,19 +17,11 @@ export function railEdgeAt(m: Mass, edges: readonly number[], p: LocalPoint): nu
     const a = P[i]
     const b = P[(i + 1) % P.length]
     if (!a || !b) continue
-    const d = segDist(p, a, b)
+    const d = pointSegmentDistance(p, a, b)
     if (d < bestD) {
       bestD = d
       best = i
     }
   }
   return best
-}
-
-function segDist(p: LocalPoint, a: LocalPoint, b: LocalPoint): number {
-  const dx = b[0] - a[0]
-  const dz = b[1] - a[1]
-  const L2 = dx * dx + dz * dz
-  const t = L2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / L2)) : 0
-  return Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dz * t)
 }

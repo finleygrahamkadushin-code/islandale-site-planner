@@ -2,7 +2,7 @@ import { ShapeUtils, Vector2 } from 'three'
 import { signedArea, type LocalPoint } from '../footprint'
 import { addCap } from '../walls/walls'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
-import { polyRoof, prowRoof, SHELL_M, type ProwOptions } from './fittedRoof'
+import { polyRoof, prowRoof, segDist, SHELL_M, type ProwOptions } from './fittedRoof'
 import type { Mass } from '../masses'
 import { isSculpted, sculptedRoof, type SculptMass } from './sculptRoof'
 import { M_PER_FT as FT } from '../../site/units'
@@ -168,7 +168,7 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   if (type === 'pyramid') {
     const ring = offsetPolygon(poly, p.overhangFt)
     const c = centroid(poly)
-    const inradius = Math.min(...poly.map((_, i) => distToEdge(c, poly[i], poly[(i + 1) % poly.length]))) * FT
+    const inradius = Math.min(...poly.map((_, i) => segDist(c, poly[i], poly[(i + 1) % poly.length]))) * FT
     const H = slope * (inradius + o)
     const apex: V3 = [c[0] * FT, H, c[1] * FT]
     const apexCentre: V3 = [apex[0], H / 3, apex[2]]
@@ -361,10 +361,3 @@ function centroid(poly: readonly LocalPoint[]): LocalPoint {
   return [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length]
 }
 
-function distToEdge(c: LocalPoint, a: LocalPoint, b: LocalPoint): number {
-  const dx = b[0] - a[0]
-  const dz = b[1] - a[1]
-  const l2 = dx * dx + dz * dz || 1
-  const t = Math.max(0, Math.min(1, ((c[0] - a[0]) * dx + (c[1] - a[1]) * dz) / l2))
-  return Math.hypot(c[0] - (a[0] + t * dx), c[1] - (a[1] + t * dz))
-}

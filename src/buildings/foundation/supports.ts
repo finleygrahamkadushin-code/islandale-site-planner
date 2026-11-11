@@ -1,5 +1,6 @@
 import type { LocalPoint } from '../footprint'
-import { effectiveSupport, pointInPolygon, type SupportKind } from './foundation'
+import { effectiveSupport, type SupportKind } from './foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { curvePosts, offsetOutline } from '../outline'
 import { buildSlab } from '../slab'

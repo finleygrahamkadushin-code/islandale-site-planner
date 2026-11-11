@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import type { SitePoint } from '../types'
 import { closestOnSeg } from './setbacks'
 

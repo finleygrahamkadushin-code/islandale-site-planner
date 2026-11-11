@@ -4,6 +4,8 @@
  * elevation is (u, -y). Pure, so the sheets only draw what these return.
  */
 import { localToSite } from '../../buildings/footprint'
+import { pointInPolygon } from '../../site/geom2d'
+import { distToSegment } from './site/siteGeom'
 
 export type Pt = readonly [number, number]
 
@@ -116,22 +118,10 @@ export function staggerLevel(placed: readonly Placed[], side: DimSide, lo: numbe
 
 /** Even-odd test of a point against a closed outline. */
 export function insidePolygon(poly: readonly Pt[], [x, y]: Pt): boolean {
-  let inside = false
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i]
-    const [xj, yj] = poly[j]
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
-  }
-  return inside
+  return pointInPolygon(poly, x, y)
 }
 
 /** Distance from a point to a segment. */
-function toSegment(p: Pt, a: Pt, b: Pt): number {
-  const d = sub(b, a)
-  const l2 = d[0] * d[0] + d[1] * d[1]
-  const t = l2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / l2)) : 0
-  return len(sub(p, add(a, d, t)))
-}
 
 /**
  * Unit normal of a→b pointing out of the outline, for an opening on a wall
@@ -143,7 +133,7 @@ export function normalAwayFrom(poly: readonly Pt[], a: Pt, b: Pt): Pt {
   if (poly.length < 3) return n
   const mid: Pt = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
   const edges = poly.map((p, i) => [p, poly[(i + 1) % poly.length]] as const)
-  const [ea, eb] = edges.reduce((best, e) => (toSegment(mid, e[0], e[1]) < toSegment(mid, best[0], best[1]) ? e : best))
+  const [ea, eb] = edges.reduce((best, e) => (distToSegment(mid, e[0], e[1]) < distToSegment(mid, best[0], best[1]) ? e : best))
   const twiceArea = edges.reduce((s, [p, q]) => s + p[0] * q[1] - q[0] * p[1], 0)
   const out = outwardNormal(twiceArea, ea, eb)
   return n[0] * out[0] + n[1] * out[1] < 0 ? [-n[0], -n[1]] : n

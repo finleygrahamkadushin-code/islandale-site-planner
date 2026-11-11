@@ -12,6 +12,7 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | Contour lines | `contours.ts` (drawn in `SiteMarks.tsx`) |
 | The schemes as the old planner wrote them | `schemes.ts`; the data is `data/islandale/schemes.json` |
 | Units and the site frame (metres, x east, n north, NAVD88) | `units.ts`, `types.ts` |
+| Shared plane geometry: point in polygon, point to segment (used by every section) | `geom2d.ts` |
 | A sunk, bermed or earth-supported building: what it asks of the ground | `earthworks/earthworksSpec.ts` |
 | How the ground is cut, filled and benched | `earthworks/earthworksPasses.ts`, `earthworks/earthworksField.ts`; entry point `earthworks/earthworks.ts` |
 | Retaining walls along a cut | `earthworks/earthworksWalls.ts` (where they run), `earthworks/RetainingWalls.tsx` (draws them) |
@@ -57,7 +58,7 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 ## Talks to (open these only when the task crosses over)
 
 - **Uses:** `../store/types` and `planStore`. From `../scene/`: shared rendering pieces (`Surface`, `textures`, `frame`, `useDisplayStyle`, `useObjectInteraction`, `placement`, `meshData`). From `../buildings/`: `footprint` and `masses`, because earthworks cut round a building's outline.
-- **Used by almost everything:** `units.ts`, `types.ts` and `terrain.ts` are imported across `../buildings/`, `../paths/` and `../export/sheets/`, and `earthworks/useEarthworks.ts` gives buildings and paths the ground they stand on. **Changing an export of `units`, `types`, `terrain` or `earthworks` touches other sections:** search for its callers before you change its signature.
+- **Used by almost everything:** `units.ts`, `types.ts`, `geom2d.ts` and `terrain.ts` are imported across `../buildings/`, `../paths/` and `../export/sheets/`, and `earthworks/useEarthworks.ts` gives buildings and paths the ground they stand on. **Changing an export of `units`, `types`, `geom2d`, `terrain` or `earthworks` touches other sections:** search for its callers before you change its signature.
 - **Mounted by:** `../scene/Scene.tsx` (terrain, environment, lot marks, retaining walls) and `../scene/PlanObjects.tsx` (site objects).
 
 ## Checks for this section

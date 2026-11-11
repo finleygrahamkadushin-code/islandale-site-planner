@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { LocalPoint } from '../footprint'
-import { pointInPolygon } from './foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { bounds, emptyMesh } from '../geom'
 import { addPrism, specTops, supportMeshes, supportPlan, type SupportOptions } from './supports'
 import { M_PER_FT as FT } from '../../site/units'

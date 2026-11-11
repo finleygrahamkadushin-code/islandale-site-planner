@@ -1,5 +1,5 @@
 import type { LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon, pointSegmentDistance } from '../../site/geom2d'
 import { buildingToMass, massBuildingPoly, type Mass } from '../masses'
 import type { RailStyle } from '../rails/railEdits'
 import { boundaryPts, type TopEdge, type XZ } from './stairCurve'
@@ -37,14 +37,6 @@ export interface WingHost {
   readonly P: readonly LocalPoint[]
 }
 
-function segDist(p: LocalPoint, a: LocalPoint, b: LocalPoint): number {
-  const dx = b[0] - a[0]
-  const dz = b[1] - a[1]
-  const L2 = dx * dx + dz * dz
-  const t = L2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / L2)) : 0
-  return Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dz * t)
-}
-
 /**
  * The edge a stair or ramp wing hangs from (legacy wingHost, its
  * nearest-edge fallback): the edge nearest the wing's top centre, within
@@ -61,7 +53,7 @@ export function wingHost(masses: readonly Mass[], mi: number): WingHost | null {
     if (k === mi || isAccess(hm) || Math.abs(hm.lvl - m.lvl) >= SAME_LEVEL_FT) return
     const P = massBuildingPoly(hm)
     P.forEach((p, i) => {
-      const d = segDist(T, p, P[(i + 1) % P.length])
+      const d = pointSegmentDistance(T, p, P[(i + 1) % P.length])
       if (d < best) {
         best = d
         host = { mi: k, i, P }

@@ -3,6 +3,7 @@
  * polylines, thinning them, and writing them as smooth SVG paths. Pure.
  */
 import type { Pt } from '../svgDims'
+import { pointInPolygon } from '../../../site/geom2d'
 
 /** A segment as the iso-line functions give it: [x1, y1, x2, y2]. */
 export type Seg4 = readonly [number, number, number, number]
@@ -83,6 +84,7 @@ export function simplifyLine(line: readonly Pt[], tol: number): Pt[] {
   return line.filter((_, i) => keep[i])
 }
 
+/** Writes `p - (a + t d)`, so it can differ from `site/geom2d`'s pointSegmentDistance in the last bits; svgDims uses this one. */
 export function distToSegment(p: Pt, a: Pt, b: Pt): number {
   const dx = b[0] - a[0]
   const dy = b[1] - a[1]
@@ -197,11 +199,5 @@ export function boxOf(points: Iterable<Pt>): Box | null {
 
 /** Even-odd point in polygon. */
 export function insidePoly(poly: readonly Pt[], [x, y]: Pt): boolean {
-  let inside = false
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i]
-    const [xj, yj] = poly[j]
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
-  }
-  return inside
+  return pointInPolygon(poly, x, y)
 }

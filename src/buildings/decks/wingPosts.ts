@@ -1,5 +1,5 @@
 import type { LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { curvePosts, edgePosts, offsetOutline, perimeterSamples } from '../outline'
 
 /**

@@ -1,6 +1,6 @@
 import { Color, IcosahedronGeometry } from 'three'
 import { num, signedArea, type LocalPoint } from '../../buildings/footprint'
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { seededRandom, treeSeed } from './treeShapes'
 import { M_PER_FT as FT } from '../units'
 

@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { buildingMasses, massBuildingPoly, massPoly, massToBuilding, wingSlots, type Mass } from '../masses'
 import { layoutOpenings, type CutData, type FitNote } from './openingLayout'
 import type { LocalPoint } from '../footprint'

@@ -7,6 +7,7 @@ import type { PlanObject } from '../../store/types'
 import { isDriveway, isPathPiece, pieceEnds, pieceKind, pieceLength, pieceProfile, pieceSurface, pieceWidth, railOn, type Ground } from '../pieces'
 import { JOIN_M, type P2, type RouteAnchor, type RouteItem } from './routeGraph'
 import { M_PER_FT as FT } from '../../site/units'
+import { pointInPolygon } from '../../site/geom2d'
 
 /**
  * The route graph's items and anchors from the plan (old walkCollectItems):
@@ -149,16 +150,6 @@ function deckAnchors(o: PlanObject, terrain: Terrain, ground: Ground, items: rea
   })
 }
 
-const inPoly = (P: readonly P2[], x: number, n: number): boolean => {
-  let c = false
-  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
-    const a = P[i]
-    const b = P[j]
-    if (a[1] > n !== b[1] > n && x < ((b[0] - a[0]) * (n - a[1])) / (b[1] - a[1]) + a[0]) c = !c
-  }
-  return c
-}
-
 /** The point of a closed outline nearest (x, n), with the edge's unit normal (right of a→b). */
 export function nearestOnOutline(P: readonly P2[], x: number, n: number): { x: number; n: number; d: number; nrm: P2 } {
   let best = { x: P[0][0], n: P[0][1], d: Infinity, nrm: [0, 0] as P2 }
@@ -195,7 +186,7 @@ function drivewayAnchors(o: PlanObject, ground: Ground, items: readonly RouteIte
   })
   const near = items.flatMap((it) =>
     it.ends.flatMap((e, k): RouteAnchor[] => {
-      const inside = inPoly(P, e.x, e.n)
+      const inside = pointInPolygon(P, e.x, e.n)
       const best = nearestOnOutline(P, e.x, e.n)
       if (!inside && best.d > JOIN_M + e.reach) return []
       const x = inside ? e.x : best.x

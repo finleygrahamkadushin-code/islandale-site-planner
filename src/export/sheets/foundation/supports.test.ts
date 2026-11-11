@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import type { LocalPoint } from '../../../buildings/footprint'
-import { pointInPolygon } from '../../../buildings/foundation/foundation'
+import { pointInPolygon } from '../../../site/geom2d'
 import { buildingMasses, massBuildingPoly, massPoly, massToBuilding } from '../../../buildings/masses'
 import { supportPlan } from '../../../buildings/foundation/supports'
 import { deckPostPoints } from '../../../buildings/decks/wingPosts'

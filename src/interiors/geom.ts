@@ -3,6 +3,8 @@
  * of the old planner's `INT.geom`. Polygons are lists of [x, z]; "positive"
  * means a positive signed area. Degenerate input gives [], null or 0.
  */
+import { pointInPolygon, type XY } from '../site/geom2d'
+
 export type Pt = [number, number]
 export type Poly = Pt[]
 type RPt = readonly [number, number] | readonly number[]
@@ -106,14 +108,9 @@ export function bbox(list: readonly RPoly[]): Box {
   return { x1, z1, x2, z2, w: x2 - x1, d: z2 - z1 }
 }
 
+/** The shared even-odd test (`site/geom2d`); it reads only [0] and [1] of each point. */
 export function pointInPoly(P: RPoly, x: number, z: number): boolean {
-  let c = false
-  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
-    const a = P[i]
-    const b = P[j]
-    if (a[1] > z !== b[1] > z && x < ((b[0] - a[0]) * (z - a[1])) / (b[1] - a[1]) + a[0]) c = !c
-  }
-  return c
+  return pointInPolygon(P as readonly XY[], x, z)
 }
 
 export interface SegHit {
@@ -122,6 +119,7 @@ export interface SegHit {
   readonly q: Pt
 }
 
+/** Not `site/geom2d`'s pointSegmentDistance: treats a segment under EPS long as a point, and returns the foot and t as well. */
 export function distToSeg(p: RPt, a: RPt, b: RPt): SegHit {
   const ab = sub(b, a)
   const L2 = dot(ab, ab)

@@ -60,7 +60,7 @@ export interface PreparedPond {
 
 export type Prepared = PreparedBuilding | PreparedPond
 
-/** Squared distance from a point to a segment. */
+/** Squared distance from a point to a segment, on flat numbers (kept apart from `../geom2d` for the raster loop; no square root). */
 function seg2(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax
   const dy = by - ay
@@ -72,7 +72,7 @@ function seg2(px: number, py: number, ax: number, ay: number, bx: number, by: nu
   return ex * ex + ey * ey
 }
 
-/** Legacy eSD: signed distance to one closed outline (flat x, n pairs), negative inside. */
+/** Legacy eSD: signed distance to one closed outline (flat x, n pairs), negative inside. Its even-odd test is `../geom2d`'s, inline on the flat array. */
 export function sdPoly(P: Float64Array, x: number, n: number): number {
   let d = Infinity
   let inside = false

@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { siteFootprint } from '../../buildings/footprint'
 import type { PlanObject } from '../../store/types'
 import { elevationAt } from '../terrain'
@@ -113,6 +113,7 @@ export function pondLevel(o: PlanObject, ground: Ground): number {
 
 const clampInt = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
+/** Point to segment taking x, n, written `p - (a + t d)`: not bit-for-bit `../geom2d`'s pointSegmentDistance, so kept. */
 function segDist(px: number, pn: number, a: SitePoint, b: SitePoint): number {
   const dx = b[0] - a[0]
   const dn = b[1] - a[1]

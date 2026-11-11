@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { isShorelineEdge } from '../parcel'
 import type { Parcel, SitePoint } from '../types'
 import { ftToM } from '../units'

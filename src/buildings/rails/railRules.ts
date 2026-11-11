@@ -1,5 +1,5 @@
 import { signedArea, type LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { massBuildingPoly, massPoly, massToBuilding, type Mass } from '../masses'
 import { stateOf, type EdgeDraw, type RailState } from './railEdits'
 import { inIntervals, keepRuns, MIN_RUN_M, sampledRuns, type Interval } from './railOpenings'

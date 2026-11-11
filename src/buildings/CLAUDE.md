@@ -51,7 +51,7 @@ The scene never edits a plan directly. Every change goes through a store action,
 
 ## Talks to (open these only when the task crosses over)
 
-- **Uses:** `../store/types` and `planStore`, `../site/units` (FT and unit helpers), `../site/terrain` and `../site/earthworks/` (ground height under a building, with cuts and berms). From `../scene/`: `meshData`, `Surface`, `buildingLook` (colours by display style), `frame` and `editing`.
+- **Uses:** `../store/types` and `planStore`, `../site/units` (FT and unit helpers), `../site/geom2d` (point in polygon, point to segment), `../site/terrain` and `../site/earthworks/` (ground height under a building, with cuts and berms). From `../scene/`: `meshData`, `Surface`, `buildingLook` (colours by display style), `frame` and `editing`.
 - **Used by:** `../export/sheets/` (drawing sheets read masses, walls, roofs, openings and supports), `../paths/` (rails open where paths meet; `partFrame`), `../interiors/` (rooms inside the walls), `../scene/Scene.tsx` (mounts `BuildingMesh` and `PartLayer`). If you change an exported function's signature, search these for its callers.
 
 ## Checks for this section

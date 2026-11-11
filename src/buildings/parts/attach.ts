@@ -1,5 +1,5 @@
 import type { LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { edgeName, massBuildingPoly, massPoly, massToBuilding, partName, wingMass, type Mass } from '../masses'
 import { massWalls } from '../openings/openingEdits'
 import type { CutData } from '../openings/openingLayout'

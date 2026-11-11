@@ -1,7 +1,7 @@
 import { ShapeUtils, Vector2 } from 'three'
 import { seededRandom } from '../../site/objects/treeShapes'
 import { isRoofFinish, type RoofFinish } from '../paint/finishes'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import type { LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import type { Mass } from '../masses'
@@ -602,6 +602,7 @@ export function glassMullions(mesh: MeshData, gap = 1.2): V3[] {
 /** A tuft clump member: plan position (metres) and three random numbers that shape it. */
 export type RoofTuft = readonly [x: number, z: number, r1: number, r2: number, r3: number]
 
+/** fittedRoof's segDist taking x, z (no tuple on the tuft loop); not bit-for-bit `site/geom2d`'s pointSegmentDistance. */
 function segDist(x: number, z: number, a: P2, b: P2): number {
   const dx = b[0] - a[0]
   const dz = b[1] - a[1]

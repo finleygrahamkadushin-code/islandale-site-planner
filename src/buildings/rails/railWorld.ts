@@ -1,6 +1,6 @@
 import { routePoints } from '../decks/boardwalk'
 import { localToSite, num, type LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { buildingMasses, deckObjectMass, massBuildingPoly, massPoly, massToBuilding, type Mass } from '../masses'
 import { layoutOpenings } from '../openings/openingLayout'
 import type { P2, StairTop } from './railOpenings'
