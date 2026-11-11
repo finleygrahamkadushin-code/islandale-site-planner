@@ -1,4 +1,4 @@
-import { envelopeOf } from './envelope'
+import { envelopeOf, smoothTilesOf } from './envelope'
 import * as G from './geom'
 import type { Poly, Pt } from './geom'
 import { CIRCULATION, TYPE_LABELS, WALL, type Floor, type Opening, type Room, type RoomType } from './types'
@@ -311,21 +311,36 @@ export function furnitureInRoom(floor: Floor, room: Room) {
 }
 
 export interface FloorStats {
+  /** Floor inside the outside walls (to the curve on a curved cabin), square feet. */
   readonly envArea: number
+  /** Every room but porches, added up as drawn. */
   readonly roomsArea: number
+  /** Floor inside the walls no room covers. */
   readonly unassigned: number
+  /** Room area counted more than once because rooms lie over each other. */
+  readonly overlap: number
+  /** Room area lying past the outside walls. */
+  readonly outside: number
   readonly porchArea: number
   readonly circArea: number
   readonly circPct: number
   readonly nRooms: number
 }
 
+const sumArea = (L: readonly (readonly Pt[])[]) => L.reduce((s, P) => s + G.area(P), 0)
+
+/**
+ * The floor's areas. Rooms that overlap or run past the walls are reported
+ * as such (`overlap`, `outside`), so `roomsArea − overlap − outside +
+ * unassigned = envArea` and a plan with too much room never reads as full.
+ */
 export function floorStats(params: Params, fi: number, floor: Floor): FloorStats {
   const env = envelopeOf(params, fi)
   let roomsArea = 0
   let porchArea = 0
   let circArea = 0
   let nRooms = 0
+  const indoor: (readonly Pt[])[] = []
   for (const r of floor.rooms) {
     const a = G.area(r.pts)
     if (r.type === 'porch') {
@@ -334,17 +349,44 @@ export function floorStats(params: Params, fi: number, floor: Floor): FloorStats
     }
     roomsArea += a
     nRooms++
+    if (r.pts.length >= 3) indoor.push(r.pts)
     if (CIRCULATION.includes(r.type)) circArea += a
   }
+  // the rooms' footprint with no piece counted twice, then the part of it inside the walls
+  const footprint = G.disjointTiles(indoor)
+  const inside = smoothTilesOf(env)
+  const covered = Math.min(env.smoothArea, sumArea(footprint.flatMap((T) => G.intersectRegion(T, inside))))
+  const footArea = sumArea(footprint)
   return {
-    envArea: env.area,
+    envArea: env.smoothArea,
     roomsArea,
-    unassigned: Math.max(0, env.area - roomsArea),
+    unassigned: env.smoothArea - covered,
+    overlap: Math.max(0, roomsArea - footArea),
+    outside: Math.max(0, footArea - covered),
     porchArea,
     circArea,
     circPct: roomsArea > 0 ? Math.round((100 * circArea) / roomsArea) : 0,
     nRooms,
   }
+}
+
+/** Whole square feet, rounded once so the figures shown add up: env = rooms − overlap − outside + unassigned. */
+export interface RoundedStats {
+  readonly env: number
+  readonly rooms: number
+  readonly overlap: number
+  readonly outside: number
+  readonly unassigned: number
+}
+
+export function roundedStats(st: FloorStats): RoundedStats {
+  const env = Math.round(st.envArea)
+  const rooms = Math.round(st.roomsArea)
+  const overlap = Math.round(st.overlap)
+  const outside = Math.round(st.outside)
+  // unassigned is the figure worked out as the difference; rounding drift that would make it negative goes to the overlap
+  const unassigned = env - rooms + overlap + outside
+  return unassigned >= 0 ? { env, rooms, overlap, outside, unassigned } : { env, rooms, overlap: overlap - unassigned, outside, unassigned: 0 }
 }
 
 /** "Bedroom", then "Bedroom 2", "Bedroom 3"… on the floor. */

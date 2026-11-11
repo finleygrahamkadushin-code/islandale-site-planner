@@ -7,7 +7,7 @@ import * as G from '../geom'
 import { readFloors, hasFloorPlan, NO_PLAN_TEXT } from '../model'
 import { cabinTypeOf, checkProgram, PROGRAMS } from '../program'
 import { accessibleRoom } from '../furniture/fixtures'
-import { floorStats } from '../rooms'
+import { floorStats, roundedStats } from '../rooms'
 import { OPENING_KINDS, OPENING_LABELS, ROOM_COLORS, ROOM_TYPES, TYPE_LABELS, type Floor, type OpeningKind, type RoomType } from '../types'
 import type { FloorEdit } from '../../store/interiorActions'
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
@@ -37,7 +37,8 @@ export function InteriorPanel({ o }: { readonly o: PlanObject }) {
   const cabinType = cabinTypeOf(o.name, o.params, otherNames)
   const program = PROGRAMS[cabinType]
   const checklist = checkProgram(program, floors)
-  const stats = floorStats(o.params, fi, floor)
+  const stats = useMemo(() => floorStats(o.params, fi, floor), [o.params, fi, floor])
+  const sf = roundedStats(stats)
   return (
     <aside className="int-side" aria-label="Interior panel">
       {locked && <p className="muted small">Locked: unlock the cabin to change its rooms.</p>}
@@ -65,11 +66,23 @@ export function InteriorPanel({ o }: { readonly o: PlanObject }) {
         <h3>{floor.name}</h3>
         <dl className="int-stats">
           <dt>Inside the walls</dt>
-          <dd>{fmtArea(stats.envArea)}</dd>
+          <dd>{fmtArea(sf.env)}</dd>
           <dt>Rooms ({stats.nRooms})</dt>
-          <dd>{fmtArea(stats.roomsArea)}</dd>
+          <dd>{fmtArea(sf.rooms)}</dd>
+          {sf.overlap > 0 && (
+            <>
+              <dt className="warn">Rooms overlapping</dt>
+              <dd className="warn">−{fmtArea(sf.overlap)}</dd>
+            </>
+          )}
+          {sf.outside > 0 && (
+            <>
+              <dt className="warn">Past the outside walls</dt>
+              <dd className="warn">−{fmtArea(sf.outside)}</dd>
+            </>
+          )}
           <dt>Unassigned</dt>
-          <dd>{fmtArea(stats.unassigned)}</dd>
+          <dd>{fmtArea(sf.unassigned)}</dd>
           <dt>Circulation</dt>
           <dd>{stats.circPct}%</dd>
           {stats.porchArea > 0 && (
