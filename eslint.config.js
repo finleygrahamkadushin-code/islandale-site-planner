@@ -19,9 +19,16 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}', 'vite/**/*.ts', 'e2e/**/*.ts', 'vite.config.ts', 'playwright.config.ts'],
     extends: [tseslint.configs.recommended],
     plugins: { 'react-hooks': reactHooks },
-    rules: {
+        rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // a name starting with _ is a deliberate discard (the code's rest-destructuring convention)
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^_', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
     },
+  },
+  {
+    // the browser tests reach the page's probes through `window as any`; typing them is R11.5
+    files: ['e2e/**/*.ts'],
+    rules: { '@typescript-eslint/no-explicit-any': 'warn' },
   },
 )
