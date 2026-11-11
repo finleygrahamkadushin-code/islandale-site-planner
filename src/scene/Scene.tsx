@@ -24,9 +24,9 @@ import { JunctionLayer } from '../paths/junctions/JunctionLayer'
 import { RouteChips } from '../paths/route/RouteChips'
 import { NoToneMapping } from 'three'
 import { onGround } from './frame'
-import { useLiveDrag } from './editing'
+import { useLiveDrag, type DragState } from './editing'
 import { ContactShadows } from './ContactShadows'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useSplash } from '../present/viewState'
 
 // AO, tone mapping and anti-aliasing arrive just after the first frame, so the view shows sooner (4E)
@@ -45,11 +45,14 @@ import { RedrawOnChange } from './RedrawOnChange'
 /** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
 const ORBIT_SPEED = 0.6
 
+/** The live drag, read where it is drawn: a pointer move re-renders only what follows it, not the whole scene (R8.3). */
+function WithDrag({ children }: { readonly children: (drag: DragState | null) => ReactNode }) {
+  return children(useLiveDrag((s) => s.drag))
+}
+
 export function Scene() {
   const site = usePlanStore((s) => s.site)
   const select = usePlanStore((s) => s.select)
-  const drag = useLiveDrag((s) => s.drag)
-  const setDrag = useLiveDrag((s) => s.setDrag)
   const target = onGround(site.terrain, 0, 0)
   const [webgl] = useState(() => hasWebGL2())
   const presenting = usePresent((s) => s.presenting)
@@ -62,7 +65,7 @@ export function Scene() {
     // isolate mode: a double-click that no object took (empty space, the ground, a faded object) leaves it
     <div className="viewport" data-tour="view" onDoubleClick={(e) => !wasClaimed(e.nativeEvent) && useIsolate.getState().leave()}>
     <LabelLayer />
-    <PartHud drag={drag} />
+    <WithDrag>{(drag) => <PartHud drag={drag} />}</WithDrag>
     <PaintHud />
     <Canvas
       shadows="percentage"
@@ -78,7 +81,7 @@ export function Scene() {
       <RetainingWalls />
       <ParcelLine parcel={site.parcel} terrain={site.terrain} />
       <SiteMarks parcel={site.parcel} terrain={site.terrain} />
-      <PlanObjects drag={drag} />
+      <WithDrag>{(drag) => <PlanObjects drag={drag} />}</WithDrag>
       <ContactShadows />
       <PlaceGhost />
       <MeasureLayer />
@@ -87,8 +90,8 @@ export function Scene() {
       <ConnectLayer />
       {!isolating && <JunctionLayer />}
       {!isolating && <RouteChips />}
-      <LabelProjector drag={drag} />
-      {!presenting && <EditGizmos drag={drag} setDrag={setDrag} />}
+      <WithDrag>{(drag) => <LabelProjector drag={drag} />}</WithDrag>
+      {!presenting && <WithDrag>{(drag) => <EditGizmos drag={drag} setDrag={useLiveDrag.getState().setDrag} />}</WithDrag>}
       {firstFrameDrawn && (
         // effects that would not load or broke leave the plain view, never a blank one
         <ErrorBoundary name="View effects" fallback={null}>

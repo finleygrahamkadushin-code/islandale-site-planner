@@ -64,7 +64,7 @@ export function ScreenChip({ position, normal, px = 0, layer, children }: Props)
   const place = useMemo(() => chipPosition(nx === undefined || nz === undefined ? undefined : [nx, nz], px), [nx, nz, px])
   const [id] = useState(newChipId)
   const anchor = useRef<Group>(null)
-  useLayoutEffect(() => putChip({ id, layer, node: children }))
+  useLayoutEffect(() => putChip({ id, layer, node: children }), [id, layer, children])
   useLayoutEffect(() => () => dropChip(id), [id])
   useFrame(({ camera, size }) => {
     const el = chipElements.get(id)
