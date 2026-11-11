@@ -1,32 +1,17 @@
 import { pointInPolygon } from '../site/geom2d'
-import { signedArea, type LocalPoint } from './footprint'
+import type { LocalPoint } from './footprint'
+import { polyOffset } from './organic'
 
 /**
  * Port of the legacy `polyOffset`: move every edge of an outline by `d`
  * (positive grows, negative shrinks) with clamped mitres, so smooth
- * many-vertex outlines and non-convex ones both work. Any units.
+ * many-vertex outlines and non-convex ones both work. Any units. It is
+ * organic's polyOffset, except that fewer than three points or `d` 0 come
+ * back unchanged.
  */
 export function offsetOutline(poly: readonly LocalPoint[], d: number): LocalPoint[] {
-  const n = poly.length
-  if (n < 3 || d === 0) return [...poly]
-  const s = signedArea(poly) > 0 ? 1 : -1
-  const normals = poly.map((a, i) => {
-    const b = poly[(i + 1) % n]
-    const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
-    return [(s * (b[1] - a[1])) / l, (-s * (b[0] - a[0])) / l] as const
-  })
-  return poly.map((p, i) => {
-    const n0 = normals[(i + n - 1) % n]
-    const n1 = normals[i]
-    let mx = n0[0] + n1[0]
-    let mz = n0[1] + n1[1]
-    const ml = Math.hypot(mx, mz)
-    if (ml < 1e-6) return [p[0] + n1[0] * d, p[1] + n1[1] * d] as const
-    mx /= ml
-    mz /= ml
-    const c = Math.max(0.5, mx * n1[0] + mz * n1[1])
-    return [p[0] + (mx * d) / c, p[1] + (mz * d) / c] as const
-  })
+  if (poly.length < 3 || d === 0) return [...poly]
+  return polyOffset(poly, d)
 }
 
 export function perimeterLength(poly: readonly LocalPoint[]): number {

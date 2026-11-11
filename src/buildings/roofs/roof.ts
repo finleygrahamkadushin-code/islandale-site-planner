@@ -332,7 +332,7 @@ export function normaliseRoof(type: string): RoofType {
   return type ? 'gable' : 'none'
 }
 
-/** Push a convex-ish polygon (local feet) outward by `d` feet with mitred corners. */
+/** Push a convex-ish polygon (local feet) outward by `d` feet with mitred corners. Not outline.offsetOutline: it never shrinks, takes its outward side from the winding as given (no signed-area check) and clamps the mitre at 0.35, not 0.5. */
 export function offsetPolygon(poly: readonly LocalPoint[], d: number): LocalPoint[] {
   if (d <= 0) return [...poly]
   const n = poly.length
