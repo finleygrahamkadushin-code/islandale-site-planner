@@ -5,6 +5,7 @@ import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
 import { useFocusRequest } from './cameraFocus'
 import { onGround } from './frame'
+import { PROBES_ON } from '../app/probes'
 
 const DURATION_S = 0.9
 /** How far from an object F leaves the camera, metres. */
@@ -73,7 +74,7 @@ export function CameraRig() {
   useEffect(() => {
     // probes for end-to-end tests, side-by-side screenshots and the console
     const w = window as unknown as { islandale?: Record<string, unknown> }
-    if (!w.islandale) return
+    if (!PROBES_ON || !w.islandale) return
     w.islandale.camera = () => camera.position.toArray().map((v) => +v.toFixed(2))
     w.islandale.renderInfo = () => ({ ...gl.info.render, ...gl.info.memory, programs: gl.info.programs?.length })
     // meshes and triangles in the scene itself (renderInfo only sees the last post-processing pass)

@@ -10,26 +10,15 @@ import { defaultHome, type PlanHome } from './store/planHome'
 import { artifactDbHome, findArtifactDb, findArtifactDbLikely } from './store/artifactHome'
 import { setRailDrawResolver } from './store/railResolver'
 import { resolveRailDraws } from './buildings/rails/railSite'
-import { firstFrameMs, sampleFrames } from './scene/perfProbe'
 import { prefetchAfterFirstFrame } from './app/prefetch'
-import { useLiveDrag } from './scene/editing'
+import { installProbes, PROBES_ON } from './app/probes'
 
 // Light, Dark or System, before anything draws, so the page never flashes the other theme (4E).
 initTheme()
 
-// For end-to-end tests and debugging in the console.
-declare global {
-  interface Window {
-    islandale: {
-      store: typeof usePlanStore
-      camera?: () => number[]
-      renderInfo?: () => Record<string, unknown>
-      /** Export 3D model for tools/export/export_scene.mjs (set by ModelExportProbe). */
-      exportModel?: typeof import('./export/model3d/exportModel').exportModelForScript
-    }
-  }
-}
-window.islandale = { store: usePlanStore, firstFrameMs, sampleFrames, liveDrag: useLiveDrag } as Window['islandale']
+// For end-to-end tests, the headless export and the console: dev server only, unless built with VITE_ISLANDALE_PROBES=1.
+// (the check here, not only inside installProbes, lets a production build drop the probe code)
+if (PROBES_ON) installProbes(window)
 
 // setRail's first per-edge write keeps what the scene draws, by the scene's own rail rules
 setRailDrawResolver(resolveRailDraws)
