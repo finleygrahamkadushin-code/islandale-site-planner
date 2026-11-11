@@ -169,3 +169,38 @@ test('a refused size says why, Escape puts it back, and the message does not fol
   await expect(inspector.getByLabel('Name')).toHaveValue(await nameOf(page, b))
   await expect(inspector).not.toContainText('At most 300 ft')
 })
+
+test('a plan file with one bad object opens with the rest, names it, and keeps the file in History (R6.5)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await freshStart(page)
+  const broken = await page.evaluate(async () => {
+    const s = (window as any).islandale.store.getState()
+    // this tab only looks from here on, so it neither loads nor saves over the file written below
+    s.setReadOnly('other-tab')
+    const file = JSON.parse(JSON.stringify({ version: 1, app: 'islandale-site-planner', savedAt: new Date().toISOString(), plan: s.plan, view: { labelMode: 'all', layers: s.layers } }))
+    const bad = file.plan.order[0]
+    file.plan.objects[bad] = { ...file.plan.objects[bad], name: 'Broken by hand', position: null }
+    const text = JSON.stringify(file)
+    // the app is writing the plan file too: retry until the write names the current revision
+    for (let i = 0; i < 10; i++) {
+      const rev = (await fetch('/__plan', { cache: 'no-store' })).headers.get('ETag') ?? 'none'
+      if ((await fetch('/__plan', { method: 'PUT', body: text, headers: { 'If-Match': rev } })).ok) break
+    }
+    return { bad, rest: file.plan.order.slice(1) as string[] }
+  })
+  // a fresh browser, so the plan file is the only copy there is
+  await page.evaluate(() => {
+    indexedDB.deleteDatabase('keyval-store')
+    for (const k of Object.keys(localStorage)) if (k.startsWith('islandale-plan')) localStorage.removeItem(k)
+  })
+  await page.reload()
+  await ready(page)
+  await expect(page.getByRole('status').filter({ hasText: 'Broken by hand' })).toBeVisible({ timeout: 15_000 })
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().plan.order)).toEqual(broken.rest)
+
+  await page.getByRole('button', { name: 'History' }).click()
+  const kept = page.getByTestId('history-set-aside')
+  await expect(kept).toHaveCount(1)
+  await expect(kept).toContainText('1 object could not be read')
+  await expect(kept.getByRole('button', { name: /Download this set-aside save/ })).toBeVisible()
+})
