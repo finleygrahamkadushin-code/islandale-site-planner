@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { Plane, Raycaster, Vector2, Vector3, type Camera } from 'three'
@@ -11,6 +11,7 @@ import { toScene } from '../scene/frame'
 import { idsInBox } from './arrange'
 import { pickedIds } from './groups'
 import { isOutside, isolationNow } from './isolate'
+import { startDragSession, type DragSession } from './dragSession'
 
 /**
  * Box select (4B): with the Select tool, Shift-drag on empty ground draws a
@@ -18,6 +19,8 @@ import { isOutside, isolationNow } from './isolate'
  * The drag is followed with window listeners (pointer on a level plane at
  * the press point), so it does not depend on which mesh the pointer is
  * over; the click that ends it is not a "click on nothing". View state.
+ * A cancelled pointer, lost capture, Escape or the ground going away
+ * drops the box and selects nothing.
  */
 
 type Pos = { x: number; n: number }
@@ -47,34 +50,51 @@ export function useBoxSelect() {
   const controls = useThree((s) => s.controls) as { enabled: boolean } | null
   const camera = useThree((s) => s.camera)
   const dom = useThree((s) => s.gl.domElement)
+  const session = useRef<DragSession | null>(null)
+  // the ground going away mid-box drops the box, so orbit is never left off
+  useEffect(() => () => session.current?.cancel(), [])
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       const s = usePlanStore.getState()
       if (e.button !== 0 || !e.shiftKey || toolOf(s) !== 'select') return
       e.stopPropagation()
+      session.current?.cancel()
       if (controls) controls.enabled = false
       const y = e.point.y
       const a = { x: e.point.x, n: -e.point.z }
       useSelectBox.getState().set(a, a)
-      const move = (ev: PointerEvent) => {
-        const b = onPlane(ev.clientX, ev.clientY, camera, dom, y)
-        if (b) useSelectBox.getState().set(a, b)
-      }
-      const up = (ev: PointerEvent) => {
-        window.removeEventListener('pointermove', move, true)
-        window.removeEventListener('pointerup', up, true)
+      /** Put the view back as it was, whether the box was finished or dropped. */
+      const close = () => {
+        session.current = null
         if (controls) controls.enabled = true
-        const b = onPlane(ev.clientX, ev.clientY, camera, dom, y) ?? useSelectBox.getState().b ?? a
         useSelectBox.getState().set(null, null)
         boxEndedAt = performance.now()
+      }
+      const up = (ev: PointerEvent) => {
+        const b = onPlane(ev.clientX, ev.clientY, camera, dom, y) ?? useSelectBox.getState().b ?? a
+        close()
         const st = usePlanStore.getState()
         // isolate mode: only what is isolated can be boxed; a box takes whole groups except in the open one
         const iso = isolationNow()
         const shown = st.plan.order.map((id) => st.plan.objects[id]).filter((o) => o && isObjectVisible(st, o.id) && !isOutside(iso, o.id))
         st.select(pickedIds(st.plan, idsInBox(shown, a, b), iso?.group ?? null))
       }
-      window.addEventListener('pointermove', move, true)
-      window.addEventListener('pointerup', up, true)
+      const pointerId = e.nativeEvent.pointerId
+      session.current = startDragSession(window, {
+        pointerId,
+        onMove: (ev) => {
+          const b = onPlane(ev.clientX, ev.clientY, camera, dom, y)
+          if (b) useSelectBox.getState().set(a, b)
+        },
+        onUp: up,
+        onCancel: close,
+      })
+      // the canvas keeps the pointer, so a release outside the window still ends the box
+      try {
+        dom.setPointerCapture(pointerId)
+      } catch {
+        // a pointer that is already gone: its cancel or release reaches the session anyway
+      }
     },
     [controls, camera, dom],
   )
