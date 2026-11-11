@@ -144,6 +144,13 @@ function fitHeight(c: ReadCut, roofFt: number, notes: FitNote[]): ReadCut {
   let { h, sill } = c
   if (sill + h <= limit) return c
   const wantedH = h
+  if (limit < FIT.minFt) {
+    // no room for even the least opening under the head clearance: it fills what wall there is, never less than nothing
+    h = Math.max(0, Math.min(h, roofFt))
+    if (sill !== 0) notes.push({ id: c.id, field: 'sill', wanted: sill, got: 0, reason: 'lowered to the floor: the wall is too low' })
+    if (h !== wantedH) notes.push({ id: c.id, field: 'h', wanted: wantedH, got: h, reason: 'cut to the wall height: the wall is too low for the head clearance' })
+    return { ...c, h, sill: 0 }
+  }
   h = Math.max(FIT.minFt, limit - sill)
   if (sill + h > limit) {
     const wantedSill = sill
@@ -169,17 +176,25 @@ function freeSpans(lo: number, hi: number, taken: readonly (readonly [number, nu
   return spans.filter(([a, b]) => b - a > 1e-6)
 }
 
-/** Fit one per-edge cut along its wall: clear of the corners and of the openings already placed. */
-function fitAlongEdge(
+/**
+ * How a run of wall ends: what the fit calls its ends in notes, and the
+ * furthest an opening may go when it cannot fit (a straight wall's own ends;
+ * none for a loop opened at another opening, where it overlaps as a conflict).
+ */
+interface RunEnds {
+  readonly name: string
+  readonly bounds?: readonly [number, number]
+}
+
+/** Fit one cut along a run of wall from `lo` to `hi` (outer-frame limits): clear of its ends and of the openings already placed. */
+function fitInRun(
   c: ReadCut,
-  e: Edge,
-  leftClear: number,
-  rightClear: number,
+  lo: number,
+  hi: number,
   taken: readonly (readonly [number, number])[],
   notes: FitNote[],
+  ends: RunEnds,
 ): { cut: ReadCut; conflict: boolean } {
-  const lo = leftClear
-  const hi = e.len - rightClear
   const outer = (x: number, w: number) => [x - c.trim, x + w + c.trim] as const
   const spans = freeSpans(lo, hi, taken)
   const want = outer(c.x, c.w)
@@ -202,10 +217,19 @@ function fitAlongEdge(
       conflict = true
       w = Math.min(c.w, Math.max(FIT.minFt, hi - lo - 2 * c.trim))
       x = Math.min(Math.max(c.x, lo + c.trim), Math.max(lo + c.trim, hi - c.trim - w))
+      if (ends.bounds) {
+        // never past the wall's own ends, even when it cannot keep clear of the corners
+        const [b0, b1] = ends.bounds
+        const room = Math.max(0, b1 - b0 - 2 * c.trim)
+        w = Math.min(w, room)
+        x = room > 0 ? Math.min(Math.max(x, b0 + c.trim), b1 - c.trim - w) : (b0 + b1) / 2
+      }
+      if (w < c.w - 1e-9) notes.push({ id: c.id, field: 'w', wanted: c.w, got: w, reason: 'narrowed to fit the wall' })
     }
   }
   if (Math.abs(x - c.x) > 1e-6) {
-    const why = x > c.x && c.x - c.trim < lo ? 'to clear the corner' : x < c.x && c.x + c.w + c.trim > hi ? 'to clear the corner' : 'to clear the next opening'
+    const toEnd = `to clear ${ends.name}`
+    const why = x > c.x && c.x - c.trim < lo ? toEnd : x < c.x && c.x + c.w + c.trim > hi ? toEnd : 'to clear the next opening'
     notes.push({ id: c.id, field: 'x', wanted: c.x, got: x, reason: `moved ${inches(Math.abs(x - c.x))} ${why}` })
   }
   return { cut: { ...c, x, w }, conflict }
@@ -221,8 +245,10 @@ export function layoutOpenings(poly: readonly LocalPoint[], cuts: readonly CutDa
   const notes: FitNote[] = []
   const openings: PlacedOpening[] = []
   const fitted: CutData[] = []
-  const taken = new Map<number, [number, number][]>()
-  const perim = edges.reduce((s, e) => s + e.len, 0)
+  // every opening placed so far, as its outer frame measured round the perimeter from vertex 0 (a → b)
+  const taken: [number, number][] = []
+  const cum = edges.reduce<number[]>((a, e) => [...a, a[a.length - 1] + e.len], [0])
+  const perim = cum[edges.length]
   const roofLine = opt.roofLineFt ?? (() => opt.wallHeightFt)
 
   cuts.forEach((raw, index) => {
@@ -230,12 +256,11 @@ export function layoutOpenings(poly: readonly LocalPoint[], cuts: readonly CutDa
     if (c.along) {
       if (perim <= 0) return
       c = fitHeight(c, opt.wallHeightFt, notes)
-      const x = ((c.x % perim) + perim) % perim
-      const w = Math.min(c.w, perim - 2 * FIT.cornerFt)
-      if (w !== c.w) notes.push({ id: c.id, field: 'w', wanted: c.w, got: w, reason: 'narrowed to fit the wall' })
-      c = { ...c, x, w }
+      const placed = fitRound(c, perim, taken, notes)
+      c = placed.cut
+      taken.push([c.x - c.trim, c.x + c.w + c.trim])
       fitted.push({ ...raw, id: c.id, x: c.x, w: c.w, h: c.h, sill: c.sill })
-      openings.push({ ...c, pieces: alongPieces(edges, c), hidden: false, conflict: false })
+      openings.push({ ...c, pieces: alongPieces(edges, c), hidden: false, conflict: placed.conflict })
       return
     }
     const e = edges[c.edge]
@@ -250,10 +275,10 @@ export function layoutOpenings(poly: readonly LocalPoint[], cuts: readonly CutDa
     const fromA = (x: number, w: number) => [e.len - x - w, e.len - x] as const
     const span = fromA(c.x, c.w)
     c = fitHeight(c, Math.min(roofLine(c.edge, span[0], span[1]), opt.wallHeightFt), notes)
-    const placed = fitAlongEdge(c, e, left, right, taken.get(c.edge) ?? [], notes)
+    const placed = fitInRun(c, left, e.len - right, takenOnEdge(taken, cum[c.edge], e.len, perim), notes, { name: 'the corner', bounds: [0, e.len] })
     c = placed.cut
-    taken.set(c.edge, [...(taken.get(c.edge) ?? []), [c.x - c.trim, c.x + c.w + c.trim]])
     const [a0] = fromA(c.x, c.w)
+    taken.push([cum[c.edge] + a0 - c.trim, cum[c.edge] + a0 + c.w + c.trim])
     const mid = a0 + c.w / 2
     const out: LocalPoint = [e.a[0] + e.ux * mid + e.uz * 0.4, e.a[1] + e.uz * mid - e.ux * 0.4]
     fitted.push({ ...raw, id: c.id, x: round(c.x), w: round(c.w), h: round(c.h), sill: round(c.sill) })
@@ -268,6 +293,46 @@ export function layoutOpenings(poly: readonly LocalPoint[], cuts: readonly CutDa
 }
 
 const round = (v: number) => Math.round(v * 1e4) / 1e4
+
+/** The taken perimeter frames that reach onto the edge starting `start` round the perimeter, as from-left intervals on it. */
+function takenOnEdge(taken: readonly (readonly [number, number])[], start: number, len: number, perim: number): [number, number][] {
+  return taken.flatMap(([p0, p1]) =>
+    [-perim, 0, perim].flatMap((k): [number, number][] => {
+      const s0 = Math.max(p0 + k, start)
+      const s1 = Math.min(p1 + k, start + len)
+      return s1 - s0 > 1e-9 ? [[start + len - s1, start + len - s0]] : []
+    }),
+  )
+}
+
+/**
+ * Fit an along-cut round the perimeter, a loop with no corners to clear
+ * (an along-cut turns them with a shared jamb): clear of every opening
+ * already placed, by the same rules as a straight wall, on the loop opened
+ * just past one of them. Its x comes back measured from vertex 0.
+ */
+function fitRound(c: ReadCut, perim: number, taken: readonly (readonly [number, number])[], notes: FitNote[]): { cut: ReadCut; conflict: boolean } {
+  const wrap = (v: number) => ((v % perim) + perim) % perim
+  const x0 = wrap(c.x)
+  if (!taken.length) {
+    const w = Math.min(c.w, perim - 2 * FIT.cornerFt)
+    if (w !== c.w) notes.push({ id: c.id, field: 'w', wanted: c.w, got: w, reason: 'narrowed to fit the wall' })
+    return { cut: { ...c, x: x0, w }, conflict: false }
+  }
+  const [t0, t1] = taken[0]
+  const into = (v: number) => t1 + wrap(v - t1)
+  const others = taken.slice(1).map(([a, b]): [number, number] => [into(a), into(a) + b - a])
+  // the loop has two ways to the nearest room: try x on each side of the opening it was opened at, keep the shorter move
+  const tries = [into(x0), into(x0) - perim].map((x) => {
+    const local: FitNote[] = []
+    const placed = fitInRun({ ...c, x }, t1 + FIT.gapFt, t0 + perim - FIT.gapFt, others, local, { name: 'the next opening' })
+    return { placed, local, moved: Math.abs(placed.cut.x - x) + (placed.conflict ? perim : 0) }
+  })
+  const best = tries[1].moved < tries[0].moved ? tries[1] : tries[0]
+  // notes speak in x from vertex 0, like the cut itself
+  notes.push(...best.local.map((n) => (n.field === 'x' ? { ...n, wanted: x0, got: wrap(n.got) } : n)))
+  return { cut: { ...best.placed.cut, x: wrap(best.placed.cut.x) }, conflict: best.placed.conflict }
+}
 
 function piece(e: Edge, edge: number, fromA: number, w: number, c: ReadCut, jambLeft: boolean, jambRight: boolean): OpeningPiece {
   const t = fromA + w / 2
@@ -289,7 +354,10 @@ function piece(e: Edge, edge: number, fromA: number, w: number, c: ReadCut, jamb
 function alongPieces(edges: readonly Edge[], c: ReadCut): OpeningPiece[] {
   const pieces: OpeningPiece[] = []
   let at = 0
-  edges.forEach((e, i) => {
+  // twice round, so a cut that starts near the end of the perimeter carries on past vertex 0
+  const twice = [...edges, ...edges]
+  twice.forEach((e, j) => {
+    const i = j % edges.length
     const s0 = Math.max(c.x, at)
     const s1 = Math.min(c.x + c.w, at + e.len)
     if (s1 - s0 >= 0.05) {
