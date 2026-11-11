@@ -18,6 +18,10 @@ export interface Envelope {
   readonly loops: Poly[]
   readonly edges: [Pt, Pt][]
   readonly area: number
+  /** The floor inside the walls as built: the smooth outline as convex tiles (the tiles themselves when nothing was simplified). */
+  readonly smoothTiles: Poly[]
+  /** Its area, square feet: a little more than `area` on a curved cabin, whose chords cut inside the curve. */
+  readonly smoothArea: number
   readonly open: Poly[]
   readonly openTiles: Poly[]
   readonly access: { readonly m: Mass; readonly P: Poly }[]
@@ -243,13 +247,17 @@ export function envelopeOf(params: Record<string, unknown>, fi = 0): Envelope {
     smooth = SM.length === 1 ? SM : G.unionPieces(G.disjointTiles(SM)).outer
     if (!smooth.length) smooth = null
   }
+  const tilesArea = tiles.reduce((s, T) => s + G.area(T), 0)
+  const smoothTiles = smooth ? G.disjointTiles(smooth) : tiles
   const env: Envelope = {
     smooth,
     masses: M,
     tiles,
     loops,
     edges,
-    area: tiles.reduce((s, T) => s + G.area(T), 0),
+    area: tilesArea,
+    smoothTiles,
+    smoothArea: smooth ? smoothTiles.reduce((s, T) => s + G.area(T), 0) : tilesArea,
     open,
     openTiles,
     access: list.filter((e) => isAccess(e.m) && onFloor(e.m)).map((e) => ({ m: e.m, P: e.P })),
