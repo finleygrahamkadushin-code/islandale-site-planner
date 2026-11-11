@@ -15,6 +15,15 @@ interface Controls {
   update: () => void
 }
 
+/** A camera flight; `start` is set on its first drawn frame (performance.now(), ms). */
+interface Flight {
+  readonly from: Vector3
+  readonly to: Vector3
+  readonly fromT: Vector3
+  readonly toT: Vector3
+  start: number | null
+}
+
 /** Flies the camera to a saved view when one is requested. */
 export function CameraRig() {
   const request = usePlanStore((s) => s.viewRequest)
@@ -24,7 +33,8 @@ export function CameraRig() {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const controls = useThree((s) => s.controls) as unknown as Controls | null
-  const flight = useRef<{ from: Vector3; to: Vector3; fromT: Vector3; toT: Vector3; t: number } | null>(null)
+  const invalidate = useThree((s) => s.invalidate)
+  const flight = useRef<Flight | null>(null)
 
   useEffect(() => {
     if (!request || !controls) return
@@ -40,9 +50,10 @@ export function CameraRig() {
       to: new Vector3(...pose.position),
       fromT: controls.target.clone(),
       toT: new Vector3(...pose.target),
-      t: 0,
+      start: null,
     }
-  }, [request, controls, camera, site, setEnvironment])
+    invalidate()
+  }, [request, controls, camera, site, setEnvironment, invalidate])
 
   // F or "Fly to the selection": keep the view direction, come to about 18 m from the object
   const focus = useFocusRequest((s) => s.request)
@@ -55,8 +66,9 @@ export function CameraRig() {
     if (!target) return
     const t = target as Vector3
     const back = camera.position.clone().sub(controls.target).normalize().multiplyScalar(FOCUS_DISTANCE_M)
-    flight.current = { from: camera.position.clone(), to: t.clone().add(back), fromT: controls.target.clone(), toT: t.clone(), t: 0 }
-  }, [focus, controls, camera, scene])
+    flight.current = { from: camera.position.clone(), to: t.clone().add(back), fromT: controls.target.clone(), toT: t.clone(), start: null }
+    invalidate()
+  }, [focus, controls, camera, scene, invalidate])
 
   useEffect(() => {
     // probes for end-to-end tests, side-by-side screenshots and the console
@@ -111,6 +123,21 @@ export function CameraRig() {
         while (p && p.userData.objectId === undefined) p = p.parent
         if (p?.userData.objectId === id) out[part] = (out[part] ?? 0) + 1
       })
+      return out
+    }
+    // the geometry ids of one plan object's meshes, by part (userData.part, else the mesh name), so a test can tell what a change rebuilt (R8.2)
+    w.islandale.geometriesOf = (id: string) => {
+      const out: Record<string, string[]> = {}
+      scene.traverse((o) => {
+        if (o.userData.objectId !== id) return
+        o.traverse((c) => {
+          const m = c as Mesh
+          if (!m.isMesh || !m.geometry) return
+          const part = typeof m.userData.part === 'string' ? m.userData.part : m.name || 'other'
+          ;(out[part] ??= []).push(m.geometry.uuid)
+        })
+      })
+      for (const k of Object.keys(out)) out[k].sort()
       return out
     }
     // which wings (mass indexes) of each building draw a rail, for checks against the old planner
@@ -188,6 +215,7 @@ export function CameraRig() {
       camera.position.set(...position)
       controls.target.set(...target)
       controls.update()
+      invalidate()
     }
     // look at one object from a compass bearing (degrees from north, clockwise) and distance in metres
     w.islandale.focus = (id: string, bearingDeg = 180, distanceM = 14, heightM = 4) => {
@@ -202,6 +230,7 @@ export function CameraRig() {
       camera.position.set(t.x + Math.sin(b) * distanceM, t.y + heightM, t.z - Math.cos(b) * distanceM)
       controls.target.set(t.x, t.y + 2, t.z)
       controls.update()
+      invalidate()
       return true
     }
     // look down at a site point (metres) from the south, so a test can click the open ground around it
@@ -212,6 +241,7 @@ export function CameraRig() {
       camera.position.set(gx, gy + heightM, gz + distanceM)
       controls.target.set(gx, gy, gz)
       controls.update()
+      invalidate()
       return true
     }
     // where a site point on the surveyed ground (metres) is on screen, in client px, or null when it is behind the camera
@@ -222,17 +252,22 @@ export function CameraRig() {
       const r = gl.domElement.getBoundingClientRect()
       return { x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height }
     }
-  }, [camera, gl, controls, scene, site])
+  }, [camera, gl, controls, scene, site, invalidate])
 
-  useFrame((_, dt) => {
+  // timed by the wall clock, not the frame delta: the first frame after the view sat still has a delta of seconds (R8.1)
+  useFrame(() => {
     const f = flight.current
     if (!f || !controls) return
-    f.t = Math.min(1, f.t + dt / DURATION_S)
-    const k = f.t < 0.5 ? 2 * f.t * f.t : 1 - (-2 * f.t + 2) ** 2 / 2
+    const now = performance.now()
+    f.start ??= now
+    const t = Math.min(1, (now - f.start) / 1000 / DURATION_S)
+    const k = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
     camera.position.lerpVectors(f.from, f.to, k)
     controls.target.lerpVectors(f.fromT, f.toT, k)
     controls.update()
-    if (f.t >= 1) flight.current = null
+    // keep drawing until the flight lands
+    if (t >= 1) flight.current = null
+    else invalidate()
   })
   return null
 }

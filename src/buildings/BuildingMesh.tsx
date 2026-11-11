@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
-import { localToSite, siteToLocal, type LocalPoint } from './footprint'
+import { localToSite, siteToLocal } from './footprint'
 import { TREE_WELL_FT, type TreeWell } from './decks/deckSteps'
-import { buildingMasses, buildingToMass, massBuildingPoly, massToBuilding } from './masses'
+import { buildingMasses, buildingToMass, massToBuilding } from './masses'
+import { massShapeTests } from './massShape'
 import { railStyleOf } from './rails/railEdits'
 import { buildingSupports } from './foundation/supportParams'
-import { insideAny } from './decks/wingPosts'
 import { ftToM } from '../site/units'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
@@ -33,8 +33,6 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const { selected, hovered, handlers } = useObjectInteraction(o)
   const focus = usePlanStore((s) => s.openingFocus)
   const masses = useMemo(() => buildingMasses(o.params), [o.params])
-  const outlines = useMemo(() => masses.map(massBuildingPoly), [masses])
-  const closed = useMemo(() => outlines.filter((_, i) => !masses[i].open), [masses, outlines])
   const trees = usePlanStore(useShallow((s) => s.plan.order.map((id) => s.plan.objects[id]).filter((t) => t?.type === 'tree' && !t.hidden).map((t) => t.position)))
 
   const base = baseElevation(terrain, o)
@@ -43,7 +41,9 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const supports = useMemo(() => buildingSupports(o.params), [o.params.support, o.params.postSpacing, o.params.postSize, o.params.bracing, o.params.mastAt]) // eslint-disable-line react-hooks/exhaustive-deps
   // rails per mass and edge, with the stairs, paths, bridges, doors and walls that open them
   const rails = useMemo(() => objectRailSite(railWorld, o), [railWorld, o])
-  // one site per mass, rebuilt only when the cabin, the ground or what opens its rails changes
+  // what hangs on the cabin's shape alone (R8.2): the same functions while it is dragged or turned, so the walls and their openings are not rebuilt
+  const shapeTests = useMemo(() => massShapeTests(masses), [masses])
+  // one site per mass, rebuilt when the cabin, the ground or what opens its rails changes; only groundAt needs where the cabin stands
   const sites = useMemo(
     () =>
       masses.map(
@@ -54,15 +54,14 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
             const [sx, sn] = localToSite(o.position, o.rotation, massToBuilding(m, [x, z]))
             return ground(sx, sn)
           },
-          insideWalls: (p: LocalPoint) => insideAny(closed, massToBuilding(m, p)),
-          insideOther: (p: LocalPoint) => insideAny(outlines.filter((_, j) => j !== index), massToBuilding(m, p)),
+          ...shapeTests[index],
           rails: rails.rails[index] ?? null,
           railStyle: railStyleOf(o.params, index),
           inDoorway: rails.inDoorway(index),
           clearTop: rails.clearTop(index),
         }),
       ),
-    [masses, outlines, closed, ground, base, o.position, o.rotation, o.params, rails],
+    [masses, shapeTests, ground, base, o.position, o.rotation, o.params, rails],
   )
 
   // tree wells in each stepped deck's frame; rebuilt only when the cabin or a tree moves

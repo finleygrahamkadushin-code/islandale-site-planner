@@ -1,12 +1,12 @@
-import type { ThreeEvent } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
-import type { BufferGeometry } from 'three'
+import type { BufferGeometry, Texture } from 'three'
 import type { Terrain as TerrainData } from './types'
 import { usePlanStore } from '../store/planStore'
 import { usePointerGround } from './pointer'
 import { useBoxSelect } from '../tools/useBoxSelect'
 import { buildPatchGeometry, buildTerrainGeometry, colourTerrain, type GroundRules } from './terrainGeometry'
-import { grass, perMetre } from '../scene/textures'
+import { textureFor } from '../scene/Surface'
 import { useEarthworks } from './earthworks/useEarthworks'
 import { isPresenting } from '../present/present'
 import { STYLE_GROUND, useDisplayStyle } from '../scene/useDisplayStyle'
@@ -25,13 +25,17 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   const rects = useMemo(() => works.fields.map((f) => f.rect), [works])
   const geometry = useMemo(() => buildTerrainGeometry(terrain, rects), [terrain, rects])
   const patches = useMemo(() => works.fields.map(buildPatchGeometry), [works])
-  const grassMap = useMemo(() => perMetre(grass()), [])
+  // the shared per-metre grass (the sod roofs' texture), not a clone of its own that was never disposed (R8.7)
+  const grassMap = textureFor('sod', 'm')
   const tinted = TINTED.has(style)
   // recolour only when the ground, tide, style or setbacks change (never during a drag)
+  const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
     const rules: GroundRules | null = tinted && setbacks.shown ? { parcel, settings: { setbacks, rules: true } } : null
     ;[geometry, ...patches].forEach((g) => colourTerrain(g, tideFt, rules))
-  }, [geometry, patches, tideFt, tinted, parcel, setbacks])
+    // colours written outside React: the view draws on demand (R8.1), so ask for the frame that shows them
+    invalidate()
+  }, [geometry, patches, tideFt, tinted, parcel, setbacks, invalidate])
   useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => patches.forEach((g) => g.dispose()), [patches])
   return (
@@ -72,7 +76,7 @@ const groundClick = (e: ThreeEvent<MouseEvent>) => {
   if (e.nativeEvent.shiftKey) s.setPlacing({ item, rotation, at })
 }
 
-function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: ReturnType<typeof perMetre>; readonly name: string }) {
+function Ground({ geometry, style, map, name }: { readonly geometry: BufferGeometry; readonly style: ReturnType<typeof useDisplayStyle>; readonly map: Texture; readonly name: string }) {
   const box = useBoxSelect()
   // Diagram tints the ground only while the Setbacks layer is shown; otherwise it keeps its flat colour
   const tinted = usePlanStore((s) => s.setbacks.shown)

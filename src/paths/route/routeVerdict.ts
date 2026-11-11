@@ -140,6 +140,21 @@ function markOffSurvey(items: readonly RouteItem[], terrain: Terrain): RouteItem
   return items.map((it) => (it.ends.every((e) => on(e.x, e.n)) ? it : { ...it, offSurvey: true }))
 }
 
+// the route panel, the route chips and the code check all ask for the same report: work it out once per objects, terrain and ground (R8.4).
+// Two kept, as the code check leaves hidden objects out and the panels don't: neither pushes the other's out.
+const KEPT_REPORTS = 2
+let reports: readonly { readonly objects: readonly PlanObject[]; readonly terrain: Terrain; readonly ground: Ground; readonly report: RouteReport }[] = []
+const sameObjects = (a: readonly PlanObject[], b: readonly PlanObject[]) => a.length === b.length && a.every((o, i) => o === b[i])
+
+/** The route report for these objects, shared by every caller while the objects (each the same object), the terrain and the ground are the same. */
+export function routeReportOf(objects: readonly PlanObject[], terrain: Terrain, ground: Ground): RouteReport {
+  const hit = reports.find((r) => r.terrain === terrain && r.ground === ground && sameObjects(r.objects, objects))
+  if (hit) return hit.report
+  const report = routeReport(objects, terrain, ground)
+  reports = [{ objects, terrain, ground, report }, ...reports].slice(0, KEPT_REPORTS)
+  return report
+}
+
 /** The whole check for a plan: every piece's verdict and every building's route. */
 export function routeReport(objects: readonly PlanObject[], terrain: Terrain, ground: Ground): RouteReport {
   const items = markOffSurvey(routeItems(objects, ground), terrain)

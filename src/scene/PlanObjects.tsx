@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, type ReactNode } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useShallow } from 'zustand/react/shallow'
 import { isObjectVisible, usePlanStore } from '../store/planStore'
@@ -59,7 +59,8 @@ function IsolateWrap({ id, faded, children }: { readonly id: string; readonly fa
   )
 }
 
-function PlanObjectView({ id, drag }: { readonly id: string; readonly drag: DragState | null }) {
+/** One object's meshes; memoised, so a drag step re-renders only the objects it moves (R8.3). */
+const PlanObjectView = memo(function PlanObjectView({ id, drag }: { readonly id: string; readonly drag: DragState | null }) {
   const stored = usePlanStore((s) => s.plan.objects[id])
   // While dragging, draw the object where the pointer has it, not where the store has it.
   const o = useMemo(() => (drag ? { ...stored, ...drag.patch(stored) } : stored), [stored, drag])
@@ -74,4 +75,4 @@ function PlanObjectView({ id, drag }: { readonly id: string; readonly drag: Drag
   if (o.type === 'pond') return <PondMesh o={o} />
   if (o.type === 'pad' && typeof o.params.kind === 'string' && pieceKind(o) !== 'walk') return <PathPieceMesh o={o} />
   return <ObjectMesh o={o} />
-}
+})

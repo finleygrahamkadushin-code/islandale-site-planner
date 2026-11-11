@@ -8,7 +8,7 @@ import { sunkCuts } from '../../scene/placement'
 import type { Ground, PathKind } from '../pieces'
 import { checkPieces } from './routeCheck'
 import { routeGraph, type RouteAnchor, type RouteItem } from './routeGraph'
-import { buildingRoutes, reportRows, routeReport } from './routeVerdict'
+import { buildingRoutes, reportRows, routeReport, routeReportOf } from './routeVerdict'
 
 /** A straight piece along x from x0 to x1 at levels z0 → z1. */
 function item(id: string, kind: PathKind, x0: number, x1: number, z0 = 0, z1 = z0, widthFt = 4): RouteItem {
@@ -136,5 +136,33 @@ describe('a route that only reaches a stair wing (walks rebuilt)', () => {
   test('says only by its stair, not no route', () => {
     const [r] = verdictsFor([item('w', 'walk', 0, 6)], [anchor('drive', 'driveway', 0), { ...anchor('foot', 'wingfoot', 6), access: 'stair' }, anchor('door', 'door', 40)])
     expect(r.text).toMatch(/only by its stair/)
+  })
+})
+
+describe('one route report per plan (R8.4)', () => {
+  const terrain = loadIslandaleTerrain()
+  const plan = planFromScheme(schemeById(loadSchemes(), 'C'))
+  const objects = plan.order.map((id) => plan.objects[id])
+  const ground: Ground = groundWithCuts(terrain, sunkCuts(objects, terrain))
+
+  test('callers with the same objects, terrain and ground share one report, even from a fresh array', () => {
+    const first = routeReportOf(objects, terrain, ground)
+    expect(routeReportOf([...objects], terrain, ground)).toBe(first)
+    expect(first).toEqual(routeReport(objects, terrain, ground))
+  })
+
+  test('a changed object, a different ground or a hidden object left out makes a new report; two are kept side by side', () => {
+    const all = routeReportOf(objects, terrain, ground)
+    const moved = objects.map((o, i) => (i === 0 ? { ...o, position: { x: o.position.x + 1, n: o.position.n } } : o))
+    expect(routeReportOf(moved, terrain, ground)).not.toBe(all)
+    const fewer = objects.slice(1)
+    const some = routeReportOf(fewer, terrain, ground)
+    expect(some).not.toBe(all)
+    // the code check's list and the panel's list alternate without pushing each other out
+    expect(routeReportOf(fewer, terrain, ground)).toBe(some)
+    const again = routeReportOf(objects, terrain, ground)
+    expect(routeReportOf(fewer, terrain, ground)).toBe(some)
+    expect(routeReportOf(objects, terrain, ground)).toBe(again)
+    expect(routeReportOf(objects, terrain, (x, n) => ground(x, n))).not.toBe(again)
   })
 })

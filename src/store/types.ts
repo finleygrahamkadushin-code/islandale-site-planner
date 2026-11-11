@@ -45,6 +45,8 @@ export const DISPLAY_STYLES: readonly { readonly id: DisplayStyle; readonly labe
 ]
 
 export type SeasonId = 'jun' | 'sep' | 'dec'
+export const SEASON_IDS: readonly SeasonId[] = ['jun', 'sep', 'dec']
+export const isSeasonId = (v: unknown): v is SeasonId => SEASON_IDS.includes(v as SeasonId)
 
 /** Sun and water settings. View state: saved with the plan, never an undo step. */
 export interface Environment {
