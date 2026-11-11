@@ -41,6 +41,7 @@ import { hasWebGL2 } from '../present/webgl'
 import { useIsolate, wasClaimed } from '../tools/isolate'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { RedrawOnChange } from './RedrawOnChange'
+import { OrbitSettle } from './OrbitSettle'
 
 /** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
 const ORBIT_SPEED = 0.6
@@ -102,6 +103,7 @@ export function Scene() {
       )}
       <CameraRig />
       <RedrawOnChange />
+      <OrbitSettle />
       <SheetCapture />
       <ViewProbe />
       <ModelExportProbe />
