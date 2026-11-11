@@ -161,6 +161,15 @@ describe('plan store', () => {
     store().setDisplayStyle('realistic')
   })
 
+  test('an unknown season or a non-number keeps the current value, so the sun never goes NaN', () => {
+    store().setEnvironment({ season: 'dec', hour: 10, tideFt: 4 })
+    store().setEnvironment({ season: 'winter' as never, hour: Number.NaN, tideFt: Number.POSITIVE_INFINITY })
+    expect(store().environment).toEqual({ season: 'dec', hour: 10, tideFt: 4 })
+    // a good field beside a bad one still lands
+    store().setEnvironment({ season: 'summer' as never, hour: 16 })
+    expect(store().environment).toEqual({ season: 'dec', hour: 16, tideFt: 4 })
+  })
+
   describe('clear plan', () => {
     test('removes every object as one undo step and leaves a blank plan', () => {
       store().select([firstId()])

@@ -6,6 +6,7 @@ import {
   DEFAULT_LAYERS,
   DISPLAY_STYLES,
   LAYER_IDS,
+  isSeasonId,
   type DisplayStyle,
   type Environment,
   type Setbacks,
@@ -210,7 +211,7 @@ function validateView(raw: unknown): PlanFile['view'] {
   ) as Layers
   const envRaw = isRecord(raw) && isRecord(raw.environment) ? raw.environment : {}
   const environment: Environment = {
-    season: envRaw.season === 'jun' || envRaw.season === 'sep' || envRaw.season === 'dec' ? envRaw.season : DEFAULT_ENVIRONMENT.season,
+    season: isSeasonId(envRaw.season) ? envRaw.season : DEFAULT_ENVIRONMENT.season,
     hour: isNum(envRaw.hour) ? envRaw.hour : DEFAULT_ENVIRONMENT.hour,
     tideFt: isNum(envRaw.tideFt) ? envRaw.tideFt : DEFAULT_ENVIRONMENT.tideFt,
   }

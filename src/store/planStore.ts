@@ -32,6 +32,7 @@ import {
   DEFAULT_LAYERS,
   HOUR_RANGE,
   TIDE_RANGE_FT,
+  isSeasonId,
   type DisplayStyle,
   type Environment,
   type Setbacks,
@@ -454,7 +455,7 @@ export const usePlanStore = create<PlanState>()(
             layers: mapLayers(s.layers, (l) => ({ ...l, locked })),
           })),
         showAll: () => set((s) => ({ layers: mapLayers(s.layers, (l) => ({ ...l, visible: true })) })),
-        setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }) })),
+        setEnvironment: (patch) => set((s) => ({ environment: clampEnvironment({ ...s.environment, ...patch }, s.environment) })),
         setSetbacks: (patch) => set((s) => ({ setbacks: clampSetbacks({ ...s.setbacks, ...patch }) })),
         // a new style starts from its own defaults
         setDisplayStyle: (displayStyle) => set({ displayStyle, displayOptions: {} }),
@@ -491,7 +492,7 @@ function viewPatch(s: PlanState, { labelMode, layers, environment, setbacks, dis
   return {
     labelMode: labelMode ?? s.labelMode,
     layers: layers ?? s.layers,
-    environment: environment ? clampEnvironment(environment) : s.environment,
+    environment: environment ? clampEnvironment(environment, s.environment) : s.environment,
     setbacks: setbacks ? clampSetbacks(setbacks) : s.setbacks,
     displayStyle: displayStyle ?? s.displayStyle,
     contours: contours === undefined ? s.contours : contours,
@@ -539,12 +540,18 @@ function mapLayers(layers: Layers, f: (l: LayerState) => LayerState): Layers {
   return Object.fromEntries(Object.entries(layers).map(([k, v]) => [k, f(v)])) as Layers
 }
 
-export function clampEnvironment(e: Environment): Environment {
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+/**
+ * The environment in range. A field that is no season or no number (from the
+ * console, a test or a saved view; the panels can't make one) keeps
+ * `fallback`'s value: an unknown season or a NaN hour gives a NaN sun and a
+ * black 3D view.
+ */
+export function clampEnvironment(e: Environment, fallback: Environment = DEFAULT_ENVIRONMENT): Environment {
+  const clamp = (v: number, lo: number, hi: number, keep: number) => (Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : keep)
   return {
-    season: e.season,
-    hour: clamp(e.hour, HOUR_RANGE.min, HOUR_RANGE.max),
-    tideFt: clamp(e.tideFt, TIDE_RANGE_FT.min, TIDE_RANGE_FT.max),
+    season: isSeasonId(e.season) ? e.season : fallback.season,
+    hour: clamp(e.hour, HOUR_RANGE.min, HOUR_RANGE.max, fallback.hour),
+    tideFt: clamp(e.tideFt, TIDE_RANGE_FT.min, TIDE_RANGE_FT.max, fallback.tideFt),
   }
 }
 
