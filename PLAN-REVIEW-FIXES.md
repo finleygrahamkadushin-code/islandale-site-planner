@@ -49,10 +49,10 @@ Finley asked (Nov 10) for the fixes to go to Opus 5.5 agents, to save usage on t
 | R1 Keyboard | **Done** | `e2e/keys.spec.ts` passed. Not re-run after the last tweak (Escape still reaches the plan when a tooltip closes on it; the More menu and the tour stop their own Escape) |
 | R2 Site rules | **Merged Nov 10** | Done by Opus. Still open: R2.5 (waits for decision 1) and the unchecked ramp items in R2.10 (landing width, edge protection, passing spaces, door clearance, whether a ramp wing's foot counts as arriving) |
 | R3 Stairs and rails | **Merged Nov 10** | Done by Opus. Still open: R3.4 (one tread too many) waits for Finley |
-| R4 Building geometry | Opus, wave 2 | R4.1: search saved plans and schemes for `tri` before rewinding |
-| R5 Interiors | Opus, wave 2 | Write the tests for `edits.ts` first; they are the safety net for the fix |
+| R4 Building geometry | **Merged Nov 10** | Done by Opus (R4.1 to R4.6). A hip roof's ridge now runs along the longer side whatever the ridge setting |
+| R5 Interiors | **Merged Nov 10** | Done by Opus: wall, corner and room edits refuse overlaps, crossings and splits; the edit code has tests |
 | R6 Fields, undo, saving | **Merged Nov 10** | Done by Opus (R6.1 to R6.13). Still open, as recommendations in its report: R6.14 (lock gaps), R6.15 (versioning), decision 5 (the tracked plan file) |
-| R7 Crashes and stuck states | Opus, wave 2 | |
+| R7 Crashes and stuck states | **Merged Nov 10** | Done by Opus: error boundaries, cancelled drags recover, toasts can be read and closed |
 | R8 Performance | Larger model, or Opus with a careful browser check | Switching to `frameloop="demand"` breaks anything that animates without invalidating (the sun animation, camera fly-to, water, label projection). R8.4, R8.6 and R8.7 are safe for Opus on their own |
 | R9 Interface | After Finley's decisions | Design choices first (decision 6), then Opus |
 | R10 Accessibility | Opus, after R9 | R10.1 needs a short design (how a keyboard user picks an object) agreed first |
