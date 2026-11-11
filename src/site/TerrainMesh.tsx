@@ -1,4 +1,4 @@
-import type { ThreeEvent } from '@react-three/fiber'
+import { useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import type { BufferGeometry, Texture } from 'three'
 import type { Terrain as TerrainData } from './types'
@@ -29,10 +29,13 @@ export function Terrain({ terrain }: { readonly terrain: TerrainData }) {
   const grassMap = textureFor('sod', 'm')
   const tinted = TINTED.has(style)
   // recolour only when the ground, tide, style or setbacks change (never during a drag)
+  const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
     const rules: GroundRules | null = tinted && setbacks.shown ? { parcel, settings: { setbacks, rules: true } } : null
     ;[geometry, ...patches].forEach((g) => colourTerrain(g, tideFt, rules))
-  }, [geometry, patches, tideFt, tinted, parcel, setbacks])
+    // colours written outside React: the view draws on demand (R8.1), so ask for the frame that shows them
+    invalidate()
+  }, [geometry, patches, tideFt, tinted, parcel, setbacks, invalidate])
   useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => patches.forEach((g) => g.dispose()), [patches])
   return (
