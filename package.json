@@ -14,7 +14,9 @@
     "extract": "node scripts/extract-legacy.mjs",
     "test:e2e": "playwright test",
     "plan:commit": "git add data/plans/islandale.plan.json && git commit -m \"chore(plan): save the Islandale plan\" -- data/plans/islandale.plan.json",
-    "check:bundle": "vite build && node scripts/checkBundle.mjs"
+    "check:bundle": "vite build && node scripts/checkBundle.mjs",
+    "lint:install": "npm ci --prefix tools/lint",
+    "lint": "node tools/lint/node_modules/eslint/bin/eslint.js ."
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "1.2.1",

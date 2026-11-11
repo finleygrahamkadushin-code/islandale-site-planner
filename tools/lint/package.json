@@ -1,0 +1,12 @@
+{
+  "name": "islandale-lint",
+  "private": true,
+  "description": "ESLint for the planner, kept apart from the app: typescript-eslint needs TypeScript's JS API (5.x or 6.0), and the app builds with TypeScript 7, which has none. TypeScript 6 here is only ESLint's parser; the typecheck still uses the app's TypeScript 7.",
+  "type": "module",
+  "devDependencies": {
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}
