@@ -137,7 +137,10 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   const box = { minx: Math.min(...xs), maxx: Math.max(...xs), minz: Math.min(...zs), maxz: Math.max(...zs) }
   const cx = (box.minx + box.maxx) / 2
   const cz = (box.minz + box.maxz) / 2
-  const along = p.ridge === 'z'
+  // a hip's ridge runs along the longer side whatever the ridge setting, so every face keeps the pitch (a square makes it a point)
+  const zLonger = box.maxz - box.minz > box.maxx - box.minx + 1e-9
+  const xLonger = box.maxx - box.minx > box.maxz - box.minz + 1e-9
+  const along = type === 'hip' && (zLonger || xLonger) ? zLonger : p.ridge === 'z'
   // L along the ridge, S across it, both including the overhang
   const wallL = along ? box.maxz - box.minz : box.maxx - box.minx
   const wallS = along ? box.maxx - box.minx : box.maxz - box.minz
