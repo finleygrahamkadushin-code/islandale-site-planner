@@ -204,6 +204,16 @@ describe('wall thickness per edge', () => {
     expect(corner?.[2]).toBeCloseTo(-8 + GLASS_WALL_FT, 6)
   })
 
+  test('a wall that folds straight back on a thinner one (a 180° turn) still has finite corners', () => {
+    // vertex 4 at (-10, 12): edge 3 runs up to it, edge 4 straight back down; edge 3 is glass, edge 4 solid
+    const folded: LocalPoint[] = [[-10, -8], [10, -8], [10, 8], [-10, 8], [-10, 12], [-10, 0]]
+    const shell = buildWallShell(folded, H, [], { cap: true, thicknessFt: (e) => (e === 3 ? GLASS_WALL_FT : T) })
+    const meshes = [...shell.edges.flatMap((e) => [e.outer, e.inner, e.reveals]), shell.cap]
+    const positions = meshes.flatMap((m) => m.positions)
+    expect(positions.length).toBeGreaterThan(0)
+    expect(positions.every(Number.isFinite)).toBe(true)
+  })
+
   test('buildWalls-style skins (thickness 0) have no reveal faces', () => {
     const shell = buildWallShell(rect, H, [], { cap: true, thicknessFt: 0 })
     expect(area(all(shell, 'reveals'))).toBeCloseTo(0, 9)
