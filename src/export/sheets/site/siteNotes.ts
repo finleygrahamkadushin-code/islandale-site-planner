@@ -100,7 +100,8 @@ function lotBlock(site: Site, objects: readonly PlanObject[]): NoteBlock {
       { label: 'Shoreline', value: `${Math.round(facts.shorelineFt).toLocaleString('en-US')} ft` },
       { label: 'Lot coverage', value: `${sqft(facts.coveredSqFt)} · ${facts.coveragePct.toFixed(1)} %` },
     ],
-    notes: ['Lot coverage: every cabin’s closed walls and wings (ground area, not times floors), standalone decks, sheds and shops.'],
+    // kept to one line of the notes column, so Scheme C's notes still fit beside its drawing on Tabloid
+    notes: ['Lot coverage: cabins’ closed walls and wings (ground area only), standalone decks, sheds and shops.'],
   }
 }
 
