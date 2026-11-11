@@ -125,6 +125,21 @@ export function CameraRig() {
       })
       return out
     }
+    // the geometry ids of one plan object's meshes, by part (userData.part, else the mesh name), so a test can tell what a change rebuilt (R8.2)
+    w.islandale.geometriesOf = (id: string) => {
+      const out: Record<string, string[]> = {}
+      scene.traverse((o) => {
+        if (o.userData.objectId !== id) return
+        o.traverse((c) => {
+          const m = c as Mesh
+          if (!m.isMesh || !m.geometry) return
+          const part = typeof m.userData.part === 'string' ? m.userData.part : m.name || 'other'
+          ;(out[part] ??= []).push(m.geometry.uuid)
+        })
+      })
+      for (const k of Object.keys(out)) out[k].sort()
+      return out
+    }
     // which wings (mass indexes) of each building draw a rail, for checks against the old planner
     w.islandale.railedMasses = () => {
       const out: Record<string, number[]> = {}
