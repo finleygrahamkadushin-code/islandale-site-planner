@@ -19,7 +19,7 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}', 'vite/**/*.ts', 'e2e/**/*.ts', 'vite.config.ts', 'playwright.config.ts'],
     extends: [tseslint.configs.recommended],
     plugins: { 'react-hooks': reactHooks },
-    rules: {
+        rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       // a name starting with _ is a deliberate discard (the code's rest-destructuring convention)
