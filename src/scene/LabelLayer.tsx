@@ -1,3 +1,4 @@
+import { invalidate } from '@react-three/fiber'
 import { useShallow } from 'zustand/react/shallow'
 import { isLabelShown, usePlanStore } from '../store/planStore'
 import { isOutside, useIsolate } from '../tools/isolate'
@@ -23,8 +24,10 @@ function LabelDiv({ id }: { readonly id: string }) {
   return (
     <div
       ref={(el) => {
-        if (el) labelElements.set(id, el)
-        else labelElements.delete(id)
+        if (!el) return void labelElements.delete(id)
+        labelElements.set(id, el)
+        // the view draws on demand (R8.1): a new label is placed on the next frame, so ask for one
+        invalidate()
       }}
       className={`label${selected ? ' selected' : ''}`}
       data-object-id={id}

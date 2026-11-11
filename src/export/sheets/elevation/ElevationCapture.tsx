@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
+import { invalidate, useThree } from '@react-three/fiber'
 import {
   BufferAttribute,
   BufferGeometry,
@@ -37,7 +37,12 @@ import {
 } from './sheetCapture'
 import { EdgeCache, findSheetTarget, frameBounds, isDrawable, isLineLike, meshLines, seeThrough } from './sheetTarget'
 
-const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+/** The next animation frame, with the view drawn in it (it draws only on demand, R8.1). */
+const nextFrame = () =>
+  new Promise<void>((resolve) => {
+    invalidate()
+    requestAnimationFrame(() => resolve())
+  })
 
 function checkRequest(req: ElevationRequest) {
   if (!SIDES.includes(req.side)) throw new Error(`There is no "${String(req.side)}" elevation`)

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { invalidate } from '@react-three/fiber'
 import { Camera, LogOut, Pause, Play, Rotate3d } from 'lucide-react'
 import { usePlanStore } from '../store/planStore'
 import { SAVED_VIEWS } from '../scene/views'
@@ -25,6 +26,8 @@ function useSunPlayer(): void {
       last = now
       const p = usePresent.getState()
       p.setPreviewHour(hourAt(elapsed.current, reduced))
+      // the view draws on demand: one frame for each step of the sun (R8.1)
+      invalidate()
       if (elapsed.current >= length) return p.pause()
       raf = requestAnimationFrame(tick)
     })

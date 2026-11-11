@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { addAfterEffect, useFrame, useThree } from '@react-three/fiber'
+import { addAfterEffect, invalidate, useFrame, useThree } from '@react-three/fiber'
 import { PerspectiveCamera, Vector3 } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { SAVED_VIEWS } from '../scene/views'
@@ -19,12 +19,13 @@ interface Controls {
   update: () => void
 }
 
-/** Run `f` once, right after the next frame is drawn (post-processing included). */
+/** Run `f` once, right after the next frame is drawn (post-processing included); asks for that frame, as the view only draws on demand. */
 function afterNextFrame(f: () => void): void {
   const stop = addAfterEffect(() => {
     stop()
     f()
   })
+  invalidate()
 }
 
 /**
@@ -60,6 +61,7 @@ export function ViewProbe() {
     const to = facingNorth(camera.position.toArray(), controls.target.toArray())
     camera.position.set(...to)
     controls.update()
+    invalidate()
   }, [north, camera, controls])
 
   // the snapshot: the canvas right after the next frame is drawn, before the browser clears it

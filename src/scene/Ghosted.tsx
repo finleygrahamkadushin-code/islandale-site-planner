@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { MeshBasicMaterial, type Group, type Material, type Mesh, type Object3D } from 'three'
 
 /**
@@ -9,13 +9,12 @@ import { MeshBasicMaterial, type Group, type Material, type Mesh, type Object3D 
  * turning `on` off (or unmounting) puts back what each object had.
  *
  * Children may rebuild their meshes at any time (a display style change, a
- * param edit), so the subtree is checked every few frames for meshes not yet
- * ghosted.
+ * param edit), so the subtree is checked on every frame drawn for meshes not
+ * yet ghosted. The view draws only on demand (R8.1), so drawn frames are few
+ * and a rebuilt mesh is ghosted in the very frame that first shows it.
  */
 
 const GHOST = new MeshBasicMaterial({ color: '#c9d1d8', transparent: true, opacity: 0.16, depthWrite: false, toneMapped: false })
-/** Check for rebuilt meshes this often, in frames. */
-const RECHECK_FRAMES = 10
 const noRaycast = (): void => undefined
 
 interface Saved {
@@ -58,18 +57,21 @@ function restore(o: Object3D): void {
 
 export function Ghosted({ on, children }: { readonly on: boolean; readonly children: ReactNode }) {
   const ref = useRef<Group>(null)
-  const frame = useRef(0)
+  const invalidate = useThree((s) => s.invalidate)
   useFrame(() => {
     const root = ref.current
-    if (!on || !root) return
-    if (frame.current++ % RECHECK_FRAMES === 0) root.traverse(ghost)
+    if (on && root) root.traverse(ghost)
   })
+  // materials swapped outside React: ask for the frame that shows the change, both ways
   useEffect(() => {
     const root = ref.current
     if (!on || !root) return
     root.traverse(ghost)
-    frame.current = 1
-    return () => root.traverse(restore)
-  }, [on])
+    invalidate()
+    return () => {
+      root.traverse(restore)
+      invalidate()
+    }
+  }, [on, invalidate])
   return <group ref={ref}>{children}</group>
 }

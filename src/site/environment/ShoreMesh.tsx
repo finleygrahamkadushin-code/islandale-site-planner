@@ -1,5 +1,5 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import { Matrix4, Quaternion, Vector3, type InstancedMesh } from 'three'
 import { usePlanStore } from '../../store/planStore'
@@ -8,7 +8,7 @@ import { ftToM } from '../units'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { driftwood, foamSegments, FOAM_LIFT_M } from './shore'
 import { sunPosition } from './sun'
-import { useSunHour } from '../../present/present'
+import { usePresent, useSunHour } from '../../present/present'
 
 /** Logs reach this far past the lot's box, metres. */
 const DRIFT_MARGIN_M = 40
@@ -24,7 +24,9 @@ const reducedMotion = (): boolean => globalThis.matchMedia?.('(prefers-reduced-m
 /**
  * The shore (4E): a foam line where the water meets the ground at the current
  * tide, and driftwood along the wrack line. Rebuilt only when the tide or the
- * terrain changes.
+ * terrain changes. The foam washes only while Present's sun animation plays
+ * (never under reduced motion); the rest of the time it is still, so the view
+ * can stop drawing (R8.1).
  */
 export function ShoreMesh() {
   const style = useDisplayStyle()
@@ -70,11 +72,20 @@ export function ShoreMesh() {
   }, [logs, terrain])
 
   const foamLine = useRef<{ material: { opacity: number } } | null>(null)
-  const still = reducedMotion()
+  const invalidate = useThree((s) => s.invalidate)
+  const playing = usePresent((s) => s.presenting && s.playing)
+  const washing = playing && !reducedMotion()
   useFrame(({ clock }) => {
-    if (still || !foamLine.current) return
+    if (!washing || !foamLine.current) return
     foamLine.current.material.opacity = FOAM_OPACITY + WASH_SWING * Math.sin(clock.elapsedTime * WASH_SPEED)
+    invalidate()
   })
+  // stopped: back to the still foam, drawn once
+  useEffect(() => {
+    if (washing || !foamLine.current) return
+    foamLine.current.material.opacity = FOAM_OPACITY
+    invalidate()
+  }, [washing, invalidate, foam.length])
 
   return (
     <group name="shore">

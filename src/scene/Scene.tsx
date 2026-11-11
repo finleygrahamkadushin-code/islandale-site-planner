@@ -40,6 +40,7 @@ import { NoWebGL } from '../present/NoWebGL'
 import { hasWebGL2 } from '../present/webgl'
 import { useIsolate, wasClaimed } from '../tools/isolate'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
+import { RedrawOnChange } from './RedrawOnChange'
 
 /** The slow orbit in Present mode, degrees a second at OrbitControls' speed 1 is 6. */
 const ORBIT_SPEED = 0.6
@@ -67,6 +68,8 @@ export function Scene() {
       shadows="percentage"
       camera={{ position: [target[0] + 32, target[1] + 26, target[2] + 40], fov: 45, near: 0.5, far: 8000 }}
       gl={{ antialias: false, toneMapping: NoToneMapping }}
+      // draw only when something changes (R8.1): see RedrawOnChange and each animation's invalidate()
+      frameloop="demand"
       // a click on nothing clears the selection, but not the click that ends a box select
       onPointerMissed={() => !boxJustEnded() && !isPresenting() && select([])}
     >
@@ -95,6 +98,7 @@ export function Scene() {
         </ErrorBoundary>
       )}
       <CameraRig />
+      <RedrawOnChange />
       <SheetCapture />
       <ViewProbe />
       <ModelExportProbe />
