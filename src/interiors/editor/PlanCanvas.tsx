@@ -82,7 +82,8 @@ export function PlanCanvas({ o }: { readonly o: PlanObject }) {
   const fi = Math.min(v.fi, floors.length - 1)
   const floor: Floor = floors[fi]
   const wrap = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ w: 800, h: 600 })
+  // 0 until the canvas is measured, so the plan is fitted to the real canvas, not a guess
+  const [size, setSize] = useState({ w: 0, h: 0 })
   const gesture = useRef<Gesture | null>(null)
   const [preview, setPreview] = useState<Preview>({})
   const [draft, setDraft] = useState<Pt[] | null>(null)
@@ -99,7 +100,7 @@ export function PlanCanvas({ o }: { readonly o: PlanObject }) {
     return () => ro.disconnect()
   }, [])
   useEffect(() => {
-    if (!v.view && size.w > 0) v.setView(fitView(o.params, fi, size.w, size.h))
+    if (!v.view && size.w > 0 && size.h > 0) v.setView(fitView(o.params, fi, size.w, size.h))
   }, [v, o.params, fi, size])
   // a tool change drops whatever the last tool was showing
   useEffect(() => {

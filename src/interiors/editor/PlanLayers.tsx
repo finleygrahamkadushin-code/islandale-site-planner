@@ -7,6 +7,7 @@ import type { Pt } from '../geom'
 import { openingGeom, partitionSegments, roomInfo } from '../rooms'
 import { ROOM_COLORS, WALL, type Floor, type Furniture, type FurnitureBase, type Opening, type Room } from '../types'
 import { fmtArea, fmtLen } from '../format'
+import { roomLabel } from './labelFit'
 
 /**
  * One floor of a cabin drawn as a plan (old int2/render.js, editor mode):
@@ -110,8 +111,10 @@ export function PlanLayers({ params, fi, floor, t, width, height, sel, preview, 
           const inf = infos.get(r.id)
           if (!inf?.obb || !inf.label) return null
           const mn = Math.min(inf.obb.w, inf.obb.d)
-          const fs = Math.max(8, Math.min(12, (mn * S) / 4))
-          const lines = mn * S < 50 ? [r.name] : [r.name, `${fmtLen(inf.obb.w)} × ${fmtLen(inf.obb.d)}`, fmtArea(inf.area)]
+          const details = mn * S < 50 ? [] : [`${fmtLen(inf.obb.w)} × ${fmtLen(inf.obb.d)}`, fmtArea(inf.area)]
+          const fit = roomLabel(r.pts, inf.label, S, mn, r.name, details)
+          if (!fit) return null
+          const { lines, fs } = fit
           const y0 = Y(inf.label[1]) - ((lines.length - 1) * 1.25 * fs) / 2
           return (
             <g key={r.id} data-label-room={r.id}>
