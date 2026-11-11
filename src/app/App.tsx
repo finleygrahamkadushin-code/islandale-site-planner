@@ -30,7 +30,7 @@ const reloadPage = (): void => window.location.reload()
 function SceneCrash({ retry }: { readonly retry: () => void }) {
   return (
     <CrashNote className="viewport" title="The 3D view stopped working" actions={[{ label: 'Try again', onClick: retry }, { label: 'Reload the page', onClick: reloadPage }]}>
-      Your plan is kept and still saving. If a change you just made caused this, Undo it and then Try again.
+      Your plan is kept, and the rest of the planner still works. If a change you just made caused this, Undo it and then Try again.
     </CrashNote>
   )
 }
