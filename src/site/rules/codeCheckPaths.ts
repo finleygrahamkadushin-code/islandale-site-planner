@@ -1,5 +1,5 @@
 import { levelReport } from '../../paths/junctions/levels'
-import { reportRows, routeReport, type RouteReport } from '../../paths/route/routeVerdict'
+import { reportRows, routeReportOf, type RouteReport } from '../../paths/route/routeVerdict'
 import { named, type CheckContext, type CodeRow, type NamedObject } from './codeCheckTypes'
 
 /**
@@ -8,15 +8,8 @@ import { named, type CheckContext, type CodeRow, type NamedObject } from './code
  * parking, the path pieces' tally, and level floors and thresholds.
  */
 
-// the route report is the costliest check; the route and pieces rows share one per context
-const reports = new WeakMap<CheckContext, RouteReport>()
-function reportOf(c: CheckContext): RouteReport {
-  const hit = reports.get(c)
-  if (hit) return hit
-  const rep = routeReport(c.objects, c.terrain, c.routeGround)
-  reports.set(c, rep)
-  return rep
-}
+// the route report is the costliest check; the route and pieces rows share the Accessible route panel's when the objects and ground match (R8.4)
+const reportOf = (c: CheckContext): RouteReport => routeReportOf(c.objects, c.terrain, c.routeGround)
 
 const namesOf = (c: CheckContext, ids: readonly string[]): NamedObject[] =>
   ids.flatMap((id) => {

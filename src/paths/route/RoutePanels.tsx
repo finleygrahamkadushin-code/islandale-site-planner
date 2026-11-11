@@ -6,7 +6,7 @@ import { isDriveway } from '../pieces'
 import { autoRouteFromDriveway } from './routeAuto'
 import { routeAnchors, routeItems, routeObstacles } from './routeCollect'
 import { fixPiece } from './routeFix'
-import { reportRows, routeReport, type RouteReport } from './routeVerdict'
+import { reportRows, routeReportOf, type RouteReport } from './routeVerdict'
 import { snapTargets } from '../targets'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
@@ -20,7 +20,7 @@ export function useRouteReport(): RouteReport {
   const plan = usePlanStore((s) => s.plan)
   const terrain = usePlanStore((s) => s.site.terrain)
   const { ground } = useEarthworks()
-  return useMemo(() => routeReport(plan.order.map((id) => plan.objects[id]), terrain, ground), [plan, terrain, ground])
+  return useMemo(() => routeReportOf(plan.order.map((id) => plan.objects[id]), terrain, ground), [plan, terrain, ground])
 }
 
 /**
