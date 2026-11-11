@@ -1,9 +1,10 @@
 import { signedArea, type LocalPoint } from '../footprint'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { massBuildingPoly, massPoly, massToBuilding, type Mass } from '../masses'
 import { stateOf, type EdgeDraw, type RailState } from './railEdits'
 import { inIntervals, keepRuns, MIN_RUN_M, sampledRuns, type Interval } from './railOpenings'
 import { DROP_PROBE_M, GUARD_DROP_M, guardRule, wingDropM } from './rails'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Which edges of a deck or porch get a guard, and where along each edge
@@ -20,7 +21,6 @@ import { DROP_PROBE_M, GUARD_DROP_M, guardRule, wingDropM } from './rails'
  *   rule drew there.
  */
 
-const FT = 0.3048
 /** Legacy edgeFree probes: a point 0.3 ft out from the edge's midpoint, and other masses' edges within 0.6 ft of it. */
 const FREE_PROBE_FT = 0.3
 const FREE_NEAR_FT = 0.6

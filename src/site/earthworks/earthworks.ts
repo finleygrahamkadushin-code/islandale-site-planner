@@ -1,4 +1,4 @@
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { siteFootprint } from '../../buildings/footprint'
 import type { PlanObject } from '../../store/types'
 import { elevationAt } from '../terrain'
@@ -6,6 +6,7 @@ import type { SitePoint, Terrain } from '../types'
 import { siteEarthworks } from './earthworksField'
 import type { CellRect, EarthOp, Ground } from './earthworksTypes'
 import { pondLevelOf } from './earthworksSpec'
+import { M_PER_FT as FT } from '../units'
 
 export type { BermLine, BuildingEarthOp, CellRect, CourtCut, EarthField, EarthOp, Ground, PondEarthOp, PondWater, SiteEarthworks } from './earthworksTypes'
 export { EARTH_CLASS } from './earthworksTypes'
@@ -18,7 +19,6 @@ export { WALL_MIN_RETAIN_M, WALL_THICKNESS_M } from './earthworksWalls'
 export type { EarthTint, TintKind } from './earthworksTint'
 export { EARTH_TINTS, earthTintAt, sampleTint } from './earthworksTint'
 
-const FT = 0.3048
 /** Legacy earthOf() defaults for a sunk floor: 3 ft clear round the walls, a 2:1 (run:rise) bank. */
 export const SINK_MARGIN_FT = 3
 export const BANK_RUN_PER_RISE = 2
@@ -113,6 +113,7 @@ export function pondLevel(o: PlanObject, ground: Ground): number {
 
 const clampInt = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
+/** Point to segment taking x, n, written `p - (a + t d)`: not bit-for-bit `../geom2d`'s pointSegmentDistance, so kept. */
 function segDist(px: number, pn: number, a: SitePoint, b: SitePoint): number {
   const dx = b[0] - a[0]
   const dn = b[1] - a[1]

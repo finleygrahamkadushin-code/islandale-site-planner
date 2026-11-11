@@ -2,11 +2,11 @@ import { ShapeUtils, Vector2 } from 'three'
 import { signedArea, type LocalPoint } from '../footprint'
 import { addCap } from '../walls/walls'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
-import { polyRoof, prowRoof, SHELL_M, type ProwOptions } from './fittedRoof'
+import { polyRoof, prowRoof, segDist, SHELL_M, type ProwOptions } from './fittedRoof'
 import type { Mass } from '../masses'
 import { isSculpted, sculptedRoof, type SculptMass } from './sculptRoof'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const FASCIA_M = 0.24
 const FLAT_M = 0.3
 /** Gambrel: the ridge stands 1.3 times a gable's, the knuckle at a quarter span 0.72 of the way up (legacy roofGeometry). */
@@ -168,7 +168,7 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
   if (type === 'pyramid') {
     const ring = offsetPolygon(poly, p.overhangFt)
     const c = centroid(poly)
-    const inradius = Math.min(...poly.map((_, i) => distToEdge(c, poly[i], poly[(i + 1) % poly.length]))) * FT
+    const inradius = Math.min(...poly.map((_, i) => segDist(c, poly[i], poly[(i + 1) % poly.length]))) * FT
     const H = slope * (inradius + o)
     const apex: V3 = [c[0] * FT, H, c[1] * FT]
     const apexCentre: V3 = [apex[0], H / 3, apex[2]]
@@ -217,15 +217,8 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
     face(out.roof, [P(-L / 2, 0, -S / 2), P(L / 2, 0, -S / 2), P(r, H, 0), P(-r, H, 0)])
     face(out.roof, [P(L / 2, 0, S / 2), P(L / 2, 0, -S / 2), P(r, H, 0)])
     face(out.roof, [P(-L / 2, 0, S / 2), P(-L / 2, 0, -S / 2), P(-r, H, 0)])
-  } else {
-    // prow: a gable whose front (+u) end comes to a point like a boat's bow
-    const r = Math.max(-L / 2, L / 2 - S / 2)
-    face(out.roof, [P(-L / 2, 0, S / 2), P(L / 2, 0, S / 2), P(r, H, 0), P(-L / 2, H, 0)])
-    face(out.roof, [P(-L / 2, 0, -S / 2), P(L / 2, 0, -S / 2), P(r, H, 0), P(-L / 2, H, 0)])
-    face(out.roof, [P(L / 2, 0, S / 2), P(L / 2, 0, -S / 2), P(r, H, 0)])
-    const u = -wallL / 2
-    addPolygon(out.gables, [P(u, 0, -wallS / 2), P(u, (slope * S) / 2 - slope * o, 0), P(u, 0, wallS / 2)], [along ? 0 : -1, 0, along ? -1 : 0])
   }
+  // no prow case here: roofForm sends every prow to prowRoof above (roof.test.ts, "the box roofs")
   addCap(out.trim, eaveRect.map((q) => [q[0] / FT, q[2] / FT] as LocalPoint), 0, -1)
   addBand(out.trim, eaveRect.map((q) => [q[0], q[2]] as const), -FASCIA_M, 0)
   return { ...out, rise }
@@ -332,7 +325,7 @@ export function normaliseRoof(type: string): RoofType {
   return type ? 'gable' : 'none'
 }
 
-/** Push a convex-ish polygon (local feet) outward by `d` feet with mitred corners. */
+/** Push a convex-ish polygon (local feet) outward by `d` feet with mitred corners. Not outline.offsetOutline: it never shrinks, takes its outward side from the winding as given (no signed-area check) and clamps the mitre at 0.35, not 0.5. */
 export function offsetPolygon(poly: readonly LocalPoint[], d: number): LocalPoint[] {
   if (d <= 0) return [...poly]
   const n = poly.length
@@ -361,10 +354,3 @@ function centroid(poly: readonly LocalPoint[]): LocalPoint {
   return [poly.reduce((a, p) => a + p[0], 0) / poly.length, poly.reduce((a, p) => a + p[1], 0) / poly.length]
 }
 
-function distToEdge(c: LocalPoint, a: LocalPoint, b: LocalPoint): number {
-  const dx = b[0] - a[0]
-  const dz = b[1] - a[1]
-  const l2 = dx * dx + dz * dz || 1
-  const t = Math.max(0, Math.min(1, ((c[0] - a[0]) * dx + (c[1] - a[1]) * dz) / l2))
-  return Math.hypot(c[0] - (a[0] + t * dx), c[1] - (a[1] + t * dz))
-}

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { layoutStair, risersFor, runFt, stairMath } from './connectStair'
 import { ftIn, reverseSpec, specEnds } from './connectSpec'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const IN = 0.0254
 const flat = () => 0
 

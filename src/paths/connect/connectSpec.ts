@@ -1,5 +1,7 @@
 import type { PlanObject } from '../../store/types'
 import { KIND_LABELS, pieceEnds, type Ground, type PathKind, type Surface } from '../pieces'
+import { M_PER_FT as FT } from '../../site/units'
+export { FT }
 
 /**
  * The pieces Connect lays (old connectCore.seg and stair-connect piece):
@@ -44,7 +46,6 @@ export interface PieceSpec {
   readonly lift?: number
 }
 
-export const FT = 0.3048
 export const M2F = 1 / FT
 export const IN = 0.0254
 /** Ramp landings, 5 ft (ADA 405.7.3). */

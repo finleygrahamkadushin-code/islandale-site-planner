@@ -17,7 +17,7 @@ Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + Rea
 
 ```
 src/
-  app/          the app shell (App.tsx, styles), the light / dark theme, and prefetching the screens that load on first use
+  app/          the app shell (App.tsx, styles), the light / dark theme, prefetching the screens that load on first use, and the window.islandale test probes (probes.ts: dev server only, or a build with VITE_ISLANDALE_PROBES=1)
   store/        shared core: plan data, undo/redo, selection, locks, saving, and the action slices
   buildings/    feature (map inside): walls/ roofs/ openings/ rails/ stairs/ decks/ foundation/ paint/ parts/
   site/         feature (map inside): the lot at the top, then earthworks/ objects/ environment/

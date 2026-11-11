@@ -5,7 +5,7 @@
  * shadows the roofs cast. Site feet (x east, y north). Pure.
  */
 import { localToSite, num, siteFootprint, siteToLocal, type LocalPoint } from '../../../buildings/footprint'
-import { pointInPolygon } from '../../../buildings/foundation/foundation'
+import { pointInPolygon } from '../../../site/geom2d'
 import type { MassKind } from '../../../buildings/masses'
 import { boardwalkPath, routePoints } from '../../../buildings/decks/boardwalk'
 import { bridgeLayout, bridgeStyle } from '../../../buildings/decks/bridges'

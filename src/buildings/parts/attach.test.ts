@@ -25,8 +25,8 @@ import { planRailWorld } from '../rails/railSite'
 import { partFrame } from './partFrame'
 import { loadIslandaleTerrain } from '../../site/islandale'
 import type { PlanObject } from '../../store/types'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const FLOOR = 10
 /** Level ground `below` metres under the floor. */
 const flat = (below: number): AttachSite => ({ floor: FLOOR, groundAt: () => FLOOR - below })

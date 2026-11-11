@@ -7,8 +7,8 @@ import { Surface } from '../../scene/Surface'
 import { seededRandom, treeSeed } from '../objects/treeShapes'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from './useEarthworks'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 /** Legacy earthRetaining colours: face and cap, stone or concrete. */
 const FACE: Readonly<Record<WallMaterial, string>> = { stone: '#6f695f', concrete: '#8c8a84' }
 const CAP: Readonly<Record<WallMaterial, string>> = { stone: '#8a8478', concrete: '#a19f98' }

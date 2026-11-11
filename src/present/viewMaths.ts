@@ -1,9 +1,9 @@
+import { FT_PER_M } from '../site/units'
 /**
  * The compass and scale bar (4D): pure maths from the camera. Site frame:
  * three.js x is east and -z is north.
  */
 
-const FT_PER_M = 1 / 0.3048
 /** Round lengths the scale bar may show, feet. */
 export const SCALE_LENGTHS_FT: readonly number[] = [5, 10, 20, 50, 100, 200, 500]
 /** The longest the bar should be on screen, pixels. */

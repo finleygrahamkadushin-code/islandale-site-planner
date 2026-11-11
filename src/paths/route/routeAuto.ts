@@ -5,6 +5,7 @@ import { GRID, LAND, makePath, planRuns, trimKink, type LegPath, type RunOptions
 import { drivewayStart } from './routeCollect'
 import type { P2, RouteAnchor } from './routeGraph'
 import { D2R, FT, type PieceSpec } from './routeSpec'
+import { pointInPolygon, pointSegmentDistance } from '../../site/geom2d'
 
 /**
  * Auto route (old walkAutoRoute): the pieces from a start (a driveway
@@ -45,32 +46,16 @@ export interface AutoRoute {
 type Opt = RunOptions & { readonly widthFt: number }
 
 const crossZ = (o: P2, p: P2, q: P2) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0])
-function pointSegDist(p: P2, s: P2, e: P2): number {
-  const vx = e[0] - s[0]
-  const vy = e[1] - s[1]
-  const L2 = vx * vx + vy * vy
-  const t = L2 ? Math.max(0, Math.min(1, ((p[0] - s[0]) * vx + (p[1] - s[1]) * vy) / L2)) : 0
-  return Math.hypot(p[0] - s[0] - t * vx, p[1] - s[1] - t * vy)
-}
 function segSegDist(a: P2, b: P2, c: P2, d: P2): number {
   const d1 = crossZ(c, d, a)
   const d2 = crossZ(c, d, b)
   const d3 = crossZ(a, b, c)
   const d4 = crossZ(a, b, d)
   if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return 0
-  return Math.min(pointSegDist(a, c, d), pointSegDist(b, c, d), pointSegDist(c, a, b), pointSegDist(d, a, b))
-}
-function inPoly(P: readonly P2[], x: number, y: number): boolean {
-  let c = false
-  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
-    const a = P[i]
-    const b = P[j]
-    if (a[1] > y !== b[1] > y && x < ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1]) + a[0]) c = !c
-  }
-  return c
+  return Math.min(pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d), pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b))
 }
 function segPolyDist(a: P2, b: P2, P: readonly P2[]): number {
-  if (inPoly(P, a[0], a[1]) || inPoly(P, b[0], b[1])) return 0
+  if (pointInPolygon(P, a[0], a[1]) || pointInPolygon(P, b[0], b[1])) return 0
   return P.reduce((m, p, i) => Math.min(m, segSegDist(a, b, p, P[(i + 1) % P.length])), Infinity)
 }
 /** Is P–Q (trimmed tP and tQ at its ends) at least `clr` from every obstacle. */
@@ -119,7 +104,7 @@ export function findCorner(S: P2, T: P2, obs: readonly (readonly P2[])[], W: num
     .sort((p, q) => p.cost - q.cost)
   const hit = scored.find(
     ({ C }) =>
-      !obs.some((poly) => inPoly(poly, C[0], C[1])) &&
+      !obs.some((poly) => pointInPolygon(poly, C[0], C[1])) &&
       Math.hypot(C[0] - S[0], C[1] - S[1]) >= 0.5 &&
       Math.hypot(T[0] - C[0], T[1] - C[1]) >= 0.5 &&
       clearSeg(S, C, obs, clr, tr, 0) &&

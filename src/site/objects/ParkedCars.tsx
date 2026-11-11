@@ -9,8 +9,8 @@ import { heightM } from '../../scene/placement'
 import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from '../earthworks/useEarthworks'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 const BODY_COLOUR = '#6f7681'
 const TYRE_COLOUR = '#2f3336'
 

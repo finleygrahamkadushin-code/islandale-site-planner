@@ -21,8 +21,8 @@ import {
 import { earthCuts, earthOps } from '../../scene/placement'
 import type { PlanObject } from '../../store/types'
 import type { Terrain } from '../types'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 // flat ground at 10 m over a 41 x 41 grid at 2 m, centred on the origin
 const flat: Terrain = { lon0: 0, lat0: 0, spacing: 2, nx: 41, ny: 41, x0: -40, n0: -40, z: new Array(41 * 41).fill(10) }
 /** Ground rising `grade` metres per metre northward from 10 m at n = 0. */

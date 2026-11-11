@@ -3,8 +3,7 @@ import { connectPlan, type ConnectOption } from './connectPlan'
 import { usePlanStore } from '../../store/planStore'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { Tip } from '../../guide/Tip'
-
-const M_TO_FT = 1 / 0.3048
+import { FT_PER_M as M_TO_FT } from '../../site/units'
 
 /**
  * The Connect tool's panel (old connect popover): which end to pick next,

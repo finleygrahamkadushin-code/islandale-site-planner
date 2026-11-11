@@ -2,9 +2,9 @@ import { describe, expect, test } from 'vitest'
 import { usePlanStore } from '../../store/planStore'
 import { elevationAt } from '../terrain'
 import { DRIFT_LINE_FT, driftwood, foamSegments, seeded } from './shore'
+import { M_PER_FT as FT } from '../units'
 
 const terrain = () => usePlanStore.getState().site.terrain
-const FT = 0.3048
 
 describe('shore (4E)', () => {
   test('the foam line sits where the ground meets the tide, and moves with it', () => {

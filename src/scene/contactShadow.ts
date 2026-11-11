@@ -2,6 +2,7 @@ import { buildingMasses, deckObjectMass, massBuildingPoly } from '../buildings/m
 import { localToSite, siteFootprint, type LocalPoint } from '../buildings/footprint'
 import type { Ground } from '../site/earthworks/earthworksTypes'
 import type { SitePoint } from '../site/types'
+import { pointInPolygon } from '../site/geom2d'
 import type { PlanObject } from '../store/types'
 
 /**
@@ -32,16 +33,7 @@ export function shadowOutlines(o: PlanObject): SitePoint[][] {
   return [[...siteFootprint(o)]]
 }
 
-function inside(poly: readonly SitePoint[], x: number, n: number): boolean {
-  let on = false
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, ni] = poly[i]
-    const [xj, nj] = poly[j]
-    if (ni > n !== nj > n && x < ((xj - xi) * (n - ni)) / (nj - ni) + xi) on = !on
-  }
-  return on
-}
-
+/** Nearest edge, inline in the loop as `p - (a + t d)` with `|| 1`: not bit-for-bit `site/geom2d`'s pointSegmentDistance. */
 function edgeDistance(poly: readonly SitePoint[], x: number, n: number): number {
   let best = Infinity
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -60,7 +52,7 @@ function edgeDistance(poly: readonly SitePoint[], x: number, n: number): number 
 export function shadowAlpha(polys: readonly (readonly SitePoint[])[], x: number, n: number): number {
   let near = Infinity
   for (const p of polys) {
-    if (inside(p, x, n)) return SHADOW_STRENGTH
+    if (pointInPolygon(p, x, n)) return SHADOW_STRENGTH
     near = Math.min(near, edgeDistance(p, x, n))
   }
   const t = Math.max(0, Math.min(1, near / SHADOW_REACH_M))

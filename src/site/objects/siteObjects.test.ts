@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { localFootprint, signedArea, type LocalPoint } from '../../buildings/footprint'
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { seededRandom, treeSeed } from './treeShapes'
 import {
   BOULDER_MAX_ROCKS,
@@ -18,8 +18,8 @@ import {
   rockSeat,
   scatterIn,
 } from './siteObjects'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 const metres = (P: readonly LocalPoint[]): LocalPoint[] => P.map(([x, z]) => [x * FT, z * FT])
 
 describe('objectSeed', () => {

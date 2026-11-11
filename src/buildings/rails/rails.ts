@@ -1,8 +1,8 @@
 import type { LocalPoint } from '../footprint'
 import type { Mass } from '../masses'
 import type { Interval } from './railOpenings'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 /** Legacy GUARD_FT = 2.5: a walking surface more than 30 in above the ground gets a guard. */
 export const GUARD_DROP_M = 2.5 * FT
 export { GUARD_HEIGHT_M } from './railStyles'

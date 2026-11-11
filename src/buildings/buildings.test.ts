@@ -5,8 +5,8 @@ import { buildRoof, ROOF_TYPES } from './roofs/roof'
 import { bounds, triangleCount } from './geom'
 import { layoutOpenings } from './openings/openingLayout'
 import { postPositions, supportType } from './foundation/foundation'
+import { M_PER_FT as FT } from '../site/units'
 
-const FT = 0.3048
 const rect = localFootprint({ w: 20, d: 16 })
 
 describe('walls', () => {

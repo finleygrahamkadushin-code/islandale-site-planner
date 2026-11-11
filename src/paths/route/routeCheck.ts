@@ -1,6 +1,7 @@
 import type { ObjectId } from '../../store/types'
 import type { PathKind } from '../pieces'
 import { LEVEL_M, nodeName, type P2, type RouteGraph, type RouteItem } from './routeGraph'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Accessible-route checks per path piece (old ext:walk-check, ADA 2010
@@ -92,7 +93,6 @@ export interface PieceVerdict {
 }
 
 const IN = 0.0254
-const FT = 0.3048
 const EPS = 1e-6
 
 export const pct = (s: number): string => `${(s * 100).toFixed(1)} %`

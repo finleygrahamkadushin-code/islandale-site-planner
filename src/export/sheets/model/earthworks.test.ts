@@ -3,14 +3,13 @@ import { siteToLocal, type LocalPoint } from '../../../buildings/footprint'
 import { earthOps } from '../../../scene/placement'
 import { siteEarthworks } from '../../../site/earthworks/earthworks'
 import type { Terrain } from '../../../site/types'
-import { mToFt } from '../../../site/units'
+import { mToFt, M_PER_FT as FT } from '../../../site/units'
 import type { PlanObject } from '../../../store/types'
 import { edgeRuns, offsetPolyline } from './earthworks'
 import { elevationView, sheetBuildings } from './model'
 import { sheetTables } from '../tables/table'
 import type { SheetBuilding } from '../types'
 
-const FT = 0.3048
 // flat ground at 10 m over an 81 x 81 grid at 2 m, centred on the origin
 const flat: Terrain = { lon0: 0, lat0: 0, spacing: 2, nx: 81, ny: 81, x0: -80, n0: -80, z: new Array(81 * 81).fill(10) }
 /** Ground rising `grade` metres per metre northward from 10 m at n = 0. */

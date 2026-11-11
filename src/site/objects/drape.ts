@@ -1,9 +1,9 @@
 import { ShapeUtils, Vector2 } from 'three'
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../geom2d'
 import { signedArea, type LocalPoint } from '../../buildings/footprint'
 import { emptyMesh, type MeshData, type V3 } from '../../buildings/geom'
+import { M_PER_FT as FT } from '../units'
 
-const FT = 0.3048
 /** Draped surfaces are cut into cells this wide, feet (0.3 m, so a crease in the ground is never cut across by more than that). */
 export const DRAPE_CELL_FT = 1
 /** The top floats this far over its ground so the terrain never shows through, metres. */

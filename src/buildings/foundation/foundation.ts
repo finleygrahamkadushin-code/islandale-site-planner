@@ -1,4 +1,5 @@
 import type { LocalPoint } from '../footprint'
+import { pointInPolygon } from '../../site/geom2d'
 
 export type SupportType = 'posts' | 'skirt' | 'none'
 
@@ -64,12 +65,3 @@ export function postPositions(poly: readonly LocalPoint[], spacingFt: number, po
   return pts
 }
 
-export function pointInPolygon(poly: readonly LocalPoint[], x: number, z: number): boolean {
-  let inside = false
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, zi] = poly[i]
-    const [xj, zj] = poly[j]
-    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside
-  }
-  return inside
-}

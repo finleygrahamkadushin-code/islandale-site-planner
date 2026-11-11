@@ -1,6 +1,7 @@
 import { ShapeUtils, Vector2 } from 'three'
 import type { MeshData, V3 } from '../geom'
 import { area, clean, type XZ } from './stairCurve'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The old stair-geom builders on MeshData, in the stair frame (metres):
@@ -8,7 +9,6 @@ import { area, clean, type XZ } from './stairCurve'
  * boards run across the treads.
  */
 
-const FT = 0.3048
 const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 

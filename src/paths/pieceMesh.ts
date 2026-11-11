@@ -4,6 +4,7 @@ import { beam, box, slab } from '../buildings/stairs/stairMesh'
 import { planStair, type StairMat } from '../buildings/stairs/stairPlan'
 import type { PlanObject } from '../store/types'
 import { GUARD_IN, pieceEnds, pieceKind, pieceLength, pieceWidth, railOn, stairInfo, type Ground } from './pieces'
+import { M_PER_FT as FT } from '../site/units'
 
 /**
  * A path piece's 3D pieces (old walkMesh), in its run frame, metres: z
@@ -27,7 +28,6 @@ export interface PieceMesh {
   readonly base: number
 }
 
-const FT = 0.3048
 const IN = 0.0254
 const SLAB_M = 0.15
 const DECK_M = 0.12

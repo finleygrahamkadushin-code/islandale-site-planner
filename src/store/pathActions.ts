@@ -7,6 +7,7 @@ import type { Terrain } from '../site/types'
 import type { PlanState } from './planStore'
 import type { ObjectId, Plan, PlanObject } from './types'
 import { freshId, freshName, withObjectPut } from './ids'
+import { M_PER_FT as FT } from '../site/units'
 
 /**
  * Path-piece actions of the plan store (5C): add a piece (snapped to what
@@ -15,8 +16,6 @@ import { freshId, freshName, withObjectPut } from './ids'
  * Level everything, Auto route). Each is one undo step, refused on a
  * read-only tab or a locked object.
  */
-
-const FT = 0.3048
 
 /** The old library's new pieces: name, size (ft) and settings. */
 export const PIECE_LIBRARY: Readonly<Record<PathKind, { readonly name: string; readonly params: Record<string, unknown> }>> = {

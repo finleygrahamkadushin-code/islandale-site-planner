@@ -1,9 +1,9 @@
 import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
+import { M_PER_FT as FT } from '../../site/units'
+export { FT }
 
 /** Small fixtures for the route tests: plan objects and a flat terrain. */
-
-export const FT = 0.3048
 
 export function obj(id: string, type: string, name: string, x: number, n: number, rotation: number, params: Record<string, unknown>): PlanObject {
   return { id, type, name, position: { x, n }, rotation, params, locked: false, hidden: false, labelVisible: true }

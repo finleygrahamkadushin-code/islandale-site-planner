@@ -6,8 +6,8 @@ import { isObjectLocked, usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { FeetInchesField } from '../ui/FeetInchesField'
 import { PieceCheck } from './route/RoutePanels'
+import { FT_PER_M as M_TO_FT } from '../site/units'
 
-const M_TO_FT = 1 / 0.3048
 const fmtFt = (m: number) => `${(m * M_TO_FT).toFixed(2)} ft`
 const ratio = (slope: number) => (slope > 1e-4 ? `1:${(1 / slope).toFixed(1)}` : 'level')
 

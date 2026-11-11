@@ -6,7 +6,7 @@
  * hole the doorway is walled shut. These are the holes to cut through it.
  */
 import { signedArea, type LocalPoint } from '../../buildings/footprint'
-import { pointInPolygon } from '../../buildings/foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { buildingMasses, buildingToMass, massBuildingPoly, massPoly, massToBuilding } from '../../buildings/masses'
 import type { WallHole } from '../../buildings/walls/wallShell'
 import { STOREY_FT } from './interior3d'

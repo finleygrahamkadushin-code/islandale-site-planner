@@ -4,6 +4,7 @@ import type { Terrain } from '../../site/types'
 import type { ObjectId, PlanObject } from '../../store/types'
 import { GAP_M, LEVEL_M, type Junction } from './junctions'
 import { massLabel, siteJunctions } from './junctionsSite'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The level report of one building (old join-core levelReportFor): wings
@@ -14,7 +15,6 @@ import { massLabel, siteJunctions } from './junctionsSite'
  * fixes into param patches). Pure.
  */
 
-const FT = 0.3048
 const IN = 0.0254
 /** A wing level at or above this is an intentional upper floor, feet. */
 export const UPPER_FLOOR_FT = 4.5

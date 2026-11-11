@@ -1,9 +1,11 @@
 import type { LocalPoint } from '../footprint'
-import { effectiveSupport, pointInPolygon, type SupportKind } from './foundation'
+import { effectiveSupport, type SupportKind } from './foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { curvePosts, offsetOutline } from '../outline'
 import { buildSlab } from '../slab'
 import { buildWalls } from '../walls/walls'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * Supports under a mass (legacy supportsMesh / _supportsMesh0,
@@ -15,7 +17,6 @@ import { buildWalls } from '../walls/walls'
  * ground under it, not to one common depth as in the old planner.
  */
 
-const FT = 0.3048
 const IN = 0.0254
 /** Posts, piles, cores and skirts go this far into the ground, metres. */
 export const SUPPORT_EMBED_M = 0.3

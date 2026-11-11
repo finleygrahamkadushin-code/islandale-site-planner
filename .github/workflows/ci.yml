@@ -1,0 +1,51 @@
+# Typecheck, lint and unit tests on every push and pull request (R11.1).
+#
+# No Playwright here for now: the end-to-end specs draw the 3D scene under
+# headless software GL, need long timeouts and one worker, and run for most of
+# an hour. Run them locally (`npm run test:e2e`) before merging a change they cover.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tools/lint/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        # `tsc -p .` checks nothing in this repo; the app's files are in tsconfig.app.json
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Install the linter
+        # ESLint has its own package in tools/lint (typescript-eslint needs TypeScript 6's API; the app uses TypeScript 7)
+        run: npm run lint:install
+
+      - name: Lint
+        run: npm run lint

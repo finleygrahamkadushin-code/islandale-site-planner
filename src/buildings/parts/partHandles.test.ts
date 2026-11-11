@@ -14,8 +14,8 @@ import {
   resizedWing,
   snapFt,
 } from './partHandles'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 /** A 12 × 10 deck hung off the right edge of a 20 ft square cabin, turned to face east. */
 const deck = () => wingMass({ kind: 'deck', w: 12, d: 10, dx: 15, dz: 0, rot: 90 })
 const round = (p: readonly number[]) => p.map((v) => Math.round(v * 1e6) / 1e6 + 0)

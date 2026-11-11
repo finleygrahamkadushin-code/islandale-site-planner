@@ -1,10 +1,10 @@
 import { ShapeUtils, Vector2 } from 'three'
-import { pointInPolygon } from '../foundation/foundation'
+import { pointInPolygon } from '../../site/geom2d'
 import { signedArea, type LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { offsetOutline } from '../outline'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 const FASCIA_M = 0.24
 /** Roof pieces smaller than this (m²) are slivers left by cutting along a crease. */
 const MIN_PIECE_M2 = 1e-9
@@ -315,7 +315,8 @@ function subdivide(a: P2, b: P2, c: P2, depth: number, emit: (a: P2, b: P2, c: P
   subdivide(ab, bc, ca, depth - 1, emit)
 }
 
-function segDist(p: P2, a: P2, b: P2): number {
+/** Point to segment, written `p - (a + t d)` with `|| 1` for a zero-length one: not bit-for-bit `site/geom2d`'s pointSegmentDistance, so kept (roof.ts uses it too). */
+export function segDist(p: P2, a: P2, b: P2): number {
   const dx = b[0] - a[0]
   const dz = b[1] - a[1]
   const l2 = dx * dx + dz * dz || 1

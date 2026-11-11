@@ -5,7 +5,7 @@ import { planWingStair, stairAxis, wingDropAtFoot, wingHost, type AccessSite } f
 import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, stairGeomMath, TREAD_MIN_M } from './stairs'
 import { withWing } from '../parts/wingEdits'
 import type { StairInfo } from './stairPlan'
-import { ftToM } from '../../site/units'
+import { ftToM, M_PER_FT as FT } from '../../site/units'
 import type { PlanObject } from '../../store/types'
 import { baseElevation } from '../../scene/placement'
 import { objectRailSite } from '../rails/railSite'
@@ -46,7 +46,6 @@ export function stairAttached(o: PlanObject, mi: number): boolean {
   return wingHost(masses, mi) !== null
 }
 
-const FT = 0.3048
 /** Ramps: one foot of run per inch of rise (1:12). */
 const RAMP_RUN_PER_RISE = 12
 /** Each pass re-measures the drop at the new foot; a stair down falling ground takes a few. */

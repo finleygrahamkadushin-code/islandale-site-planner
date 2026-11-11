@@ -36,6 +36,7 @@ import {
   roofsHeld,
 } from './sheetCapture'
 import { EdgeCache, findSheetTarget, frameBounds, isDrawable, isLineLike, meshLines, seeThrough } from './sheetTarget'
+import { PROBES_ON } from '../../../app/probes'
 
 /** The next animation frame, with the view drawn in it (it draws only on demand, R8.1). */
 const nextFrame = () =>
@@ -205,10 +206,10 @@ export function SheetCapture() {
     registerElevationCapturer((req) => renderElevation(kit, req))
     // probe for end-to-end tests and the console
     const w = window as unknown as { islandale?: Record<string, unknown> }
-    if (w.islandale) w.islandale.captureElevation = (req: ElevationRequest) => captureElevation(req)
+    if (PROBES_ON && w.islandale) w.islandale.captureElevation = (req: ElevationRequest) => captureElevation(req)
     return () => {
       registerElevationCapturer(null)
-      if (w.islandale) delete w.islandale.captureElevation
+      if (PROBES_ON && w.islandale) delete w.islandale.captureElevation
       kit.edges.dispose()
       kit.white.dispose()
       kit.ink.dispose()

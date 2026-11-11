@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from 'vitest'
 import { usePlanStore } from '../store/planStore'
 import type { PlanObject } from '../store/types'
 import { alignedPositions, distributedPositions, idsInBox } from './arrange'
+import { M_PER_FT as FT } from '../site/units'
 
-const FT = 0.3048
 const box = (id: string, x: number, n: number, w = 10, d = 10): PlanObject => ({ id, type: 'pad', name: id, position: { x, n }, rotation: 0, params: { w, d }, locked: false, hidden: false, labelVisible: true })
 const store = () => usePlanStore.getState()
 const history = () => usePlanStore.temporal.getState()

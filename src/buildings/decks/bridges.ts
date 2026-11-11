@@ -1,6 +1,7 @@
 import { boardwalkColumns, columnFits, type WalkPath } from './boardwalk'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
 import { addPrism } from '../foundation/supports'
+import { FT_PER_M as M_TO_FT } from '../../site/units'
 
 /**
  * Bridges as the old planner drew them (legacy bridgeLayout, specMesh):
@@ -22,7 +23,6 @@ const DEPTH_M: Readonly<Record<BridgeStyle, number>> = { truss: 0.32, cable: 0.2
 /** Column spacing by style, metres; a cable bridge stands only at its ends. */
 const COLUMN_SPACING_M: Readonly<Record<BridgeStyle, number>> = { truss: 12, cable: Infinity, ribbon: 7 }
 const MIN_HALF_WIDTH_M = 0.6
-const M_TO_FT = 1 / 0.3048
 /** Truss: side frame height and panel length, metres. */
 const TRUSS_HEIGHT_M = 1.7
 const TRUSS_PANEL_M = 2.4

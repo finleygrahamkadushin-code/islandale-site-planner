@@ -2,6 +2,7 @@ import { elevationAt } from '../terrain'
 import type { SitePoint, Terrain } from '../types'
 import { pondLevelOf, smoothMax, smoothstep, type EarthEdge } from './earthworksSpec'
 import { EARTH_CLASS, type BuildingEarthOp, type CellRect, type Ground, type PondEarthOp, type PondWater } from './earthworksTypes'
+import { M_PER_FT as FT } from '../units'
 
 /**
  * The legacy earthRebuild passes on one raster, in their old order: bench
@@ -9,8 +10,6 @@ import { EARTH_CLASS, type BuildingEarthOp, type CellRect, type Ground, type Pon
  * works only over its object's box and keeps the signed distances it
  * needs for the next.
  */
-
-const FT = 0.3048
 
 /** Samples per patch before the raster is coarsened (legacy 110 000), and the finest split of a terrain cell. */
 const MAX_SAMPLES = 110000
@@ -61,7 +60,7 @@ export interface PreparedPond {
 
 export type Prepared = PreparedBuilding | PreparedPond
 
-/** Squared distance from a point to a segment. */
+/** Squared distance from a point to a segment, on flat numbers (kept apart from `../geom2d` for the raster loop; no square root). */
 function seg2(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax
   const dy = by - ay
@@ -73,7 +72,7 @@ function seg2(px: number, py: number, ax: number, ay: number, bx: number, by: nu
   return ex * ex + ey * ey
 }
 
-/** Legacy eSD: signed distance to one closed outline (flat x, n pairs), negative inside. */
+/** Legacy eSD: signed distance to one closed outline (flat x, n pairs), negative inside. Its even-odd test is `../geom2d`'s, inline on the flat array. */
 export function sdPoly(P: Float64Array, x: number, n: number): number {
   let d = Infinity
   let inside = false

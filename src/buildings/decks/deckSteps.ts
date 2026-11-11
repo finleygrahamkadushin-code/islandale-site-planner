@@ -1,8 +1,8 @@
 import type { LocalPoint } from '../footprint'
 import type { DeckSteps } from '../masses'
 import { RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
+import { M_PER_FT as FT } from '../../site/units'
 
-const FT = 0.3048
 /**
  * The planner's one stair rule (stairs/stairs.ts): risers of 7 in or less,
  * treads of 11 in or more. Deliberate change: the legacy STEP_RISE_M /

@@ -10,6 +10,7 @@ import type { Terrain } from '../../site/types'
 import type { PlanObject } from '../../store/types'
 import { junctionsFor, type Candidate, type DoorSpan, type HostEdge, type Junction, type SegmentCandidate } from './junctions'
 import { isPathPiece, pieceEnds, pieceKind, pieceWidth } from '../pieces'
+import { M_PER_FT as FT } from '../../site/units'
 
 /**
  * The junction model read from the plan (old join-core glue: hostEdges,
@@ -19,7 +20,6 @@ import { isPathPiece, pieceEnds, pieceKind, pieceWidth } from '../pieces'
  */
 
 type P2 = readonly [number, number]
-const FT = 0.3048
 /** A bridge's width when it has none, feet. */
 const BRIDGE_W_FT = 6
 
