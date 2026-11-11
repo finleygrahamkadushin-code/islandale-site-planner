@@ -1,3 +1,4 @@
+import { ShapeUtils, Vector2 } from 'three'
 import { pointInPolygon } from '../foundation/foundation'
 import { signedArea, type LocalPoint } from '../footprint'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
@@ -5,6 +6,8 @@ import { offsetOutline } from '../outline'
 
 const FT = 0.3048
 const FASCIA_M = 0.24
+/** Roof pieces smaller than this (m²) are slivers left by cutting along a crease. */
+const MIN_PIECE_M2 = 1e-9
 /** Thickness of a vaulted (shell) prow roof, legacy SHELL_T. */
 export const SHELL_M = 0.2
 
@@ -25,11 +28,12 @@ const ccw = (poly: P2[]): P2[] => (signedArea(poly) < 0 ? [...poly].reverse() : 
 
 /**
  * Port of the legacy polyRoofGeometry(): a faceted roof over any outline
- * (walls grown by the overhang), fanned from the mass centre, for gable,
- * hip, shed, butterfly and gambrel on plans that are not rectangles. The
- * outline gets a point wherever an edge crosses a ridge, valley or hip line,
- * so a trapezoid's slanted side still shows its gable peak or butterfly V
- * (the legacy fan ran straight from corner to corner across them).
+ * (walls grown by the overhang) for gable, hip, shed, butterfly and gambrel
+ * on plans that are not rectangles. The outline gets a point wherever an
+ * edge crosses a ridge, valley or hip line, so a trapezoid's slanted side
+ * still shows its gable peak or butterfly V (the legacy fan ran straight
+ * from corner to corner across them). The legacy fanned from the mass
+ * origin, which roofed a U's courtyard; see roofPieces for what replaces it.
  */
 export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: number, ridge: 'x' | 'z', overhangFt: number): FittedRoof {
   const out = empty()
@@ -41,7 +45,8 @@ export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: numbe
   const hz = (Math.max(...zs) - Math.min(...zs)) / 2 || 1
   const cx = (Math.max(...xs) + Math.min(...xs)) / 2
   const cz = (Math.max(...zs) + Math.min(...zs)) / 2
-  const P = splitAtCreases(ring, creaseLines(type, ridge, cx, cz, hx, hz))
+  const lines = creaseLines(type, ridge, cx, cz, hx, hz)
+  const P = splitAtCreases(ring, lines)
   const f = (x: number, z: number): number => {
     const a = ridge === 'z' ? x - cx : z - cz
     const b = ridge === 'z' ? hx : hz
@@ -51,9 +56,12 @@ export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: numbe
     if (type === 'gambrel') return slope * b * 1.25 - slope * Math.abs(a) * 1.25
     return slope * b - slope * Math.abs(a)
   }
-  const c: V3 = [0, f(0, 0), 0]
-  const top = P.map(([x, z]) => [x, f(x, z), z] as V3)
-  for (let i = 0; i < P.length; i++) addPolygon(out.roof, [c, top[i], top[(i + 1) % P.length]], [0, 1, 0])
+  let rise = 0
+  for (const piece of roofPieces(P, [cx, cz], lines)) {
+    const pts = piece.map(([x, z]): V3 => [x, f(x, z), z])
+    rise = Math.max(rise, ...pts.map((q) => q[1]))
+    addPolygon(out.roof, pts, [0, 1, 0])
+  }
   // close the ends where the roof stands up off the eave line
   for (let i = 0; i < P.length; i++) {
     const a = P[i]
@@ -63,7 +71,28 @@ export function polyRoof(poly: readonly LocalPoint[], type: string, pitch: numbe
     if (ya > 0.02 || yb > 0.02) addPolygon(out.gables, [[a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], yb, b[1]], [a[0], ya, a[1]]], outwardOf(P, i))
   }
   soffitAndFascia(out, P)
-  return { ...out, rise: Math.max(c[1], ...top.map((q) => q[1])) }
+  return { ...out, rise }
+}
+
+/**
+ * The roof plan cut into flat pieces, each inside the outline and on one
+ * side of every crease. Every crease passes through the box centre `c`, so
+ * where `c` sees the whole outline a fan from it is already flat piece by
+ * piece. Elsewhere (a U, an L, a box centre outside the outline) the outline
+ * is triangulated and each triangle cut along the creases.
+ */
+function roofPieces(P: readonly P2[], c: P2, lines: readonly ((p: P2) => number)[]): P2[][] {
+  const fan = P.map((a, i): P2[] => [c, a, P[(i + 1) % P.length]])
+  if (fan.every((t) => signedArea(t) > MIN_PIECE_M2)) return fan
+  const tris = ShapeUtils.triangulateShape(P.map(([x, z]) => new Vector2(x, z)), [])
+  return tris
+    .flatMap(([i, j, k]) => lines.reduce<P2[][]>((pieces, g) => pieces.flatMap((q) => [clip(q, g), clip(q, (p) => -g(p))]), [[P[i], P[j], P[k]]]))
+    .flatMap((q) => {
+      // a cut leaves near-repeated points where a corner sits on the crease; fan each convex piece into its own triangles
+      const d = q.filter((a, n) => Math.hypot(a[0] - q[(n + 1) % q.length][0], a[1] - q[(n + 1) % q.length][1]) > 1e-9)
+      return d.slice(1, -1).map((a, n): P2[] => [d[0], a, d[n + 2]])
+    })
+    .filter((t) => Math.abs(signedArea(t)) > MIN_PIECE_M2)
 }
 
 /**
