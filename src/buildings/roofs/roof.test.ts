@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { buildRoof, offsetPolygon, type RoofParams } from './roof'
+import { buildRoof, normaliseRoof, offsetPolygon, roofForm, ROOF_TYPES, type RoofParams } from './roof'
+import { prowRoof } from './fittedRoof'
 import { localFootprint, signedArea, type LocalPoint } from '../footprint'
 import type { MeshData } from '../geom'
 import { M_PER_FT as FT } from '../../site/units'
@@ -66,5 +67,27 @@ describe('the overhang grows every footprint outward', () => {
       const poly = localFootprint({ w: 24, d: 16, shape, taper: 0.5, skew: 3 })
       expect(signedArea(offsetPolygon(poly, 2)), shape).toBeGreaterThan(signedArea(poly))
     }
+  })
+})
+
+describe('the box roofs (R11.7)', () => {
+  const outlines: Record<string, LocalPoint[]> = {
+    rectangle: box(20, 12),
+    square: box(10, 10),
+    'L shape': [[0, 0], [20, 0], [20, 8], [8, 8], [8, 16], [0, 16]],
+    triangle: [[0, 0], [12, 0], [4, 9]],
+  }
+
+  test('only gable, hip, shed, gambrel and butterfly (as buildRoof normalises the type) reach the box path, so it has no prow case', () => {
+    const boxed = new Set<string>()
+    for (const poly of Object.values(outlines)) for (const t of [...ROOF_TYPES, 'green', 'nonsense', '']) if (roofForm(t, poly) === 'box') boxed.add(normaliseRoof(t))
+    expect([...boxed].sort()).toEqual(['butterfly', 'gable', 'gambrel', 'hip', 'shed'])
+  })
+
+  test('a prow roof on a rectangle is the fitted prow, not a box roof', () => {
+    const poly = box(20, 12)
+    expect(roofForm('prow', poly)).toBe('prow')
+    const p = { ...params('prow', 'z', 1.5), tipPost: false } as RoofParams
+    expect(buildRoof(poly, p)).toEqual(prowRoof(poly, p.pitch, p.ridge, p.overhangFt, undefined))
   })
 })

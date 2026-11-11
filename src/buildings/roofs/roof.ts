@@ -217,15 +217,8 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
     face(out.roof, [P(-L / 2, 0, -S / 2), P(L / 2, 0, -S / 2), P(r, H, 0), P(-r, H, 0)])
     face(out.roof, [P(L / 2, 0, S / 2), P(L / 2, 0, -S / 2), P(r, H, 0)])
     face(out.roof, [P(-L / 2, 0, S / 2), P(-L / 2, 0, -S / 2), P(-r, H, 0)])
-  } else {
-    // prow: a gable whose front (+u) end comes to a point like a boat's bow
-    const r = Math.max(-L / 2, L / 2 - S / 2)
-    face(out.roof, [P(-L / 2, 0, S / 2), P(L / 2, 0, S / 2), P(r, H, 0), P(-L / 2, H, 0)])
-    face(out.roof, [P(-L / 2, 0, -S / 2), P(L / 2, 0, -S / 2), P(r, H, 0), P(-L / 2, H, 0)])
-    face(out.roof, [P(L / 2, 0, S / 2), P(L / 2, 0, -S / 2), P(r, H, 0)])
-    const u = -wallL / 2
-    addPolygon(out.gables, [P(u, 0, -wallS / 2), P(u, (slope * S) / 2 - slope * o, 0), P(u, 0, wallS / 2)], [along ? 0 : -1, 0, along ? -1 : 0])
   }
+  // no prow case here: roofForm sends every prow to prowRoof above (roof.test.ts, "the box roofs")
   addCap(out.trim, eaveRect.map((q) => [q[0] / FT, q[2] / FT] as LocalPoint), 0, -1)
   addBand(out.trim, eaveRect.map((q) => [q[0], q[2]] as const), -FASCIA_M, 0)
   return { ...out, rise }
