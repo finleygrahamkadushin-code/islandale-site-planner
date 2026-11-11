@@ -27,6 +27,19 @@ describe('footprint shapes (port of the legacy massPoly)', () => {
     expect(poly).toHaveLength(4)
   })
 
+  test('every footprint shape is wound counter-clockwise (positive signed area)', () => {
+    const shapes = ['rect', 'hex', 'oct', 'tri', 'trap', 'para', 'half', 'ellipse', 'kidney', 'teardrop', 'blob', 'ribbon']
+    for (const shape of shapes) {
+      const poly = localFootprint({ w: 24, d: 16, shape, taper: 0.5, skew: 3 })
+      expect(signedArea(poly), shape).toBeGreaterThan(0)
+    }
+  })
+
+  test('triangle keeps the front edge as edge 0', () => {
+    const tri = localFootprint({ w: 20, d: 10, shape: 'tri' })
+    expect(tri).toEqual([[10, 5], [-10, 5], [0, -5]])
+  })
+
   test('curved shapes come back as smooth outlines wound like the rest', () => {
     for (const shape of ['ellipse', 'kidney', 'teardrop', 'blob', 'ribbon']) {
       const poly = localFootprint({ w: 24, d: 16, shape })

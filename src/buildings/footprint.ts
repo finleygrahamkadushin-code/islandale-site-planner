@@ -43,7 +43,8 @@ export function localFootprint(p: FootprintParams): readonly LocalPoint[] {
       return [(w / 2) * Math.cos(r) * k, (d / 2) * Math.sin(r) * k] as const
     })
   }
-  if (shape === 'tri') return [[-w / 2, d / 2], [w / 2, d / 2], [0, -d / 2]]
+  // Counter-clockwise like every other shape (the legacy file wound it clockwise); the front edge stays edge 0.
+  if (shape === 'tri') return [[w / 2, d / 2], [-w / 2, d / 2], [0, -d / 2]]
   if (shape === 'trap') {
     const t = Math.max(0.15, Math.min(1, p.taper ?? 0.6))
     return [[(-w * t) / 2, -d / 2], [(w * t) / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]
