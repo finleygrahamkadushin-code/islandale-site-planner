@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { usePlanStore } from '../store/planStore'
 import { useOpenSections } from '../ui/InspectorSection'
 import { startTourIfNew, TOUR_STEPS, useTour, VIEW_ANCHOR } from './tour'
+import { clearSpot, type Box } from './tourPlace'
 
 /** The first control on screen among a step's anchors, else the view. */
 function anchorOf(selectors: readonly string[]): Element | null {
@@ -13,14 +14,50 @@ function anchorOf(selectors: readonly string[]): Element | null {
   return null
 }
 
-/** A share of the window past which an anchor is "the whole view": the card then sits in its middle, not beside it. */
+/** A share of the window past which an anchor is "the whole view": the card then sits in a clear corner of it, not beside it. */
 const BIG_ANCHOR = 0.5
+/** The card's size before it is first drawn (its CSS width, a typical height). */
+const CARD_GUESS = { width: 300, height: 170 }
+/** Must match the Popover's sideOffset: the card's top sits this far below the point. */
+const SIDE_OFFSET = 10
+const GAP = 12
 
-/** Where the card points: the control itself, or the middle of a big one such as the view. */
+const shown = (el: Element | null): DOMRect | null => {
+  const r = el?.getBoundingClientRect()
+  return r && r.width > 0 && r.height > 0 ? r : null
+}
+
+/** The part of the view no panel or bar covers: below the top bar, right of the tools, left of the side panel, above the bottom row. */
+function freeArea(): Box {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const bar = shown(document.querySelector('.topbar'))
+  const tools = shown(document.querySelector('.toolstrip'))
+  const side = shown(document.querySelector('.side'))
+  const bottom = shown(document.querySelector('.bottom-row'))
+  const sideAtRight = side && side.left > w / 2
+  const sheet = side && !sideAtRight ? side : null
+  return {
+    left: tools && tools.left < w / 4 && tools.bottom < h / 2 ? tools.right + GAP : GAP,
+    top: (bar?.bottom ?? 0) + GAP,
+    right: sideAtRight ? side.left - GAP : w - GAP,
+    bottom: Math.min(bottom?.top ?? h, sheet?.top ?? h) - GAP,
+  }
+}
+
+/**
+ * Where the card points: the control itself or, for the whole view, a point
+ * that puts the card in the corner covering fewest labels (R9.7), so it
+ * never hides the buildings.
+ */
 function pointAt(el: Element | null): DOMRect {
   const r = el?.getBoundingClientRect() ?? new DOMRect(window.innerWidth / 2, window.innerHeight / 3, 0, 0)
   if (r.height < window.innerHeight * BIG_ANCHOR) return r
-  return new DOMRect(r.left + r.width / 2, r.top + r.height / 3, 0, 0)
+  const card = shown(document.querySelector('[data-testid="tour"]')) ?? CARD_GUESS
+  // the labels stand for the model under them; the compass and scale bar should stay in sight too
+  const obstacles = [...document.querySelectorAll('.labels .label, .view-hud')].map(shown).filter((b): b is DOMRect => !!b)
+  const spot = clearSpot(freeArea(), card, obstacles)
+  return new DOMRect(spot.left + card.width / 2, spot.top - SIDE_OFFSET, 0, 0)
 }
 
 /** Re-render now and then, so the card follows a control that appears or moves (a label, a section opening). */
@@ -66,6 +103,8 @@ export function TourCard() {
 
   if (!current || step === null) return null
   const last = step === TOUR_STEPS.length - 1
+  // a step about the whole view sits in a clear corner of it, with nothing to point at
+  const aboutTheView = current.anchors.every((a) => a === VIEW_ANCHOR)
   return (
     <Popover.Root open modal={false}>
       <Popover.Anchor virtualRef={anchor} />
@@ -74,7 +113,7 @@ export function TourCard() {
           className="tour-card"
           side="bottom"
           align="center"
-          sideOffset={10}
+          sideOffset={SIDE_OFFSET}
           collisionPadding={12}
           aria-label={`Tour, step ${step + 1} of ${TOUR_STEPS.length}: ${current.title}`}
           data-testid="tour"
@@ -110,7 +149,7 @@ export function TourCard() {
               {last ? 'Done' : 'Next'}
             </button>
           </div>
-          <Popover.Arrow className="tour-arrow" />
+          {!aboutTheView && <Popover.Arrow className="tour-arrow" />}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
