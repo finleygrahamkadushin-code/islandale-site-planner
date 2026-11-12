@@ -18,6 +18,7 @@ import { ModeSwitch } from '../guide/ModeSwitch'
 import { useConfirm } from '../guide/confirm'
 import { loadSheets } from '../app/prefetch'
 import { ThemeSwitch } from '../app/ThemeSwitch'
+import { keys } from './keyHint'
 
 // loaded on first use, so the first frame doesn't wait for them (4E)
 const DrawingSheets = lazy(() => loadSheets().then((m) => ({ default: m.DrawingSheets })))
@@ -112,12 +113,12 @@ export function TopBar() {
       </Tip>
 
       <div className="seg" role="group" aria-label="Undo and redo">
-        <Tip label="Undo" keyHint="⌘Z">
+        <Tip label="Undo" keyHint={keys('Mod+Z')}>
           <button onClick={() => undoPlan()} disabled={!canUndo}>
             Undo
           </button>
         </Tip>
-        <Tip label="Redo" keyHint="⇧⌘Z">
+        <Tip label="Redo" keyHint={keys('Shift+Mod+Z')}>
           <button onClick={() => redoPlan()} disabled={!canRedo}>
             Redo
           </button>
@@ -219,7 +220,7 @@ export function TopBar() {
         <Ellipsis size={16} aria-hidden="true" /> More
       </button>
       <div className="seg" role="group" aria-label="Search and help">
-        <Tip label="Search every action and setting" keyHint="⌘K">
+        <Tip label="Search every action and setting" keyHint={keys('Mod+K')}>
           <button type="button" onClick={() => useOverlay.getState().setOpen('commands')} data-testid="open-commands">
             Search
           </button>

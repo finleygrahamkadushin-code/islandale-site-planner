@@ -14,6 +14,7 @@ import { useViewHud } from '../present/viewState'
 import { exportModel } from '../export/model3d/exportModel'
 import { useTheme } from '../app/theme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
+import { keys } from '../ui/keyHint'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -97,8 +98,8 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'lock-all', group: 'Plan', label: 'Lock all', run: () => get().lockAll(true) },
     { id: 'unlock-all', group: 'Plan', label: 'Unlock all', run: () => get().lockAll(false) },
     { id: 'show-all', group: 'Plan', label: 'Show everything', run: () => get().showAll() },
-    { id: 'undo', group: 'Plan', label: 'Undo', keys: '⌘Z', run: () => undoPlan() },
-    { id: 'redo', group: 'Plan', label: 'Redo', keys: '⇧⌘Z', run: () => redoPlan() },
+    { id: 'undo', group: 'Plan', label: 'Undo', keys: keys('Mod+Z'), run: () => undoPlan() },
+    { id: 'redo', group: 'Plan', label: 'Redo', keys: keys('Shift+Mod+Z'), run: () => redoPlan() },
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
@@ -108,9 +109,9 @@ export function commandsFor(s: PlanState): Command[] {
   ]
   if (s.selection.length) {
     cmds.push(
-      { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: '⌘D', run: () => get().duplicateObjects(get().selection) },
-      { id: 'group', group: 'Selection', label: 'Group the selection', keys: '⌘G', run: () => get().groupObjects(get().selection) },
-      { id: 'ungroup', group: 'Selection', label: 'Ungroup the selection', keys: '⇧⌘G', run: () => get().ungroupObjects(get().selection) },
+      { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: keys('Mod+D'), run: () => get().duplicateObjects(get().selection) },
+      { id: 'group', group: 'Selection', label: 'Group the selection', keys: keys('Mod+G'), run: () => get().groupObjects(get().selection) },
+      { id: 'ungroup', group: 'Selection', label: 'Ungroup the selection', keys: keys('Shift+Mod+G'), run: () => get().ungroupObjects(get().selection) },
       { id: 'fly-to', group: 'Selection', label: 'Fly to the selection', keys: 'F', run: () => useFocusRequest.getState().flyTo(get().selection[0]) },
       { id: 'delete', group: 'Selection', label: 'Delete the selection', keys: 'Delete', run: () => requestDelete(get().selection) },
     )
