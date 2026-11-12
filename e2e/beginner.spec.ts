@@ -177,3 +177,31 @@ test('the confirm dialog shows over the interior editor: removing a floor asks f
   await expect.poll(floorCount).toBe(withUpper - 1)
 })
 
+
+test('Beginner shows no code check, program budget, accessible route or warning chips; Advanced shows them, Present never shows the chips', async ({ page }) => {
+  test.setTimeout(180_000)
+  await asNewcomer(page)
+  await expect(page.getByTestId('tour')).toBeVisible({ timeout: 20_000 })
+  await page.getByTestId('tour-skip').click()
+  const warningChips = page.locator('[data-testid="route-chip"], [data-testid="step-chip"]')
+  const route = page.getByRole('region', { name: 'Accessible route' })
+
+  await page.getByTestId('tab-build').click()
+  await expect(page.getByTestId('program-budget')).toHaveCount(0)
+  await expect(route).toHaveCount(0)
+  await page.waitForTimeout(1000)
+  await expect(warningChips).toHaveCount(0)
+  await page.getByTestId('tab-site').click()
+  await expect(page.getByTestId('code-check')).toHaveCount(0)
+  await expect(page.getByTestId('setbacks')).toBeVisible()
+
+  await page.getByTestId('mode-advanced').click()
+  await expect(page.getByTestId('code-check')).toBeVisible()
+  await page.getByTestId('tab-build').click()
+  await expect(page.getByTestId('program-budget')).toBeVisible()
+  await expect(route).toBeVisible()
+  await expect.poll(() => warningChips.count(), { timeout: 20_000 }).toBeGreaterThan(0)
+
+  await page.getByTestId('tab-present').click()
+  await expect(warningChips).toHaveCount(0)
+})

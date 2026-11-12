@@ -9,17 +9,20 @@ import { LAYER, ScreenChip } from '../../scene/ScreenChip'
 import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
+import { useWarningChipsShown } from '../../guide/hides'
 
 /**
  * Where paths meet buildings (old join-geom and junction chips): door
  * threshold plates, filler strips between abutting decks and tabs under
- * piece ends, and a "6 in step" chip at every junction that is not flush.
+ * piece ends, and a "6 in step" chip at every junction that is not flush
+ * (Advanced only, never in Present: R9.7).
  */
 export function JunctionLayer() {
   const plan = usePlanStore((s) => s.plan)
   const terrain = usePlanStore((s) => s.site.terrain)
   const style = useDisplayStyle()
   const { ground } = useEarthworks()
+  const showChips = useWarningChipsShown()
   const objects = useMemo(() => plan.order.map((id) => plan.objects[id]).filter((o) => o && !o.hidden), [plan])
   const slabs = useMemo(
     () => objects.flatMap((o): JoinSlab[] => (o.type === 'house' || o.type === 'deck' ? hostJoinery(o, objects, terrain, ground) : isPathPiece(o) ? pieceTabs(o, objects, terrain, ground) : [])),
@@ -31,7 +34,7 @@ export function JunctionLayer() {
       {slabs.map((s, i) => (
         <SlabMesh key={i} slab={s} style={style} />
       ))}
-      {chips.map((c, i) => (
+      {showChips && chips.map((c, i) => (
         <ScreenChip key={`c${i}`} position={toScene(c.x, c.n, c.z + CHIP_LIFT_M)} layer={LAYER.rail}>
           <span className="step-chip" data-testid="step-chip">
             {c.text}

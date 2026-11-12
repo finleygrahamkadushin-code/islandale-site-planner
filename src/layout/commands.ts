@@ -64,6 +64,10 @@ const SETTINGS: readonly { readonly label: string; readonly section: SectionId; 
 export function commandsFor(s: PlanState): Command[] {
   const get = () => usePlanStore.getState()
   const tab = (t: TaskTab) => useTaskTab.getState().setTab(t)
+  const showCheck = (t: TaskTab) => {
+    useGuideMode.getState().setMode('advanced')
+    tab(t)
+  }
   const cmds: Command[] = [
     { id: 'tool-select', group: 'Tools', label: 'Select and move', keys: 'V', run: () => get().setTool('select') },
     { id: 'tool-measure', group: 'Tools', label: 'Measure', keys: 'M', run: () => (tab(useTaskTab.getState().tab === 'site' ? 'site' : 'build'), get().setTool('measure')) },
@@ -93,8 +97,10 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'setbacks-show', group: 'Site rules', label: s.setbacks.shown ? 'Hide setbacks' : 'Show setbacks', run: () => get().setSetbacks({ shown: !get().setbacks.shown }) },
     { id: 'setbacks-strict', group: 'Site rules', label: 'Strict setback: shoreline 50 ft', run: () => (tab('site'), get().setSetbacks({ shoreFt: 50 })) },
     { id: 'setbacks-panel', group: 'Site rules', label: 'Setbacks', run: () => tab('site') },
-    { id: 'code-check', group: 'Site rules', label: 'Code check', run: () => tab('site') },
-    { id: 'program-budget', group: 'Site rules', label: 'Program budget: square feet against the 1,600 cap', run: () => tab('build') },
+    // Beginner hides the checks (R9.2), so these switch to Advanced first
+    { id: 'code-check', group: 'Site rules', label: 'Code check', run: () => showCheck('site') },
+    { id: 'program-budget', group: 'Site rules', label: 'Program budget: square feet against the 1,600 cap', run: () => showCheck('build') },
+    { id: 'route-check', group: 'Site rules', label: 'Accessible route (ADA) check', run: () => showCheck('build') },
     { id: 'lock-all', group: 'Plan', label: 'Lock all', run: () => get().lockAll(true) },
     { id: 'unlock-all', group: 'Plan', label: 'Unlock all', run: () => get().lockAll(false) },
     { id: 'show-all', group: 'Plan', label: 'Show everything', run: () => get().showAll() },
