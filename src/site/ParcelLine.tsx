@@ -4,15 +4,20 @@ import type { Parcel, Terrain } from './types'
 import { isShorelineEdge } from './parcel'
 import { onGround } from '../scene/frame'
 
-/** The lot line, and its edges along the water. */
-export const PARCEL_LINE = '#f4f1ea'
+/**
+ * The lot line, and its edges along the water. Magenta, the colour property
+ * lines are drawn in, so it reads on the green ground, the white model, the
+ * sketch paper and the diagram alike (R9.6; it was near-white, lost on the
+ * white model).
+ */
+export const PARCEL_LINE = '#c2185b'
 export const SHORELINE_LINE = '#5fb3e6'
 
 const LIFT_M = 0.15
 /** Points per edge so the line follows the ground. */
 const STEPS = 6
 
-/** The lot line draped on the terrain; shoreline edges in blue, the rest in white. */
+/** The lot line draped on the terrain; shoreline edges in blue, the rest in magenta. */
 export function ParcelLine({ parcel, terrain }: { readonly parcel: Parcel; readonly terrain: Terrain }) {
   const { shore, land } = useMemo(() => {
     const shore: [number, number, number][][] = []
@@ -32,7 +37,7 @@ export function ParcelLine({ parcel, terrain }: { readonly parcel: Parcel; reado
   return (
     <group name="parcel">
       {land.map((pts, i) => (
-        <Line key={`l${i}`} points={pts} color={PARCEL_LINE} lineWidth={2} />
+        <Line key={`l${i}`} points={pts} color={PARCEL_LINE} lineWidth={2.5} />
       ))}
       {shore.map((pts, i) => (
         <Line key={`s${i}`} points={pts} color={SHORELINE_LINE} lineWidth={3} />
