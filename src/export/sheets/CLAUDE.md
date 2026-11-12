@@ -58,7 +58,7 @@ The sheets only read the plan; they never change it. They read the plan, terrain
 
 - **The site plan also uses** `../../site/` (`rules/setbacks`, `rules/codeCheck`, `rules/program`, `rules/clearances`, `lotFacts`, `buffer`, `siteContours`, `environment/sun`), `../../paths/pieces`, `../../buildings/decks` (boardwalks and bridges) and `../../ui/selectionStats` (`clearanceRows`), and gets the ground from `../../site/earthworks/useEarthworks` in `DrawingSheets.tsx`, so its numbers and contours are the app's own. **A change to a 5E rule or its wording changes the site notes:** run `site/siteNotes.test.ts` and `e2e/site-sheet.spec.ts`.
 - **Uses, heavily:** `../../buildings/` (`footprint`, `masses`, `walls/wallShell`, `openings/openingLayout` and `openingEdits`, `roofs/roof` and `sculptRoof`, `foundation/supports`, `rails/railWorld`), `../../interiors/` (`geom`, `types`, `rooms`, `model`, `envelope`, `furniture`), `../../site/` (`units`, `types`, `terrain`, `earthworks`) and `../../store/types` and `planStore`. The sheets are drawn by the same functions the 3D scene uses, so they match it. **A change in buildings, interiors or site can change the sheets:** run this section's tests after one.
-- **Used by:** `../../ui/TopBar.tsx` (opens the modal), `../../scene/Scene.tsx` (mounts `ElevationCapture`), `../../buildings/roofs/useRoofsOff.ts` (roofs held on during a capture) and `../../interiors/scene3d/wallCrossings.test.ts`.
+- **Used by:** `../../ui/FileMenu.tsx` (File → Sheets… opens the modal), `../../scene/Scene.tsx` (mounts `ElevationCapture`), `../../buildings/roofs/useRoofsOff.ts` (roofs held on during a capture) and `../../interiors/scene3d/wallCrossings.test.ts`.
 
 ## Checks for this section
 

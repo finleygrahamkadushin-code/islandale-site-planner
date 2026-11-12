@@ -29,7 +29,7 @@ src/
   guide/        feature (map inside): Beginner / Advanced mode, the shared tooltip, glossary words, the confirm dialog, the first-run tour
   export/       planFile.ts (plan download); sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/; model3d/ (map inside): the .glb export
   scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
-  ui/           shared UI only: top bar, side panel, inspector shell, layers, history, fields, shortcuts
+  ui/           shared UI only: top bar (with its File and View menus), side panel, inspector shell, layers, history, fields, shortcuts
 data/islandale/ terrain grid, parcel, schemes (JSON, extracted from the old planner)
 legacy/         the old planner and its patch scripts (read-only reference)
 tools/          map.sh (search the old planner), move-modules.mjs (move files and rewrite imports)
@@ -53,7 +53,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Present mode, the sun animation, slow orbit, compass and scale bar, loading splash, snapshot, no-WebGL message | `src/present/` | `src/present/CLAUDE.md` |
 | Plan data, undo, saving, locks, autosave, the plan file | `src/store/`, `src/export/planFile.ts` | (shared core, no map) |
 | Cameras, lights, display styles, effects, selection and drag gizmos, labels, chips, surface textures | `src/scene/` | (shared, no map) |
-| Top bar, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
+| Top bar and its File and View menus, side panel, inspector shell, layers, history, shortcuts, feet-and-inches fields | `src/ui/` | (shared, no map) |
 | Blender renders and Unreal export: procedural materials, `styles.json`, the scene builder, the export checker | `tools/blender/` (fed by `tools/export/export_scene.mjs`) | `tools/blender/README.md`; the Unreal steps in `HANDOFF-blender-ue5.md` |
 
 `scene/`, `ui/` and `store/` hold only what several sections share. Most tasks never need them beyond the files a section map names.

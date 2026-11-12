@@ -7,12 +7,13 @@ Helping a newcomer (Phase 4C): the Beginner / Advanced switch, the one shared to
 | To change… | Open |
 |---|---|
 | The mode, its default, remembering it | `mode.ts` (`useGuideMode`, `useBeginner`, `MODE_KEY`) |
-| The switch in the top bar | `ModeSwitch.tsx` (mounted in `../ui/TopBar.tsx` beside Style) |
+| The switch in the top bar | `ModeSwitch.tsx` (mounted in `../ui/TopBar.tsx`, between Undo/Redo and the File and View menus) |
+| What Beginner hides: the code check, program budget and accessible-route panels, and the route and step warning chips (also hidden on the Present tab) | `hides.ts` (`CHECK_PANELS`, `warningChipsShown`; used by `../ui/SidePanel.tsx`, `../paths/route/RouteChips.tsx`, `../paths/junctions/JunctionLayer.tsx`) |
 | What Beginner hides or renames | at each field: `../ui/ShapeFields.tsx` (roof, footprint extra), `../ui/Inspector.tsx` (Turned, How tall, the Placement hint), `../ui/LayersPanel.tsx` (padlocks) |
 | A tooltip on any control | `Tip.tsx` (`Tip`; `TipProvider` is mounted once in `../app/App.tsx`) |
 | A glossary word and its definition | `glossary.ts` (`GLOSSARY`), `Term.tsx` |
 | Asking before deleting, Reset, removing a floor | `confirm.ts` (`requestDelete`, `useConfirm().request`), `ConfirmDialog.tsx` |
-| The tour's steps and where each points | `tour.ts` (`TOUR_STEPS`, anchors are `data-tour` attributes or selectors), `TourCard.tsx` |
+| The tour's steps and where each points | `tour.ts` (`TOUR_STEPS`, anchors are `data-tour` attributes or selectors), `TourCard.tsx`; a step about the whole view sits in the clear corner `tourPlace.ts` picks |
 | How these look | the "Beginner (4C)" block at the end of `../app/styles.css` |
 
 ## How it fits together
