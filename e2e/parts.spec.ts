@@ -201,7 +201,10 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
     })
   for (const [k, p] of spots.slice(0, 6).entries()) {
     const alt = k % 2 === 1
+    // drop the rail picked by the click before: its "Remove rail" chip can sit on the next spot and take the click
+    await store(page, 'pickPart', null)
     await store(page, 'select', [id])
+    await expect(page.locator('.rail-chip')).toHaveCount(0)
     if (alt) await page.keyboard.down('Alt')
     await page.mouse.click(p.x, p.y)
     if (alt) await page.keyboard.up('Alt')
