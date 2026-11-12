@@ -1,4 +1,4 @@
-import { MARGIN_IN, PAPERS, TITLE_IN, type AnyScale, type PaperId, type Tile } from './types'
+import { MARGIN_IN, PAPERS, TITLE_IN, type AnyScale, type PaperId, type Scale, type Tile } from './types'
 
 /** Feet of drawing one page holds at a scale: the paper less its margins and title strip. */
 export function pageFeet(paper: PaperId, scale: AnyScale): { readonly w: number; readonly h: number } {
@@ -48,4 +48,16 @@ const PAPERS_BY_SIZE = (Object.keys(PAPERS) as PaperId[]).sort((a, b) => PAPERS[
 /** The smallest paper that holds a drawing of width × height feet on one page at the scale, or null when none does. */
 export function smallestPaper(widthFt: number, heightFt: number, scale: AnyScale): PaperId | null {
   return PAPERS_BY_SIZE.find((id) => tileDrawing(widthFt, heightFt, id, scale).length === 1) ?? null
+}
+
+/**
+ * The largest scale at which every drawing fits one page of the paper (R9.4),
+ * so the sheets open whole rather than tiled; the smallest scale when none
+ * does. `extentsAt` gives the drawings' sizes in feet at a scale, as the
+ * dimension strings take more feet at a smaller scale.
+ */
+export function largestScaleThatFits<S extends Scale>(scales: readonly S[], paper: PaperId, extentsAt: (scale: S) => readonly { readonly w: number; readonly h: number }[]): S {
+  const largestFirst = [...scales].sort((a, b) => b - a)
+  const fits = (s: S) => extentsAt(s).every((e) => tileDrawing(e.w, e.h, paper, s).length === 1)
+  return largestFirst.find(fits) ?? largestFirst[largestFirst.length - 1]
 }

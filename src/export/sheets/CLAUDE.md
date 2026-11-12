@@ -1,6 +1,6 @@
 # Drawing sheets section
 
-Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (1/4" = 1'-0" by default) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, and tables of every measurement. They open as a modal over the planner from the top bar's Sheets button. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
+Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default the largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans fit one page, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand stays) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
 
 ## How it fits together
 

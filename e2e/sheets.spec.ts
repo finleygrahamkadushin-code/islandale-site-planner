@@ -34,8 +34,20 @@ async function elevationsDrawn(page: Page) {
   await expect(dialog(page).getByRole('button', { name: 'Print', exact: true })).toBeEnabled({ timeout: 90_000 })
 }
 
+test('the sheets open at the largest scale that fits C-0\'s plan on one Tabloid page (R9.4); a scale picked by hand stays', async ({ page }) => {
+  await open(page)
+  const scale = page.getByRole('combobox', { name: 'Drawing scale' })
+  // 83 × 101 ft with its dimensions: 3/32" leaves it 4 ft too tall for Tabloid's 9.1 in
+  await expect(scale).toHaveValue('0.0625')
+  await expect(dialog(page).locator('.sheets-fit:not([data-testid])')).toContainText('plan fits one page of Tabloid 17 × 11 in')
+  await scale.selectOption('0.25')
+  await page.getByRole('combobox', { name: 'Paper size' }).selectOption('archD')
+  await expect(scale).toHaveValue('0.25')
+})
+
 test('the plan of C-0 is drawn at 1/4" = 1\'-0", and the 1 in check bar is an inch', async ({ page }) => {
   await open(page)
+  await page.getByRole('combobox', { name: 'Drawing scale' }).selectOption('0.25')
   const svg = dialog(page).locator('.sheet-svg').first()
   const { widthIn, viewBoxW } = await svg.evaluate((el) => ({
     widthIn: parseFloat(el.getAttribute('width') ?? ''),
