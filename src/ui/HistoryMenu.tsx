@@ -3,7 +3,8 @@ import { activeAutosave, type SetAsideCopy } from '../store/autosave'
 import { describeSkipped, readSavedText } from '../store/persistence'
 import { usePlanStore } from '../store/planStore'
 import type { HistoryEntry } from '../store/history'
-import { Tip } from '../guide/Tip'
+import * as Menu from '@radix-ui/react-dropdown-menu'
+import { ChevronRight } from 'lucide-react'
 
 const timeOf = (iso: string) => {
   const d = new Date(iso)
@@ -26,24 +27,22 @@ const setAsideLabel = (c: SetAsideCopy): string => {
 /**
  * The last saves, each restorable (one undo step) or downloadable as a plan
  * file; below them, any save set aside because it could not be read whole.
+ * A submenu of File (R9.1); the list is read each time it opens.
  */
-export function HistoryMenu() {
-  const [open, setOpen] = useState(false)
+export function HistorySub() {
   const [entries, setEntries] = useState<readonly HistoryEntry[]>([])
   const [setAside, setSetAside] = useState<readonly SetAsideCopy[]>([])
   const replacePlan = usePlanStore((s) => s.replacePlan)
   const showToast = usePlanStore((s) => s.showToast)
 
-  const toggle = () => {
-    if (!open) {
-      setEntries(activeAutosave()?.history() ?? [])
-      setSetAside([])
-      activeAutosave()
-        ?.setAside()
-        .then(setSetAside)
-        .catch((err) => console.error('[history] could not list the set-aside saves', err))
-    }
-    setOpen(!open)
+  const onOpenChange = (open: boolean) => {
+    if (!open) return
+    setEntries(activeAutosave()?.history() ?? [])
+    setSetAside([])
+    activeAutosave()
+      ?.setAside()
+      .then(setSetAside)
+      .catch((err) => console.error('[history] could not list the set-aside saves', err))
   }
 
   const restore = (e: Pick<HistoryEntry, 'savedAt' | 'text'>) => {
@@ -54,7 +53,6 @@ export function HistoryMenu() {
       if (usePlanStore.getState().plan === before) return // refused: the toast says why
       const left = skipped.length ? ` ${describeSkipped(skipped)}.` : ''
       showToast(`Restored the ${timeOf(e.savedAt)} save. Undo to go back.${left}`)
-      setOpen(false)
     } catch (err) {
       showToast(`That save could not be read: ${err instanceof Error ? err.message : 'unknown error'}. Download it to repair it by hand.`)
     }
@@ -72,53 +70,43 @@ export function HistoryMenu() {
   }
 
   return (
-    <div className="history">
-      <Tip label="The last 20 saves">
-        <button onClick={toggle} className={open ? 'on' : ''} aria-expanded={open}>
-          History
-        </button>
-      </Tip>
-      {open && (
-        <div className="history-list" role="menu" data-testid="history-list">
-          {entries.length === 0 && <p className="muted small">No saves yet.</p>}
+    <Menu.Sub onOpenChange={onOpenChange}>
+      <Menu.SubTrigger className="menu-item" data-testid="open-history">
+        History
+        <ChevronRight size={14} aria-hidden="true" className="menu-keys" />
+      </Menu.SubTrigger>
+      <Menu.Portal>
+        <Menu.SubContent className="topbar-menu history-list" data-testid="history-list" sideOffset={4} collisionPadding={8} loop>
+          <Menu.Label className="menu-label">The last 20 saves</Menu.Label>
+          {entries.length === 0 && <p className="muted small history-empty">No saves yet.</p>}
           {entries.map((e, i) => (
-            <div key={`${e.savedAt}-${i}`} className="history-row">
+            <Menu.Group key={`${e.savedAt}-${i}`} className="history-row">
               <span>
                 <strong>{timeOf(e.savedAt)}</strong> <span className="muted">{e.label}</span>
               </span>
-              <span className="seg">
-                <button onClick={() => restore(e)} role="menuitem">
-                  Restore
-                </button>
-                <Tip label="Download this save as a plan file">
-                  <button onClick={() => download(e)} aria-label="Download this save as a plan file">
-                    ↓
-                  </button>
-                </Tip>
-              </span>
-            </div>
+              <Menu.Item className="menu-item" onSelect={() => restore(e)}>
+                Restore
+              </Menu.Item>
+              <Menu.Item className="menu-item" onSelect={() => download(e)} aria-label="Download this save as a plan file" title="Download this save as a plan file">
+                ↓
+              </Menu.Item>
+            </Menu.Group>
           ))}
           {setAside.map((c) => (
-            <div key={c.key} className="history-row" data-testid="history-set-aside">
+            <Menu.Group key={c.key} className="history-row" data-testid="history-set-aside">
               <span>
                 <strong>{timeOf(c.savedAt)}</strong> <span className="muted">{setAsideLabel(c)}</span>
               </span>
-              <span className="seg">
-                <Tip label="Open what can be read of this save (one undo step)">
-                  <button onClick={() => restore(c)} role="menuitem">
-                    Open
-                  </button>
-                </Tip>
-                <Tip label="Download this save exactly as it was kept">
-                  <button onClick={() => download(c)} aria-label="Download this set-aside save as it was kept">
-                    ↓
-                  </button>
-                </Tip>
-              </span>
-            </div>
+              <Menu.Item className="menu-item" onSelect={() => restore(c)} title="Open what can be read of this save (one undo step)">
+                Open
+              </Menu.Item>
+              <Menu.Item className="menu-item" onSelect={() => download(c)} aria-label="Download this set-aside save as it was kept" title="Download this save exactly as it was kept">
+                ↓
+              </Menu.Item>
+            </Menu.Group>
           ))}
-        </div>
-      )}
-    </div>
+        </Menu.SubContent>
+      </Menu.Portal>
+    </Menu.Sub>
   )
 }

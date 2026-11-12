@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { pickFromMenu } from './menus'
 
 /**
  * 6H done-when: Scheme C's site plan prints at 1" = 20'-0" on Tabloid, true
@@ -27,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 async function openSheets(page: Page) {
-  await page.getByRole('button', { name: 'Sheets', exact: true }).click()
+  await pickFromMenu(page, 'file', 'open-sheets')
   // the sheets load on first use; the dev server compiles them on demand
   await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(dialog(page).getByTestId('site-plan-svg')).toBeVisible({ timeout: 30_000 })
@@ -167,7 +168,7 @@ test('with no buildings, Print gives the site plan alone: no empty note and no t
     s.deleteObjects(s.plan.order.filter((id: string) => ['house', 'deck'].includes(s.plan.objects[id].type)))
   })
   expect(await page.evaluate(() => Object.values((window as any).islandale.store.getState().plan.objects).filter((o: any) => o.type === 'house').length)).toBe(0)
-  await page.getByRole('button', { name: 'Sheets', exact: true }).click()
+  await pickFromMenu(page, 'file', 'open-sheets')
   await expect(dialog(page).getByTestId('site-plan-svg')).toBeVisible({ timeout: 30_000 })
   await expect(dialog(page).getByText('There are no buildings in this plan to draw.')).toHaveCount(0)
   await expect(dialog(page).getByRole('button', { name: 'Print', exact: true })).toBeEnabled()

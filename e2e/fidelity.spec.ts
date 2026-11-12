@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { pickView, STYLE_IDS } from './menus'
 
 /** Phase 3B: Scheme C and its prow variants draw every wing, rail, step and tree without errors. */
 
@@ -31,7 +32,7 @@ test('Scheme C and C2 to C4 render with all their wings, in Realistic and White 
   for (const id of ['C', 'C2', 'C3', 'C4']) {
     await page.evaluate((s) => (window as any).islandale.store.getState().loadScheme(s), id)
     for (const name of STYLES) {
-      await page.getByRole('group', { name: 'Display style' }).getByRole('button', { name, exact: true }).click()
+      await pickView(page, STYLE_IDS[name])
       await page.waitForTimeout(800)
       const info = await drawn(page)
       // wings, posts, rails, steps and the boardwalk: far more than the Phase 3 model's boxes
@@ -60,7 +61,7 @@ test('contours follow the style unless set, and the setting survives a reload', 
     return s.contours ?? s.displayStyle !== 'realistic'
   })
   expect(await shown()).toBe(false)
-  await page.getByRole('group', { name: 'Display style' }).getByRole('button', { name: 'White model', exact: true }).click()
+  await pickView(page, 'style-white')
   expect(await shown()).toBe(true)
   await page.getByRole('button', { name: 'Hide Contours' }).click()
   expect(await shown()).toBe(false)

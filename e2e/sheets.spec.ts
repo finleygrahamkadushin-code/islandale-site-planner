@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { menuButton, pickFromMenu } from './menus'
 
 /** Drawing sheets: Scheme C's gathering cabin (C-0) at true scale, as a modal over the planner, printable, with a CSV for Excel. */
 
@@ -16,13 +17,13 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => (window as any).islandale.store.getState().select(['C-0']))
 })
 
-const sheetsButton = (page: Page) => page.getByRole('button', { name: 'Sheets', exact: true })
+const openSheets = (page: Page) => pickFromMenu(page, 'file', 'open-sheets')
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Drawing sheets' })
 const planObject = (page: Page) => page.evaluate(() => JSON.stringify((window as any).islandale.store.getState().plan.objects['C-0']))
 const sceneStats = (page: Page) => page.evaluate(() => (window as any).islandale.sceneStats())
 
 async function open(page: Page) {
-  await sheetsButton(page).click()
+  await openSheets(page)
   // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
   await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue('C-0')
@@ -57,13 +58,13 @@ test('the planner behind is inert: Delete and the arrow keys leave the plan alon
   expect(await planObject(page)).toBe(before)
 })
 
-test('opening focuses Back to the planner; Escape closes, even from a select, and gives the focus back to Sheets', async ({ page }) => {
+test('opening focuses Back to the planner; Escape closes, even from a select, and gives the focus back to File', async ({ page }) => {
   await open(page)
   await expect(dialog(page).getByRole('button', { name: 'Back to the planner' })).toBeFocused()
   await page.getByRole('combobox', { name: 'Paper size' }).focus()
   await page.keyboard.press('Escape')
   await expect(dialog(page)).toHaveCount(0)
-  await expect(sheetsButton(page)).toBeFocused()
+  await expect(menuButton(page, 'file')).toBeFocused()
   expect(await page.evaluate(() => document.getElementById('root')?.inert)).toBe(false)
 })
 
@@ -111,7 +112,7 @@ async function showScheme(page: Page, scheme: string, id: string, roofsOff = fal
 }
 
 async function openOn(page: Page, id: string) {
-  await sheetsButton(page).click()
+  await openSheets(page)
   // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
   await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue(id, { timeout: 60_000 })

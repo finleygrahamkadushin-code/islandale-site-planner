@@ -39,7 +39,7 @@ export function TaskTabs() {
               onClick={() => setTab(id)}
             >
               <Icon size={16} aria-hidden="true" />
-              {TAB_LABELS[id]}
+              <span className="bar-text">{TAB_LABELS[id]}</span>
             </button>
           </Tip>
         )

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { pickFromMenu } from './menus'
 import { openSection } from './inspector'
 
 /** Phase 3C lost-work drills for the new app. */
@@ -67,7 +68,7 @@ test('History lists the saves and restores one as an undoable step', async ({ pa
   await renameFirstHouse(page, 'After the reload')
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 15_000 })
 
-  await page.getByRole('button', { name: 'History' }).click()
+  await pickFromMenu(page, 'file', 'open-history')
   const list = page.getByTestId('history-list')
   await expect(list).toContainText('opened')
   // The newest entry is the rename; the one below it is the plan as it was opened.
@@ -198,9 +199,9 @@ test('a plan file with one bad object opens with the rest, names it, and keeps t
   await expect(page.getByRole('status').filter({ hasText: 'Broken by hand' })).toBeVisible({ timeout: 15_000 })
   expect(await page.evaluate(() => (window as any).islandale.store.getState().plan.order)).toEqual(broken.rest)
 
-  await page.getByRole('button', { name: 'History' }).click()
+  await pickFromMenu(page, 'file', 'open-history')
   const kept = page.getByTestId('history-set-aside')
   await expect(kept).toHaveCount(1)
   await expect(kept).toContainText('1 object could not be read')
-  await expect(kept.getByRole('button', { name: /Download this set-aside save/ })).toBeVisible()
+  await expect(kept.getByRole('menuitem', { name: /Download this set-aside save/ })).toBeVisible()
 })

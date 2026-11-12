@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openMenu, pickView, STYLE_IDS } from './menus'
 
 /** Phase 3: every display style and saved view renders cleanly and changes no plan data. */
 
@@ -28,12 +29,14 @@ test.beforeEach(async ({ page }) => {
 test('each display style renders without errors and leaves the plan alone', async ({ page }) => {
   const errors = collectErrors(page)
   const before = await planOf(page)
-  const styles = page.getByRole('group', { name: 'Display style' })
+  // the View menu stays open while styles are tried one after another (R9.1)
+  await openMenu(page, 'view')
   for (const name of STYLES) {
-    await styles.getByRole('button', { name, exact: true }).click()
-    await expect(styles.getByRole('button', { name, exact: true })).toHaveClass(/on/)
+    await page.getByTestId(STYLE_IDS[name]).click()
+    await expect(page.getByTestId(STYLE_IDS[name])).toHaveAttribute('aria-checked', 'true')
     await page.waitForTimeout(600)
   }
+  await page.keyboard.press('Escape')
   expect(await planOf(page)).toBe(before)
   expect(await undoSteps(page)).toBe(0)
   expect(errors).toEqual([])
@@ -59,7 +62,7 @@ test('each saved view moves the camera', async ({ page }) => {
 })
 
 test('style and sun settings survive a reload', async ({ page }) => {
-  await page.getByRole('group', { name: 'Display style' }).getByRole('button', { name: 'White model' }).click()
+  await pickView(page, 'style-white')
   // Sun and tide lives on the Site tab (4B)
   await page.getByTestId('tab-site').click()
   await page.getByRole('region', { name: 'Sun and tide' }).getByRole('button', { name: 'June' }).click()

@@ -1,12 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { openMenu, pickView } from './menus'
 
 /**
  * Phase 4E, steps 9 and 10: the light theme, and the planner at phone
  * (390 px) and tablet (768 px) widths. Under 900 px the side panel is a
- * sheet along the bottom, the top bar folds its secondary groups behind
- * More, and the tool strip runs along the bottom-left. Nothing scrolls
- * sideways, and nothing is removed.
+ * sheet along the bottom, the top bar takes at most two rows with its File
+ * and View menus (R9.1), and the tool strip runs along the bottom-left.
+ * Nothing scrolls sideways, and nothing is removed.
  */
 
 const SIZES = [
@@ -38,7 +39,7 @@ for (const size of SIZES) {
   test.describe(`${size.name} ${size.width} × ${size.height}`, () => {
     test.use({ viewport: { width: size.width, height: size.height } })
 
-    test('no sideways scroll; every tab, the tool strip, the inspector and the More menu are reachable', async ({ page }) => {
+    test('no sideways scroll; every tab, the tool strip, the inspector and the File and View menus are reachable', async ({ page }) => {
       test.setTimeout(180_000)
       await open(page)
       expect(await noSidewaysScroll(page), 'no sideways scroll on load').toBe(true)
@@ -78,16 +79,21 @@ for (const size of SIZES) {
       const row = (await page.locator('.bottom-row').boundingBox())!
       expect(row.y + row.height).toBeLessThanOrEqual(stripBottom.y + 1)
 
-      // the folded groups: hidden until More opens them
-      const exportButton = page.getByRole('button', { name: 'Export', exact: true })
-      await expect(exportButton).toBeHidden()
-      await page.getByTestId('topbar-more-toggle').click()
-      await expect(exportButton).toBeVisible()
-      await expect(exportButton).toBeInViewport()
-      await expect(page.getByTestId('mode-advanced')).toBeVisible()
-      expect(await noSidewaysScroll(page), 'no sideways scroll with More open').toBe(true)
+      // the bar: two rows at most, the mode switch always in it; Export and the theme in the menus
+      const rowHeight = (await page.getByTestId('menu-file').boundingBox())!.height
+      expect((await page.locator('.topbar').boundingBox())!.height).toBeLessThan(rowHeight * 3)
+      await expect(page.getByTestId('mode-advanced')).toBeInViewport()
+      const exportRow = page.getByTestId('export-plan')
+      await expect(exportRow).toBeHidden()
+      await openMenu(page, 'file')
+      await expect(exportRow).toBeInViewport()
+      expect(await noSidewaysScroll(page), 'no sideways scroll with File open').toBe(true)
       await page.keyboard.press('Escape')
-      await expect(exportButton).toBeHidden()
+      await expect(exportRow).toBeHidden()
+      await openMenu(page, 'view')
+      await expect(page.getByTestId('theme-dark')).toBeVisible()
+      expect(await noSidewaysScroll(page), 'no sideways scroll with View open').toBe(true)
+      await page.keyboard.press('Escape')
 
       // the compass and scale bar sit below the top bar
       const bar = (await page.locator('.topbar').boundingBox())!
@@ -108,7 +114,7 @@ test.describe('light theme', () => {
     expect(await theme()).toBeNull()
     const dark = await bodyBg()
 
-    await page.getByTestId('theme-light').click()
+    await pickView(page, 'theme-light')
     expect(await theme()).toBe('light')
     const light = await bodyBg()
     expect(light).not.toBe(dark)
@@ -117,6 +123,7 @@ test.describe('light theme', () => {
     await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
     expect(await theme()).toBe('light')
     expect(await bodyBg()).toBe(light)
+    await openMenu(page, 'view')
     await expect(page.getByTestId('theme-light')).toHaveAttribute('aria-checked', 'true')
 
     // System: no mark, and the browser's setting decides
@@ -136,7 +143,7 @@ test.describe('screenshots', () => {
     for (const scheme of ['light', 'dark'] as const) {
       test.describe(`${size.name} ${scheme}`, () => {
         test.use({ viewport: { width: size.width, height: size.height }, colorScheme: scheme })
-        test('saves a picture of the Build tab with a cabin selected and the More menu', async ({ page }) => {
+        test('saves a picture of the Build tab with a cabin selected and the File menu', async ({ page }) => {
           test.setTimeout(120_000)
           await open(page)
           await page.waitForFunction(() => (window as any).islandale?.screenOf, null, { timeout: 60_000 })
@@ -145,8 +152,8 @@ test.describe('screenshots', () => {
           await page.evaluate((i) => (window as any).islandale.store.getState().select([i]), id)
           await page.waitForTimeout(1500)
           await page.screenshot({ path: `test-results/narrow/${size.name}-${scheme}.png` })
-          await page.getByTestId('topbar-more-toggle').click()
-          await page.screenshot({ path: `test-results/narrow/${size.name}-${scheme}-more.png` })
+          await openMenu(page, 'file')
+          await page.screenshot({ path: `test-results/narrow/${size.name}-${scheme}-file.png` })
         })
       })
     }

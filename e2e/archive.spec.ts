@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { menuButton, pickFromMenu } from './menus'
 
 /**
  * Phase 5F done-when: every scheme opens from its card in the Designs
@@ -27,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 
 test('open H from its card: asks, loads in one undo step, selects the gathering building, says so; undo goes back', async ({ page }) => {
   test.setTimeout(180_000)
-  await page.getByTestId('open-archive').click()
+  await pickFromMenu(page, 'file', 'open-archive')
   const archive = page.getByTestId('archive')
   await expect(archive.getByTestId('archive-group-brief')).toBeVisible({ timeout: 20_000 })
   await expect(archive.getByTestId('scheme-card-C').getByTestId('open-now')).toBeVisible()
@@ -50,7 +51,7 @@ test('open H from its card: asks, loads in one undo step, selects the gathering 
 
 test('F shows rules off; I shows a cabin without a floor plan', async ({ page }) => {
   test.setTimeout(180_000)
-  await page.getByTestId('open-archive').click()
+  await pickFromMenu(page, 'file', 'open-archive')
   const f = page.getByTestId('scheme-card-F')
   await expect(f).toContainText('Rules off', { timeout: 20_000 })
   await expect(f.getByTestId('scheme-brief')).toContainText('rules off')
@@ -71,8 +72,11 @@ test('F shows rules off; I shows a cabin without a floor plan', async ({ page })
 
 test('the archive works from the keyboard and Escape returns focus', async ({ page }) => {
   test.setTimeout(120_000)
-  const button = page.getByTestId('open-archive')
+  // File opens on Enter with its first row, Designs…, focused (R9.1)
+  const button = menuButton(page, 'file')
   await button.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('open-archive')).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByTestId('archive-group-current')).toBeVisible({ timeout: 20_000 })
   await page.keyboard.press('Tab')
