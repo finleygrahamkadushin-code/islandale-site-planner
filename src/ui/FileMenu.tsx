@@ -6,7 +6,6 @@ import { CURRENT_SCHEME_ID } from '../site/schemes'
 import { openSchemeNow } from '../site/archive/openScheme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { usePlanStore } from '../store/planStore'
-import { Tip } from '../guide/Tip'
 import { useConfirm } from '../guide/confirm'
 import { loadSheets } from '../app/prefetch'
 import { HistorySub } from './HistoryMenu'
@@ -49,51 +48,37 @@ export function FileMenu() {
   return (
     <>
       <TopMenu label="File" testId="menu-file" triggerRef={trigger} onCloseAutoFocus={onCloseAutoFocus}>
-        <Tip label="Browse every scheme with its plan, description and how it does against the brief" side="right">
-          <MenuItem data-testid="open-archive" onSelect={later(() => useArchiveOpen.getState().setOpen(true))}>
-            Designs…
-          </MenuItem>
-        </Tip>
+        <MenuItem hint="Every scheme, with its plan and how it meets the brief" data-testid="open-archive" onSelect={later(() => useArchiveOpen.getState().setOpen(true))}>
+          Designs…
+        </MenuItem>
         <Menu.Separator className="menu-rule" />
-        <Tip label="Download the plan as a JSON file" side="right">
-          <MenuItem data-testid="export-plan" onSelect={downloadPlanFile}>
-            Export
-          </MenuItem>
-        </Tip>
-        <Tip label="Load a plan from a JSON file" side="right">
-          <MenuItem data-testid="import-plan" onSelect={() => fileInput.current?.click()}>
-            Import…
-          </MenuItem>
-        </Tip>
+        <MenuItem hint="Download the plan as a JSON file" data-testid="export-plan" onSelect={downloadPlanFile}>
+          Export
+        </MenuItem>
+        <MenuItem hint="Load a plan from a JSON file" data-testid="import-plan" onSelect={() => fileInput.current?.click()}>
+          Import…
+        </MenuItem>
         <Menu.Separator className="menu-rule" />
-        <Tip label="Floor plans and elevations to scale, with every dimension, for drawing by hand" side="right">
-          <MenuItem data-testid="open-sheets" onSelect={later(() => setSheetsOpen(true))}>
-            Sheets…
-          </MenuItem>
-        </Tip>
-        <Tip label="The 3D model as a .glb file, with a manifest, for Blender and SketchUp" side="right">
-          <MenuItem data-testid="export-3d" onSelect={() => void exportModel().catch(() => undefined)}>
-            3D model
-          </MenuItem>
-        </Tip>
+        <MenuItem hint="Plans and elevations to scale, for drawing by hand" data-testid="open-sheets" onSelect={later(() => setSheetsOpen(true))}>
+          Sheets…
+        </MenuItem>
+        <MenuItem hint="A .glb file and its manifest, for Blender and SketchUp" data-testid="export-3d" onSelect={() => void exportModel().catch(() => undefined)}>
+          3D model
+        </MenuItem>
         <HistorySub />
         {/* the built app runs as the hosted home, which also serves the old planner next to it */}
         {import.meta.env.PROD && (
-          <Tip label="The old planner, sharing the hosted home" side="right">
-            <MenuItem onSelect={later(() => setLegacyOpen(true))}>Old planner</MenuItem>
-          </Tip>
+          <MenuItem hint="The old planner, sharing the hosted home" onSelect={later(() => setLegacyOpen(true))}>
+            Old planner
+          </MenuItem>
         )}
         <Menu.Separator className="menu-rule" />
-        <Tip label="Back to Scheme C as saved in the old planner" side="right">
-          <MenuItem data-testid="reset-plan" onSelect={later(askReset)}>
-            Reset to Scheme C…
-          </MenuItem>
-        </Tip>
-        <Tip label="Remove everything from the plan and start from the bare lot" side="right">
-          <MenuItem data-testid="clear-plan" className="danger" disabled={!!readOnly} onSelect={later(askClear)}>
-            Clear the plan…
-          </MenuItem>
-        </Tip>
+        <MenuItem hint="Back to Scheme C as saved in the old planner" data-testid="reset-plan" onSelect={later(askReset)}>
+          Reset to Scheme C…
+        </MenuItem>
+        <MenuItem hint="Remove everything from the plan and start from the bare lot" data-testid="clear-plan" className="danger" disabled={!!readOnly} onSelect={later(askClear)}>
+          Clear the plan…
+        </MenuItem>
       </TopMenu>
       <input
         ref={fileInput}

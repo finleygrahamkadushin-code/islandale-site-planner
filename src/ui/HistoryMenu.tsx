@@ -5,6 +5,7 @@ import { usePlanStore } from '../store/planStore'
 import type { HistoryEntry } from '../store/history'
 import * as Menu from '@radix-ui/react-dropdown-menu'
 import { ChevronRight } from 'lucide-react'
+import { MenuText } from './TopMenu'
 
 const timeOf = (iso: string) => {
   const d = new Date(iso)
@@ -72,7 +73,7 @@ export function HistorySub() {
   return (
     <Menu.Sub onOpenChange={onOpenChange}>
       <Menu.SubTrigger className="menu-item" data-testid="open-history">
-        History
+        <MenuText hint="The last 20 saves, to restore or download">History</MenuText>
         <ChevronRight size={14} aria-hidden="true" className="menu-keys" />
       </Menu.SubTrigger>
       <Menu.Portal>
@@ -87,7 +88,7 @@ export function HistorySub() {
               <Menu.Item className="menu-item" onSelect={() => restore(e)}>
                 Restore
               </Menu.Item>
-              <Menu.Item className="menu-item" onSelect={() => download(e)} aria-label="Download this save as a plan file" title="Download this save as a plan file">
+              <Menu.Item className="menu-item" onSelect={() => download(e)} aria-label="Download this save as a plan file">
                 ↓
               </Menu.Item>
             </Menu.Group>
@@ -97,10 +98,10 @@ export function HistorySub() {
               <span>
                 <strong>{timeOf(c.savedAt)}</strong> <span className="muted">{setAsideLabel(c)}</span>
               </span>
-              <Menu.Item className="menu-item" onSelect={() => restore(c)} title="Open what can be read of this save (one undo step)">
+              <Menu.Item className="menu-item" onSelect={() => restore(c)}>
                 Open
               </Menu.Item>
-              <Menu.Item className="menu-item" onSelect={() => download(c)} aria-label="Download this set-aside save as it was kept" title="Download this save exactly as it was kept">
+              <Menu.Item className="menu-item" onSelect={() => download(c)} aria-label="Download this set-aside save as it was kept">
                 ↓
               </Menu.Item>
             </Menu.Group>

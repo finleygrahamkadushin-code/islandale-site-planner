@@ -3,8 +3,7 @@ import { usePlanStore } from '../store/planStore'
 import { DISPLAY_STYLES, type DisplayStyle, type LabelMode } from '../store/types'
 import { DISPLAY_TOGGLES, useDisplayEffects } from '../scene/displayOptions'
 import { useTheme, type ThemeChoice } from '../app/theme'
-import { Tip } from '../guide/Tip'
-import { MenuKeys, MenuTick, TopMenu } from './TopMenu'
+import { MenuKeys, MenuText, MenuTick, TopMenu } from './TopMenu'
 
 const LABEL_MODES: readonly { readonly id: LabelMode; readonly label: string }[] = [
   { id: 'all', label: 'All' },
@@ -51,18 +50,17 @@ export function ViewMenu() {
       <Menu.Separator className="menu-rule" />
       <Menu.Label className="menu-label">Effects (picking a style resets them)</Menu.Label>
       {DISPLAY_TOGGLES.map((t) => (
-        <Tip key={t.id} label={t.hint} side="right">
-          <Menu.CheckboxItem
-            className="menu-item"
-            checked={effects[t.id]}
-            onCheckedChange={(on) => setDisplayOption(t.id, on)}
-            onSelect={stayOpen}
-            data-testid={`display-${t.id}`}
-          >
-            <MenuTick />
-            {t.label}
-          </Menu.CheckboxItem>
-        </Tip>
+        <Menu.CheckboxItem
+          key={t.id}
+          className="menu-item"
+          checked={effects[t.id]}
+          onCheckedChange={(on) => setDisplayOption(t.id, on)}
+          onSelect={stayOpen}
+          data-testid={`display-${t.id}`}
+        >
+          <MenuTick />
+          <MenuText hint={t.hint}>{t.label}</MenuText>
+        </Menu.CheckboxItem>
       ))}
       <Menu.Separator className="menu-rule" />
       <Menu.Label className="menu-label">Labels</Menu.Label>

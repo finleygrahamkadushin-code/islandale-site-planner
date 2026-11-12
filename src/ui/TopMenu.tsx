@@ -49,9 +49,25 @@ export const MenuTick = () => (
   </span>
 )
 
-/** A plain row (forwards its ref, so a `Tip` can wrap it). */
-export const MenuItem = forwardRef<HTMLDivElement, Menu.DropdownMenuItemProps>(function MenuItem({ className, ...rest }, ref) {
-  return <Menu.Item ref={ref} className={`menu-item${className ? ` ${className}` : ''}`} {...rest} />
+/**
+ * A row's name and, under it, what it does. Menu rows carry no tooltip: a
+ * tooltip is a layer of its own, so Escape would close it before the menu,
+ * and touch screens never show one.
+ */
+export const MenuText = ({ children, hint }: { readonly children: ReactNode; readonly hint?: ReactNode }) => (
+  <span className="menu-text">
+    <span>{children}</span>
+    {hint && <span className="menu-hint">{hint}</span>}
+  </span>
+)
+
+/** A plain row with an optional hint line. */
+export const MenuItem = forwardRef<HTMLDivElement, Menu.DropdownMenuItemProps & { readonly hint?: ReactNode }>(function MenuItem({ className, hint, children, ...rest }, ref) {
+  return (
+    <Menu.Item ref={ref} className={`menu-item${className ? ` ${className}` : ''}`} {...rest}>
+      <MenuText hint={hint}>{children}</MenuText>
+    </Menu.Item>
+  )
 })
 
 /**
