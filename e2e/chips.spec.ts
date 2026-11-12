@@ -63,3 +63,32 @@ test('chips mount and unmount through picks, locks, hides, undo and display styl
   await page.waitForTimeout(1_000)
   expect(errors).toEqual([])
 })
+
+test('the mouse wheel over a chip zooms the view, and the chip still takes its click (R9.10)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await store(page, 'loadScheme', 'C')
+  const id = 'C-0'
+  await page.evaluate((id) => (window as any).islandale.focus(id, 180, 30, 18), id)
+  await store(page, 'pickPart', { objectId: id, mass: 0 })
+  const chip = page.locator('[data-testid^="add-chip-"]').first()
+  await expect(chip).toBeVisible({ timeout: 15_000 })
+  await page.waitForTimeout(500)
+  const box = (await chip.boundingBox())!
+  const distance = () =>
+    page.evaluate((id) => {
+      const [x, y, z] = (window as any).islandale.camera() as number[]
+      const b = (window as any).islandale.boundsOf(id)
+      const c = b ? [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2] : [0, 0, 0]
+      return Math.hypot(x - c[0], y - c[1], z - c[2])
+    }, id)
+  const before = await distance()
+  // the chip is what the pointer is over
+  expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('.chip-anchor'), { x: box.x + box.width / 2, y: box.y + box.height / 2 })).toBe(true)
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.wheel(0, -600)
+  await expect.poll(distance, { timeout: 10_000 }).toBeLessThan(before - 0.5)
+
+  // a click on the + chip still opens its menu
+  await chip.click()
+  await expect(page.getByRole('menu', { name: /^Add to/ })).toBeVisible()
+})

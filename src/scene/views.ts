@@ -20,7 +20,6 @@ export interface CameraPose {
   readonly environment?: Partial<Environment>
 }
 
-const EYE_M = 1.7
 const S = (x: number, n: number, z: number): [number, number, number] => [x, z, -n]
 
 /** Camera poses computed from the site, so they stay right if the data changes. */
