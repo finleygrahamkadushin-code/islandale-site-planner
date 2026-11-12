@@ -35,6 +35,7 @@ import { ClearanceStats } from '../site/rules/ClearanceStats'
 import { requestDelete } from '../guide/confirm'
 import { useBeginner } from '../guide/mode'
 import { Term } from '../guide/Term'
+import { keepUnits } from './keepUnits'
 import { Tip } from '../guide/Tip'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
@@ -82,7 +83,7 @@ function SingleInspector({ id }: { readonly id: string }) {
           {TYPE_NAMES[o.type] ?? o.type} · {LAYER_NAMES[layerOf(o)]}
         </div>
         <div className="stats small" data-testid="selection-stats">
-          {Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor {stats.floorFt.toFixed(1)} ft · ground {stats.lowestGroundFt.toFixed(1)} ft <Term term="navd88">NAVD88</Term>
+          {keepUnits(`${Math.round(stats.areaSqFt).toLocaleString('en-US')} sq ft · floor ${stats.floorFt.toFixed(1)} ft · ground ${stats.lowestGroundFt.toFixed(1)} ft`)} <Term term="navd88">NAVD88</Term>
         </div>
         <ClearanceStats id={id} />
         {locked && <p className="muted small">Locked: select to read, unlock to edit.</p>}

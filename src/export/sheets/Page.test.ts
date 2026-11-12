@@ -7,6 +7,7 @@ describe('scale bar and label', () => {
     expect(scaleBarMarks(0.5)).toEqual([0, 2, 4, 8])
     expect(scaleBarMarks(0.25)).toEqual([0, 4, 8, 16])
     expect(scaleBarMarks(0.125)).toEqual([0, 4, 8, 16])
+    expect(scaleBarMarks(0.09375)).toEqual([0, 8, 16, 32])
     expect(scaleBarMarks(0.05)).toEqual([0, 10, 20, 40, 80])
     expect(scaleBarMarks(0.0625)).toEqual([0, 10, 20, 40, 80])
   })

@@ -1,3 +1,5 @@
+import { keys } from '../ui/keyHint'
+
 /** Every keyboard shortcut, as the Help sheet lists them (4B). One table, so the sheet and the keys can't drift apart. */
 
 export interface Shortcut {
@@ -24,8 +26,8 @@ export const SHORTCUT_GROUPS: readonly { readonly title: string; readonly items:
       { keys: 'Q / E', does: 'Turn 5° (while placing too)' },
       { keys: 'R', does: 'Turn 90° (Shift+R the other way)' },
       { keys: 'Arrows', does: 'Nudge 1 ft (Shift: 5 ft)' },
-      { keys: '⌘D / Ctrl+D', does: 'Duplicate' },
-      { keys: '⌘G / Ctrl+G', does: 'Group (⇧ to ungroup); a click then picks the whole group' },
+      { keys: keys('Mod+D'), does: 'Duplicate' },
+      { keys: keys('Mod+G'), does: 'Group (with Shift: ungroup); a click then picks the whole group' },
       { keys: 'Double-click', does: 'Edit an object or group alone (the rest fades); Esc or a double-click on empty space leaves' },
       { keys: 'Delete', does: 'Delete' },
       { keys: 'F', does: 'Fly the camera to it' },
@@ -39,8 +41,8 @@ export const SHORTCUT_GROUPS: readonly { readonly title: string; readonly items:
     title: 'View and plan',
     items: [
       { keys: '1 2 3 4', does: 'Realistic, White model, Sketch, Diagram' },
-      { keys: '⌘K / Ctrl+K', does: 'Search every action and setting' },
-      { keys: '⌘Z / Ctrl+Z', does: 'Undo (⇧ to redo)' },
+      { keys: keys('Mod+K'), does: 'Search every action and setting' },
+      { keys: keys('Mod+Z'), does: 'Undo (with Shift: redo)' },
       { keys: '?', does: 'This sheet' },
     ],
   },

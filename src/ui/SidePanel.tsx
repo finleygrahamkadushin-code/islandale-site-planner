@@ -12,6 +12,7 @@ import { ConnectPanel } from '../paths/connect/ConnectPanel'
 import { RoutePanel } from '../paths/route/RoutePanels'
 import { TabPanel } from '../layout/TaskTabs'
 import { InteriorTabPanel, PresentTabPanel } from '../layout/TabPanels'
+import { useCheckPanelShown } from '../guide/hides'
 
 /**
  * The right-hand panels, by task tab (4B): with something selected, Site and
@@ -22,10 +23,16 @@ import { InteriorTabPanel, PresentTabPanel } from '../layout/TabPanels'
  * Under 900 px wide (4E) the panels become a sheet along the bottom; the
  * grab bar at its top folds it down to that bar and back. Wider, the bar is
  * hidden. Nothing is remembered: the sheet opens unfolded.
+ *
+ * Beginner leaves out the code check, the program budget and the accessible
+ * route (R9.2, `../guide/hides.ts`).
  */
 export function SidePanel() {
   const hasSelection = usePlanStore((s) => s.selection.length > 0)
   const [folded, setFolded] = useState(false)
+  const codeCheck = useCheckPanelShown('code-check')
+  const program = useCheckPanelShown('program-budget')
+  const route = useCheckPanelShown('route')
   const side = useRef<HTMLElement>(null)
   useSheetHeight(side)
   return (
@@ -39,15 +46,15 @@ export function SidePanel() {
       <TabPanel tabs={['site']}>
         {!hasSelection && <LotFactsPanel />}
         {!hasSelection && <SetbacksPanel />}
-        {!hasSelection && <CodeCheckPanel />}
+        {!hasSelection && codeCheck && <CodeCheckPanel />}
         {!hasSelection && <LayersPanel />}
         <EnvironmentPanel />
         {!hasSelection && <LegendPanel />}
       </TabPanel>
       <TabPanel tabs={['build']}>
         <ConnectPanel />
-        {!hasSelection && <ProgramPanel />}
-        {!hasSelection && <RoutePanel />}
+        {!hasSelection && program && <ProgramPanel />}
+        {!hasSelection && route && <RoutePanel />}
         {!hasSelection && <LayersPanel />}
       </TabPanel>
       <TabPanel tabs={['interior']}>

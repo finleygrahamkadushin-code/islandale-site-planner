@@ -1,6 +1,6 @@
 # Drawing sheets section
 
-Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (1/4" = 1'-0" by default) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, and tables of every measurement. They open as a modal over the planner from the top bar's Sheets button. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
+Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default the largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans fit one page, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand stays) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
 
 ## How it fits together
 
@@ -58,7 +58,7 @@ The sheets only read the plan; they never change it. They read the plan, terrain
 
 - **The site plan also uses** `../../site/` (`rules/setbacks`, `rules/codeCheck`, `rules/program`, `rules/clearances`, `lotFacts`, `buffer`, `siteContours`, `environment/sun`), `../../paths/pieces`, `../../buildings/decks` (boardwalks and bridges) and `../../ui/selectionStats` (`clearanceRows`), and gets the ground from `../../site/earthworks/useEarthworks` in `DrawingSheets.tsx`, so its numbers and contours are the app's own. **A change to a 5E rule or its wording changes the site notes:** run `site/siteNotes.test.ts` and `e2e/site-sheet.spec.ts`.
 - **Uses, heavily:** `../../buildings/` (`footprint`, `masses`, `walls/wallShell`, `openings/openingLayout` and `openingEdits`, `roofs/roof` and `sculptRoof`, `foundation/supports`, `rails/railWorld`), `../../interiors/` (`geom`, `types`, `rooms`, `model`, `envelope`, `furniture`), `../../site/` (`units`, `types`, `terrain`, `earthworks`) and `../../store/types` and `planStore`. The sheets are drawn by the same functions the 3D scene uses, so they match it. **A change in buildings, interiors or site can change the sheets:** run this section's tests after one.
-- **Used by:** `../../ui/TopBar.tsx` (opens the modal), `../../scene/Scene.tsx` (mounts `ElevationCapture`), `../../buildings/roofs/useRoofsOff.ts` (roofs held on during a capture) and `../../interiors/scene3d/wallCrossings.test.ts`.
+- **Used by:** `../../ui/FileMenu.tsx` (File → Sheets… opens the modal), `../../scene/Scene.tsx` (mounts `ElevationCapture`), `../../buildings/roofs/useRoofsOff.ts` (roofs held on during a capture) and `../../interiors/scene3d/wallCrossings.test.ts`.
 
 ## Checks for this section
 

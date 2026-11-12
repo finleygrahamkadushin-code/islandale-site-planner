@@ -64,10 +64,11 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
   )
 }
 
-/** The scale bar's marks, feet: on the site plan 0–10–20–40–80; on a building's sheets 0–2–4–8 at 1/2" and 0–4–8–16 otherwise. */
+/** The scale bar's marks, feet: 0–10–20–40–80 at the site scales (1/16" included); on a building's sheets 0–2–4–8 at 1/2", 0–8–16–32 at 3/32" and 0–4–8–16 otherwise. */
 export function scaleBarMarks(scale: AnyScale): readonly number[] {
   if (isSiteScale(scale)) return [0, 10, 20, 40, 80]
-  return scale === 0.5 ? [0, 2, 4, 8] : [0, 4, 8, 16]
+  if (scale === 0.5) return [0, 2, 4, 8]
+  return scale < 0.125 ? [0, 8, 16, 32] : [0, 4, 8, 16]
 }
 
 /** A graphic scale drawn in paper points. */

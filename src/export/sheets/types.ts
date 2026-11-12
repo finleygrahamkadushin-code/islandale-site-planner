@@ -15,15 +15,25 @@ import type { SupportKind } from '../../buildings/foundation/foundation'
 import type { MassKind } from '../../buildings/masses'
 import type { OpeningKind } from '../../buildings/openings/openingLayout'
 
-/** Paper inches per foot of building: 1/4" = 1'-0" is 0.25. */
-export type Scale = 0.125 | 0.25 | 0.5
-export const SCALE_LABEL: Readonly<Record<Scale, string>> = { 0.125: '1/8" = 1\'-0"', 0.25: '1/4" = 1\'-0"', 0.5: '1/2" = 1\'-0"' }
+/**
+ * Paper inches per foot of building: 1/4" = 1'-0" is 0.25. 1/16" and 3/32"
+ * (R9.4) let a large plan such as the Gathering prow's open whole on Tabloid;
+ * the sheets open at the largest of these that fits one page.
+ */
+export type Scale = 0.0625 | 0.09375 | 0.125 | 0.25 | 0.5
+export const SCALE_LABEL: Readonly<Record<Scale, string>> = {
+  0.0625: '1/16" = 1\'-0"',
+  0.09375: '3/32" = 1\'-0"',
+  0.125: '1/8" = 1\'-0"',
+  0.25: '1/4" = 1\'-0"',
+  0.5: '1/2" = 1\'-0"',
+}
 
 /** Paper inches per foot of ground on the site plan: 1" = 20'-0" is 0.05, 1/16" = 1'-0" is 0.0625. */
 export type SiteScale = 0.05 | 0.0625
 export const SITE_SCALE_LABEL: Readonly<Record<SiteScale, string>> = { 0.05: '1" = 20\'-0"', 0.0625: '1/16" = 1\'-0"' }
 
-/** Whether a sheet is the site plan's, told by its scale: the site scales and the building scales are separate sets. */
+/** A site-sized scale, which takes the site plan's long scale bar: the site plan's scales (a building plan at 1/16" shares one). */
 export const isSiteScale = (scale: number): scale is SiteScale => Object.prototype.hasOwnProperty.call(SITE_SCALE_LABEL, scale)
 
 /** Any scale a sheet is drawn at: a building's or the site plan's. */

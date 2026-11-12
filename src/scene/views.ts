@@ -7,7 +7,7 @@ export type ViewId = 'overview' | 'water' | 'entry' | 'sunset' | 'top'
 export const SAVED_VIEWS: readonly { readonly id: ViewId; readonly label: string; readonly hint: string }[] = [
   { id: 'overview', label: 'Overview', hint: 'The whole lot from above the south-east corner' },
   { id: 'water', label: 'From the water', hint: 'Low over Mud Bay, looking back at the lot' },
-  { id: 'entry', label: 'Entry at the west notch', hint: 'Standing at the driveway, eye level' },
+  { id: 'entry', label: 'Entry at the west notch', hint: 'Arriving by the driveway, looking up the lane' },
   { id: 'sunset', label: 'Golden hour', hint: 'The gathering cabin in low west light, 4:45 pm in September' },
   { id: 'top', label: 'Plan (top)', hint: 'Straight down, north up' },
 ]
@@ -20,7 +20,6 @@ export interface CameraPose {
   readonly environment?: Partial<Environment>
 }
 
-const EYE_M = 1.7
 const S = (x: number, n: number, z: number): [number, number, number] => [x, z, -n]
 
 /** Camera poses computed from the site, so they stay right if the data changes. */
@@ -53,10 +52,12 @@ export function viewPose(id: ViewId, site: Site, focus?: readonly [number, numbe
       return { position: S(wx, wn, 4.5), target: S(cx - ox * 6, cn - on * 6, ground(cx, cn) + 4) }
     }
     case 'entry': {
-      // the driveway at the west notch, looking east up the lane
-      const ex = -30
-      const en = 7
-      return { position: S(ex, en, ground(ex, en) + EYE_M), target: S(-6, 4, ground(-6, 4) + 3) }
+      // the driveway at the west notch, looking east up the lane (R9.8): back on the road and 4 m up,
+      // so the parked cars sit to the left, below the cabins, and no trunk stands in front; at eye
+      // level from inside the notch the cars and a trunk hid the entry
+      const ex = -36
+      const en = 1
+      return { position: S(ex, en, ground(ex, en) + 4), target: S(-8, 6, ground(-8, 6) + 2) }
     }
     case 'sunset': {
       // from the west-south-west, so the low September sun lights the faces we see. At 5:45 pm the

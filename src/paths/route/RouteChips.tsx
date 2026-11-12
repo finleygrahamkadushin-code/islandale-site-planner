@@ -4,9 +4,14 @@ import { usePlanStore } from '../../store/planStore'
 import { toScene } from '../../scene/frame'
 import { LAYER, ScreenChip } from '../../scene/ScreenChip'
 import { useEarthworks } from '../../site/earthworks/useEarthworks'
+import { useWarningChipsShown } from '../../guide/hides'
 
-/** A chip over each path piece that fails the accessible-route check, with its first issue (old failing-piece chips). */
+/** A chip over each path piece that fails the accessible-route check, with its first issue (old failing-piece chips). Advanced only, never in Present (R9.7). */
 export function RouteChips() {
+  return useWarningChipsShown() ? <FailingRouteChips /> : null
+}
+
+function FailingRouteChips() {
   const rep = useRouteReport()
   const plan = usePlanStore((s) => s.plan)
   const { ground } = useEarthworks()

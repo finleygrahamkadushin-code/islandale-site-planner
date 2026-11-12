@@ -14,6 +14,7 @@ import { useViewHud } from '../present/viewState'
 import { exportModel } from '../export/model3d/exportModel'
 import { useTheme } from '../app/theme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
+import { keys } from '../ui/keyHint'
 import { TAB_IDS, TAB_LABELS, TAB_LIBRARY_GROUPS, useTaskTab, type TaskTab } from './tabs'
 
 /**
@@ -63,6 +64,10 @@ const SETTINGS: readonly { readonly label: string; readonly section: SectionId; 
 export function commandsFor(s: PlanState): Command[] {
   const get = () => usePlanStore.getState()
   const tab = (t: TaskTab) => useTaskTab.getState().setTab(t)
+  const showCheck = (t: TaskTab) => {
+    useGuideMode.getState().setMode('advanced')
+    tab(t)
+  }
   const cmds: Command[] = [
     { id: 'tool-select', group: 'Tools', label: 'Select and move', keys: 'V', run: () => get().setTool('select') },
     { id: 'tool-measure', group: 'Tools', label: 'Measure', keys: 'M', run: () => (tab(useTaskTab.getState().tab === 'site' ? 'site' : 'build'), get().setTool('measure')) },
@@ -92,13 +97,15 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'setbacks-show', group: 'Site rules', label: s.setbacks.shown ? 'Hide setbacks' : 'Show setbacks', run: () => get().setSetbacks({ shown: !get().setbacks.shown }) },
     { id: 'setbacks-strict', group: 'Site rules', label: 'Strict setback: shoreline 50 ft', run: () => (tab('site'), get().setSetbacks({ shoreFt: 50 })) },
     { id: 'setbacks-panel', group: 'Site rules', label: 'Setbacks', run: () => tab('site') },
-    { id: 'code-check', group: 'Site rules', label: 'Code check', run: () => tab('site') },
-    { id: 'program-budget', group: 'Site rules', label: 'Program budget: square feet against the 1,600 cap', run: () => tab('build') },
+    // Beginner hides the checks (R9.2), so these switch to Advanced first
+    { id: 'code-check', group: 'Site rules', label: 'Code check', run: () => showCheck('site') },
+    { id: 'program-budget', group: 'Site rules', label: 'Program budget: square feet against the 1,600 cap', run: () => showCheck('build') },
+    { id: 'route-check', group: 'Site rules', label: 'Accessible route (ADA) check', run: () => showCheck('build') },
     { id: 'lock-all', group: 'Plan', label: 'Lock all', run: () => get().lockAll(true) },
     { id: 'unlock-all', group: 'Plan', label: 'Unlock all', run: () => get().lockAll(false) },
     { id: 'show-all', group: 'Plan', label: 'Show everything', run: () => get().showAll() },
-    { id: 'undo', group: 'Plan', label: 'Undo', keys: '⌘Z', run: () => undoPlan() },
-    { id: 'redo', group: 'Plan', label: 'Redo', keys: '⇧⌘Z', run: () => redoPlan() },
+    { id: 'undo', group: 'Plan', label: 'Undo', keys: keys('Mod+Z'), run: () => undoPlan() },
+    { id: 'redo', group: 'Plan', label: 'Redo', keys: keys('Shift+Mod+Z'), run: () => redoPlan() },
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
@@ -108,9 +115,9 @@ export function commandsFor(s: PlanState): Command[] {
   ]
   if (s.selection.length) {
     cmds.push(
-      { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: '⌘D', run: () => get().duplicateObjects(get().selection) },
-      { id: 'group', group: 'Selection', label: 'Group the selection', keys: '⌘G', run: () => get().groupObjects(get().selection) },
-      { id: 'ungroup', group: 'Selection', label: 'Ungroup the selection', keys: '⇧⌘G', run: () => get().ungroupObjects(get().selection) },
+      { id: 'duplicate', group: 'Selection', label: 'Duplicate', keys: keys('Mod+D'), run: () => get().duplicateObjects(get().selection) },
+      { id: 'group', group: 'Selection', label: 'Group the selection', keys: keys('Mod+G'), run: () => get().groupObjects(get().selection) },
+      { id: 'ungroup', group: 'Selection', label: 'Ungroup the selection', keys: keys('Shift+Mod+G'), run: () => get().ungroupObjects(get().selection) },
       { id: 'fly-to', group: 'Selection', label: 'Fly to the selection', keys: 'F', run: () => useFocusRequest.getState().flyTo(get().selection[0]) },
       { id: 'delete', group: 'Selection', label: 'Delete the selection', keys: 'Delete', run: () => requestDelete(get().selection) },
     )

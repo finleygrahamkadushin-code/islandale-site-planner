@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { menuButton, pickFromMenu } from './menus'
 
 /** Drawing sheets: Scheme C's gathering cabin (C-0) at true scale, as a modal over the planner, printable, with a CSV for Excel. */
 
@@ -16,13 +17,13 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => (window as any).islandale.store.getState().select(['C-0']))
 })
 
-const sheetsButton = (page: Page) => page.getByRole('button', { name: 'Sheets', exact: true })
+const openSheets = (page: Page) => pickFromMenu(page, 'file', 'open-sheets')
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Drawing sheets' })
 const planObject = (page: Page) => page.evaluate(() => JSON.stringify((window as any).islandale.store.getState().plan.objects['C-0']))
 const sceneStats = (page: Page) => page.evaluate(() => (window as any).islandale.sceneStats())
 
 async function open(page: Page) {
-  await sheetsButton(page).click()
+  await openSheets(page)
   // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
   await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue('C-0')
@@ -33,8 +34,20 @@ async function elevationsDrawn(page: Page) {
   await expect(dialog(page).getByRole('button', { name: 'Print', exact: true })).toBeEnabled({ timeout: 90_000 })
 }
 
+test('the sheets open at the largest scale that fits C-0\'s plan on one Tabloid page (R9.4); a scale picked by hand stays', async ({ page }) => {
+  await open(page)
+  const scale = page.getByRole('combobox', { name: 'Drawing scale' })
+  // 83 × 101 ft with its dimensions: 3/32" leaves it 4 ft too tall for Tabloid's 9.1 in
+  await expect(scale).toHaveValue('0.0625')
+  await expect(dialog(page).locator('.sheets-fit:not([data-testid])')).toContainText('plan fits one page of Tabloid 17 × 11 in')
+  await scale.selectOption('0.25')
+  await page.getByRole('combobox', { name: 'Paper size' }).selectOption('archD')
+  await expect(scale).toHaveValue('0.25')
+})
+
 test('the plan of C-0 is drawn at 1/4" = 1\'-0", and the 1 in check bar is an inch', async ({ page }) => {
   await open(page)
+  await page.getByRole('combobox', { name: 'Drawing scale' }).selectOption('0.25')
   const svg = dialog(page).locator('.sheet-svg').first()
   const { widthIn, viewBoxW } = await svg.evaluate((el) => ({
     widthIn: parseFloat(el.getAttribute('width') ?? ''),
@@ -57,13 +70,13 @@ test('the planner behind is inert: Delete and the arrow keys leave the plan alon
   expect(await planObject(page)).toBe(before)
 })
 
-test('opening focuses Back to the planner; Escape closes, even from a select, and gives the focus back to Sheets', async ({ page }) => {
+test('opening focuses Back to the planner; Escape closes, even from a select, and gives the focus back to File', async ({ page }) => {
   await open(page)
   await expect(dialog(page).getByRole('button', { name: 'Back to the planner' })).toBeFocused()
   await page.getByRole('combobox', { name: 'Paper size' }).focus()
   await page.keyboard.press('Escape')
   await expect(dialog(page)).toHaveCount(0)
-  await expect(sheetsButton(page)).toBeFocused()
+  await expect(menuButton(page, 'file')).toBeFocused()
   expect(await page.evaluate(() => document.getElementById('root')?.inert)).toBe(false)
 })
 
@@ -111,7 +124,7 @@ async function showScheme(page: Page, scheme: string, id: string, roofsOff = fal
 }
 
 async function openOn(page: Page, id: string) {
-  await sheetsButton(page).click()
+  await openSheets(page)
   // the sheets load on first use (4E); the dev server compiles them on demand, which takes a few seconds
   await expect(dialog(page)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: 'Building' })).toHaveValue(id, { timeout: 60_000 })

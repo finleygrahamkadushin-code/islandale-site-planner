@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Download, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { pickFromMenu } from './menus'
 import { readGlb } from '../src/export/model3d/glb'
 
 /** Export 3D model (6B): Scheme C as a .glb and manifest in the Blender pipeline's contract, from the top bar's 3D model button. */
@@ -40,7 +41,7 @@ test('the 3D model button downloads Scheme C as a tagged .glb and its manifest',
     const s = (window as any).islandale.store.getState()
     return { order: s.plan.order as string[], objects: s.plan.objects as Record<string, { name: string; type: string; hidden: boolean }> }
   })
-  await page.getByTestId('export-3d').click()
+  await pickFromMenu(page, 'file', 'export-3d')
   await expect.poll(() => downloads.length, { timeout: 60_000 }).toBe(2)
   expect(downloads.map((d) => d.suggestedFilename()).sort()).toEqual(['c-prow-lantern.glb', 'c-prow-lantern.manifest.json'])
 

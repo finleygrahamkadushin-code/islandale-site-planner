@@ -5,7 +5,7 @@ import { floorPlans } from './plan/floorPlans'
 import { elevationView, sheetBuildings } from './model/model'
 import { SIDES } from './elevation/sides'
 import { tablesCsv } from './tables/table'
-import { smallestPaper, tileDrawing } from './tiles'
+import { largestScaleThatFits, smallestPaper, tileDrawing } from './tiles'
 import { PAPERS, SCALE_LABEL, SITE_SCALE_LABEL, type PaperId, type Scale, type SheetBuilding, type SiteScale } from './types'
 import { usePlanStore } from '../../store/planStore'
 import type { Terrain } from '../../site/types'
@@ -62,7 +62,8 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const buildings = useMemo(() => sheetBuildings(objects, terrain), [objects, terrain])
   const [pick, setPick] = useState(() => selection.find((id) => buildings.some((b) => b.id === id)) ?? buildings[0]?.id ?? ALL)
   const [paper, setPaper] = useState<PaperId>('tabloid')
-  const [scale, setScale] = useState<Scale>(0.25)
+  // null until the user picks one: the sheets open at the largest scale that fits one page (R9.4)
+  const [chosenScale, setScale] = useState<Scale | null>(null)
   const [show, setShow] = useState({ site: true, plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
   // a site plan that can't be drawn says so in one line, and the building sheets carry on
   const siteResult = useMemo(() => (show.site ? attempt(() => buildSiteSheet(siteInput, paper, siteScale, northUp)) : null), [show.site, siteInput, paper, siteScale, northUp])
@@ -76,8 +77,16 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const onNotesTooTall = useCallback(() => setTooTallFor({ build: siteBuildValue, notes: siteNotesValue }), [siteBuildValue, siteNotesValue])
   const siteFailed = (siteResult && !siteResult.ok) || (siteNotesResult && !siteNotesResult.ok)
   const picked = buildings.filter((b) => b.id === pick)
-  const shown = pick === ALL ? buildings : picked.length ? picked : buildings.slice(0, 1)
+  const shown = useMemo(() => {
+    const one = buildings.filter((b) => b.id === pick)
+    return pick === ALL ? buildings : one.length ? one : buildings.slice(0, 1)
+  }, [buildings, pick])
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
+  const fittedScale = useMemo(
+    () => largestScaleThatFits(SCALES, paper, (s) => shown.flatMap((b) => floorPlans(b).map((f) => planLayout(f.building, s, show.rooms ? f.floor : null).extent))),
+    [shown, paper, show.rooms],
+  )
+  const scale = chosenScale ?? fittedScale
   const back = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set())
   const busyFor = useCallback(

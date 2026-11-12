@@ -32,13 +32,13 @@
 | Node and mesh names, the file slug | `names.ts` |
 | The manifest | `manifest.ts` |
 | The .glb chunks, mesh names and extras on glTF meshes | `glb.ts` |
-| The button, the command, the toast | `exportModel.ts`, `../../ui/TopBar.tsx`, `../../layout/commands.ts` |
+| The menu row, the command, the toast | `exportModel.ts`, `../../ui/FileMenu.tsx` (File → 3D model), `../../layout/commands.ts` |
 | The headless export | `../../../tools/export/export_scene.mjs` |
 
 ## Talks to
 
 - **Uses:** `../../buildings/` (`masses`, `footprint`, `paint/exterior`), `../sheets/elevation/sheetTarget` (`isLineLike`, `paints`), `../../site/environment/sun`, `../../present/snapshot` (`downloadBlob`), `../../store/`.
-- **Used by:** `../../scene/Scene.tsx` (the probe), `../../ui/TopBar.tsx`, `../../layout/commands.ts`, `tools/export/export_scene.mjs`.
+- **Used by:** `../../scene/Scene.tsx` (the probe), `../../ui/FileMenu.tsx`, `../../layout/commands.ts`, `tools/export/export_scene.mjs`.
 
 ## Checks for this section
 

@@ -1,12 +1,55 @@
-import { memo, useCallback, useSyncExternalStore } from 'react'
+import { memo, useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from 'react'
 import { invalidate } from '@react-three/fiber'
 import { chipElements, chipViews, subscribeChips, type ChipView } from './chipRegistry'
+
+/** The same wheel turn, for the canvas: the orbit controls zoom on what reaches them. */
+const wheelCopy = (e: WheelEvent): WheelEvent =>
+  new WheelEvent('wheel', {
+    deltaX: e.deltaX,
+    deltaY: e.deltaY,
+    deltaZ: e.deltaZ,
+    deltaMode: e.deltaMode,
+    clientX: e.clientX,
+    clientY: e.clientY,
+    screenX: e.screenX,
+    screenY: e.screenY,
+    ctrlKey: e.ctrlKey,
+    shiftKey: e.shiftKey,
+    altKey: e.altKey,
+    metaKey: e.metaKey,
+    bubbles: true,
+    cancelable: true,
+  })
+
+/**
+ * A chip under the pointer would take the wheel, so zoom did nothing there
+ * (R9.10): the layer hands every wheel turn on a chip to the canvas below.
+ * No chip scrolls, and clicks are untouched. Labels let the pointer through
+ * already (`.labels` has no pointer events).
+ */
+function useWheelToCanvas(layer: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const el = layer.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      const canvas = el.closest('.viewport')?.querySelector('canvas')
+      if (!canvas) return
+      e.preventDefault()
+      e.stopPropagation()
+      canvas.dispatchEvent(wheelCopy(e))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [layer])
+}
 
 /** Part chips (handles, + and rail chips, the + menu) as plain DOM over the canvas; `ScreenChip` moves each one every frame. */
 export function ChipLayer() {
   const views = useSyncExternalStore(subscribeChips, chipViews)
+  const layer = useRef<HTMLDivElement>(null)
+  useWheelToCanvas(layer)
   return (
-    <div className="chips">
+    <div className="chips" ref={layer}>
       {views.map((v) => (
         <ChipAnchor key={v.id} view={v} />
       ))}

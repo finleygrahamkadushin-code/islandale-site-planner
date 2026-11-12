@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { pickView } from './menus'
 import { openSection } from './inspector'
 
 /**
@@ -78,7 +79,7 @@ test('move, lock, hide names, reload: the plan comes back unchanged', async ({ p
   expect(locked.x).toBeCloseTo(moved.x, 9)
 
   // Hide every name.
-  await page.getByRole('button', { name: 'None', exact: true }).click()
+  await pickView(page, 'labels-none')
   await expect(page.locator('.label')).toHaveCount(0)
 
   // Reload and find it all still there.

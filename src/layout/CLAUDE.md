@@ -28,7 +28,7 @@ How the screen is organised (Phase 4B): the Site / Build / Interior / Present ta
 ## Talks to
 
 - **Uses:** `../store/` (`planStore`, `toolActions`, `types`), `../tools/` (`library`, `libraryOpen`), `../ui/InspectorSection`, `../scene/` (`views`, `cameraFocus`), `../site/` (`pointer`, `earthworks/useEarthworks`) and `../interiors/editor/interiorView`.
-- **Used by:** `../app/App.tsx` (`BottomBar`, `Overlays`), `../ui/TopBar.tsx` (`TaskTabs`, the Search and ? buttons), `../ui/SidePanel.tsx`, `../ui/useKeyboardShortcuts.ts`, `../tools/ToolStrip.tsx`, `LibraryPanel.tsx` and `toolKeys.ts`.
+- **Used by:** `../app/App.tsx` (`BottomBar`, `Overlays`), `../ui/TopBar.tsx` (`TaskTabs`, the Search and ? buttons; File and View are `../ui/FileMenu.tsx` and `../ui/ViewMenu.tsx`), `../ui/SidePanel.tsx`, `../ui/useKeyboardShortcuts.ts`, `../tools/ToolStrip.tsx`, `LibraryPanel.tsx` and `toolKeys.ts`.
 
 ## Checks for this section
 

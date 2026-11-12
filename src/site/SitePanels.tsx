@@ -6,8 +6,9 @@ import { TINT_LEGEND } from './rules/tints'
 import { EARTH_TINTS, type TintKind } from './earthworks/earthworksTint'
 import { BUFFER, STAKE } from './SiteMarks'
 import { PARCEL_LINE, SHORELINE_LINE } from './ParcelLine'
+import { keepUnits } from '../ui/keepUnits'
 
-const sqft = (v: number) => `${Math.round(v).toLocaleString('en-US')} sq ft`
+const sqft = (v: number) => keepUnits(`${Math.round(v).toLocaleString('en-US')} sq ft`)
 
 /** Lot facts on the Site tab (old site header stats and coverage): lot area, shoreline, and the ground buildings and decks cover. */
 export function LotFactsPanel() {
@@ -23,10 +24,10 @@ export function LotFactsPanel() {
         <dt>Lot area</dt>
         <dd>{sqft(facts.lotSqFt)}</dd>
         <dt>Shoreline</dt>
-        <dd>{Math.round(facts.shorelineFt).toLocaleString('en-US')} ft</dd>
+        <dd>{keepUnits(`${Math.round(facts.shorelineFt).toLocaleString('en-US')} ft`)}</dd>
         <dt>Building footprint</dt>
         <dd>
-          {sqft(facts.coveredSqFt)} · {facts.coveragePct.toFixed(1)} %
+          {sqft(facts.coveredSqFt)} · {keepUnits(`${facts.coveragePct.toFixed(1)} %`)}
         </dd>
       </dl>
     </section>

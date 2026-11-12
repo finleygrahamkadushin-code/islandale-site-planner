@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
+import { menuButton, openMenu, pickFromMenu } from './menus'
 
 /**
  * The plan's keyboard shortcuts stay out of the way of the control that has
@@ -77,7 +78,7 @@ test('no key reaches the plan through the open Designs dialog; Escape closes it 
   expect(nudged.x).toBeCloseTo(start.x + FT, 6)
   expect(nudged.undoSteps).toBe(1)
 
-  await page.getByTestId('open-archive').click()
+  await pickFromMenu(page, 'file', 'open-archive')
   const archive = page.getByTestId('archive')
   await expect(archive.getByTestId('archive-group-brief')).toBeVisible({ timeout: 20_000 })
   await archive.getByRole('button').first().focus()
@@ -94,4 +95,28 @@ test('no key reaches the plan through the open Designs dialog; Escape closes it 
   await page.keyboard.press('Escape')
   await expect(archive).toHaveCount(0)
   expect((await snapshot(page)).selection).toEqual([CABIN])
+})
+
+test('no key reaches the plan through an open File or View menu; once it closes, the keys work again', async ({ page }) => {
+  const start = await snapshot(page)
+  for (const menu of ['file', 'view'] as const) {
+    await openMenu(page, menu)
+    for (const key of ['Delete', 'Backspace', 'q', 'r', 'ArrowDown', 'ControlOrMeta+z', 'ControlOrMeta+d']) await page.keyboard.press(key)
+    await expect(page.getByRole('menu', { name: menu === 'file' ? 'File' : 'View' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(menuButton(page, menu)).toBeFocused()
+    const behind = await snapshot(page)
+    expect(behind.exists, `the cabin is not deleted through ${menu}`).toBe(true)
+    expect(behind.rotation).toBe(start.rotation)
+    expect(behind.x).toBe(start.x)
+    expect(behind.n).toBe(start.n)
+    expect(behind.undoSteps, `nothing ran behind ${menu}`).toBe(0)
+    expect(behind.selection, 'Escape closed the menu and kept the selection').toEqual([CABIN])
+  }
+  // focus is back on the View button: an arrow key nudges the cabin again
+  await page.keyboard.press('ArrowRight')
+  const nudged = await snapshot(page)
+  expect(nudged.x).toBeCloseTo(start.x + FT, 6)
+  expect(nudged.undoSteps).toBe(1)
 })
