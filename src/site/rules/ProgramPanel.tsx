@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { usePlanStore } from '../../store/planStore'
 import { BUILDING_CAP_SQFT, PROGRAM_CAP_SQFT, programBudget, type BuildingProgram, type ProgramBudget } from './program'
+import { keepUnits } from '../../ui/keepUnits'
 
 const n = (v: number) => v.toLocaleString('en-US')
 
@@ -31,13 +32,9 @@ export function ProgramPanel() {
       </header>
       <dl className="facts">
         <dt>Enclosed total</dt>
-        <dd className={budget.overTotal ? 'over' : undefined}>
-          {n(budget.enclosedSqFt)} / {n(PROGRAM_CAP_SQFT)} sq ft
-        </dd>
+        <dd className={budget.overTotal ? 'over' : undefined}>{keepUnits(`${n(budget.enclosedSqFt)} / ${n(PROGRAM_CAP_SQFT)} sq ft`)}</dd>
         <dt>Covered outdoor</dt>
-        <dd>
-          {n(budget.coveredSqFt)} sq ft + {n(budget.deckSqFt)} deck
-        </dd>
+        <dd>{keepUnits(`${n(budget.coveredSqFt)} sq ft + ${n(budget.deckSqFt)} deck`)}</dd>
         {budget.buildings.map((b) => (
           <BuildingRow key={b.id} building={b} />
         ))}
@@ -59,7 +56,7 @@ function BuildingRow({ building }: { readonly building: BuildingProgram }) {
   return (
     <>
       <dt>{building.name}</dt>
-      <dd className={building.over ? 'over' : undefined}>{buildingLine(building)}</dd>
+      <dd className={building.over ? 'over' : undefined}>{keepUnits(buildingLine(building))}</dd>
     </>
   )
 }
