@@ -363,7 +363,9 @@ export const usePlanStore = create<PlanState>()(
         setLocked: (id, locked) => {
           if (writable()) set((s) => ({ plan: withObject(s.plan, id, { locked }) }))
         },
-        // a hidden object is gone from the view, so it leaves the selection and drops its picked part
+        // a hidden object is gone from the view, so it leaves the selection and drops its picked part.
+        // Hiding and showing labels ignore object and layer locks on purpose (R6.14, Finley, Nov 13):
+        // they change what is shown, not the design; still undo steps, still refused on a read-only tab.
         setHidden: (id, hidden) => {
           if (!writable()) return
           set((s) => ({
@@ -372,6 +374,7 @@ export const usePlanStore = create<PlanState>()(
             pickedPart: hidden && s.pickedPart?.objectId === id ? null : s.pickedPart,
           }))
         },
+        // like setHidden, this ignores locks on purpose (R6.14)
         setLabelVisible: (id, labelVisible) => {
           if (writable()) set((s) => ({ plan: withObject(s.plan, id, { labelVisible }) }))
         },
