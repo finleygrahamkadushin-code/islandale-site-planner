@@ -274,6 +274,7 @@ export function siteAnnotate(m: SiteSheetModel, pens: SitePens, extent: Extent, 
     ls.forEach((l) => lines.push(...labelsAlong(l, text, placer, { size: pens.label, every, offset, keepIn, max })))
   const s = m.setbacks
   along([m.shoreline], 'LOT LINE AT WATER', -pens.label * 0.9, LINE_EVERY_IN * inch, 3)
+  along([m.highWater], 'APPROX. HIGH-WATER LINE · 8 FT NAVD88 · NOT SURVEYED', pens.label * 0.9, LINE_EVERY_IN * 1.3 * inch, 2)
   along(m.topOfBank, 'TOP OF BANK', -pens.label * 0.95, LINE_EVERY_IN * 1.3 * inch, 2)
   along(m.buffer, `SHORELINE BUFFER · ${s.shoreFt} FT`, pens.label * 0.9, LINE_EVERY_IN * 1.3 * inch, 2)
   along(m.sideLine, `${s.sideFt} FT SIDE SETBACK`, -pens.label * 0.9, LINE_EVERY_IN * inch, 2)

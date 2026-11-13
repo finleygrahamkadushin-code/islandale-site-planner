@@ -36,6 +36,10 @@ test.beforeEach(async ({ page }) => {
 test('setback sliders move the code check and clearances, are saved, and are never an undo step', async ({ page }) => {
   test.setTimeout(180_000)
   const shore = page.getByTestId('code-check').locator('[data-row="shore"]')
+  // measured from the approximate high-water line (item 11), the Gathering prow is inside the default 35 ft buffer; a 20 ft one clears it
+  await expect(shore).toHaveAttribute('data-verdict', 'fail')
+  await expect(shore).toContainText('inside the 35 ft buffer: Gathering prow')
+  await setRange(page, 'Shoreline setback', 20)
   await expect(shore).toHaveAttribute('data-verdict', 'pass')
   await setRange(page, 'Shoreline setback', 120)
   await expect(shore).toHaveAttribute('data-verdict', 'fail')
@@ -45,7 +49,7 @@ test('setback sliders move the code check and clearances, are saved, and are nev
   // a name in a failing row selects that cabin; its clearance rows warn
   await shore.getByRole('button', { name: /Gathering prow/ }).click()
   expect(await state<string[]>(page, 's.selection')).toEqual(['C-0'])
-  await expect(page.getByTestId('clearance-stats')).toContainText(`80'-1" to shore`)
+  await expect(page.getByTestId('clearance-stats')).toContainText(`69'-9" to shore`)
   await expect(page.getByTestId('clearance-row').first()).toHaveClass(/warn/)
 
   // saved with the plan
@@ -78,4 +82,13 @@ test('the program budget sits on the Build tab, and a rules-off scheme is checke
   const check = page.getByTestId('code-check')
   await expect(check).toContainText('rules off')
   await expect(check.locator('[data-verdict="fail"]')).toHaveCount(0)
+})
+
+test('the shoreline buffer says where it is measured from, and the view names the approximate high-water line (item 11)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await expect(page.getByTestId('shore-line-note')).toHaveText(
+    'The shoreline buffer is measured from the 8 ft contour of the terrain model, an estimate of mean higher high water; the legal ordinary high water mark can only come from a survey and may be further landward.',
+  )
+  await expect(page.getByTestId('high-water-label')).toHaveText('approximate high-water line (8 ft NAVD88, from the terrain; not surveyed)')
+  await expect(page.getByTestId('setbacks')).toContainText('Top of bank, in from the east high-water line')
 })

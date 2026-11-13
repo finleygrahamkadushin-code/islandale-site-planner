@@ -9,7 +9,7 @@ import type { Ground } from '../../../site/earthworks/earthworks'
 import { lotFacts } from '../../../site/lotFacts'
 import { codeCheck, type CodeVerdict } from '../../../site/rules/codeCheck'
 import { BUILDING_CAP_SQFT, PROGRAM_CAP_SQFT, programBudget, type BuildingProgram, type ProgramBudget } from '../../../site/rules/program'
-import { PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE } from '../../../site/rules/ruleSources'
+import { PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, SHORE_LINE_SHEET_NOTE } from '../../../site/rules/ruleSources'
 import { TREE_ZONE_1_FT, TREE_ZONE_2_FT } from '../../../site/rules/setbacks'
 import type { Site } from '../../../site/types'
 import { sqFtToAcres } from '../../../site/units'
@@ -76,11 +76,9 @@ export function flagLine(budget: ProgramBudget): string | null {
 }
 
 /** The Code check panel's hint, a sentence a line. */
-// guards and handrails share a line (R2.10), so the route note fits and Scheme C's notes stay beside its drawing on Tabloid
-export const CODE_HINT = [
-  'Guards: 36 in over 30 in up, openings under 4 in. Handrails: 34–38 in, on 4+ risers and ramps over 6 in.',
-  'In the shoreline buffer: only paths, stairs, ramps and structures under 30 in.',
-] as const
+// guards and handrails share a line (R2.10), so the route note fits and Scheme C's notes stay beside its drawing on Tabloid;
+// the shoreline buffer's "only paths, stairs, ramps and structures under 30 in" is in the Code check panel, not here (item 11)
+export const CODE_HINT = ['Guards: 36 in over 30 in up, openings under 4 in. Handrails: 34–38 in, on 4+ risers and ramps over 6 in.'] as const
 
 export const RULES_OFF_TEXT = 'This scheme sets the brief aside (rules off), so nothing is checked against it.'
 
@@ -110,8 +108,8 @@ function setbacksBlock(s: Setbacks): NoteBlock {
     id: 'setbacks',
     title: 'Setbacks in force',
     rows: [
-      { label: 'Shoreline setback', value: `${s.shoreFt} ft from the top of bank (east shore), from the lot line at the water (south-west shore)` },
-      { label: 'Top of bank', value: `${s.bankFt} ft in from the east lot line at the water` },
+      { label: 'Shoreline setback', value: `${s.shoreFt} ft from the top of bank (east), the high-water line (south-west)` },
+      { label: 'Top of bank', value: `${s.bankFt} ft in from the east high-water line` },
       { label: 'Side and rear lot lines', value: `${s.sideFt} ft` },
       ...(s.treeZones ? [{ label: 'Tree protection zones', value: `0–${TREE_ZONE_1_FT} ft from the water no removal; ${TREE_ZONE_1_FT}–${TREE_ZONE_2_FT} ft limited removal` }] : []),
     ],
@@ -165,7 +163,7 @@ export function siteNotes(input: SiteNotesInput): SiteNotes {
       rulesOff: check.rulesOff,
       rows: check.rows.map((r) => ({ id: r.id, label: r.label, verdict: r.verdict, text: r.text, names: r.names.map((x) => x.name) })),
       // a planning aid, not a code review (R2.7), saying which limits are assumed (R2.8), and what the route check leaves out (R2.10), as the panel says it
-      notes: [PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, ...CODE_HINT],
+      notes: [PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, SHORE_LINE_SHEET_NOTE, ...CODE_HINT],
     },
   }
 }

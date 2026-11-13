@@ -6,6 +6,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { RULES_OFF_TEXT, VERDICT_TEXT, type NoteBlock, type SiteNotes as Notes } from './siteNotes'
 import { INK } from './SiteMarks'
+import { HIGH_WATER_LABEL } from '../../../site/highWater'
 
 const SEASON_NAME = { jun: 'June 21', sep: 'September 22', dec: 'December 21' } as const
 
@@ -111,6 +112,10 @@ const LEGEND: readonly { readonly label: string; readonly swatch: ReactNode }[] 
   { label: 'Lot line', swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(1.3)} strokeDasharray={`${pt(14)} ${pt(2.5)} ${pt(2)} ${pt(2.5)}`} /> },
   { label: 'Lot line at the water (assessor)', swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(0.9)} /> },
   {
+    label: `${HIGH_WATER_LABEL[0].toUpperCase()}${HIGH_WATER_LABEL.slice(1)}`,
+    swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(0.6)} strokeDasharray={`${pt(8)} ${pt(1.8)} ${pt(0.6)} ${pt(1.8)} ${pt(0.6)} ${pt(1.8)}`} />,
+  },
+  {
     label: 'Top of bank',
     swatch: (
       <g stroke={INK.line}>
@@ -176,6 +181,9 @@ const LEGEND: readonly { readonly label: string; readonly swatch: ReactNode }[] 
     ),
   },
 ]
+
+/** The legend's rows' names, in order (tests and the notes height estimate read them). */
+export const LEGEND_LABELS: readonly string[] = LEGEND.map((l) => l.label)
 
 function Legend() {
   return (

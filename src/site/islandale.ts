@@ -1,5 +1,7 @@
 import terrainJson from '../../data/islandale/terrain.json'
 import parcelJson from '../../data/islandale/parcel.json'
+import { highWaterLine } from './highWater'
+import { elevationAt } from './terrain'
 import type { Parcel, Site, SitePoint, Terrain } from './types'
 
 /**
@@ -31,5 +33,9 @@ export function loadIslandaleParcel(): Parcel {
 }
 
 export function loadIslandale(): Site {
-  return { name: 'Islandale', terrain: loadIslandaleTerrain(), parcel: loadIslandaleParcel() }
+  const terrain = loadIslandaleTerrain()
+  const lot = loadIslandaleParcel()
+  // the bare ground (no earthworks): the high-water line is where the land meets 8 ft before anything is built
+  const parcel = { ...lot, highWater: highWaterLine(lot, (x, n) => elevationAt(terrain, x, n)) }
+  return { name: 'Islandale', terrain, parcel }
 }

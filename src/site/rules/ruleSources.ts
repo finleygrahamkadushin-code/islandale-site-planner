@@ -24,6 +24,16 @@ export const PLANNING_AID_NOTE = 'A planning aid, not a code review: the county 
  */
 export const ROUTE_UNCHECKED_NOTE = 'Accessible route: ramp landing width, edge protection, passing spaces and door clearance are not checked.'
 
+/**
+ * Where the shoreline buffer is measured from (item 11, Finley's decision on
+ * decision 1: "Yes, 8 ft contour"), printed beside the notes above.
+ */
+export const SHORE_LINE_NOTE =
+  'The shoreline buffer is measured from the 8 ft contour of the terrain model, an estimate of mean higher high water; the legal ordinary high water mark can only come from a survey and may be further landward.'
+
+/** The same on the site plan, in one sheet line (the lead session's call, Nov 13: Scheme C's notes stay beside its drawing on one Tabloid page). */
+export const SHORE_LINE_SHEET_NOTE = "Buffer from the terrain's 8 ft contour (est. high water); a survey may put the legal OHWM further in."
+
 export const ASSUMED = 'assumed'
 
 export interface RuleLimit {

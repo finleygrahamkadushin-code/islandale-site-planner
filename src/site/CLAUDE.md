@@ -9,6 +9,7 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | Ground height at a point, the survey grid | `terrain.ts`; the data is `data/islandale/terrain.json` (big: never print it) |
 | How the ground looks in 3D | `TerrainMesh.tsx`, `terrainGeometry.ts`; surface textures are shared, in `../scene/textures.ts` |
 | The parcel line, lot area, shoreline buffer and stakes | `parcel.ts`, `buffer.ts`, `ParcelLine.tsx`, `SiteMarks.tsx`; the data is `data/islandale/parcel.json` |
+| The approximate high-water line (8 ft NAVD88 contour) the shoreline buffer and shore distances measure from | `highWater.ts` (the line, built in `islandale.ts`), `rules/setbacks.ts` (`waterSegments`, `belowHighWater`), drawn in `ParcelLine.tsx` |
 | Contour lines | `contours.ts` (drawn in `SiteMarks.tsx`) |
 | The schemes as the old planner wrote them | `schemes.ts`; the data is `data/islandale/schemes.json` |
 | Units and the site frame (metres, x east, n north, NAVD88) | `units.ts`, `types.ts` |

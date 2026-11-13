@@ -6,10 +6,13 @@ import type { Setbacks } from '../../store/types'
 
 /**
  * Setback distances (5E, old `nearestOnEdges` / `pointInLot`). Pure: parcel
- * and a point in, metres out. Shoreline edges are the parcel's
- * `shorelineEdges`; the east shore (edges up to EAST_BANK_LAST_EDGE) is
- * banked, so its setback is measured from the top of bank, `bankFt` in from
- * the water. The south-west shore after it is measured from the water.
+ * and a point in, metres out. The water's edge is the parcel's approximate
+ * high-water line (`highWater.ts`, decision 1), or its lot line along the
+ * water when it has none; ground between the lot line and the high-water
+ * line is at the water (0 from it). The east shore (from edges up to
+ * EAST_BANK_LAST_EDGE) is banked, so its setback is measured from the top of
+ * bank, `bankFt` in from the water's edge. The south-west shore after it is
+ * measured from the water's edge.
  */
 
 /**
@@ -44,20 +47,92 @@ export interface ShoreHit extends EdgeHit {
 export const isBankedEdge = (parcel: Parcel, edge: number): boolean =>
   isShorelineEdge(parcel, edge) && edge <= EAST_BANK_LAST_EDGE
 
+/** A stretch of the water's edge, from the shoreline ring edge it was walked in from (or is). */
+export interface WaterSeg {
+  readonly a: SitePoint
+  readonly b: SitePoint
+  readonly edge: number
+}
+
+const waterCache = new WeakMap<Parcel, readonly WaterSeg[]>()
+
+/** The water's edge the shore distances measure to: the high-water line's segments, or the lot line's shoreline edges. */
+export function waterSegments(parcel: Parcel): readonly WaterSeg[] {
+  const hit = waterCache.get(parcel)
+  if (hit) return hit
+  const hw = parcel.highWater
+  const segs: WaterSeg[] = []
+  if (hw) hw.edges.forEach((edge, k) => segs.push({ a: hw.pts[k], b: hw.pts[k + 1], edge }))
+  else forEdges(parcel, true, (edge, a, b) => segs.push({ a, b, edge }))
+  waterCache.set(parcel, segs)
+  return segs
+}
+
+const stripCache = new WeakMap<Parcel, readonly SitePoint[] | null>()
+
+/** The ground between the lot line along the water and the high-water line, as one ring; null when the parcel has no high-water line. */
+function belowHighWaterRing(parcel: Parcel): readonly SitePoint[] | null {
+  if (stripCache.has(parcel)) return stripCache.get(parcel)!
+  const hw = parcel.highWater
+  const { first, last } = parcel.shorelineEdges
+  const strip = hw ? [...parcel.ring.slice(first, last + 2), ...[...hw.pts].reverse()] : null
+  stripCache.set(parcel, strip)
+  return strip
+}
+
+/**
+ * Whether a point is at or below high water: between the lot line along the
+ * water and the high-water line, or off the lot on the water side (nearest a
+ * shoreline edge). Only with a high-water line; without one the lot line
+ * along the water is the water's edge, as before.
+ */
+export function belowHighWater(parcel: Parcel, x: number, n: number): boolean {
+  const strip = belowHighWaterRing(parcel)
+  if (!strip) return false
+  if (pointInPolygon(strip, x, n)) return true
+  if (pointInPolygon(parcel.ring, x, n)) return false
+  let best = Infinity
+  let shore = false
+  parcel.ring.forEach((a, i) => {
+    const d = closestOnSeg(x, n, a, parcel.ring[(i + 1) % parcel.ring.length]).d
+    if (d < best) {
+      best = d
+      shore = isShorelineEdge(parcel, i)
+    }
+  })
+  return shore
+}
+
+/** Plain distance from a point to the water's edge, metres; 0 below high water (Infinity without a shoreline). */
+export function waterDistance(parcel: Parcel, x: number, n: number): number {
+  if (belowHighWater(parcel, x, n)) return 0
+  let d = Infinity
+  for (const s of waterSegments(parcel)) d = Math.min(d, closestOnSeg(x, n, s.a, s.b).d)
+  return d
+}
+
 export function pointInLot(parcel: Parcel, x: number, n: number): boolean {
   return pointInPolygon(parcel.ring, x, n)
 }
 
-/** Nearest shoreline edge, ranked by distance past the bank (as the old planner ranks it). */
+/**
+ * The nearest stretch of the water's edge, ranked by distance past the bank
+ * (as the old planner ranks it): on the east shore past the top of bank,
+ * `bankFt` in from the water's edge; on the south-west shore from the
+ * water's edge. Below high water the point is at the water: `d` is 0.
+ */
 export function nearestShore(parcel: Parcel, x: number, n: number, bankFt: number): ShoreHit | null {
   const bankM = ftToM(bankFt)
+  const below = belowHighWater(parcel, x, n)
   let best: ShoreHit | null = null
-  forEdges(parcel, true, (edge, a, b) => {
-    const { d, at } = closestOnSeg(x, n, a, b)
-    const banked = edge <= EAST_BANK_LAST_EDGE
+  for (const s of waterSegments(parcel)) {
+    const hit = closestOnSeg(x, n, s.a, s.b)
+    const d = below ? 0 : hit.d
+    const banked = s.edge <= EAST_BANK_LAST_EDGE
     const past = banked ? d - bankM : d
-    if (!best || past < best.past) best = { d, edge, at, past, banked }
-  })
+    // below high water every stretch is at 0: the one actually nearest names the shore
+    if (!best || past < best.past || (below && past === best.past && hit.d < Math.hypot(x - best.at[0], n - best.at[1]))) best = { d, edge: s.edge, at: below ? [x, n] : hit.at, past, banked }
+  }
   return best
 }
 
@@ -83,12 +158,11 @@ export function setbackBand(parcel: Parcel, setbacks: Setbacks, x: number, n: nu
   return 'clear'
 }
 
-/** Tree protection zone at a point: 1 (0–35 ft from the water), 2 (35–110 ft) or 0. Plain distance, no bank offset. */
+/** Tree protection zone at a point: 1 (0–35 ft from the water's edge), 2 (35–110 ft) or 0. Plain distance, no bank offset. */
 export function treeZone(parcel: Parcel, x: number, n: number): 0 | 1 | 2 {
-  const sh = nearestShore(parcel, x, n, 0)
-  if (!sh) return 0
-  if (sh.d < ftToM(TREE_ZONE_1_FT)) return 1
-  if (sh.d < ftToM(TREE_ZONE_2_FT)) return 2
+  const d = waterDistance(parcel, x, n)
+  if (d < ftToM(TREE_ZONE_1_FT)) return 1
+  if (d < ftToM(TREE_ZONE_2_FT)) return 2
   return 0
 }
 

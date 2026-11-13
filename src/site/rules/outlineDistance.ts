@@ -3,7 +3,7 @@ import { isShorelineEdge } from '../parcel'
 import type { Parcel, SitePoint } from '../types'
 import { ftToM } from '../units'
 import { forEdges, segDistance, type Poly } from './polyGeom'
-import { isBankedEdge, pointInLot } from './setbacks'
+import { belowHighWater, isBankedEdge, nearestShore, pointInLot, waterSegments } from './setbacks'
 
 /**
  * How far a rule outline is from the shore and the lot lines, edge to edge
@@ -58,10 +58,24 @@ function nearestEdge(polys: readonly Poly[], edges: readonly Edge[], rank: (d: n
   return best
 }
 
-/** The outline's nearest approach to the shoreline, ranked by distance past the top of bank (as `nearestShore` ranks a point). */
+/**
+ * The outline's nearest approach to the water's edge (the high-water line),
+ * ranked by distance past the top of bank (as `nearestShore` ranks a point):
+ * on the east shore past the top of bank, `bankFt` in from the water's edge;
+ * on the south-west shore from the water's edge. An outline with a corner
+ * below high water (between the lot line and the high-water line) is at the
+ * water there: 0.
+ */
 export function outlineShore(parcel: Parcel, polys: readonly Poly[], bankFt: number): OutlineShoreHit | null {
   const bankM = ftToM(bankFt)
-  const hit = nearestEdge(polys, ringEdges(parcel, true), (d, edge) => (isBankedEdge(parcel, edge) ? d - bankM : d))
+  const water = waterSegments(parcel).map((s): Edge => [s.edge, s.a, s.b])
+  const rank = (d: number, edge: number) => (isBankedEdge(parcel, edge) ? d - bankM : d)
+  const below = polys.flat().find(([x, n]) => belowHighWater(parcel, x, n))
+  if (below) {
+    const shore = nearestShore(parcel, below[0], below[1], bankFt)
+    if (shore) return { d: 0, from: below, to: below, past: rank(0, shore.edge), banked: shore.banked }
+  }
+  const hit = nearestEdge(polys, water, rank)
   if (!hit) return null
   return { d: hit.d, from: hit.from, to: hit.to, past: hit.rank, banked: isBankedEdge(parcel, hit.edge) }
 }

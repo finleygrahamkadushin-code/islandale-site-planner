@@ -9,7 +9,7 @@ import {
 
 const on = { setbacks: DEFAULT_SETBACKS, rules: true }
 const noTrees = { setbacks: { ...DEFAULT_SETBACKS, treeZones: false }, rules: true }
-const facts = (p: Partial<PointFacts>): PointFacts => ({ inLot: true, dBank: 1000, dShore: 1000, dLine: 1000, ...p })
+const facts = (p: Partial<PointFacts>): PointFacts => ({ inLot: true, dBank: 1000, dShore: 1000, dWater: 1000, dLine: 1000, ...p })
 const mixed = (a: string, b: string, t: number): Rgb => lin(a).map((v, i) => v + (lin(b)[i] - v) * t) as unknown as Rgb
 const close = (a: Rgb, b: Rgb) => a.forEach((v, i) => expect(v).toBeCloseTo(b[i], 6))
 
@@ -37,11 +37,11 @@ describe('site-rule ground tints', () => {
     close(ruleColour(facts({ dLine: ftToM(5), dShore: ftToM(5) }), 0, noTrees), mixed(LOT_GREEN, SHORE_BAND, 0.5))
   })
 
-  it('adds the tree zones from the water, with no bank offset', () => {
+  it("adds the tree zones from the water's edge (the high-water line), with no bank offset", () => {
     const band = mixed(LOT_GREEN, SHORE_BAND, 0.5)
-    close(ruleColour(facts({ dBank: ftToM(20) }), 0, on), band.map((v, i) => v + (lin(TREE_ZONE_1)[i] - v) * 0.45) as unknown as Rgb)
-    close(ruleColour(facts({ dShore: ftToM(100) }), 0, on), mixed(LOT_GREEN, TREE_ZONE_2, 0.22))
-    close(ruleColour(facts({ dShore: ftToM(120) }), 0, on), lin(LOT_GREEN))
+    close(ruleColour(facts({ dBank: ftToM(20), dWater: ftToM(20) }), 0, on), band.map((v, i) => v + (lin(TREE_ZONE_1)[i] - v) * 0.45) as unknown as Rgb)
+    close(ruleColour(facts({ dShore: ftToM(100), dWater: ftToM(100) }), 0, on), mixed(LOT_GREEN, TREE_ZONE_2, 0.22))
+    close(ruleColour(facts({ dShore: ftToM(120), dWater: ftToM(120) }), 0, on), lin(LOT_GREEN))
   })
 
   it('shows only the lot when the Setbacks layer is off', () => {
@@ -64,7 +64,7 @@ describe('site-rule ground tints', () => {
         continue
       }
       close(ruleColour(f, 0, noTrees), expected)
-      const water = Math.min(f.dBank, f.dShore)
+      const water = f.dWater
       expect(water < ftToM(35) ? 1 : water < ftToM(110) ? 2 : 0).toBe(treeZone(parcel, x, n))
     }
   })

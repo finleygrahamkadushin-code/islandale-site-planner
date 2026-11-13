@@ -59,7 +59,7 @@ export function shoreBufferLine(parcel: Parcel, shoreFt: number, bankFt: number)
 
 /**
  * The top of bank on the east shore (5E): the line `bankFt` in from the
- * banked shore's lot line at the water, kept to the lot and to ground nearer the banked
+ * banked shore's water's edge (the approximate high-water line), kept to the lot and to ground nearer the banked
  * shore than the south-west one (where the bank gives way to the beach).
  * The shoreline setback on the east shore is measured from this line.
  */

@@ -32,7 +32,7 @@ export function SetbacksPanel() {
         </strong>
       </header>
       {range('shoreFt', <>Shoreline, from the <Term term="top-of-bank">top of bank</Term></>, 'Shoreline setback')}
-      {range('bankFt', 'Top of bank, in from the east lot line at the water', 'Top of bank')}
+      {range('bankFt', 'Top of bank, in from the east high-water line', 'Top of bank')}
       {range('sideFt', 'Side and rear lot lines', 'Side setback')}
       <label className="row small">
         <input type="checkbox" checked={setbacks.treeZones} onChange={(e) => setSetbacks({ treeZones: e.target.checked })} />

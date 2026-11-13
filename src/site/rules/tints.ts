@@ -3,7 +3,7 @@ import { isShorelineEdge } from '../parcel'
 import type { Parcel } from '../types'
 import { ftToM } from '../units'
 import type { Setbacks } from '../../store/types'
-import { closestOnSeg, EAST_BANK_LAST_EDGE, pointInLot, TREE_ZONE_1_FT, TREE_ZONE_2_FT } from './setbacks'
+import { belowHighWater, closestOnSeg, EAST_BANK_LAST_EDGE, pointInLot, TREE_ZONE_1_FT, TREE_ZONE_2_FT, waterSegments } from './setbacks'
 
 /**
  * Site-rule ground tints (5E, old `colorTerrain`): lot green inside the lot,
@@ -38,10 +38,12 @@ export const TINT_LEGEND: readonly { readonly label: string; readonly colour: st
 /** What the tints need to know about a ground point, metres. */
 export interface PointFacts {
   readonly inLot: boolean
-  /** Plain distance to the banked east shore (Infinity when there is none). */
+  /** Plain distance to the banked east shore's water's edge (Infinity when there is none). */
   readonly dBank: number
-  /** Plain distance to the south-west shore, measured from the water. */
+  /** Plain distance to the south-west shore's water's edge (the high-water line). */
   readonly dShore: number
+  /** Plain distance to the water's edge on either shore (the tree zones); 0 below high water. */
+  readonly dWater: number
   /** Distance to the nearest side or rear lot line. */
   readonly dLine: number
 }
@@ -61,12 +63,17 @@ export function pointFacts(parcel: Parcel, x: number, n: number): PointFacts {
   let dShore = Infinity
   let dLine = Infinity
   for (let i = 0; i < ring.length; i++) {
-    const { d } = closestOnSeg(x, n, ring[i], ring[(i + 1) % ring.length])
-    if (!isShorelineEdge(parcel, i)) dLine = Math.min(dLine, d)
-    else if (i <= EAST_BANK_LAST_EDGE) dBank = Math.min(dBank, d)
+    if (isShorelineEdge(parcel, i)) continue
+    dLine = Math.min(dLine, closestOnSeg(x, n, ring[i], ring[(i + 1) % ring.length]).d)
+  }
+  // the shores measure from the water's edge (the high-water line); below it, a point is at the water
+  const below = belowHighWater(parcel, x, n)
+  for (const s of waterSegments(parcel)) {
+    const d = below ? 0 : closestOnSeg(x, n, s.a, s.b).d
+    if (s.edge <= EAST_BANK_LAST_EDGE) dBank = Math.min(dBank, d)
     else dShore = Math.min(dShore, d)
   }
-  return { inLot: pointInLot(parcel, x, n), dBank, dShore, dLine }
+  return { inLot: pointInLot(parcel, x, n), dBank, dShore, dWater: Math.min(dBank, dShore), dLine }
 }
 
 /** Ground colour for one point; `slope` is 1 − the normal's up component. */
@@ -80,7 +87,7 @@ export function ruleColour(f: PointFacts, slope: number, s: TintSettings): Rgb {
     : f.dLine < ftToM(sb.sideFt) ? mixRgb(lin(LOT_GREEN), lin(SIDE_BAND), BAND_MIX)
     : lin(LOT_GREEN)
   if (!sb.treeZones) return banded
-  const water = Math.min(f.dBank, f.dShore)
+  const water = f.dWater
   if (water < ftToM(TREE_ZONE_1_FT)) return mixRgb(banded, lin(TREE_ZONE_1), TREE_1_MIX)
   if (water < ftToM(TREE_ZONE_2_FT)) return mixRgb(banded, lin(TREE_ZONE_2), TREE_2_MIX)
   return banded

@@ -1,3 +1,5 @@
+import type { HighWaterLine } from './highWater'
+
 /** Local site frame: metres, x east, n north, origin at the terrain grid centre. */
 export type SitePoint = readonly [x: number, n: number]
 
@@ -28,6 +30,14 @@ export interface Parcel {
    * mark: along most of the shore they lie below 8 ft NAVD88 (decision 1, Nov 13).
    */
   readonly shorelineEdges: { readonly first: number; readonly last: number }
+  /**
+   * The approximate high-water line (8 ft NAVD88 contour of the terrain,
+   * `highWater.ts`), worked out when the site loads. The shoreline buffer, the
+   * distances to the shore and the tree zones measure from it; the top of bank
+   * stays where it is, `bankFt` in from the lot line. A parcel without one (a
+   * test's) measures from the lot line, as before.
+   */
+  readonly highWater?: HighWaterLine
 }
 
 export interface Site {

@@ -48,15 +48,19 @@ describe('clearances for one object (5E)', () => {
     expect(clearances(a, planOf(a, b), site, DEFAULT_SETBACKS, layers).nearest).toBeNull()
   })
 
-  test('shore: the past-bank figure is the plain distance less the bank offset, and a wider setback puts the cabin inside the buffer', () => {
+  test('shore: the past-bank figure is the plain distance less the bank offset, both from the high-water line; the prow is now inside the 35 ft buffer, clear of a 20 ft one', () => {
     const o = schemeC.objects['C-0']
     const c = clearances(o, schemeC, site, DEFAULT_SETBACKS)
     expect(c.shore?.banked).toBe(true)
     expect(((c.shore?.d ?? 0) - (c.shore?.past ?? 0)) * FT_PER_M).toBeCloseTo(45, 6)
-    expect(c.shore?.insideBuffer).toBe(false)
-    const strict = { ...DEFAULT_SETBACKS, shoreFt: 50 }
-    expect(clearances(o, schemeC, site, strict).shore?.insideBuffer).toBe(true)
-    expect(shoreText(clearances(o, schemeC, site, strict).shore!, strict)).toMatch(/ · inside buffer$/)
+    // without the high-water line the water's edge is the lot line, about 10 ft further out there (item 11)
+    const lotOnly = { ...site, parcel: { ...site.parcel, highWater: undefined } }
+    const before = clearances(o, schemeC, lotOnly, DEFAULT_SETBACKS).shore!
+    expect((before.d - c.shore!.d) * FT_PER_M).toBeCloseTo(10.3, 1)
+    expect(before.insideBuffer).toBe(false)
+    expect(c.shore?.insideBuffer).toBe(true)
+    expect(shoreText(c.shore!, DEFAULT_SETBACKS)).toMatch(/ · inside buffer$/)
+    expect(clearances(o, schemeC, site, { ...DEFAULT_SETBACKS, shoreFt: 20 }).shore?.insideBuffer).toBe(false)
   })
 
   test('lot line: inside the side setback when closer than it, and a cabin half off the lot crosses the lot line', () => {
@@ -74,9 +78,11 @@ describe('clearances for one object (5E)', () => {
   })
 
   test('each Scheme C cabin reads its three clearances in feet and inches', () => {
-    expect(textsOf('C-0')).toEqual([`80'-1" to shore · 35'-1" past bank`, `21'-6" to lot line`, `1'-9" to Madrone · keep`])
+    // to shore and past bank from the approximate high-water line (item 11): 80'-1" and 35'-1" from the lot line before, now inside the buffer
+    expect(textsOf('C-0')).toEqual([`69'-9" to shore · 24'-9" past bank · inside buffer`, `21'-6" to lot line`, `1'-9" to Madrone · keep`])
     expect(textsOf('C-1')).toEqual([`84'-8" to shore`, `11'-5" to lot line`, `3'-2" to Family twin pod`])
-    expect(textsOf('C-2')).toEqual([`82'-1" to shore`, `11' to lot line`, `1'-4" to Family lantern`])
+    // the east shore now ranks nearer past its bank than the south-west beach (82'-1" to shore before, from the south-west)
+    expect(textsOf('C-2')).toEqual([`116'-9" to shore · 71'-9" past bank`, `11' to lot line`, `1'-4" to Family lantern`])
     // measured from the walls (R2.3): the Elders' cabin's walls come 2 in nearer than its corners did (50'-11", 10'-8")
     expect(textsOf('C-3')).toEqual([`50'-9" to shore`, `10'-6" to lot line`, `3' to Madrone · keep`])
   })
