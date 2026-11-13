@@ -518,6 +518,8 @@ button.primary:hover:not(:disabled) { border-color: var(--fg); }
 .confirm-actions button { min-height: 32px; }
 .help-tour { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
 .help-tour button { flex: none; min-height: 32px; }
+.help-single-keys { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; cursor: pointer; }
+.help-single-keys input { margin: 3px 0 0; }
 .tour-card {
   z-index: 15; width: min(300px, calc(100vw - 32px)); padding: 12px 14px;
   border: 1px solid var(--accent); border-radius: 10px; background: var(--tour-bg); color: var(--fg);

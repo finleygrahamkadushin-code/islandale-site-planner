@@ -9,6 +9,7 @@ import { useInteriorView, type InteriorTool } from './interiorView'
 import { PlanCanvas } from './PlanCanvas'
 import { Tip } from '../../guide/Tip'
 import { useConfirm } from '../../guide/confirm'
+import { singleKeyOff } from '../../ui/singleKeys'
 
 const TOOLS: readonly { readonly id: InteriorTool; readonly label: string; readonly key: string }[] = [
   { id: 'select', label: 'Select', key: 'V' },
@@ -48,6 +49,8 @@ export function InteriorEditor() {
     if (!o) return
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || e.metaKey || e.ctrlKey) return
+      // single-character shortcuts turned off (R10.5): the tool letters, R and M rest; arrows, Delete and Escape work
+      if (singleKeyOff(e)) return
       const s = useInteriorView.getState()
       const fi = s.fi
       const run = (op: Parameters<typeof a.editFloor>[2]) => {

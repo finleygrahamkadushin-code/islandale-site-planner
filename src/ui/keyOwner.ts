@@ -44,6 +44,8 @@ export function keyTargetOf(target: EventTarget | null): KeyTarget | null {
     inputType: target instanceof HTMLInputElement ? target.type : undefined,
     editable: target.isContentEditable,
     role: target.getAttribute('role'),
-    inLayer: !!layer && !layer.hasAttribute(PLAN_KEYS_ATTR),
+    // a target already gone from the page belongs to a layer that closed on this very key (the Help sheet's
+    // content unmounts while Radix handles its Escape), so the plan leaves the key alone
+    inLayer: !target.isConnected || (!!layer && !layer.hasAttribute(PLAN_KEYS_ATTR)),
   }
 }

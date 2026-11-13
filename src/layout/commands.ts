@@ -5,6 +5,7 @@ import { useFocusRequest } from '../scene/cameraFocus'
 import { LIBRARY, type LibraryGroup } from '../tools/library'
 import { useLibraryOpen } from '../tools/libraryOpen'
 import { useAddMode } from '../tools/addMode'
+import { useSingleKeys } from '../ui/singleKeys'
 import { useOpenSections, type SectionId } from '../ui/InspectorSection'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
@@ -110,6 +111,7 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'redo', group: 'Plan', label: 'Redo', keys: keys('Shift+Mod+Z'), run: () => redoPlan() },
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
+    { id: 'single-keys', group: 'Help', label: useSingleKeys.getState().on ? 'Single-key shortcuts off' : 'Single-key shortcuts on', run: () => useSingleKeys.getState().setOn(!useSingleKeys.getState().on) },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
     { id: 'present', group: 'Views', label: 'Present: full screen, no editing', run: () => usePresent.getState().enter() },
     { id: 'snapshot', group: 'Views', label: 'Save a picture of this view', run: () => useViewHud.getState().snapshot() },

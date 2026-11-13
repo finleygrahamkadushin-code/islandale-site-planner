@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { SHORTCUT_GROUPS } from './shortcuts'
 import { loadCommandMenu } from '../app/prefetch'
 import { useTour } from '../guide/tour'
+import { useSingleKeys } from '../ui/singleKeys'
 
 /** Which overlay is open: command search (Cmd/Ctrl+K) or the Help sheet (?). View state. */
 // command search (cmdk) loads the first time it opens (4E)
@@ -15,8 +16,14 @@ export const useOverlay = create<{ readonly open: 'commands' | 'help' | null; re
 }))
 
 function HelpSheet() {
+  const singleKeys = useSingleKeys((s) => s.on)
   return (
     <div className="help-sheet" data-testid="help-sheet">
+      {/* R10.5 (WCAG 2.1.4): one-letter shortcuts can be turned off, remembered per browser */}
+      <label className="help-single-keys">
+        <input type="checkbox" checked={singleKeys} onChange={(e) => useSingleKeys.getState().setOn(e.target.checked)} data-testid="single-keys" />
+        <span>Single-key shortcuts (letters, numbers, ?). Off, only arrows, Escape, Delete and the {'Ctrl / ⌘'} shortcuts work.</span>
+      </label>
       <div className="help-tour">
         <span>New here? A five-step tour shows how to look around, pick, move, lock and save.</span>
         <button

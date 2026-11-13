@@ -11,6 +11,7 @@ import { isPresenting, usePresent } from '../present/present'
 import { useConfirm } from '../guide/confirm'
 import { useIsolate } from '../tools/isolate'
 import { keepsKey, keyTargetOf } from './keyOwner'
+import { singleKeyOff } from './singleKeys'
 
 const NUDGE_FT = 1
 const NUDGE_SHIFT_FT = 5
@@ -27,6 +28,8 @@ export function useKeyboardShortcuts(): void {
       if (e.defaultPrevented && e.key !== 'Escape') return
       // so does a text field, a slider or tab under its arrow keys, and anything inside a dialog or menu (keyOwner)
       if (keepsKey(keyTargetOf(e.target), e.key)) return
+      // single-character shortcuts turned off (R10.5): arrows, Escape, Delete and the Ctrl / Cmd chords still work
+      if (singleKeyOff(e)) return
       if (document.querySelector(MODAL_SELECTOR)) return
       // Present mode (4D): no editing keys; Escape leaves
       if (isPresenting()) {

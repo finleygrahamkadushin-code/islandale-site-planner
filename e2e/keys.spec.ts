@@ -120,3 +120,28 @@ test('no key reaches the plan through an open File or View menu; once it closes,
   expect(nudged.x).toBeCloseTo(start.x + FT, 6)
   expect(nudged.undoSteps).toBe(1)
 })
+
+test('single-key shortcuts can be turned off in Help: letters rest, arrows and Cmd+Z work, remembered, no undo step (R10.5)', async ({ page }) => {
+  await page.getByTestId('open-help').click()
+  await page.getByTestId('single-keys').uncheck()
+  await page.keyboard.press('Escape')
+  // the Escape that closes Help (focus on its checkbox) leaves the selection alone
+  expect((await snapshot(page)).selection).toEqual([CABIN])
+  await expect(page.getByTestId('help-sheet')).toHaveCount(0)
+  expect((await snapshot(page)).undoSteps).toBe(0)
+  const start = await snapshot(page)
+  for (const k of ['m', 'r', 'e', '2', '?']) await page.keyboard.press(k)
+  await expect(page.getByTestId('help-sheet')).toHaveCount(0)
+  const after = await snapshot(page)
+  expect(after.rotation).toBe(start.rotation)
+  expect(await page.evaluate(() => (window as any).islandale.store.getState().measuring)).toBeFalsy()
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(async () => (await snapshot(page)).x).toBeCloseTo(start.x + FT, 6)
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect.poll(async () => (await snapshot(page)).x).toBeCloseTo(start.x, 6)
+  // remembered by this browser
+  await page.reload()
+  await page.waitForFunction(() => (window as any).islandale?.store, null, { timeout: 60_000 })
+  await page.getByTestId('open-help').click()
+  await expect(page.getByTestId('single-keys')).not.toBeChecked()
+})
