@@ -25,14 +25,37 @@ const MOVE_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'H
 /** Roles whose arrow keys move between siblings (or, for a slider, change the value). */
 const MOVE_KEY_ROLES = new Set(['tab', 'radio', 'menuitem', 'menuitemradio', 'menuitemcheckbox', 'option', 'slider'])
 
+const isTextField = (target: KeyTarget): boolean =>
+  !!target.editable || target.tag === 'TEXTAREA' || (target.tag === 'INPUT' && TEXT_INPUT_TYPES.has(target.inputType ?? 'text'))
+
 /** True when the focused control keeps this key, so the plan must not act on it. */
 export function keepsKey(target: KeyTarget | null, key: string): boolean {
   if (!target) return false
   if (target.inLayer) return true
-  if (target.editable || target.tag === 'TEXTAREA' || target.tag === 'SELECT') return true
-  if (target.tag === 'INPUT' && TEXT_INPUT_TYPES.has(target.inputType ?? 'text')) return true
+  if (isTextField(target) || target.tag === 'SELECT') return true
   if (!MOVE_KEYS.has(key)) return false
   return (target.tag === 'INPUT' && target.inputType === 'range') || MOVE_KEY_ROLES.has(target.role ?? '')
+}
+
+/** The modifier keys of a key press, as a KeyboardEvent has them. */
+export interface ChordKeys {
+  readonly key: string
+  readonly metaKey: boolean
+  readonly ctrlKey: boolean
+  readonly altKey: boolean
+  readonly shiftKey: boolean
+}
+
+/**
+ * Command search's chord pressed in a text field outside any dialog or menu:
+ * the field gives it up, so search opens from the inspector's fields too.
+ * ⌘K means nothing to a text field anywhere; Ctrl+K does on a Mac (it deletes
+ * to the end of the line), so there it stays with the field.
+ */
+export function searchChordFromField(target: KeyTarget | null, e: ChordKeys, mac: boolean): boolean {
+  if (!target || target.inLayer || !isTextField(target)) return false
+  if (e.key.toLowerCase() !== 'k' || e.altKey || e.shiftKey || (e.metaKey && e.ctrlKey)) return false
+  return e.metaKey || (e.ctrlKey && !mac)
 }
 
 /** Read a key event's target as plain data; null when it is not an element. */

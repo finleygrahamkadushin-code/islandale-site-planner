@@ -38,7 +38,8 @@ export function formatKeys(spec: string, mac: boolean): string {
   return [...new Set(names), key].join('+')
 }
 
-const MAC = typeof navigator !== 'undefined' && isMacPlatform(navigator as PlatformInfo)
+/** This computer is a Mac (or an iPad): ⌘ is its Mod key. */
+export const ON_MAC = typeof navigator !== 'undefined' && isMacPlatform(navigator as PlatformInfo)
 
 /** A shortcut hint for this computer. */
-export const keys = (spec: string): string => formatKeys(spec, MAC)
+export const keys = (spec: string): string => formatKeys(spec, ON_MAC)

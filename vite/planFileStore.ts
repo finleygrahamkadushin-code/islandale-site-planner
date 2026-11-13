@@ -7,7 +7,9 @@ import { join } from 'node:path'
  * it directly; the dev server reads and writes it for the app. Every write is
  * atomic (temp file, then rename), keeps the previous version in .history,
  * and must name the revision it was based on, so a stale tab cannot overwrite
- * someone else's edit.
+ * someone else's edit. A save whose plan is the file's plan (only `savedAt`
+ * or the view differ) is not written at all, so opening the app, moving the
+ * sun or turning labels off leaves the tracked file alone (decision 5).
  */
 
 export const PLAN_FILE_NAME = 'islandale.plan.json'
@@ -71,6 +73,8 @@ export function createPlanFileStore(dir: string, now: () => Date = () => new Dat
       const current = await read()
       const problem = checkPlanText(text)
       if (problem) return { ok: false, status: 400, error: problem, rev: current.rev }
+      // nothing to save, whichever revision the tab read: it is told the file's
+      if (current.text !== null && samePlan(current.text, text)) return { ok: true, rev: current.rev }
       if (baseRev !== current.rev) return changed(current.rev)
       await mkdir(dir, { recursive: true })
       const temp = `${file}.${process.pid}.${Date.now()}.${++seq}.tmp`
@@ -102,6 +106,22 @@ export function createPlanFileStore(dir: string, now: () => Date = () => new Dat
     })
 
   return { file, read, put, remove }
+}
+
+/** What a save changes in the file: everything but when it was saved and the view settings. */
+const planPart = (text: string): string | null => {
+  try {
+    const { savedAt: _savedAt, view: _view, ...rest } = JSON.parse(text) as Record<string, unknown>
+    return JSON.stringify(rest)
+  } catch {
+    return null
+  }
+}
+
+/** Whether two plan files hold the same plan (same version, app and plan), whatever their savedAt and view. */
+export function samePlan(a: string, b: string): boolean {
+  const pa = planPart(a)
+  return pa !== null && pa === planPart(b)
 }
 
 /** A cheap check that the text is a plan file; full validation happens in the app. */

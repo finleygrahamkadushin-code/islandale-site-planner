@@ -92,3 +92,40 @@ test('the mouse wheel over a chip zooms the view, and the chip still takes its c
   await chip.click()
   await expect(page.getByRole('menu', { name: /^Add to/ })).toBeVisible()
 })
+
+test('clearance and measure labels come and go with no React root errors', async ({ page }) => {
+  test.setTimeout(120_000)
+  const errors: string[] = []
+  page.on('console', (m) => {
+    if (m.type() === 'error' && ROOT_ERRORS.test(m.text())) errors.push(m.text())
+  })
+  page.on('pageerror', (e) => errors.push(e.message))
+  const labels = page.locator('.clearance-label, .dimension-label')
+  const measured = page.locator('.measure-label:not(.clearance-label):not(.dimension-label)')
+  for (let round = 0; round < 2; round++) {
+    // a cabin selected as the page opens, before the 3D view has mounted (as keys.spec does), shows its clearance lines and edge lengths
+    await page.reload()
+    await page.waitForFunction(() => (window as any).islandale?.store, null, { timeout: 60_000 })
+    await page.evaluate(() => {
+      const w = (window as any).islandale
+      w.store.getState().loadScheme('C')
+      w.store.getState().select(['C-0'])
+    })
+    await expect(labels.first()).toBeAttached({ timeout: 30_000 })
+    await store(page, 'select', [])
+    await expect(labels).toHaveCount(0)
+  }
+  // a kept measurement's label, then Clear
+  const p = await page.evaluate(() => (window as any).islandale.store.getState().plan.objects['C-0'].position)
+  await page.evaluate((p) => {
+    const a = { x: p.x, n: p.n, z: 3 }
+    const b = { x: p.x + 6, n: p.n, z: 3 }
+    ;(window as any).islandale.store.setState({ measurements: [{ a, b, horizontalM: 6, slopeM: 6, riseM: 0 }] })
+  }, p)
+  await expect(measured).toHaveCount(1)
+  await page.evaluate(() => (window as any).islandale.store.setState({ measurements: [] }))
+  await expect(measured).toHaveCount(0)
+  // React reports a deferred unmount after the commit that asked for it
+  await page.waitForTimeout(1_000)
+  expect(errors).toEqual([])
+})

@@ -32,7 +32,8 @@ describe('clearance rows (5E)', () => {
   test("the Gathering prow reads to shore, to lot line and to nearest, none in warning at the default setbacks", () => {
     const rows = clearanceRows(prow, plan, site, DEFAULT_SETBACKS)
     expect(rows.map((r) => r.label)).toEqual(['To shore', 'To lot line', 'To nearest'])
-    expect(rows[0].text).toBe(`80'-1" to shore · 35'-1" past bank`)
+    // to shore is to the approximate high-water line (item 11; 80'-1" to the lot line before); past bank is from the top of bank, 45 ft in from the lot line, unchanged
+    expect(rows[0].text).toBe(`69'-9" to shore · 35'-1" past bank`)
     expect(rows.some((r) => r.warn)).toBe(false)
   })
 

@@ -103,6 +103,12 @@ describe('code check', () => {
     expect(row(r.rows, 'lot-width').verdict).toBe('note')
   })
 
+  it("measures the lot width through the outline point nearest the lot line along the water, as before the high-water line (E, F)", () => {
+    // every point below the high-water line is 0 from it, so ranking by that picked whichever came first (review of c036a56)
+    expect(row(check(objectsOf('E'), 'E').rows, 'lot-width').text).toBe('118 ft of 43 ft allowed (lot 85 ft wide there)')
+    expect(row(check(objectsOf('F'), 'F').rows, 'lot-width').text).toBe('no buildings yet')
+  })
+
   it('gives only notes for a rules-off scheme', () => {
     const r = check(objectsOf('D'), 'D')
     expect(r.rulesOff).toBe(true)

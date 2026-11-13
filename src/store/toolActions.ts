@@ -167,6 +167,7 @@ export function toolActions({ get, set, writable, isLocked, terrain, ground }: T
           name: freshName(plan, src.name),
           position: { x: src.position.x + dx, n: src.position.n - dx },
           params: structuredClone(src.params) as Record<string, unknown>,
+          // a copy is never locked, even of a locked object, so it can be moved off the original (R6.14, intended)
           locked: false,
           hidden: false,
         }

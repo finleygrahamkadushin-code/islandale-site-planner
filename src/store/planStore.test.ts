@@ -116,6 +116,23 @@ describe('plan store', () => {
   })
 
   describe('visibility and labels', () => {
+    test('hiding an object or its label works on a locked object and a locked layer (R6.14, intended)', () => {
+      // hiding changes what is shown, not the design, so a lock does not stop it (Finley, Nov 13)
+      const house = store().plan.order.find((id) => store().plan.objects[id].type === 'house')!
+      store().setLocked(house, true)
+      store().setLayer('buildings', { locked: true })
+      store().setHidden(house, true)
+      store().setLabelVisible(house, false)
+      expect(store().plan.objects[house].hidden).toBe(true)
+      expect(store().plan.objects[house].labelVisible).toBe(false)
+      // the lock, the hide and the label: each its own undo step
+      expect(history().pastStates).toHaveLength(3)
+      store().setHidden(house, false)
+      store().setLabelVisible(house, true)
+      expect(store().plan.objects[house].hidden).toBe(false)
+      expect(store().plan.objects[house].labelVisible).toBe(true)
+    })
+
     test('hiding a layer hides its objects and their labels', () => {
       const tree = store().plan.order.find((id) => store().plan.objects[id].type === 'tree')!
       store().setLayer('trees', { visible: false })

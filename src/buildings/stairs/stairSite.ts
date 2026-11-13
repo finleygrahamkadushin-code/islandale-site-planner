@@ -2,7 +2,7 @@ import { buildingMasses, massToBuilding, type Mass } from '../masses'
 import { localToSite, type LocalPoint } from '../footprint'
 import { railStyleOf } from '../rails/railEdits'
 import { planWingStair, stairAxis, wingDropAtFoot, wingHost, type AccessSite } from './stairWing'
-import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, stairGeomMath, TREAD_MIN_M } from './stairs'
+import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, stairGeomMath, TREAD_MIN_M, treadsFor } from './stairs'
 import { withWing } from '../parts/wingEdits'
 import type { StairInfo } from './stairPlan'
 import { ftToM, M_PER_FT as FT } from '../../site/units'
@@ -82,7 +82,7 @@ export function fitStairRun(world: RailWorld, o: PlanObject, mi: number): { read
   }
   const tooHigh = (drop: number) => drop > (ramp ? RAMP_RUN_RISE_MAX_M : FLIGHT_RISE_MAX_M) + 1e-9
   const fits = (trial: Mass, drop: number) => (ramp ? drop <= (trial.d * FT) / RAMP_RUN_PER_RISE + 1e-9 : stairGeomMath(drop, trial.d * FT).ok)
-  const needed = (drop: number) => (ramp ? (drop * RAMP_RUN_PER_RISE) / FT : (Math.max(1, Math.ceil(drop / RISER_MAX_M - 1e-9)) * TREAD_MIN_M) / FT)
+  const needed = (drop: number) => (ramp ? (drop * RAMP_RUN_PER_RISE) / FT : (Math.max(1, treadsFor(Math.ceil(drop / RISER_MAX_M - 1e-9))) * TREAD_MIN_M) / FT)
   let drop = trialDrop(world, o, mi, m)
   if (tooHigh(drop) || fits(m, drop)) return null
   let d = m.d

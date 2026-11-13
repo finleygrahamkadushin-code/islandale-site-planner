@@ -122,6 +122,15 @@ describe('tools (4A)', () => {
       expect(steps()).toBe(1)
     })
 
+    test('a copy of a locked object is unlocked, so it can be moved off the original (R6.14, intended)', () => {
+      const src = obj(cabinId())
+      store().setLocked(src.id, true)
+      const [copy] = store().duplicateObjects([src.id])
+      expect(copy).toBeDefined()
+      expect(obj(copy).locked).toBe(false)
+      expect(obj(src.id).locked).toBe(true)
+    })
+
     test('several at once are still one undo step', () => {
       const ids = store().plan.order.slice(0, 3)
       expect(store().duplicateObjects(ids)).toHaveLength(3)

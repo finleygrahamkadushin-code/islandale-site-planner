@@ -108,7 +108,7 @@ const GRASS = [0.42, 0.5, 0.3] as const
 const DRY_GRASS = [0.56, 0.55, 0.38] as const
 const BEACH = [0.62, 0.58, 0.5] as const
 const WET = [0.38, 0.36, 0.32] as const
-/** Above this, feet NAVD88, it is meadow; below, beach gravel (roughly the old planner's OHWM band). */
+/** Above this, feet NAVD88, it is meadow; below, beach gravel (roughly the band the old planner called its OHWM). */
 const BEACH_TOP_FT = 11
 const BLEND_FT = 1.5
 

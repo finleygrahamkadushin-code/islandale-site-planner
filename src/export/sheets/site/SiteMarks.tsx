@@ -287,6 +287,8 @@ function SiteLines({ m, t, pens }: { readonly m: SiteSheetModel; readonly t: Sit
       <path d={smooth(m.topOfBank)} stroke={INK.line} strokeWidth={pens.medium} />
       <path d={segsPath(t.bankTicks)} stroke={INK.line} strokeWidth={pens.hair} />
       <path d={linePath(m.shoreline)} stroke={INK.line} strokeWidth={pens.bold} />
+      {/* the approximate high-water line (item 11): long dash, two dots, apart from the buffer's long dash and the lot line's dash-dot */}
+      <path d={linePath(m.highWater)} stroke={INK.line} strokeWidth={pens.medium} strokeDasharray={dash(pens.label * 1.6, pens.label * 0.35, pens.label * 0.12, pens.label * 0.35, pens.label * 0.12, pens.label * 0.35)} />
       <path d={lotLine} stroke={INK.line} strokeWidth={pens.heavy} strokeDasharray={dash(pens.label * 2.6, pens.label * 0.45, pens.label * 0.35, pens.label * 0.45)} />
       {m.stakes.map(([x, y], i) => (
         <g key={i}>

@@ -1,9 +1,10 @@
-import { Html, Line } from '@react-three/drei'
+import { Line } from '@react-three/drei'
 import { usePlanStore } from '../store/planStore'
 import { useEarthworks } from '../site/earthworks/useEarthworks'
 import { usePointerGround } from '../site/pointer'
 import { toScene } from '../scene/frame'
-import { formatFeetInches } from '../ui/feetInches'
+import { LAYER, ScreenChip } from '../scene/ScreenChip'
+import { formatLengthField } from '../ui/feetInches'
 import { FT_PER_M } from '../site/units'
 import { measureOf, type MeasurePoint, type Measurement } from './measure'
 
@@ -12,7 +13,7 @@ const LIFT_M = 0.08
 const LINE_COLOR = '#d1581e'
 
 const at = (p: MeasurePoint) => toScene(p.x, p.n, p.z + LIFT_M)
-const ft = (m: number) => formatFeetInches(Math.abs(m) * FT_PER_M)
+const ft = (m: number) => formatLengthField(Math.abs(m) * FT_PER_M)
 
 /** "24'-1" across · 24'-4" sloped · rises 3'-2"" (old planner measure label). */
 export function measureText(m: Measurement): string {
@@ -25,9 +26,12 @@ function MeasureLine({ m, live = false }: { readonly m: Measurement; readonly li
   return (
     <group>
       <Line points={[at(m.a), at(m.b)]} color={LINE_COLOR} lineWidth={3} dashed={live} dashSize={0.4} gapSize={0.25} depthTest={false} />
-      <Html position={mid} center zIndexRange={[3, 3]} className="measure-label" data-testid="measure-label">
-        {measureText(m)}
-      </Html>
+      {/* drawn by the chip layer, not a drei Html with a React root of its own, which logged root errors as it unmounted */}
+      <ScreenChip position={mid} layer={LAYER.label}>
+        <div className="measure-label" data-testid="measure-label">
+          {measureText(m)}
+        </div>
+      </ScreenChip>
     </group>
   )
 }

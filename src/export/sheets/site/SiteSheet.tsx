@@ -13,7 +13,7 @@ import { siteSheetModel, type SiteSheetModel } from './siteModel'
 import type { SiteNotes } from './siteNotes'
 import { SiteNotesColumn } from './NotesColumn'
 
-/** How far out the water lines run from the OHWM, feet. */
+/** How far out the water lines run from the lot line at the water, feet. */
 const WATER_OFFSETS_FT = [2.5, 5.5, 9.5]
 /** Pads that read as gravel and get the stipple. */
 const GRAVEL = /gravel|drive|lane|park/i

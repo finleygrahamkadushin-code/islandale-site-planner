@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { formatFeetInches, formatLengthField, parseFeetInches, readLength, snapInch, snapQuarterInch } from './feetInches'
+import { formatLengthField, parseFeetInches, readLength, snapInch, snapQuarterInch } from './feetInches'
 
 describe('feet and inches', () => {
   test.each([
@@ -25,11 +25,7 @@ describe('feet and inches', () => {
     expect('error' in r && r.error.length).toBeGreaterThan(5)
   })
 
-  test('formats to the inch', () => {
-    expect(formatFeetInches(2.75)).toBe(`2' 9"`)
-    expect(formatFeetInches(7)).toBe(`7'`)
-    expect(formatFeetInches(0.5)).toBe(`6"`)
-    expect(formatFeetInches(3.5 / 12)).toBe(`3.5"`)
+  test('snaps to the inch', () => {
     expect(snapInch(2.76)).toBeCloseTo(2.75, 9)
   })
 })
@@ -95,10 +91,28 @@ describe('quarter inches and fractions (R6.2)', () => {
   })
 
   test('the formatter never shows NaN or a minus zero', () => {
-    expect(formatFeetInches(NaN)).toBe('—')
-    expect(formatFeetInches(Infinity)).toBe('—')
-    expect(formatFeetInches(-0.001)).toBe(`0"`)
     expect(formatLengthField(NaN)).toBe('—')
+    expect(formatLengthField(Infinity)).toBe('—')
     expect(formatLengthField(-0.001)).toBe(`0"`)
+  })
+})
+
+describe('the one feet-and-inches formatter on screen (R11): formatLengthField', () => {
+  // the table the four formatters were compared on (Nov 13); this one was right on every row
+  test.each([
+    ['whole feet', 12, `12'`],
+    ['feet and inches', 2.75, `2' 9"`],
+    ['inches', 0.75, `9"`],
+    ['a fraction', 9.5 / 12, `9 1/2"`],
+    ['a fraction alone', 0.75 / 12, `3/4"`],
+    ['feet, inches and a fraction', 2 + 9.5 / 12, `2' 9 1/2"`],
+    ['to the nearest quarter inch', 12 + 6.3 / 12, `12' 6 1/4"`],
+    ['11.99 in rounds up to a foot', 11.99 / 12, `1'`],
+    ['a negative', -2.5, `-2' 6"`],
+    ['a sliver below zero', -0.1 / 12, `0"`],
+    ['zero', 0, `0"`],
+    ['no number', NaN, '—'],
+  ])('%s', (_name, ft, text) => {
+    expect(formatLengthField(ft)).toBe(text)
   })
 })

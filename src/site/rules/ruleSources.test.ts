@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ASSUMED, limitText, PLANNING_AID_NOTE, RULE_LIMITS } from './ruleSources'
+import { ASSUMED, limitText, PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, RULE_LIMITS } from './ruleSources'
 
 describe('rule sources (R2.7, R2.8)', () => {
   test('every limit names its code section or says it is assumed', () => {
@@ -18,6 +18,11 @@ describe('rule sources (R2.7, R2.8)', () => {
     expect(byId.height).toBe('35 ft above average grade')
     expect(byId['lot-width']).toBe('50 %, 40 ft under 80 ft')
     expect(byId.program).toBe('800 sq ft a building, 1,600 sq ft in all')
+  })
+
+  test('the route note names the ramp items the accessible route check does not test, in one sheet line (R2.10)', () => {
+    for (const item of ['landing width', 'edge protection', 'passing spaces', 'door clearance']) expect(ROUTE_UNCHECKED_NOTE).toContain(item)
+    expect(ROUTE_UNCHECKED_NOTE.length).toBeLessThanOrEqual(PLANNING_AID_NOTE.length + 5)
   })
 
   test('the planning-aid note says it is not a code review and that the county limits are assumed', () => {

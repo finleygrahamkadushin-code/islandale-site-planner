@@ -1,6 +1,6 @@
 import type { Parcel, SitePoint } from '../types'
 import { mToFt } from '../units'
-import { nearestShore, pointInLot } from './setbacks'
+import { pointInLot, shoreLotLineDistance } from './setbacks'
 
 /**
  * The lot-width rule (5E, old `lotWidthCheck`): buildings may take up at
@@ -105,12 +105,16 @@ export function lotWidthCheck(parcel: Parcel, outlines: readonly (readonly SiteP
   return { at, dir: chord.dir, lotFt, usedFt, allowedFt, ok: usedFt <= allowedFt }
 }
 
-/** The point nearest the shore by plain distance (no bank offset). */
+/**
+ * The point nearest the shore by plain distance to the lot line along the
+ * water (no bank offset). Not to the high-water line: every point below it is
+ * 0 from it, so the pick would fall to whichever came first.
+ */
 function seawardPoint(parcel: Parcel, pts: readonly SitePoint[]): SitePoint | null {
   let best: { p: SitePoint; d: number } | null = null
   for (const p of pts) {
-    const hit = nearestShore(parcel, p[0], p[1], 0)
-    if (hit && (!best || hit.d < best.d)) best = { p, d: hit.d }
+    const d = shoreLotLineDistance(parcel, p[0], p[1])
+    if (Number.isFinite(d) && (!best || d < best.d)) best = { p, d }
   }
   return best?.p ?? null
 }

@@ -31,13 +31,20 @@ export interface StairMath {
 }
 
 /**
+ * Treads a stair of n risers has: one fewer than its risers, as the top
+ * riser lands on the floor (R3.4; the old planner counted one per riser).
+ */
+export const treadsFor = (risers: number): number => Math.max(0, risers - 1)
+
+/**
  * The stair-connect form of the legacy stairMath(): riser count and sizes
  * for a drop in metres, with fixed 11 in treads (Connect and path pieces, 5C).
  */
 export function stairMath(riseM: number): StairMath {
   const riseIn = Math.abs(riseM) / IN
   const risers = riseIn < 0.5 ? 0 : Math.ceil(riseIn / MAX_RISER_IN - 1e-9)
-  return { risers, riserIn: risers ? riseIn / risers : 0, treads: Math.max(0, risers - 1), runIn: risers * TREAD_IN }
+  const treads = treadsFor(risers)
+  return { risers, riserIn: risers ? riseIn / risers : 0, treads, runIn: treads * TREAD_IN }
 }
 
 /** A stair wing's risers: count, rise and tread (metres), and whether they meet 7 in / 11 in. */
@@ -50,14 +57,16 @@ export interface StairGeomMath {
 
 /**
  * The stair-geom form of the legacy stairMath(): the run is fixed (the
- * wing's depth) and is split evenly into one tread per riser, so a short
- * wing only flags ok = false rather than growing.
+ * wing's depth) and is split evenly into the n - 1 treads under n risers
+ * (R3.4: the old planner split it into n), so a short wing only flags
+ * ok = false rather than growing. One riser has no tread below the top:
+ * its tread is the whole run.
  */
 export function stairGeomMath(dropM: number, runM: number): StairGeomMath {
   const drop = Math.max(0, dropM || 0)
   const run = Math.max(0, runM || 0)
   const n = drop < 0.5 * IN ? 0 : Math.ceil(drop / RISER_MAX_M - 1e-9)
   const rise = n ? drop / n : 0
-  const tread = n ? run / n : run
+  const tread = n > 1 ? run / treadsFor(n) : run
   return { n, rise, tread, ok: n === 0 || (tread >= TREAD_MIN_M - 1e-9 && rise <= RISER_MAX_M + 1e-9) }
 }

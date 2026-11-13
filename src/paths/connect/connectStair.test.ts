@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { layoutStair, risersFor, runFt, stairMath } from './connectStair'
-import { ftIn, reverseSpec, specEnds } from './connectSpec'
+import { stairVerdict } from './connectPlan'
+import { reverseSpec, specEnds } from './connectSpec'
 import { M_PER_FT as FT } from '../../site/units'
 
 const IN = 0.0254
@@ -16,23 +17,26 @@ describe('stair math', () => {
 
   test('stairMath gives 11 in treads and the run for the risers', () => {
     const m = stairMath(-36 * IN)
-    expect(m).toMatchObject({ risers: 6, riserIn: 6, treadIn: 11, treads: 5, runIn: 66 })
-    expect(m.runFt).toBeCloseTo(5.5, 9)
-    expect(runFt(6)).toBeGreaterThanOrEqual(5.5)
+    // n risers, n - 1 treads (R3.4; the old planner ran one tread per riser)
+    expect(m).toMatchObject({ risers: 6, riserIn: 6, treadIn: 11, treads: 5, runIn: 55 })
+    expect(m.runFt).toBeCloseTo(55 / 12, 9)
+    expect(runFt(6)).toBeGreaterThanOrEqual(55 / 12)
+    expect(runFt(6)).toBeLessThan(55 / 12 + 1e-5)
   })
 
-  test('ftIn writes feet and inches', () => {
-    expect(ftIn(154)).toBe('12 ft 10 in')
-    expect(ftIn(24)).toBe('2 ft')
-    expect(ftIn(7)).toBe('7 in')
+  test('the stair verdict gives the run as the inspector writes a length (R11)', () => {
+    const L = layoutStair([0, 0], [5 * FT, 0], 36 * IN, 0, { widthFt: 4 })
+    expect(stairVerdict(L)).toBe(`Stair · 6 risers · 5' run · not accessible (stairs)`)
+    const longer = layoutStair([0, 0], [5.5 * FT, 0], 43 * IN, 0, { widthFt: 4 })
+    expect(stairVerdict(longer)).toBe(`Stair · 7 risers · 5' 6" run · not accessible (stairs)`)
   })
 })
 
 describe('layoutStair', () => {
   test('a gap within a foot of the run stretches the treads instead of adding a sliver pad', () => {
-    // Arrange: 36 in rise needs 5.5 ft; the foot is 6 ft away
+    // Arrange: 36 in rise needs 4 ft 7 in (five 11 in treads); the foot is 5 ft away
     const T: [number, number] = [0, 0]
-    const F: [number, number] = [6 * FT, 0]
+    const F: [number, number] = [5 * FT, 0]
 
     // Act
     const L = layoutStair(T, F, 36 * IN, 0, { widthFt: 4 })
@@ -41,7 +45,7 @@ describe('layoutStair', () => {
     expect(L.type).toBe('straight')
     expect(L.pad).toBeNull()
     expect(L.specs).toHaveLength(1)
-    expect(L.specs[0].w).toBeCloseTo(6, 5)
+    expect(L.specs[0].w).toBeCloseTo(5, 5)
     const E = specEnds(L.specs[0], flat)
     expect(Math.hypot(E.B[0] - F[0], E.B[1] - F[1])).toBeLessThan(0.001)
   })
@@ -49,8 +53,10 @@ describe('layoutStair', () => {
   test('a long gap gets a level pad, a landing up to 8 ft and a boardwalk beyond', () => {
     const short = layoutStair([0, 0], [10 * FT, 0], 36 * IN, 0, { widthFt: 4 })
     const long = layoutStair([0, 0], [20 * FT, 0], 36 * IN, 0, { widthFt: 4 })
-    expect(short.pad).toEqual({ kind: 'landing', lenFt: 4.5 })
-    expect(long.pad).toEqual({ kind: 'boardwalk', lenFt: 14.5 })
+    expect(short.pad?.kind).toBe('landing')
+    expect(short.pad?.lenFt).toBeCloseTo(10 - 55 / 12, 5)
+    expect(long.pad?.kind).toBe('boardwalk')
+    expect(long.pad?.lenFt).toBeCloseTo(20 - 55 / 12, 5)
     expect(long.specs[1].ends).toEqual({ zA: 0, zB: 0 })
   })
 

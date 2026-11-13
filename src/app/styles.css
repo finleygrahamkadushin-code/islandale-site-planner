@@ -45,6 +45,7 @@ input:disabled { opacity: 0.5; }
 /* part chips over the labels (ChipLayer); each anchor is moved every frame by its ScreenChip */
 .chips { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
 .chip-anchor { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
+.chip-anchor:has(> .measure-label) { pointer-events: none; } /* measure and clearance labels let clicks through to the view */
 .label {
   position: absolute; left: 0; top: 0; will-change: transform;
   font-size: 11px; line-height: 1; white-space: nowrap;

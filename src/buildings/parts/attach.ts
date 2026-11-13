@@ -6,7 +6,7 @@ import type { CutData } from '../openings/openingLayout'
 import { edgeFree, outwardNormal } from '../rails/railRules'
 import { SLAB_M } from '../rails/rails'
 import { MIN_DROP_M } from '../stairs/stairWing'
-import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, TREAD_MIN_M } from '../stairs/stairs'
+import { FLIGHT_RISE_MAX_M, RAMP_RUN_RISE_MAX_M, RISER_MAX_M, TREAD_MIN_M, treadsFor } from '../stairs/stairs'
 import { M_PER_FT as FT } from '../../site/units'
 
 /**
@@ -175,7 +175,7 @@ export function attachSpec(masses: readonly Mass[], mi: number, i: number, kind:
   const dropAt = (dist: number) => Math.max(0, (E.z - ground(dist, 0)) / FT)
   // stairs and ramps: the drop they are drawn with, from the floor at the host's level to the ground at the foot
   const accessDrop = (d: number, off: number) => Math.max(MIN_DROP_M, (site.floorWith?.(place(off, d)) ?? site.floor) - ground(d, off)) + host.lvl * FT
-  const runFor = (drop: number) => (kind === 'ramp' ? Math.max(RAMP_MIN_FT, Math.ceil((drop / FT) * RAMP_SLOPE - 1e-6)) : Math.max(STAIR_MIN_FT, ceilInch((Math.ceil(drop / RISER_MAX_M - 1e-9) * TREAD_MIN_M) / FT)))
+  const runFor = (drop: number) => (kind === 'ramp' ? Math.max(RAMP_MIN_FT, Math.ceil((drop / FT) * RAMP_SLOPE - 1e-6)) : Math.max(STAIR_MIN_FT, ceilInch((treadsFor(Math.ceil(drop / RISER_MAX_M - 1e-9)) * TREAD_MIN_M) / FT)))
   const sized = (off: number): { readonly d: number; readonly drop: number } => {
     let d = kind === 'ramp' ? RAMP_MIN_FT : STAIR_MIN_FT
     let drop = accessDrop(d, off)

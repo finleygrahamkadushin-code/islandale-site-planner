@@ -45,7 +45,7 @@ test('setback sliders move the code check and clearances, are saved, and are nev
   // a name in a failing row selects that cabin; its clearance rows warn
   await shore.getByRole('button', { name: /Gathering prow/ }).click()
   expect(await state<string[]>(page, 's.selection')).toEqual(['C-0'])
-  await expect(page.getByTestId('clearance-stats')).toContainText(`80'-1" to shore`)
+  await expect(page.getByTestId('clearance-stats')).toContainText(`69'-9" to shore`)
   await expect(page.getByTestId('clearance-row').first()).toHaveClass(/warn/)
 
   // saved with the plan
@@ -78,4 +78,13 @@ test('the program budget sits on the Build tab, and a rules-off scheme is checke
   const check = page.getByTestId('code-check')
   await expect(check).toContainText('rules off')
   await expect(check.locator('[data-verdict="fail"]')).toHaveCount(0)
+})
+
+test('the shoreline buffer says where it is measured from, and the view names the approximate high-water line (item 11)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await expect(page.getByTestId('shore-line-note')).toHaveText(
+    "On the east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line; on the south-west shore from the 8 ft contour of the terrain model, an estimate of mean higher high water. The legal ordinary high water mark can only come from a survey and may be further landward.",
+  )
+  await expect(page.getByTestId('high-water-label')).toHaveText('approximate high-water line (8 ft NAVD88, from the terrain; not surveyed)')
+  await expect(page.getByTestId('setbacks')).toContainText('Top of bank, in from the east lot line at the water')
 })

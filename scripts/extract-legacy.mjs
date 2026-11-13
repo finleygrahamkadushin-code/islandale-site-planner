@@ -41,7 +41,7 @@ const parcel = JSON.parse(oneLineConst('PARCEL'))
 const lotSqFt = Number(oneLineConst('LOT_SQFT'))
 if (!Number.isFinite(lotSqFt)) throw new Error('LOT_SQFT is not a number')
 // `const SHORE_START = 4, SHORE_END = 122;` — ring edges i..i+1 with
-// SHORE_START <= i <= SHORE_END are the shoreline (OHWM) edges.
+// SHORE_START <= i <= SHORE_END are the edges along the water: the assessor's lot line, which the old planner called the OHWM.
 const shoreLine = lines.find((l) => /^const SHORE_START\s*=/.test(l))
 if (!shoreLine) throw new Error('SHORE_START not found in legacy file')
 const shoreMatch = shoreLine.match(/SHORE_START\s*=\s*(\d+),\s*SHORE_END\s*=\s*(\d+)/)

@@ -86,12 +86,6 @@ export const short = (lbl: string | undefined): string => {
   const s = lbl ?? ''
   return s.length > 34 ? `${s.slice(0, 33)}…` : s
 }
-export function ftIn(inches: number): string {
-  const t = Math.round(Math.abs(inches))
-  const f = Math.floor(t / 12)
-  const i = t % 12
-  return f ? `${f} ft${i ? ` ${i} in` : ''}` : `${i} in`
-}
 
 const SEG_SURFACE: Readonly<Record<PathKind, Surface>> = { walk: 'gravel', boardwalk: 'boardwalk', ramp: 'concrete', stair: 'concrete', landing: 'concrete' }
 

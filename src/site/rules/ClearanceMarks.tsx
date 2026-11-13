@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
-import { Html, Line } from '@react-three/drei'
+import { Line } from '@react-three/drei'
 import { usePlanStore } from '../../store/planStore'
 import { usePresent } from '../../present/present'
 import { useInteriorView } from '../../interiors/editor/interiorView'
 import { useLiveDrag } from '../../scene/editing'
 import { toScene } from '../../scene/frame'
+import { LAYER, ScreenChip } from '../../scene/ScreenChip'
 import { elevationAt } from '../terrain'
 import type { SitePoint, Terrain } from '../types'
 import { clearances, dimensionText, lotText, nearestText, shoreText } from './clearances'
@@ -46,9 +47,11 @@ function ClearanceLine({ line, terrain }: { readonly line: MarkLine; readonly te
       {points.length > 1 && (
         <Line points={points} color={color} lineWidth={2} dashed dashSize={0.5} gapSize={0.3} depthTest={false} renderOrder={10} />
       )}
-      <Html position={groundAt(terrain, midOf(line.from, line.to))} center zIndexRange={[3, 3]} className="measure-label clearance-label" style={{ background: color }} data-testid="clearance-label">
-        {line.text}
-      </Html>
+      <ScreenChip position={groundAt(terrain, midOf(line.from, line.to))} layer={LAYER.label}>
+        <div className="measure-label clearance-label" style={{ background: color }} data-testid="clearance-label">
+          {line.text}
+        </div>
+      </ScreenChip>
     </group>
   )
 }
@@ -59,7 +62,9 @@ function ClearanceLine({ line, terrain }: { readonly line: MarkLine; readonly te
  * the shore, the nearest lot line and the nearest object, amber when inside a
  * setback, and the main box's edge lengths. Hidden in Present mode, while an
  * interior plan is open and during a drag; worked out only when the plan,
- * setbacks or layers change.
+ * setbacks or layers change. The labels are drawn by the chip layer
+ * (`ScreenChip`): a drei Html each had its own React root, and unmounting
+ * those as the view first mounted logged React's root errors.
  */
 export function ClearanceMarks() {
   const id = usePlanStore((s) => (s.selection.length === 1 ? s.selection[0] : null))
@@ -88,9 +93,11 @@ export function ClearanceMarks() {
         <ClearanceLine key={l.key} line={l} terrain={site.terrain} />
       ))}
       {marks.dims.map((d, i) => (
-        <Html key={i} position={groundAt(site.terrain, d.at)} center zIndexRange={[3, 3]} className="measure-label dimension-label" style={{ background: DIM_COLOR }} data-testid="dimension-label">
-          {dimensionText(d)}
-        </Html>
+        <ScreenChip key={i} position={groundAt(site.terrain, d.at)} layer={LAYER.label}>
+          <div className="measure-label dimension-label" style={{ background: DIM_COLOR }} data-testid="dimension-label">
+            {dimensionText(d)}
+          </div>
+        </ScreenChip>
       ))}
     </group>
   )

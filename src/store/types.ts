@@ -66,7 +66,7 @@ export const DEFAULT_ENVIRONMENT: Environment = { season: 'sep', hour: 14, tideF
 export interface Setbacks {
   /** Shoreline setback, feet, measured from the top of bank on the east shore and from the water on the south-west. */
   readonly shoreFt: number
-  /** Top of bank, feet in from the east shore's OHWM. */
+  /** Top of bank, feet in from the east shore's lot line at the water (a fixed place on the ground; the assessor's line, not a surveyed OHWM). */
   readonly bankFt: number
   /** Side and rear lot lines, feet. */
   readonly sideFt: number

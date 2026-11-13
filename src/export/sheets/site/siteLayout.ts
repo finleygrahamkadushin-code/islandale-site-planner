@@ -13,6 +13,7 @@ import { drawingExtent, siteFrame, type SiteFrame } from './siteFrame'
 import { boxOf } from './siteGeom'
 import type { SiteSheetModel } from './siteModel'
 import type { SiteNotes } from './siteNotes'
+import { LEGEND_LABELS } from './NotesColumn'
 
 /** Room round everything drawn, feet: for the shore's water lines and the labels outside the lot. */
 export const PAD_FT = 12
@@ -79,7 +80,8 @@ const NOTE_CHAR_IN = (6.3 * 0.5) / 72
 const SMALL_CHAR_IN = (5.6 * 0.5) / 72
 /** A block's caption with its rule and gaps, the legend's rows, the gap between blocks, inches. */
 const CAPTION_IN = 0.2
-const LEGEND_IN = 7 * 0.165
+/** The legend: two columns of rows 0.165 in tall, however many rows it has. */
+const LEGEND_IN = Math.ceil(LEGEND_LABELS.length / 2) * 0.165
 const BLOCK_GAP_IN = 0.06
 /** Room kept for the estimate being short: text wraps a little worse than an average character says. */
 const NOTES_SAFETY = 1.12

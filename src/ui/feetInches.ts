@@ -45,22 +45,15 @@ function amount(text: string): number {
   return den === 0 ? NaN : (m[1] ? +m[1] : 0) + +m[2] / den
 }
 
-/** Feet as 2' 9" (to the nearest inch, or quarter inch below a foot); a dash for no number. */
-export function formatFeetInches(ft: number): string {
-  if (!Number.isFinite(ft)) return '—'
-  const quarter = Math.abs(ft) < 1
-  const inches = quarter ? Math.round(Math.abs(ft) * 48) / 4 : Math.round(Math.abs(ft) * 12)
-  // the sign follows the rounded length, so a sliver below zero is 0", not -0"
-  const sign = ft < 0 && inches > 0 ? '-' : ''
-  const f = Math.floor(inches / 12)
-  const i = inches - f * 12
-  if (f === 0) return `${sign}${i}"`
-  return i === 0 ? `${sign}${f}'` : `${sign}${f}' ${i}"`
-}
-
 const QUARTERS = ['', '1/4', '1/2', '3/4'] as const
 
-/** Feet as a length field shows it: to the quarter inch at any length, as a builder writes it (2' 9 1/2", 3/4"). */
+/**
+ * Feet as a length field shows it: to the quarter inch at any length, as a
+ * builder writes it (2' 9 1/2", 3/4"). The one feet-and-inches formatter for
+ * the screen (R11): a caller that wants whole inches snaps first (`snapInch`).
+ * Drawing sheets write 12'-6 1/4" with `formatArch` (`export/sheets/format.ts`),
+ * the same rounding in a drawing's style.
+ */
 export function formatLengthField(ft: number): string {
   if (!Number.isFinite(ft)) return '—'
   const q = Math.round(Math.abs(ft) * 48)

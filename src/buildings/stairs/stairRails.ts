@@ -76,11 +76,12 @@ export function handrail(c: HandrailCtx, sg: -1 | 1, zMin: number, zMax: number,
   const { H, rT } = c
   const gb = emptyMesh()
   beam(gb, xr, za, line(za) + H, zb, line(zb) + H, rT, rT)
-  // Join (PLAN.md): the top rail carries on level over the landing to the host edge, where a newel meets the railing's end post
+  // Join (PLAN.md): a newel at the host edge meets the railing's end post; where the rail starts back from
+  // the host (a curved host, R3.4's floor fill) the top rail carries on level over the gap to it
   const zj = c.zt(xr) + JOIN_IN_M
-  const joined = join && !c.clearTop && za - zj > rT
+  const joined = join && !c.clearTop
   if (joined) {
-    beam(gb, xr, zj, line(za) + H, za, line(za) + H, rT, rT)
+    if (za - zj > rT) beam(gb, xr, zj, line(za) + H, za, line(za) + H, rT, rT)
     box(gb, xr - rT / 2, xr + rT / 2, line(za), line(za) + H, zj - rT / 2, zj + rT / 2)
   }
   const m = Math.max(1, Math.ceil((zb - za) / POST_GAP_M - 1e-9))

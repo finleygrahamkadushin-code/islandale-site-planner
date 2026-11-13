@@ -17,6 +17,24 @@ import { TREE_ZONE_1_FT, TREE_ZONE_2_FT } from './setbacks'
 /** One line on the Tabloid sheet's notes column (about 100 characters at most), so it never pushes the notes onto a page of their own. */
 export const PLANNING_AID_NOTE = 'A planning aid, not a code review: the county limits here are assumed. Confirm them with the county.'
 
+/**
+ * What the accessible-route check (ADA 2010 §402–405, `paths/route/`) does not
+ * test, printed beside the note above (R2.10, Finley's decision: say so, don't
+ * build them yet). One sheet line too.
+ */
+export const ROUTE_UNCHECKED_NOTE = 'Accessible route: ramp landing width, edge protection, passing spaces and door clearance are not checked.'
+
+/**
+ * Where the shoreline buffer is measured from (item 11, Finley's decision on
+ * decision 1: "Yes, 8 ft contour"), printed beside the notes above.
+ */
+export const SHORE_LINE_NOTE =
+  "On the east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line; on the south-west shore from the 8 ft contour of the terrain model, an estimate of mean higher high water. The legal ordinary high water mark can only come from a survey and may be further landward."
+
+/** The same on the site plan, in two sheet lines (the lead session's call, Nov 13: Scheme C's notes stay beside its drawing on one Tabloid page). */
+export const SHORE_LINE_SHEET_NOTE =
+  "Shoreline buffer: east shore from the top of bank, 45 ft in from the assessor's lot line; south-west shore from the terrain's 8 ft contour (est. high water). A survey may put the legal OHWM further in."
+
 export const ASSUMED = 'assumed'
 
 export interface RuleLimit {

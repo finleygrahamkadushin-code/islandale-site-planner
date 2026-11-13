@@ -178,7 +178,8 @@ export function stairInfo(o: Pick<PlanObject, 'position' | 'rotation' | 'params'
   const lenFt = pieceLength(o)
   const risers = riseIn < 0.5 ? 0 : Math.ceil(riseIn / MAX_RISER_IN - 1e-9)
   const riserIn = risers ? riseIn / risers : 0
-  const treadIn = risers ? (lenFt * 12) / risers : 0
+  // n risers share the length as n - 1 treads (R3.4; the old planner divided by n), one riser the whole length
+  const treadIn = risers ? (lenFt * 12) / Math.max(1, risers - 1) : 0
   return {
     rise,
     riseIn,

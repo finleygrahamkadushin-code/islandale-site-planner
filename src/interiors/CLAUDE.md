@@ -44,7 +44,7 @@ Every edit goes through `../store/interiorActions.ts` (`editFloor`, `addFloor`, 
 
 ## Talks to (open these only when the task crosses over)
 
-- **Uses:** `../store/types`, `planStore` and `interiorActions`; `../site/units`. From `../buildings/`: `masses` and `footprint` (the cabin's outline the envelope is built from), `walls/wallShell` (wall thickness), `openings/openingLayout` and `foundation/foundation`. The 3D view uses `../scene/Surface` and `buildingLook`.
+- **Uses:** `../store/types`, `planStore` and `interiorActions`; `../site/units`; `../export/sheets/format` and `../ui/feetInches` (`format.ts` writes lengths with the sheets' `formatArch`, R11). From `../buildings/`: `masses` and `footprint` (the cabin's outline the envelope is built from), `walls/wallShell` (wall thickness), `openings/openingLayout` and `foundation/foundation`. The 3D view uses `../scene/Surface` and `buildingLook`.
 - **Used by:** `../export/sheets/` (`model/interiors`, `model/model`, `plan/floorPlans`, `plan/RoomMarks` and `tables/roomTables` draw floor plans and room tables), `../buildings/BuildingMesh.tsx` (mounts `InteriorMesh`), `../buildings/walls/WallMass.tsx` (`wallCrossings`), `../app/App.tsx` (mounts the editor), and `../ui/Inspector.tsx` and `useKeyboardShortcuts.ts` (open it). The sheets import `format.ts` too. If you change an exported function's signature, search these for its callers.
 
 ## Checks for this section

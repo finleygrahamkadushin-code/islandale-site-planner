@@ -39,6 +39,18 @@ These change what gets built. Each has a default that will be used if nothing el
 6. **Top bar direction** (R9.1). Default: one row; Export, Import, Reset, Clear, Sheets, 3D model and History move into a File menu; display options into a View menu.
 7. **Is the Escape-with-a-tooltip behaviour right?** (R1) Default: Escape still reaches the plan when a tooltip closes on it.
 
+**Answered Nov 13.** Finley answered "Yes, use them" to the lead session's recommended answers for decisions 2 to 7, and then answered decision 1 (branch `claude/review-decisions-6842ee`).
+
+- **1 (the shoreline):** in Finley's words, "navd88 and dont have a file for shoreline". The tide slider is NAVD88, as it reads; there is no survey of the shoreline. The ring's shoreline edges are the assessor's lot line at the water (`parcel.json`'s `meta.source`: the San Juan County assessor via the WDFW statewide parcel service), which the review measured at 6.1 to 8.9 ft NAVD88, below mean higher high water. The app, the site plan and the code now call it the lot line at the water, not the OHWM. Asked next whether to measure the shoreline buffer from the 8 ft contour instead, Finley answered "Yes, 8 ft contour": see R2.5 in PLAN.md (the approximate high-water line). Measured wholly from that line, the gathering building of schemes A, B, C, C2–C4, G, H and I fell inside the 35 ft buffer (the east shore's top of bank moved about 10 ft inland with it). Shown that, Finley said, in this session: "alright i give you permisison to change that one rule back so that those all pass / the shor buffer that is". Taken to mean: the east shore's top of bank goes back to 45 ft in from the assessor's lot line (a fixed place on the ground), so every scheme's shoreline verdict is as it was; the 8 ft line is kept for the south-west shore's buffer (where the lot line already stands above 8 ft, so that buffer does not move), for the "to shore" distances, for the tree zones and as the drawn and named line. If Finley meant the whole buffer back on the lot line, that is one more change: the south-west buffer is unaffected either way, and only the "to shore" distances and tree zones would go back.
+
+- **2 (stair code):** the defaults stand: 7 in / 11 in (IBC 1011.5.2), 36 in guards (IRC R312.1), each row naming its source. With it, **R3.4 is fixed, not kept as a legacy rule**: a stair of n risers has n − 1 treads, so the run is (n − 1) × 11 in in Fit to code, the + chip, Connect, the stair-wing tread check and the path-piece check, and the stair is drawn that way (PLAN.md).
+- **3 (what counts for the buffer and setbacks):** yes to all three, as the default; nothing more to do here.
+- **4 (clock time):** yes, as the default.
+- **5 (the tracked plan file):** the default: the file stays the shared home, and the dev server no longer writes a save whose plan matches the file, so opening the app or changing only view settings leaves it alone (`vite/planFileStore.ts`).
+- **6 (top bar):** the default, already built in R9.
+- **7 (Escape and tooltips):** the default, already built in R1.
+- With these, Finley's answers on the open items: **R6.14** both gaps are intended (hiding ignores locks; a copy is unlocked), now commented and pinned by tests; **R8.8** the TSL rule is dropped from `CLAUDE.md` and `PLAN.md`; **R11.4** the units rule is corrected to what the store keeps, `params` untouched; **R11's formatters** are down to one on screen (`formatLengthField`) and one on drawings (`formatArch`); **R2.10** the panel and site sheet say which ramp items the route check leaves out, without building them.
+
 ## Who does what
 
 Finley asked (Nov 10) for the fixes to go to Opus 5.5 agents, to save usage on the larger model. Status and owner per part:

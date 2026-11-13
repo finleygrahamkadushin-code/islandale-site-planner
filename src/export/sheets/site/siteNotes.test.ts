@@ -4,6 +4,8 @@ import { describe, expect, test } from 'vitest'
 import { lotFacts } from '../../../site/lotFacts'
 import { codeCheck } from '../../../site/rules/codeCheck'
 import { CodeCheckPanel } from '../../../site/rules/CodeCheckPanel'
+import { SetbacksPanel } from '../../../site/rules/SetbacksPanel'
+import { TipProvider } from '../../../guide/Tip'
 import { programBudget } from '../../../site/rules/program'
 import { ProgramPanel } from '../../../site/rules/ProgramPanel'
 import { LotFactsPanel } from '../../../site/SitePanels'
@@ -11,7 +13,7 @@ import { usePlanStore } from '../../../store/planStore'
 import { DEFAULT_SETBACKS, type Plan } from '../../../store/types'
 import { CURRENT_SCHEME_ID } from '../../../site/schemes'
 import { clearanceRows } from '../../../ui/selectionStats'
-import { PLANNING_AID_NOTE } from '../../../site/rules/ruleSources'
+import { PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, SHORE_LINE_NOTE, SHORE_LINE_SHEET_NOTE } from '../../../site/rules/ruleSources'
 import { siteNotes, VERDICT_TEXT, type SiteNotes } from './siteNotes'
 import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
 
@@ -22,7 +24,8 @@ import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
  * opens on, so these checks are against the real panels for Scheme C.
  */
 function panelText(panel: FunctionComponent): string {
-  const html = renderToStaticMarkup(createElement(panel))
+  // inside the tooltip provider the app mounts once (Setbacks has glossary words)
+  const html = renderToStaticMarkup(createElement(TipProvider, null, createElement(panel)))
   return html
     .replace(/<[^>]+>/g, ' ')
     .replace(/&quot;/g, '"')
@@ -109,9 +112,26 @@ describe('a planning aid, not a code review (R2.7, R2.8)', () => {
     expect(notes.code.notes[0]).toBe(PLANNING_AID_NOTE)
   })
 
+  test('next, what the accessible route check leaves out (R2.10)', () => {
+    expect(notes.code.notes[1]).toBe(ROUTE_UNCHECKED_NOTE)
+  })
+
+  test('next, where the shoreline buffer is measured from, and that a survey may move it (item 11): the panel in full, the sheet in one line', () => {
+    expect(notes.code.notes[2]).toBe(SHORE_LINE_SHEET_NOTE)
+    // two sheet lines at most
+    expect(SHORE_LINE_SHEET_NOTE.length).toBeLessThanOrEqual(2 * 105)
+    expect(SHORE_LINE_SHEET_NOTE).toMatch(/east shore from the top of bank, 45 ft in from the assessor's lot line; south-west shore from the terrain's 8 ft contour/)
+    expect(SHORE_LINE_NOTE).toMatch(/east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line/)
+    expect(SHORE_LINE_NOTE).toMatch(/south-west shore from the 8 ft contour of the terrain model/)
+    expect(SHORE_LINE_NOTE).toMatch(/mean higher high water/)
+    expect(SHORE_LINE_NOTE).toMatch(/ordinary high water mark can only come from a survey and may be further landward/)
+  })
+
   test('the Code check panel says the same, word for word', () => {
     const text = panelText(CodeCheckPanel)
     expect(text).toContain(squeeze(PLANNING_AID_NOTE))
+    expect(text).toContain(squeeze(ROUTE_UNCHECKED_NOTE))
+    expect(text).toContain(squeeze(SHORE_LINE_NOTE))
     expect(text).toContain('Height 35 ft above average grade (assumed)')
     expect(text).toContain('Ramp handrails rise over 6 in (ADA 405.8)')
   })
@@ -123,5 +143,16 @@ describe('rules off', () => {
     const notes = notesFor(planOf(off.id))
     expect(notes.code.rulesOff).toBe(true)
     expect(notes.code.rows.every((r) => r.verdict === 'note')).toBe(true)
+  })
+})
+
+describe('the line along the water is called what it is: the assessor\'s lot line, not an OHWM (decision 1, Nov 13)', () => {
+  test('the sheet\'s setback notes and the Setbacks panel never call it the OHWM', () => {
+    const rows = block(notesFor(planOf(CURRENT_SCHEME_ID)), 'setbacks').rows.map((r) => `${r.label} ${r.value}`).join(' · ')
+    expect(rows).not.toMatch(/OHWM|ordinary high water/i)
+    expect(rows).toContain('in from the east lot line at the water')
+    const panel = panelText(SetbacksPanel)
+    expect(panel).not.toMatch(/OHWM/)
+    expect(panel).toContain('Top of bank, in from the east lot line at the water')
   })
 })

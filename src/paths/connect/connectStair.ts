@@ -37,17 +37,25 @@ export interface StairMath {
   readonly runM: number
 }
 
+/**
+ * Run for n risers, inches: n - 1 treads of 11 in, as the top riser lands on
+ * the floor (R3.4; the old planner ran n treads). One riser still gets one
+ * tread's length, so no piece is zero long.
+ */
+const treadRun = (n: number): number => (n > 0 ? Math.max(1, n - 1) * TREAD_IN : 0)
+
 /** Riser and tread numbers for a rise, metres (old stair-connect stairMath). */
 export function stairMath(riseM: number): StairMath {
   const n = risersFor(riseM)
   const ri = Math.abs(riseM || 0) / IN
-  return { risers: n, riserIn: n ? ri / n : 0, treadIn: TREAD_IN, treads: Math.max(0, n - 1), runIn: n * TREAD_IN, runFt: (n * TREAD_IN) / 12, runM: n * TREAD_IN * IN }
+  const run = treadRun(n)
+  return { risers: n, riserIn: n ? ri / n : 0, treadIn: TREAD_IN, treads: Math.max(0, n - 1), runIn: run, runFt: run / 12, runM: run * IN }
 }
 
 /** Round up to 1e-6 so treads never come out under 11 in. */
 const up6 = (v: number): number => Math.ceil(v * 1e6 - 1e-6) / 1e6
-/** Piece length for n risers, feet (tread = length / risers). */
-export const runFt = (n: number): number => up6((n * TREAD_IN) / 12)
+/** Piece length for n risers, feet (tread = length / (risers - 1); one riser takes one tread's length). */
+export const runFt = (n: number): number => up6(treadRun(n) / 12)
 
 export interface StairPad {
   readonly kind: 'landing' | 'boardwalk'

@@ -1,3 +1,4 @@
+import { HIGH_WATER_FT } from '../highWater'
 import { clockZone, SEASONS, sunPosition } from './sun'
 import { usePlanStore } from '../../store/planStore'
 import { HOUR_RANGE, TIDE_RANGE_FT } from '../../store/types'
@@ -36,7 +37,7 @@ export function EnvironmentPanel() {
         <input type="range" min={HOUR_RANGE.min} max={HOUR_RANGE.max} step={0.25} value={env.hour} aria-label="Time of day" onChange={(e) => setEnvironment({ hour: Number(e.target.value) })} />
       </label>
       <label className="field">
-        <Tip label="Water level in feet above the NAVD88 datum. Mean higher high water at Lopez is about 8 ft.">
+        <Tip label={`Water level in feet above the NAVD88 datum. Mean higher high water at Lopez is about ${HIGH_WATER_FT} ft.`}>
           <span className="muted small" tabIndex={0}>
             Tide <em>{env.tideFt.toFixed(1)} ft</em>
           </span>

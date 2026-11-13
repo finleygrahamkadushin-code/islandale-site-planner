@@ -48,11 +48,17 @@ describe('clearances for one object (5E)', () => {
     expect(clearances(a, planOf(a, b), site, DEFAULT_SETBACKS, layers).nearest).toBeNull()
   })
 
-  test('shore: the past-bank figure is the plain distance less the bank offset, and a wider setback puts the cabin inside the buffer', () => {
+  test('shore: past bank is measured from the top of bank, 45 ft in from the lot line; to shore from the high-water line; a wider setback puts the cabin inside the buffer', () => {
     const o = schemeC.objects['C-0']
     const c = clearances(o, schemeC, site, DEFAULT_SETBACKS)
     expect(c.shore?.banked).toBe(true)
-    expect(((c.shore?.d ?? 0) - (c.shore?.past ?? 0)) * FT_PER_M).toBeCloseTo(45, 6)
+    // without the high-water line the water's edge is the lot line, and the two differ by the bank
+    const lotOnly = { ...site, parcel: { ...site.parcel, highWater: undefined } }
+    const before = clearances(o, schemeC, lotOnly, DEFAULT_SETBACKS).shore!
+    expect((before.d - before.past) * FT_PER_M).toBeCloseTo(45, 6)
+    // the top of bank stays put (Finley, Nov 13); the high-water line runs about 10 ft in from the lot line there
+    expect(c.shore!.past).toBeCloseTo(before.past, 9)
+    expect((before.d - c.shore!.d) * FT_PER_M).toBeCloseTo(10.3, 1)
     expect(c.shore?.insideBuffer).toBe(false)
     const strict = { ...DEFAULT_SETBACKS, shoreFt: 50 }
     expect(clearances(o, schemeC, site, strict).shore?.insideBuffer).toBe(true)
@@ -74,7 +80,8 @@ describe('clearances for one object (5E)', () => {
   })
 
   test('each Scheme C cabin reads its three clearances in feet and inches', () => {
-    expect(textsOf('C-0')).toEqual([`80'-1" to shore · 35'-1" past bank`, `21'-6" to lot line`, `1'-9" to Madrone · keep`])
+    // to shore is to the approximate high-water line (item 11): 80'-1" to the lot line before; past bank unchanged
+    expect(textsOf('C-0')).toEqual([`69'-9" to shore · 35'-1" past bank`, `21'-6" to lot line`, `1'-9" to Madrone · keep`])
     expect(textsOf('C-1')).toEqual([`84'-8" to shore`, `11'-5" to lot line`, `3'-2" to Family twin pod`])
     expect(textsOf('C-2')).toEqual([`82'-1" to shore`, `11' to lot line`, `1'-4" to Family lantern`])
     // measured from the walls (R2.3): the Elders' cabin's walls come 2 in nearer than its corners did (50'-11", 10'-8")
@@ -106,5 +113,8 @@ describe('dimension labels (5E)', () => {
   test('feet and inches with the dash', () => {
     expect(ftIn(ftToM(32.5))).toBe(`32'-6"`)
     expect(ftIn(ftToM(0.5))).toBe(`6"`)
+    // to the inch, to the quarter inch under a foot, written as a builder writes it (R11: was 9.5")
+    expect(ftIn(ftToM(9.5 / 12))).toBe(`9 1/2"`)
+    expect(ftIn(ftToM(12 + 6.3 / 12))).toBe(`12'-6"`)
   })
 })

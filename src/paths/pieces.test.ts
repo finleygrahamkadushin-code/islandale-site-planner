@@ -35,6 +35,13 @@ describe('path pieces', () => {
     expect(stairInfo(piece({ kind: 'stair', w: 2, ends: { zA: 11, zB: 10 } }), flat).ok).toBe(false)
   })
 
+  test('a stair as long as its minimum run passes: n risers share n - 1 treads (R3.4)', () => {
+    const s = stairInfo(piece({ kind: 'stair', w: 44 / 12, ends: { zA: 10 + 30 * 0.0254, zB: 10 } }), flat)
+    expect(s.minRunFt).toBeCloseTo(44 / 12, 9)
+    expect(s.treadIn).toBeCloseTo(11, 9)
+    expect(s.ok).toBe(true)
+  })
+
   test('rails: a ramp rising more than 6 in, a stair of 4 risers, a boardwalk over 30 in up; on and off override', () => {
     expect(railOn(piece({ kind: 'ramp', w: 12, ends: { zA: 10.2, zB: 10 } }), flat)).toBe(true)
     expect(railOn(piece({ kind: 'ramp', w: 12, ends: { zA: 10.1, zB: 10 } }), flat)).toBe(false)

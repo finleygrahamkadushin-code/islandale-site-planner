@@ -45,8 +45,10 @@ export interface SiteClearanceMark {
 export interface SiteSheetModel {
   /** The lot ring, closed implicitly, site feet. */
   readonly ring: readonly Pt[]
-  /** The shoreline (OHWM) from its first edge to its last, one polyline. */
+  /** The lot line along the water (the assessor's, not a surveyed OHWM), from its first shoreline edge to its last, one polyline. */
   readonly shoreline: readonly Pt[]
+  /** The approximate high-water line the buffer is measured from (8 ft NAVD88 contour, `site/highWater.ts`), one polyline; the lot line along the water when the site has none. */
+  readonly highWater: readonly Pt[]
   /** The side and rear lot lines, edge by edge. */
   readonly lotLines: readonly SiteLotLine[]
   /** Lot-corner stakes, as the 3D lot marks place them. */
@@ -136,6 +138,7 @@ export function siteSheetModel(input: SiteModelInput): SiteSheetModel {
   return {
     ring,
     shoreline,
+    highWater: parcel.highWater ? parcel.highWater.pts.map(toFt) : shoreline,
     lotLines,
     stakes,
     topOfBank: lines(topOfBankLine(parcel, setbacks.bankFt)),
@@ -227,12 +230,12 @@ function sideSetbackLine({ site, setbacks }: SiteModelInput): Pt[][] {
   return lines(isoSegments({ nx: g.nx, ny: g.ny, x0: g.x0, n0: g.n0, spacing: LINE_GRID_M, at }, ftToM(setbacks.sideFt)))
 }
 
-/** The tree protection zone lines: plain distance from the water, no bank offset, as treeZone measures it. */
+/** The tree protection zone lines: plain distance from the water's edge (the high-water line), no bank offset, as treeZone measures it. */
 function treeZoneLines({ site }: SiteModelInput): { ft: number; lines: Pt[][] }[] {
   const g = lotGrid(site.parcel)
   const at = (i: number, j: number) => {
     const f = g.facts[j * g.nx + i]
-    return f.inLot ? Math.min(f.dBank, f.dShore) : NaN
+    return f.inLot ? f.dWater : NaN
   }
   return [TREE_ZONE_1_FT, TREE_ZONE_2_FT].map((ft) => ({ ft, lines: lines(isoSegments({ nx: g.nx, ny: g.ny, x0: g.x0, n0: g.n0, spacing: LINE_GRID_M, at }, ftToM(ft))) }))
 }

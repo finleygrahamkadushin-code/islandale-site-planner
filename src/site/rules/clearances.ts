@@ -1,6 +1,6 @@
 import { localToSite, num, siteFootprint, type LocalPoint } from '../../buildings/footprint'
 import { massToBuilding } from '../../buildings/masses'
-import { formatFeetInches } from '../../ui/feetInches'
+import { formatLengthField, snapInch } from '../../ui/feetInches'
 import type { Site, SitePoint } from '../types'
 import { FT_PER_M, ftToM } from '../units'
 import { layerOf, type Layers, type Plan, type PlanObject, type Setbacks } from '../../store/types'
@@ -121,7 +121,11 @@ export function dimensionLabels(o: PlanObject): readonly DimensionLabel[] {
 // --- text: feet and inches, as the old planner's selection rows read ----------
 
 /** Metres as 32'-6" (the inspector's feet-and-inches formatter, with the builder's dash). */
-export const ftIn = (m: number): string => formatFeetInches(m * FT_PER_M).replace("' ", "'-")
+/** A clearance to the inch (to the quarter inch under a foot), with the dash: 12'-6", 9 1/2". The site sheet prints the same words. */
+export const ftIn = (m: number): string => {
+  const ft = m * FT_PER_M
+  return formatLengthField(Math.abs(ft) < 1 ? ft : snapInch(ft)).replace("' ", "'-")
+}
 
 export function shoreText(c: ShoreClearance, setbacks: Setbacks): string {
   const bank = c.banked && setbacks.bankFt > 0 ? ` · ${ftIn(c.past)} past bank` : ''
