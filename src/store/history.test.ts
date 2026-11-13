@@ -49,8 +49,7 @@ describe('save history', () => {
     expect(describeChange(before, usePlanStore.getState().plan)).toBe(`moved ${name}`)
     s.setLocked(before.order[1], true)
     expect(describeChange(before, usePlanStore.getState().plan)).toBe('changed 2 objects')
-    s.loadScheme('C2')
-    expect(describeChange(before, usePlanStore.getState().plan)).toBe('loaded Scheme C2')
+    expect(describeChange({ ...before, schemeId: null }, before)).toBe('loaded Scheme C')
     expect(describeChange(null, before)).toBe('opened')
   })
 

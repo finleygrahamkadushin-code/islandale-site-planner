@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { CURRENT_SCHEME_ID, ARCHIVED_SCHEME_IDS, loadSchemes, schemeById } from './schemes'
+import { CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS, ARCHIVED_SCHEME_IDS, hasSchemeChoice, loadSchemes, schemeById } from './schemes'
 
 describe('scheme library extracted from the legacy planner', () => {
   const schemes = loadSchemes()
   const ids = schemes.map((s) => s.id)
 
-  test('contains A–D with the C2–C4 prow variants', () => {
-    for (const id of ['A', 'B', 'C', 'C2', 'C3', 'C4', 'D']) expect(ids).toContain(id)
+  test('holds Scheme C only (the full set is on main)', () => {
+    expect(ids).toEqual(['C'])
+    expect(schemes[0].name).toBe('C · Prow & Lantern')
   })
 
   test('ids are unique and derived from the scheme names', () => {
@@ -28,23 +29,19 @@ describe('scheme library extracted from the legacy planner', () => {
     }
   })
 
-  test('C2–C4 are variants of C with the same object count', () => {
-    const c = schemeById(schemes, 'C')
-    for (const id of ['C2', 'C3', 'C4']) {
-      const v = schemeById(schemes, id)
-      expect(v.objects).toHaveLength(c.objects.length)
-      expect(v.objects.some((o) => /^Gathering prow/.test(o.name))).toBe(true)
-    }
-  })
-
-  test('Scheme C is current and A, B, D are archived', () => {
+  test('Scheme C is current, with no variants or archived schemes, so there is nothing to choose', () => {
     expect(CURRENT_SCHEME_ID).toBe('C')
-    expect(ARCHIVED_SCHEME_IDS).toEqual(expect.arrayContaining(['A', 'B', 'D']))
-    expect(ARCHIVED_SCHEME_IDS).not.toContain('C')
+    expect(CURRENT_VARIANT_IDS).toEqual([])
+    expect(ARCHIVED_SCHEME_IDS).toEqual([])
+    expect(hasSchemeChoice(schemes)).toBe(false)
+    expect(hasSchemeChoice([...schemes, { ...schemes[0], id: 'C9' }])).toBe(true)
   })
 
-  test('rules-off dream schemes are flagged', () => {
-    expect(schemeById(schemes, 'D').rulesOff).toBe(true)
+  test('Scheme C keeps the rules on', () => {
     expect(schemeById(schemes, 'C').rulesOff).toBe(false)
+  })
+
+  test('an unknown scheme id throws', () => {
+    expect(() => schemeById(schemes, 'Z')).toThrow('unknown scheme "Z"')
   })
 })

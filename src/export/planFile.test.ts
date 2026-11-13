@@ -27,7 +27,7 @@ describe('plan file import (R6.8)', () => {
     const view = viewOf(store())
     const text = currentPlanText()
 
-    store().loadScheme('A')
+    store().clearPlan()
     store().setDisplayStyle('sketch')
     store().setContours(false)
     store().setLabelMode('none')

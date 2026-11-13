@@ -24,10 +24,10 @@ const metres = (P: readonly LocalPoint[]): LocalPoint[] => P.map(([x, z]) => [x 
 
 describe('objectSeed', () => {
   test('uses the object’s own seed, 0 read as 1 like the old planner, else a stable one from its id', () => {
-    expect(objectSeed({ seed: 9 }, 'D-15')).toBe(9)
-    expect(objectSeed({ seed: 0 }, 'D-15')).toBe(1)
-    expect(objectSeed({}, 'D-13')).toBe(treeSeed('D-13'))
-    expect(objectSeed({}, 'D-13')).not.toBe(objectSeed({}, 'D-14'))
+    expect(objectSeed({ seed: 9 }, 'C-15')).toBe(9)
+    expect(objectSeed({ seed: 0 }, 'C-15')).toBe(1)
+    expect(objectSeed({}, 'C-13')).toBe(treeSeed('C-13'))
+    expect(objectSeed({}, 'C-13')).not.toBe(objectSeed({}, 'C-14'))
   })
 })
 
@@ -212,8 +212,8 @@ describe('cars on a parking pad (legacy makeMesh)', () => {
   })
 })
 
-// Numbers read from the old planner (legacy meadowMarks / boulderRocks) with Scheme D loaded.
-describe('the same scatter and rocks as the old planner, Scheme D', () => {
+// Numbers read from the old planner (legacy meadowMarks / boulderRocks) for a meadow and boulders built here.
+describe('the same scatter and rocks as the old planner', () => {
   test('“Meadow · camas & fescue” (seed 136): 177 tufts and 109 flowers, the same first ones', () => {
     const P = localFootprint({ w: 44, d: 20.3, shape: 'blob', pts: [[22, 0], [15, 9], [0, 10], [-15, 8], [-22, 1], [-16, -8], [0, -10], [14, -8]] })
     const m = meadowMarks(P, 136)

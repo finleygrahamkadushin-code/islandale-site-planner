@@ -133,7 +133,7 @@ describe('isolation', () => {
     expect(isolationAlive(iso, store().plan)).toBe(true)
     store().deleteObjects([a])
     expect(isolationAlive(iso, store().plan)).toBe(false)
-    store().loadScheme('A')
+    store().loadScheme('C')
     expect(isolationAlive(isolationFor(usePlanStore.getState().plan, ids()[0], null)!, store().plan)).toBe(true)
   })
 

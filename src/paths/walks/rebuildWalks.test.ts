@@ -28,16 +28,21 @@ describe('rebuilding walks as path pieces', () => {
   })
 
   test('rills, driveways and patios are not walks', () => {
-    const e = objs(planOf('E'))
-    expect(e.filter((o) => /rill/i.test(o.name)).some(isWalkToRebuild)).toBe(false)
     const c = objs(planOf('C'))
     expect(c.filter((o) => /drive|park|patio/i.test(o.name)).some(isWalkToRebuild)).toBe(false)
+    // one of Scheme C's beach paths, renamed as a rill
+    const path = c.find((o) => /Path to beach/.test(o.name))!
+    expect(isWalkToRebuild(path)).toBe(true)
+    expect(isWalkToRebuild({ ...path, name: 'Rill · stone channel' })).toBe(false)
   })
 
   test("a ribbon becomes one piece per run, joined end to end, keeping its width", () => {
-    const d = planOf('D')
-    const creek = objs(d).find((o) => /Creek walk · kelp/.test(o.name))!
+    // one of Scheme C's lanes drawn as a five-point ribbon, 40 ft long and 5 ft wide
+    const lane = objs(planOf('C')).find((o) => /Lane/.test(o.name))!
+    const pts = [[-20, 5.5], [-14, -4], [-1, -0.7], [9, -7], [20, 1.4]]
+    const creek = { ...lane, name: 'Creek walk', params: { ...lane.params, shape: 'ribbon', pts, w: 40, d: 5 } }
     const line = walkLine(creek)
+    expect(line.length).toBeGreaterThan(2)
     const pieces = walkPieces(creek, ground)
     expect(pieces).toHaveLength(line.length - 1)
     for (let k = 1; k < pieces.length; k++) {
@@ -70,7 +75,7 @@ describe('rebuilding walks as path pieces', () => {
   })
 
   test('after a rebuild the route check names real reasons, never fewer routes, and every piece is a kinded piece', () => {
-    for (const id of ['C', 'A', 'G', 'H', 'I']) {
+    for (const { id } of loadSchemes()) {
       const p = planOf(id)
       const before = routeReport(objs(p), site.terrain, ground)
       const rebuilt = rebuildWalks(p, site.terrain, ground).plan
