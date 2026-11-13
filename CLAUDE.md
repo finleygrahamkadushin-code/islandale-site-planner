@@ -11,6 +11,7 @@ Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + Rea
 - When porting a feature, compare against the legacy file's behaviour and note any deliberate change in `PLAN.md` under "Deliberate changes from the legacy file".
 - Work one phase at a time. Before coding a phase, state the plan in a few lines and wait for an OK. After each phase, run the app, check it in the browser, and commit.
 - Don't start a phase until the one before passes its done-when check (table in `PLAN.md`, "Build order").
+- This copy holds Scheme C ("C · Prow & Lantern") only, and every test loads Scheme C only. The full set of 12 schemes is on `main`.
 
 ## Layout
 
@@ -28,8 +29,8 @@ src/
   guide/        feature (map inside): Beginner / Advanced mode, the shared tooltip, glossary words, the confirm dialog, the first-run tour
   export/       planFile.ts (plan download); sheets/, a feature (map inside): model/ plan/ foundation/ elevation/ tables/; model3d/ (map inside): the .glb export
   scene/        shared 3D plumbing only: Scene, cameras, effects, gizmos, labels, chips, surfaces, display styles
-  ui/           shared UI only: top bar (with its File and View menus), side panel, inspector shell, layers, history, fields, shortcuts
-data/islandale/ terrain grid, parcel, schemes (JSON, extracted from the old planner)
+  ui/           shared UI only: top bar (with its File and View menus; the Scheme list and File → Designs show only when the data holds more than one scheme), side panel, inspector shell, layers, history, fields, shortcuts
+data/islandale/ terrain grid, parcel, Scheme C (JSON, extracted from the old planner; `main` keeps all 12 schemes)
 legacy/         the old planner and its patch scripts (read-only reference)
 tools/          map.sh (search the old planner), move-modules.mjs (move files and rewrite imports)
 ```
@@ -41,7 +42,7 @@ Don't read the whole codebase for a change. Find the section below, open its `CL
 | Task is about… | Go to | Map |
 |---|---|---|
 | Cabins, decks, porches, stairs, ramps, rails, roofs, walls, openings, supports, paint | `src/buildings/` | `src/buildings/CLAUDE.md` |
-| Terrain, parcel, contours, tide, sun, earthworks, pools, schemes, site objects, site rules (setbacks, code check, program budget, clearances) | `src/site/` | `src/site/CLAUDE.md` |
+| Terrain, parcel, contours, tide, sun, earthworks, pools, Scheme C's data, site objects, site rules (setbacks, code check, program budget, clearances) | `src/site/` | `src/site/CLAUDE.md` |
 | Walks, path pieces, accessible routes, junctions, levels, connect | `src/paths/` | `src/paths/CLAUDE.md` |
 | Rooms, furniture, interior plan editor | `src/interiors/` | `src/interiors/CLAUDE.md` |
 | Drawing sheets (plans, elevations, foundation, tables) | `src/export/sheets/` | `src/export/sheets/CLAUDE.md` |
@@ -64,4 +65,4 @@ Organise by feature, not by layer: a feature's maths, meshes, panels and tests l
 One self-contained file (three.js r128, no build step), ~15k lines with data lines of 60k characters (`GRID`, `PARCEL`), so never `cat` or plain-grep it. Use `tools/map.sh`, which clips long lines: `tools/map.sh` (outline of every section marker), `tools/map.sh def NAME`, `tools/map.sh find PATTERN`, `tools/map.sh at LINE [N]`. Sections are marked `// ---------- name ----------` (base app) and `/* ==== ext:name ==== */` (later blocks near the end).
 
 - Small edits: write `[[old, new], ...]` JSON to the scratchpad and run `python3 legacy/tools/patch.py edits.json`; each `old` must match exactly once, or nothing is written.
-- `legacy/tools/gathering_prow.py` rebuilds scheme C's Gathering prow (and C2–C4) from the imported original (`git show 0fdabcd:index.html`) and overwrites the old planner, so any other change since that commit is lost unless it is also in the script.
+- `legacy/tools/gathering_prow.py` rebuilds scheme C's Gathering prow (and its variants, which this copy does not extract) from the imported original (`git show 0fdabcd:index.html`) and overwrites the old planner, so any other change since that commit is lost unless it is also in the script.
