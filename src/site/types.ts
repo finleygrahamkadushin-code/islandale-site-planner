@@ -21,7 +21,12 @@ export interface Parcel {
   readonly ring: readonly SitePoint[]
   /** Assessor lot area, square feet. */
   readonly lotSqFt: number
-  /** Ring edges [i, i+1] with first <= i <= last run along the shoreline (OHWM). */
+  /**
+   * Ring edges [i, i+1] with first <= i <= last run along the water. They are
+   * the assessor's lot line at the water (San Juan County, via the WDFW parcel
+   * service; `meta.source` in parcel.json), not a surveyed ordinary high water
+   * mark: along most of the shore they lie below 8 ft NAVD88 (decision 1, Nov 13).
+   */
   readonly shorelineEdges: { readonly first: number; readonly last: number }
 }
 

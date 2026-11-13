@@ -45,7 +45,7 @@ export interface SiteClearanceMark {
 export interface SiteSheetModel {
   /** The lot ring, closed implicitly, site feet. */
   readonly ring: readonly Pt[]
-  /** The shoreline (OHWM) from its first edge to its last, one polyline. */
+  /** The lot line along the water (the assessor's, not a surveyed OHWM), from its first shoreline edge to its last, one polyline. */
   readonly shoreline: readonly Pt[]
   /** The side and rear lot lines, edge by edge. */
   readonly lotLines: readonly SiteLotLine[]

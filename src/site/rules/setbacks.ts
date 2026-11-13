@@ -12,7 +12,14 @@ import type { Setbacks } from '../../store/types'
  * the water. The south-west shore after it is measured from the water.
  */
 
-/** Last ring edge of the east (banked) shore; the edges after it, to the shoreline's end, are the gentle south-west shore. */
+/**
+ * Last ring edge of the east (banked) shore; the edges after it, to the
+ * shoreline's end, are the gentle south-west shore. Edge 120 runs from ring
+ * vertex 120 (12.92, -34.23) to vertex 121 (12.82, -34.36), the lot's
+ * southernmost point, where the line along the water stops running down the
+ * east side and turns north-west (edges 121 and 122) along the beach. The
+ * index comes from the old planner; parcel.json does not mark it.
+ */
 export const EAST_BANK_LAST_EDGE = 120
 /** Tree protection zones, feet from the water: no removal, then limited removal. Assumed (review R2.8): no code section named; see ruleSources. */
 export const TREE_ZONE_1_FT = 35

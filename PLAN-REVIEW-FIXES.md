@@ -39,7 +39,9 @@ These change what gets built. Each has a default that will be used if nothing el
 6. **Top bar direction** (R9.1). Default: one row; Export, Import, Reset, Clear, Sheets, 3D model and History move into a File menu; display options into a View menu.
 7. **Is the Escape-with-a-tooltip behaviour right?** (R1) Default: Escape still reaches the plan when a tooltip closes on it.
 
-**Answered Nov 13.** Finley answered "Yes, use them" to the lead session's recommended answers for decisions 2 to 7 (branch `claude/review-decisions-6842ee`). Decision 1 is still open.
+**Answered Nov 13.** Finley answered "Yes, use them" to the lead session's recommended answers for decisions 2 to 7, and then answered decision 1 (branch `claude/review-decisions-6842ee`).
+
+- **1 (the shoreline):** in Finley's words, "navd88 and dont have a file for shoreline". The tide slider is NAVD88, as it reads; there is no survey of the shoreline. The ring's shoreline edges are the assessor's lot line at the water (`parcel.json`'s `meta.source`: the San Juan County assessor via the WDFW statewide parcel service), which the review measured at 6.1 to 8.9 ft NAVD88, below mean higher high water. The app, the site plan and the code now call it the lot line at the water, not the OHWM. Asked next whether to measure the shoreline buffer from the 8 ft contour instead, Finley answered "Yes, 8 ft contour": see R2.5 in PLAN.md (the approximate high-water line).
 
 - **2 (stair code):** the defaults stand: 7 in / 11 in (IBC 1011.5.2), 36 in guards (IRC R312.1), each row naming its source. With it, **R3.4 is fixed, not kept as a legacy rule**: a stair of n risers has n − 1 treads, so the run is (n − 1) × 11 in in Fit to code, the + chip, Connect, the stair-wing tread check and the path-piece check, and the stair is drawn that way (PLAN.md).
 - **3 (what counts for the buffer and setbacks):** yes to all three, as the default; nothing more to do here.

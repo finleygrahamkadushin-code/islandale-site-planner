@@ -4,6 +4,8 @@ import { describe, expect, test } from 'vitest'
 import { lotFacts } from '../../../site/lotFacts'
 import { codeCheck } from '../../../site/rules/codeCheck'
 import { CodeCheckPanel } from '../../../site/rules/CodeCheckPanel'
+import { SetbacksPanel } from '../../../site/rules/SetbacksPanel'
+import { TipProvider } from '../../../guide/Tip'
 import { programBudget } from '../../../site/rules/program'
 import { ProgramPanel } from '../../../site/rules/ProgramPanel'
 import { LotFactsPanel } from '../../../site/SitePanels'
@@ -22,7 +24,8 @@ import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
  * opens on, so these checks are against the real panels for Scheme C.
  */
 function panelText(panel: FunctionComponent): string {
-  const html = renderToStaticMarkup(createElement(panel))
+  // inside the tooltip provider the app mounts once (Setbacks has glossary words)
+  const html = renderToStaticMarkup(createElement(TipProvider, null, createElement(panel)))
   return html
     .replace(/<[^>]+>/g, ' ')
     .replace(/&quot;/g, '"')
@@ -128,5 +131,16 @@ describe('rules off', () => {
     const notes = notesFor(planOf(off.id))
     expect(notes.code.rulesOff).toBe(true)
     expect(notes.code.rows.every((r) => r.verdict === 'note')).toBe(true)
+  })
+})
+
+describe('the line along the water is called what it is: the assessor\'s lot line, not an OHWM (decision 1, Nov 13)', () => {
+  test('the sheet\'s setback notes and the Setbacks panel never call it the OHWM', () => {
+    const rows = block(notesFor(planOf(CURRENT_SCHEME_ID)), 'setbacks').rows.map((r) => `${r.label} ${r.value}`).join(' · ')
+    expect(rows).not.toMatch(/OHWM|ordinary high water/i)
+    expect(rows).toContain('in from the east lot line at the water')
+    const panel = panelText(SetbacksPanel)
+    expect(panel).not.toMatch(/OHWM/)
+    expect(panel).toContain('Top of bank, in from the east lot line at the water')
   })
 })

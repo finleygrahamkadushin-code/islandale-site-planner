@@ -109,7 +109,7 @@ const pt = (p: number) => (p * 100) / 72
 
 const LEGEND: readonly { readonly label: string; readonly swatch: ReactNode }[] = [
   { label: 'Lot line', swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(1.3)} strokeDasharray={`${pt(14)} ${pt(2.5)} ${pt(2)} ${pt(2.5)}`} /> },
-  { label: 'Shoreline (OHWM)', swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(0.9)} /> },
+  { label: 'Lot line at the water (assessor)', swatch: <line x1={1} y1={6.5} x2={41} y2={6.5} stroke={INK.line} strokeWidth={pt(0.9)} /> },
   {
     label: 'Top of bank',
     swatch: (
