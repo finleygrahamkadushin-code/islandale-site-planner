@@ -12,7 +12,7 @@ Helping a newcomer (Phase 4C): the Beginner / Advanced switch, the one shared to
 | What Beginner hides or renames | at each field: `../ui/ShapeFields.tsx` (roof, footprint extra), `../ui/Inspector.tsx` (Turned, How tall, the Placement hint), `../ui/LayersPanel.tsx` (padlocks) |
 | A tooltip on any control | `Tip.tsx` (`Tip`; `TipProvider` is mounted once in `../app/App.tsx`) |
 | A glossary word and its definition | `glossary.ts` (`GLOSSARY`), `Term.tsx` |
-| Asking before deleting, Reset, removing a floor | `confirm.ts` (`requestDelete`, `useConfirm().request`), `ConfirmDialog.tsx` |
+| Asking before deleting, Reset, removing a floor | `confirm.ts` (`requestDelete`, `useConfirm().request`), `ConfirmDialog.tsx`; focus goes back to what asked through `../ui/returnFocus.ts` (R10.7) |
 | The tour's steps and where each points | `tour.ts` (`TOUR_STEPS`, anchors are `data-tour` attributes or selectors), `TourCard.tsx`; a step about the whole view sits in the clear corner `tourPlace.ts` picks |
 | How these look | the "Beginner (4C)" block at the end of `../app/styles.css` |
 
