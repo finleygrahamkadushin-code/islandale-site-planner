@@ -58,7 +58,8 @@ describe('plan store', () => {
       store().nudgeObjects([a, b], 1, 0)
       expect(store().plan.objects[a].position.x).toBeCloseTo(ax + 1, 9)
       expect(store().plan.objects[b].position.x).toBe(bx)
-      expect(history().pastStates).toHaveLength(2) // lock + nudge
+      // the lock, the hide and the label: each its own undo step
+      expect(history().pastStates).toHaveLength(3) // lock + nudge
     })
 
     test('delete removes the object and clears it from the selection', () => {
@@ -125,6 +126,8 @@ describe('plan store', () => {
       store().setLabelVisible(house, false)
       expect(store().plan.objects[house].hidden).toBe(true)
       expect(store().plan.objects[house].labelVisible).toBe(false)
+      // the lock, the hide and the label: each its own undo step
+      expect(history().pastStates).toHaveLength(3)
       store().setHidden(house, false)
       store().setLabelVisible(house, true)
       expect(store().plan.objects[house].hidden).toBe(false)
