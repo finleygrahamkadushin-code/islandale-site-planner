@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
-import { menuButton, openMenu, pickFromMenu } from './menus'
+import { menuButton, openMenu } from './menus'
 
 /**
  * The plan's keyboard shortcuts stay out of the way of the control that has
@@ -70,7 +70,7 @@ test('arrow keys on the Time of day slider move the slider, not the selected cab
   expect(after.undoSteps).toBe(0)
 })
 
-test('no key reaches the plan through the open Designs dialog; Escape closes it and keeps the selection', async ({ page }) => {
+test('no key reaches the plan through the open Help dialog; Escape closes it and keeps the selection', async ({ page }) => {
   // with nothing in the way, an arrow key nudges the cabin 1 ft: one undo step
   const start = await snapshot(page)
   await page.keyboard.press('ArrowRight')
@@ -78,10 +78,11 @@ test('no key reaches the plan through the open Designs dialog; Escape closes it 
   expect(nudged.x).toBeCloseTo(start.x + FT, 6)
   expect(nudged.undoSteps).toBe(1)
 
-  await pickFromMenu(page, 'file', 'open-archive')
-  const archive = page.getByTestId('archive')
-  await expect(archive.getByTestId('archive-group-brief')).toBeVisible({ timeout: 20_000 })
-  await archive.getByRole('button').first().focus()
+  // the Designs archive used to stand here; with one scheme it is hidden, and Help is the same kind of dialog
+  await page.getByTestId('open-help').click()
+  const help = page.getByRole('dialog', { name: 'Help and keyboard shortcuts' })
+  await expect(help.getByTestId('help-sheet')).toBeVisible({ timeout: 20_000 })
+  await help.getByRole('button').first().focus()
 
   for (const key of ['Delete', 'Backspace', 'q', 'ArrowUp', 'ControlOrMeta+z']) await page.keyboard.press(key)
   await expect(page.getByTestId('confirm-dialog')).toHaveCount(0)
@@ -93,7 +94,7 @@ test('no key reaches the plan through the open Designs dialog; Escape closes it 
   expect(behind.undoSteps, 'undo did not run behind the dialog').toBe(1)
 
   await page.keyboard.press('Escape')
-  await expect(archive).toHaveCount(0)
+  await expect(help).toHaveCount(0)
   expect((await snapshot(page)).selection).toEqual([CABIN])
 })
 

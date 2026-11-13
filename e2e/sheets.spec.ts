@@ -110,16 +110,16 @@ test('Download measurements gives a UTF-8 CSV with a byte-order mark, the prow a
   expect(text).toContain('W6')
 })
 
-/** Scheme C4's gathering cabin (C4-0) and scheme D's curved cabin (D-0): a shell prow with a dipped tip, and a building of curves, rooms and thick walls. */
-async function showScheme(page: Page, scheme: string, id: string, roofsOff = false) {
+/** Loads Scheme C, sets Roofs off or on and selects one building. */
+async function showBuilding(page: Page, id: string, roofsOff = false) {
   await page.evaluate(
-    ([s, i, off]) => {
+    ([i, off]) => {
       const st = (window as any).islandale.store.getState()
-      st.loadScheme(s)
+      st.loadScheme('C')
       st.setRoofsOff(off)
       st.select([i])
     },
-    [scheme, id, roofsOff] as const,
+    [id, roofsOff] as const,
   )
 }
 
@@ -160,34 +160,21 @@ async function elevationPngs(page: Page) {
   await expect(dialog(page).locator('.sheet-retry')).toHaveCount(0)
 }
 
-test("C4-0: the shell prow's dipped tip is in the Levels table, its walls are drawn, and its elevations finish", async ({ page }) => {
-  test.setTimeout(240_000)
-  await showScheme(page, 'C4', 'C4-0')
-  await openOn(page, 'C4-0')
-  const levels = (await tableRows(page, 'Levels')).map((r) => r[0])
-  expect(levels.some((l) => l.includes('tip eave'))).toBe(true)
-  expect(levels.some((l) => l.includes('tip eave, underside'))).toBe(true)
-  expect(levels.some((l) => l.includes('tip column top'))).toBe(true)
-  await expect(dialog(page).locator('g[aria-label$=" walls"]').first()).toBeAttached()
-  await elevationPngs(page)
-})
-
-test('D-0: curves drawn true, every opening located, walls and rooms drawn, the measurements bounded, the elevations finish and the scene is left as it was with Roofs off', async ({ page }) => {
+test('C-0 with Roofs off: every opening located, walls and rooms drawn, the measurements bounded, the elevations finish and the scene is left as it was', async ({ page }) => {
   test.setTimeout(420_000)
   // selected before the stats are read: the selection draws its own outline meshes
-  await showScheme(page, 'D', 'D-0', true)
+  await showBuilding(page, 'C-0', true)
   await page.waitForTimeout(3_000)
   const before = await sceneStats(page)
-  await openOn(page, 'D-0')
+  await openOn(page, 'C-0')
   await expect(dialog(page)).not.toContainText(/drawn as|approximate/i)
 
+  // Scheme C's walls are straight, so every opening is located from the left of its wall
   const fromLeft = await columnOf(page, 'Openings', 'From left')
-  const around = await columnOf(page, 'Openings', 'Round from P1')
   expect(fromLeft).toBeGreaterThanOrEqual(0)
-  expect(around).toBeGreaterThanOrEqual(0)
   const openings = await tableRows(page, 'Openings')
   expect(openings.length).toBeGreaterThan(0)
-  for (const row of openings) expect(NONE_OR_ZERO.test(row[fromLeft]) && NONE_OR_ZERO.test(row[around]), `opening ${row[0]} has a location`).toBe(false)
+  for (const row of openings) expect(NONE_OR_ZERO.test(row[fromLeft]), `opening ${row[0]} has a location`).toBe(false)
 
   const walls = dialog(page).locator('.sheet-svg g[aria-label$=" walls"]')
   expect(await walls.count()).toBeGreaterThan(0)

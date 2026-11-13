@@ -4,7 +4,7 @@ import { openSection } from './inspector'
 
 /** Phase 5A: Scheme C's parts can be picked, resized, added and removed, and each rail edge switched, with undo and locks. */
 
-const SCHEMES = ['C', 'C2', 'C3', 'C4']
+const SCHEMES = ['C']
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -32,7 +32,7 @@ async function railedWing(page: Page, id: string): Promise<{ mass: number; edges
   return { mass, edges: byMass[mass] }
 }
 
-test('C and C2 to C4: switching one rail edge off takes off only that edge, and undo puts it back', async ({ page }) => {
+test('Scheme C: switching one rail edge off takes off only that edge, and undo puts it back', async ({ page }) => {
   test.setTimeout(180_000)
   for (const s of SCHEMES) {
     await load(page, s)

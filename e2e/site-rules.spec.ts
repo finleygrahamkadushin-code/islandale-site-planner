@@ -69,15 +69,10 @@ test('a selected cabin shows its clearances and the Setbacks layer hides', async
   expect(await steps(page)).toBe(0)
 })
 
-test('the program budget sits on the Build tab, and a rules-off scheme is checked against nothing', async ({ page }) => {
+test('the program budget sits on the Build tab', async ({ page }) => {
   test.setTimeout(120_000)
   await page.getByTestId('tab-build').click()
   await expect(page.getByTestId('program-budget')).toContainText('/ 1,600 sq ft')
-  await page.evaluate(() => (window as any).islandale.store.getState().loadScheme('D'))
-  await page.getByTestId('tab-site').click()
-  const check = page.getByTestId('code-check')
-  await expect(check).toContainText('rules off')
-  await expect(check.locator('[data-verdict="fail"]')).toHaveCount(0)
 })
 
 test('the shoreline buffer says where it is measured from, and the view names the approximate high-water line (item 11)', async ({ page }) => {

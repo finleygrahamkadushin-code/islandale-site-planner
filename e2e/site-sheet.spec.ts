@@ -140,8 +140,8 @@ const notesFit = (page: Page) =>
       return { overflowPx: notes.getBoundingClientRect().bottom - area.bottom, ownPage: notes.closest('.sheet-page')!.classList.contains('flow') }
     })
 
-// C and H put their notes beside the drawing at 1" = 20' on Tabloid, so these are the columns that could run past the page
-for (const scheme of ['C', 'H', 'G']) {
+// C puts its notes beside the drawing at 1" = 20' on Tabloid, so this is the column that could run past the page
+for (const scheme of ['C']) {
   test(`Scheme ${scheme}: the notes are never cut off, beside the drawing or on a page of their own, turned or north up`, async ({ page }) => {
     test.setTimeout(240_000)
     await page.evaluate((s) => (window as any).islandale.store.getState().loadScheme(s), scheme)
