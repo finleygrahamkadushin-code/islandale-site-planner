@@ -8,8 +8,8 @@ import { chipElements, dropChip, newChipId, putChip } from './chipRegistry'
 const NDC_LIMIT = 1.05
 const OFF_SCREEN = [-1e5, -1e5]
 
-/** Stacking of the part overlay, bottom to top (legacy #handles3d): rail chips, handles, + chips, the open menu. */
-export const LAYER = { rail: 10, handle: 20, plus: 30, menu: 40 } as const
+/** Stacking of the part overlay, bottom to top (legacy #handles3d): measure and clearance labels, rail chips, handles, + chips, the open menu. */
+export const LAYER = { label: 5, rail: 10, handle: 20, plus: 30, menu: 40 } as const
 
 const p0 = new Vector3()
 const p1 = new Vector3()
