@@ -6,7 +6,7 @@ Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + Rea
 
 - The plan is data in the store; the scene only draws from it. No feature edits another feature's objects directly.
 - Every new action is undoable and respects locks.
-- Use real units: feet and inches in the UI, metres internally, NAVD88 elevations.
+- Use real units: feet and inches in the UI. An object's `position` is metres (site frame, x east, n north) and elevations are metres NAVD88, but `params` keep the old planner's feet: sizes, heights, lifts, outline points, wing offsets and levels (`w`, `d`, `h`, `lift`, `pts`, `dx`, `dz`, `lvl`); the elevations in `params` (a path piece's `ends`, a stair's `footZ`) are metres NAVD88. The tide is feet NAVD88. Convert with `src/site/units.ts`.
 - One phase per branch; commit small; keep the app runnable after every commit.
 - When porting a feature, compare against the legacy file's behaviour and note any deliberate change in `PLAN.md` under "Deliberate changes from the legacy file".
 - Work one phase at a time. Before coding a phase, state the plan in a few lines and wait for an OK. After each phase, run the app, check it in the browser, and commit.
