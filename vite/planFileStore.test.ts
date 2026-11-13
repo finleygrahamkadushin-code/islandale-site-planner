@@ -54,6 +54,38 @@ describe('the plan file on disk', () => {
     expect(kept).toHaveLength(HISTORY_KEEP)
     expect(JSON.parse(await readFile(join(dir, HISTORY_DIR, kept.at(-1)!), 'utf8')).plan.name).toBe(`v${HISTORY_KEEP + 3}`)
   })
+  test('a save that changes only savedAt or the view is not written: the file, its revision and its history stay as they were (decision 5)', async () => {
+    const file = (savedAt: string, season: string, name = 'A') => JSON.stringify({ version: 1, app: 'islandale-site-planner', savedAt, plan: { name }, view: { environment: { season } } })
+    const store = createPlanFileStore(dir)
+    const first = file('2026-11-13T10:00:00.000Z', 'sep')
+    const r1 = await store.put(first, NO_FILE_REV)
+    if (!r1.ok) throw new Error(r1.error)
+    // opening the app again, then moving the sun: the plan is the same
+    expect(await store.put(file('2026-11-13T11:00:00.000Z', 'sep'), r1.rev)).toEqual({ ok: true, rev: r1.rev })
+    expect(await store.put(file('2026-11-13T11:01:00.000Z', 'jun'), r1.rev)).toEqual({ ok: true, rev: r1.rev })
+    expect(await readFile(join(dir, PLAN_FILE_NAME), 'utf8')).toBe(first)
+    expect(await readdir(dir)).not.toContain(HISTORY_DIR)
+    // a change to the plan is written, with the view as it is then
+    const edited = file('2026-11-13T11:02:00.000Z', 'jun', 'B')
+    expect(await store.put(edited, r1.rev)).toEqual({ ok: true, rev: revOf(edited) })
+    expect(await readFile(join(dir, PLAN_FILE_NAME), 'utf8')).toBe(edited)
+  })
+
+  test('an unchanged plan from a tab that read an older revision is not written either, and is told the current one', async () => {
+    const store = createPlanFileStore(dir)
+    await store.put(plan('A'), NO_FILE_REV)
+    const viewOnly = JSON.stringify({ version: 1, plan: { name: 'A' }, view: { labelMode: 'none' } })
+    expect(await store.put(viewOnly, 'stale')).toEqual({ ok: true, rev: revOf(plan('A')) })
+    expect(await readFile(join(dir, PLAN_FILE_NAME), 'utf8')).toBe(plan('A'))
+  })
+
+  test('a newer file version with the same plan is still written', async () => {
+    const store = createPlanFileStore(dir)
+    await store.put(plan('A'), NO_FILE_REV)
+    const v2 = JSON.stringify({ version: 2, plan: { name: 'A' } })
+    expect(await store.put(v2, revOf(plan('A')))).toEqual({ ok: true, rev: revOf(v2) })
+  })
+
   test('removing the plan file keeps its last version', async () => {
     const store = createPlanFileStore(dir)
     await store.put(plan('A'), NO_FILE_REV)
