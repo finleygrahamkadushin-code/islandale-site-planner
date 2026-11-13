@@ -28,6 +28,17 @@ function pointRound(part: SheetPart, s: number): LocalPoint {
 }
 const gap = (p: LocalPoint, q: LocalPoint) => Math.hypot(p[0] - q[0], p[1] - q[1])
 
+/** Scheme C's twin pod redrawn as a blob with no wings, a door and a window run round its wall. */
+function blobCabin(): { o: PlanObject; b: SheetBuilding } {
+  const base = store().plan.objects['C-2']
+  const cuts = [
+    { id: 1, along: true, kind: 'door', x: 3, w: 3, h: 7, sill: 0 },
+    { id: 2, along: true, kind: 'window', x: 20, w: 6, h: 4, sill: 3 },
+  ]
+  const o: PlanObject = { ...base, params: { ...base.params, shape: 'blob', w: 34, d: 22, pts: undefined, wings: [], cuts } }
+  return { o, b: sheetBuildings([o], store().site.terrain)[0] }
+}
+
 beforeAll(() => {
   store().setReadOnly(null)
 })
@@ -59,15 +70,12 @@ describe('openings along a curve', () => {
   })
 
   test('every opening on a part with a curve is located round its walls from P1, landing on its first end', () => {
-    for (const scheme of ['C', 'D', 'E', 'F', 'G', 'I']) {
-      store().loadScheme(scheme)
-      for (const b of buildings()) {
-        for (const p of b.parts.filter((x) => x.edges.some((e) => e.curved))) {
-          for (const o of p.openings) {
-            expect(o.aroundFt).not.toBeNull()
-            // layoutOpenings drops a sliver of an along-cut under 0.05 ft on its first edge, so the drawn end can sit that far on
-            expect(gap(pointRound(p, o.aroundFt ?? 0), o.a)).toBeLessThan(0.05)
-          }
+    for (const b of [...buildings(), blobCabin().b]) {
+      for (const p of b.parts.filter((x) => x.edges.some((e) => e.curved))) {
+        for (const o of p.openings) {
+          expect(o.aroundFt).not.toBeNull()
+          // layoutOpenings drops a sliver of an along-cut under 0.05 ft on its first edge, so the drawn end can sit that far on
+          expect(gap(pointRound(p, o.aroundFt ?? 0), o.a)).toBeLessThan(0.05)
         }
       }
     }
@@ -105,14 +113,15 @@ describe('openings on straight walls (scheme C)', () => {
   })
 })
 
-describe('openings on curved walls (scheme D)', () => {
-  beforeAll(() => store().loadScheme('D'))
+describe('openings on curved walls', () => {
+  beforeAll(() => store().loadScheme('C'))
 
-  test("D-0's openings run round its blob, each with the curved-wall label and its place round from P1", () => {
-    const main = building('D-0').parts[0]
+  test("a blob cabin's openings run round it, each with the curved-wall label and its place round from P1", () => {
+    const { o: cabin, b } = blobCabin()
+    const main = b.parts[0]
     expect(main.curve).toBe('blob')
     expect(main.openings.length).toBeGreaterThan(0)
-    const placed = fitMass(store().plan.objects['D-0'].params, 0).openings.filter((c) => !c.hidden)
+    const placed = fitMass(cabin.params, 0).openings.filter((c) => !c.hidden)
     main.openings.forEach((o, k) => {
       expect(o.onCurve).toBe(true)
       expect(o.wall).toBe('Main · curved wall')
@@ -121,7 +130,7 @@ describe('openings on curved walls (scheme D)', () => {
     })
   })
 
-  test('every opening in the scheme has a location: from the left of a straight wall or round from P1', () => {
+  test('every opening in Scheme C has a location: from the left of a straight wall or round from P1', () => {
     for (const b of buildings()) for (const p of b.parts) for (const o of p.openings) expect(o.fromLeftFt !== null || o.aroundFt !== null).toBe(true)
   })
 })

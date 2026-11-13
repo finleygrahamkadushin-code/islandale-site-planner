@@ -171,22 +171,19 @@ describe('parts with no walls', () => {
   })
 })
 
-describe('scheme C, C2, C3 and C4', () => {
-  for (const scheme of ['C', 'C2', 'C3', 'C4']) {
-    test(`every wall part of scheme ${scheme} matches its shell`, () => {
-      store().loadScheme(scheme)
-      const houses = store()
-        .plan.order.map((id) => store().plan.objects[id])
-        .filter((o) => o.type === 'house' && !o.hidden)
-      expect(houses.length).toBeGreaterThan(0)
-      for (const o of houses) {
-        const b = sheetBuildings([o], store().site.terrain)[0]
-        const masses = buildingMasses(o.params)
-        const walls = b.parts.filter((p) => p.kind === 'wall')
-        expect(walls.length).toBeGreaterThan(0)
-        for (const part of walls) checkWalls(o, part, masses[part.massIndex])
-      }
-      store().loadScheme('C')
-    })
-  }
+describe('scheme C', () => {
+  test('every wall part of scheme C matches its shell', () => {
+    store().loadScheme('C')
+    const houses = store()
+      .plan.order.map((id) => store().plan.objects[id])
+      .filter((o) => o.type === 'house' && !o.hidden)
+    expect(houses.length).toBeGreaterThan(0)
+    for (const o of houses) {
+      const b = sheetBuildings([o], store().site.terrain)[0]
+      const masses = buildingMasses(o.params)
+      const walls = b.parts.filter((p) => p.kind === 'wall')
+      expect(walls.length).toBeGreaterThan(0)
+      for (const part of walls) checkWalls(o, part, masses[part.massIndex])
+    }
+  })
 })

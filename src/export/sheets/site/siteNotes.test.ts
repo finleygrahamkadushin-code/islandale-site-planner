@@ -137,15 +137,6 @@ describe('a planning aid, not a code review (R2.7, R2.8)', () => {
   })
 })
 
-describe('rules off', () => {
-  test('a rules-off scheme notes every row (the notes column says why, in a box)', () => {
-    const off = SCHEMES.find((s) => ['D', 'E', 'F'].includes(s.id))!
-    const notes = notesFor(planOf(off.id))
-    expect(notes.code.rulesOff).toBe(true)
-    expect(notes.code.rows.every((r) => r.verdict === 'note')).toBe(true)
-  })
-})
-
 describe('the line along the water is called what it is: the assessor\'s lot line, not an OHWM (decision 1, Nov 13)', () => {
   test('the sheet\'s setback notes and the Setbacks panel never call it the OHWM', () => {
     const rows = block(notesFor(planOf(CURRENT_SCHEME_ID)), 'setbacks').rows.map((r) => `${r.label} ${r.value}`).join(' · ')

@@ -3,6 +3,7 @@ import { sheetBuildings } from '../model/model'
 import { sheetTables, type SheetTable } from './table'
 import { MARGIN_IN, PAPERS, TITLE_IN } from '../types'
 import { usePlanStore } from '../../../store/planStore'
+import type { PlanObject } from '../../../store/types'
 import { packTables, rowHeights } from './MeasureTables'
 
 const store = () => usePlanStore.getState()
@@ -33,15 +34,16 @@ describe('packTables', () => {
   })
 
   test("curved buildings' measurements fit a few tabloid sheets, the prow's no more than before", () => {
-    const pages = (scheme: string, id: string) => {
-      store().loadScheme(scheme)
-      const objs = store().plan.order.map((k) => store().plan.objects[k])
-      const b = sheetBuildings(objs, store().site.terrain).find((x) => x.id === id)
+    store().loadScheme('C')
+    const objs = store().plan.order.map((k) => store().plan.objects[k])
+    const pages = (os: PlanObject[], id: string) => {
+      const b = sheetBuildings(os, store().site.terrain).find((x) => x.id === id)
       if (!b) throw new Error(`no ${id}`)
       return packTables(sheetTables(b), tabloid.room, tabloid.width).length
     }
-    // D-1's rooms (seven, with their totals) take it onto a sixth
-    for (const [scheme, id] of [['D', 'D-0'], ['D', 'D-1'], ['E', 'E-0'], ['G', 'G-1']]) expect(pages(scheme, id)).toBeLessThanOrEqual(6)
-    expect(pages('C', 'C-0')).toBeLessThanOrEqual(4)
+    // the twin pod redrawn as a blob, its wings kept
+    const pod = store().plan.objects['C-2']
+    expect(pages([{ ...pod, params: { ...pod.params, shape: 'blob', w: 34, d: 22, pts: undefined } }], 'C-2')).toBeLessThanOrEqual(6)
+    expect(pages(objs, 'C-0')).toBeLessThanOrEqual(4)
   })
 })

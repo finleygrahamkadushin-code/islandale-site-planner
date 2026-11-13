@@ -66,8 +66,8 @@ describe.each(SCHEMES.map((s) => s.id))('site plan words · Scheme %s', (schemeI
 })
 
 describe.each([false, true])('clearance dimensions measure what they say · north up %s', (northUp) => {
-  test.each(['C', 'D', 'E', 'H'])('Scheme %s: each line is as long as its figure', (schemeId) => {
-    const { build } = buildFor(schemeId, northUp)
+  test('Scheme C: each line is as long as its figure', () => {
+    const { build } = buildFor('C', northUp)
     expect(build.annotations.clearances.length).toBeGreaterThan(0)
     for (const c of build.annotations.clearances) {
       const drawnFt = Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1])

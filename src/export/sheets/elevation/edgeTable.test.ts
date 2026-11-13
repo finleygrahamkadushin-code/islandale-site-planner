@@ -207,20 +207,16 @@ describe('every roof on every footprint draws its outline against the sky', () =
   }
 })
 
-describe("Scheme C's buildings draw their outline from every side", () => {
+test("Scheme C's buildings draw their outline from every side", () => {
   const all = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
-  for (const id of ['C', 'C2', 'C3', 'C4']) {
-    test(id, () => {
-      const cabins = all.find((s) => s.id === id)!.objects.filter((o) => o.t === 'house')
-      expect(cabins.length).toBeGreaterThan(0)
-      for (const o of cabins) {
-        for (const [mi, m] of buildingMasses(o).entries()) {
-          if (m.kind !== 'wall') continue
-          for (const { name, g } of massMeshes(m, massPoly(m))) {
-            for (const view of VIEWS) expect(skylineGap(g, view), `${o.name} mass ${mi} ${m.roof} ${name}`).toBeLessThan(0.02)
-          }
-        }
+  const cabins = all.find((s) => s.id === 'C')!.objects.filter((o) => o.t === 'house')
+  expect(cabins.length).toBeGreaterThan(0)
+  for (const o of cabins) {
+    for (const [mi, m] of buildingMasses(o).entries()) {
+      if (m.kind !== 'wall') continue
+      for (const { name, g } of massMeshes(m, massPoly(m))) {
+        for (const view of VIEWS) expect(skylineGap(g, view), `${o.name} mass ${mi} ${m.roof} ${name}`).toBeLessThan(0.02)
       }
-    })
+    }
   }
 })

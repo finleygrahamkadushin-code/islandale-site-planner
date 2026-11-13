@@ -91,23 +91,21 @@ beforeAll(() => {
 })
 
 describe('scheme C', () => {
-  test('every cabin of C, C2, C3 and C4 has its rooms, partitions and interior doors, all clear of the walls', () => {
-    for (const scheme of ['C', 'C2', 'C3', 'C4']) {
-      const bs = schemeBuildings(scheme)
-      expect(bs).toHaveLength(4)
-      for (const b of bs) {
-        expect(b.floors).toHaveLength(1)
-        const f = b.floors[0]
-        expect(f.rooms.length).toBeGreaterThanOrEqual(4)
-        expect(f.partitions.length).toBeGreaterThanOrEqual(3)
-        expect(f.openings.length).toBeGreaterThanOrEqual(3)
-        expectClear(b, f)
-        for (const r of f.rooms) {
-          // inside its walls, a room is smaller than as drawn, and its words sit inside it
-          expect(r.net.length).toBeGreaterThanOrEqual(3)
-          if (!r.porch) expect(r.netAreaSqFt).toBeLessThan(G.area(r.outline))
-          expect(G.pointInPoly(r.net, r.label[0], r.label[1])).toBe(true)
-        }
+  test('every cabin of C has its rooms, partitions and interior doors, all clear of the walls', () => {
+    const bs = schemeBuildings('C')
+    expect(bs).toHaveLength(4)
+    for (const b of bs) {
+      expect(b.floors).toHaveLength(1)
+      const f = b.floors[0]
+      expect(f.rooms.length).toBeGreaterThanOrEqual(4)
+      expect(f.partitions.length).toBeGreaterThanOrEqual(3)
+      expect(f.openings.length).toBeGreaterThanOrEqual(3)
+      expectClear(b, f)
+      for (const r of f.rooms) {
+        // inside its walls, a room is smaller than as drawn, and its words sit inside it
+        expect(r.net.length).toBeGreaterThanOrEqual(3)
+        if (!r.porch) expect(r.netAreaSqFt).toBeLessThan(G.area(r.outline))
+        expect(G.pointInPoly(r.net, r.label[0], r.label[1])).toBe(true)
       }
     }
   })
@@ -157,8 +155,8 @@ describe('scheme C', () => {
   })
 
   test('a standalone deck and a cabin with nothing drawn inside have no floors', () => {
-    const deck = schemeBuildings('E').find((x) => x.type === 'deck')
-    expect(deck?.floors).toEqual([])
+    const deck: PlanObject = { id: 'K', type: 'deck', name: 'K', position: { x: 0, n: 0 }, rotation: 20, params: { w: 16, d: 12, h: 5 }, locked: false, hidden: false, labelVisible: true }
+    expect(sheetBuildings([deck], store().site.terrain)[0]?.floors).toEqual([])
     expect(cabin({ shape: 'rect', w: 20, d: 12 }).floors).toEqual([])
     expect(sheetTables(cabin({ shape: 'rect', w: 20, d: 12 })).some((t) => t.title === 'Rooms')).toBe(false)
   })
