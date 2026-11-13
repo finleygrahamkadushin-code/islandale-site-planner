@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { useStore } from 'zustand'
-import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS } from '../site/schemes'
+import { ARCHIVED_SCHEME_IDS, CURRENT_SCHEME_ID, CURRENT_VARIANT_IDS, hasSchemeChoice } from '../site/schemes'
 import { openScheme } from '../site/archive/openScheme'
 import { BLANK_PLAN_NAME, redoPlan, undoPlan, usePlanStore } from '../store/planStore'
 import { activeTabLock } from '../store/tabLock'
@@ -22,8 +22,8 @@ const READ_ONLY_TEXT = {
 } as const
 
 /**
- * One row (R9.1, decision 6): the task tabs, the scheme, undo and redo, the
- * mode, the File and View menus, search, help and the save status. The
+ * One row (R9.1, decision 6): the task tabs, the scheme (only when the data
+ * holds more than one), undo and redo, the mode, the File and View menus, search, help and the save status. The
  * labels of the tabs, undo, redo and search fold to their icons where the
  * row is short (styles.css, "Top bar (R9.1)"); on a phone it takes two rows.
  */
@@ -43,6 +43,7 @@ export function TopBar() {
     <header className="topbar" ref={bar}>
       <h1>Islandale</h1>
       <TaskTabs />
+      {hasSchemeChoice(schemes) && (
       <Tip label="Open a scheme (asks first; replaces the plan; undo to go back)">
         <label className="field scheme-field">
           <span className="muted bar-text">Scheme</span>
@@ -51,23 +52,28 @@ export function TopBar() {
             <optgroup label="Current">
               <option value={CURRENT_SCHEME_ID}>{byId(CURRENT_SCHEME_ID)?.name}</option>
             </optgroup>
-            <optgroup label="Prow variants">
-              {CURRENT_VARIANT_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {byId(id)?.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Old designs">
-              {ARCHIVED_SCHEME_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {byId(id)?.name}
-                </option>
-              ))}
-            </optgroup>
+            {CURRENT_VARIANT_IDS.length > 0 && (
+              <optgroup label="Prow variants">
+                {CURRENT_VARIANT_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {byId(id)?.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {ARCHIVED_SCHEME_IDS.length > 0 && (
+              <optgroup label="Old designs">
+                {ARCHIVED_SCHEME_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {byId(id)?.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
       </Tip>
+      )}
 
       <div className="seg topbar-undo" role="group" aria-label="Undo and redo">
         <Tip label="Undo" keyHint={keys('Mod+Z')}>
