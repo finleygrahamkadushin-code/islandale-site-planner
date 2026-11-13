@@ -18,6 +18,9 @@ The editing tools (Phase 4A): the one current tool (Select, Place, Paint, Connec
 | The tool keys (V, L, S, P, C, Esc; R / Q / E while placing) | `toolKeys.ts`; Cmd/Ctrl+D and Q / E / R on the selection are in `../ui/useKeyboardShortcuts.ts` |
 | The Measure tool (M): maths, keeping five, drawing | `measure.ts` (`measureOf`), `../store/toolActions.ts` (`measurePoint`), `MeasureLayer.tsx` |
 | Box select (Shift-drag on empty ground) | `useBoxSelect.tsx` (window listeners from the ground's press), `arrange.ts` (`idsInBox`) |
+| Keyboard placing (R10.1): the ghost starts where the view looks, arrows move it (compass, 1 ft / Shift 5 ft), Enter places | `keyboardPlace.ts` (`startPlacingAtView`, `placeKey`, called from `toolKeys.ts`), `arrowSteps.ts` (shared with the selection's nudge); the view centre is `../scene/cameraFocus.ts` (`viewCentre`) |
+| Keyboard selecting (R10.1): what a "Select …" entry does | `keyboardSelect.ts` (`selectByKeyboard`); the entries are `objectCommands` in `../layout/commands.ts`; what is said goes through `../ui/announce.ts` |
+| Add to selection: multi-select with no modifier key (R10.2), the strip's toggle | `addMode.ts` (`useAddMode`, `addsToSelection`, `afterBox`), read by `useBoxSelect.tsx` and `../scene/useObjectInteraction.ts` |
 | Align and distribute several objects | `arrange.ts`, `../store/toolActions.ts` (`alignObjects`, `distributeObjects`), the buttons in `../ui/Inspector.tsx` |
 | Group drag (drag any selected object) | `useDragMove.ts` (commits through `nudgeObjects`); `DragState.group` in `../scene/editing.ts` |
 | Groups: group and ungroup (Cmd/Ctrl+G, Shift ungroups), a click picking the whole group, copies' groups | `groups.ts` (pure), `../store/toolActions.ts` (`groupObjects`, `ungroupObjects`, `duplicateObjects`), the buttons in `../ui/Inspector.tsx`, the keys in `../ui/useKeyboardShortcuts.ts` |

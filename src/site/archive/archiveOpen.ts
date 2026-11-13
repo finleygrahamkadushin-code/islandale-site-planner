@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { focusedElement } from '../../ui/returnFocus'
 
 /**
  * Whether the Designs archive is open (5F), and what had focus when it
@@ -15,7 +16,7 @@ export const useArchiveOpen = create<{
   setOpen: (open) =>
     set(() =>
       open
-        ? { open, opener: typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null }
+        ? { open, opener: focusedElement() }
         : { open },
     ),
 }))

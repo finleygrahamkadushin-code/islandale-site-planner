@@ -4,19 +4,43 @@ import { create } from 'zustand'
 import { SHORTCUT_GROUPS } from './shortcuts'
 import { loadCommandMenu } from '../app/prefetch'
 import { useTour } from '../guide/tour'
+import { useSingleKeys } from '../ui/singleKeys'
+import { focusPlanView } from '../scene/planView'
 
 /** Which overlay is open: command search (Cmd/Ctrl+K) or the Help sheet (?). View state. */
 // command search (cmdk) loads the first time it opens (4E)
 const CommandMenu = lazy(() => loadCommandMenu().then((m) => ({ default: m.CommandMenu })))
 
-export const useOverlay = create<{ readonly open: 'commands' | 'help' | null; readonly setOpen: (o: 'commands' | 'help' | null) => void }>((set) => ({
+export const useOverlay = create<{
+  readonly open: 'commands' | 'help' | null
+  /** Where focus goes when the overlay closes: the 3D view after "Select …" or "Place …" (R10.1), else where Radix sends it. */
+  readonly afterClose: 'view' | null
+  readonly setOpen: (o: 'commands' | 'help' | null) => void
+  readonly focusViewOnClose: () => void
+}>((set) => ({
   open: null,
+  afterClose: null,
   setOpen: (open) => set({ open }),
+  focusViewOnClose: () => set({ afterClose: 'view' }),
 }))
 
+/** Radix's close focus: the 3D view when a command asked for it, so the arrows act at once (R10.1). */
+function onCloseAutoFocus(e: Event): void {
+  if (useOverlay.getState().afterClose !== 'view') return
+  useOverlay.setState({ afterClose: null })
+  e.preventDefault()
+  focusPlanView()
+}
+
 function HelpSheet() {
+  const singleKeys = useSingleKeys((s) => s.on)
   return (
     <div className="help-sheet" data-testid="help-sheet">
+      {/* R10.5 (WCAG 2.1.4): one-letter shortcuts can be turned off, remembered per browser */}
+      <label className="help-single-keys">
+        <input type="checkbox" checked={singleKeys} onChange={(e) => useSingleKeys.getState().setOn(e.target.checked)} data-testid="single-keys" />
+        <span>Single-key shortcuts (letters, numbers, ?). Off, only arrows, Escape, Delete and the {'Ctrl / ⌘'} shortcuts work.</span>
+      </label>
       <div className="help-tour">
         <span>New here? A five-step tour shows how to look around, pick, move, lock and save.</span>
         <button
@@ -57,7 +81,7 @@ export function Overlays() {
     <Dialog.Root open={open !== null} onOpenChange={(on) => !on && setOpen(null)}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className={`dialog ${open === 'help' ? 'help-dialog' : 'command-dialog'}`} aria-describedby={undefined}>
+        <Dialog.Content className={`dialog ${open === 'help' ? 'help-dialog' : 'command-dialog'}`} aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus}>
           <Dialog.Title className={open === 'help' ? 'dialog-title' : 'sr-only'}>{open === 'help' ? 'Help and keyboard shortcuts' : 'Search actions and settings'}</Dialog.Title>
           {open === 'commands' && (
             <Suspense fallback={null}>

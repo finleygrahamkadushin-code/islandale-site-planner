@@ -4,6 +4,13 @@ import { SAVED_VIEWS } from '../scene/views'
 import { useFocusRequest } from '../scene/cameraFocus'
 import { LIBRARY, type LibraryGroup } from '../tools/library'
 import { useLibraryOpen } from '../tools/libraryOpen'
+import { useAddMode } from '../tools/addMode'
+import { useSingleKeys } from '../ui/singleKeys'
+import { startPlacingAtView } from '../tools/keyboardPlace'
+import { selectByKeyboard } from '../tools/keyboardSelect'
+import { isOutside, isolationNow } from '../tools/isolate'
+import { isObjectVisible } from '../store/selectors'
+import { positionWords } from '../ui/announce'
 import { useOpenSections, type SectionId } from '../ui/InspectorSection'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
@@ -30,6 +37,10 @@ export interface Command {
   readonly group: string
   /** The keyboard shortcut, when there is one. */
   readonly keys?: string
+  /** A second line that tells same-named entries apart (R10.1). */
+  readonly detail?: string
+  /** When command search closes after it, focus goes to the 3D view, where the arrows act (R10.1). */
+  readonly focusView?: true
   readonly run: () => void
 }
 
@@ -75,13 +86,16 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'tool-connect', group: 'Tools', label: 'Connect two ends', keys: 'C', run: () => (tab('build'), get().setTool('connect')) },
     { id: 'tool-library', group: 'Tools', label: 'Open the library', keys: 'L', run: () => useLibraryOpen.getState().setOpen(true) },
     { id: 'snap', group: 'Tools', label: s.snap ? 'Snap off' : 'Snap on', keys: 'S', run: () => get().setSnap(!get().snap) },
+    { id: 'add-select', group: 'Tools', label: useAddMode.getState().on ? 'Add to selection off' : 'Add to selection on (no Shift)', run: () => useAddMode.getState().setOn(!useAddMode.getState().on) },
     ...LIBRARY.map((item) => ({
       id: `place-${item.id}`,
       group: 'Place',
       label: `Place ${item.name}`,
+      focusView: true as const,
+      // the ghost starts where the view looks, so the arrows and Enter can place it (R10.1)
       run: () => {
         tab(tabFor(item.group))
-        get().setTool('place', item.id)
+        startPlacingAtView(item.id)
       },
     })),
     ...DISPLAY_STYLES.map((d, i) => ({ id: `style-${d.id}`, group: 'Display', label: d.label, keys: String(i + 1), run: () => get().setDisplayStyle(d.id) })),
@@ -108,6 +122,7 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'redo', group: 'Plan', label: 'Redo', keys: keys('Shift+Mod+Z'), run: () => redoPlan() },
     { id: 'mode-beginner', group: 'Help', label: 'Beginner mode: plain names, fewer settings', run: () => useGuideMode.getState().setMode('beginner') },
     { id: 'mode-advanced', group: 'Help', label: 'Advanced mode: every setting', run: () => useGuideMode.getState().setMode('advanced') },
+    { id: 'single-keys', group: 'Help', label: useSingleKeys.getState().on ? 'Single-key shortcuts off' : 'Single-key shortcuts on', run: () => useSingleKeys.getState().setOn(!useSingleKeys.getState().on) },
     { id: 'tour', group: 'Help', label: 'Take the tour', run: () => useTour.getState().start() },
     { id: 'present', group: 'Views', label: 'Present: full screen, no editing', run: () => usePresent.getState().enter() },
     { id: 'snapshot', group: 'Views', label: 'Save a picture of this view', run: () => useViewHud.getState().snapshot() },
@@ -131,4 +146,31 @@ export function commandsFor(s: PlanState): Command[] {
     if (one.type === 'house') cmds.push({ id: 'interior', group: `${one.name}`, label: 'Open the floor plan', keys: 'I', run: () => useInteriorView.getState().open(one.id) })
   }
   return cmds
+}
+
+/** What an object is, in a word, for its Select entry. */
+const kindOf = (type: string): string => (type === 'house' ? 'building' : type)
+
+/**
+ * One "Select <name>" entry per object that is shown (R10.1): not hidden,
+ * and not faded by an isolation. Same-named objects (scheme C's trees) are
+ * told apart by their kind and position, written as the inspector's
+ * Placement fields write it. Command search lists them only once something
+ * is typed, so the list stays short.
+ */
+export function objectCommands(s: PlanState): Command[] {
+  const iso = isolationNow()
+  return s.plan.order
+    .filter((id) => s.plan.objects[id] && isObjectVisible(s, id) && !isOutside(iso, id))
+    .map((id) => {
+      const o = s.plan.objects[id]
+      return {
+        id: `select-${id}`,
+        group: 'Objects',
+        label: `Select ${o.name}`,
+        detail: `${kindOf(o.type)} · ${positionWords(o.position)}`,
+        focusView: true as const,
+        run: () => selectByKeyboard(id),
+      }
+    })
 }

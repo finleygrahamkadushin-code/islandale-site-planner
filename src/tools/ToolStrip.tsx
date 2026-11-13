@@ -1,10 +1,11 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import { Tip } from '../guide/Tip'
-import { Magnet, MousePointer2, Paintbrush, Ruler, SquarePlus, Spline, type LucideIcon } from 'lucide-react'
+import { Magnet, MousePointer2, Paintbrush, Ruler, SquareDashedMousePointer, SquarePlus, Spline, type LucideIcon } from 'lucide-react'
 import { usePlanStore } from '../store/planStore'
 import { toolOf, type ToolId } from '../store/toolActions'
 import { LibraryPanel } from './LibraryPanel'
 import { useLibraryOpen } from './libraryOpen'
+import { useAddMode } from './addMode'
 import { TAB_TOOLS, useTaskTab } from '../layout/tabs'
 
 interface ToolButton {
@@ -25,12 +26,13 @@ const TOOLS: readonly ToolButton[] = [
 
 /**
  * The left tool strip (4A, 4B): the current tab's tools as one group (one
- * tool at a time, see toolOf), then the Snap toggle; none on Present. Place opens the
+ * tool at a time, see toolOf), then the Snap and Add to selection toggles; none on Present. Place opens the
  * object library beside the strip; picking an item there starts placing it.
  */
 export function ToolStrip() {
   const tool = usePlanStore(toolOf)
   const snap = usePlanStore((s) => s.snap)
+  const adding = useAddMode((s) => s.on)
   const { setTool, setSnap } = usePlanStore.getState()
   const tabTools = TAB_TOOLS[useTaskTab((s) => s.tab)]
   const libraryOpen = useLibraryOpen((s) => s.open) && tabTools.includes('place')
@@ -66,6 +68,14 @@ export function ToolStrip() {
             <Magnet size={18} aria-hidden="true" />
           </button>
         </Tip>
+        {tabTools.includes('select') && (
+          // R10.2: multi-select with no modifier key, for touch
+          <Tip side="right" label={adding ? 'Adding: a click adds or removes, a drag on the ground boxes more' : 'Add to selection without Shift'}>
+            <button type="button" className="tool-button" aria-pressed={adding} aria-label="Add to selection" data-testid="tool-add-select" onClick={() => useAddMode.getState().setOn(!adding)}>
+              <SquareDashedMousePointer size={18} aria-hidden="true" />
+            </button>
+          </Tip>
+        )}
       </nav>
       {libraryOpen && <LibraryPanel onClose={() => setLibraryOpen(false)} />}
     </>
