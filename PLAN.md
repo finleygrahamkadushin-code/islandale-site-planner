@@ -27,7 +27,7 @@ Use **three.js** (current release r186, September 2026) with **React Three Fiber
 | CesiumJS | Streaming real terrain and 3D Tiles for anywhere on Earth | Modeling and editing buildings | Borrow its terrain ideas later, not the core |
 | Unity / Unreal / Godot | Best-in-class visuals and game tooling | Installs and heavy builds instead of a link; rebuilds everything a browser gives free | Overkill |
 
-**Renderer:** start on the classic WebGL renderer, then switch to `WebGPURenderer` once the scene is stable. WebGPU is on by default in Chrome, Edge and Safari 26, and [three.js falls back to WebGL 2 automatically](https://www.utsubo.com/blog/threejs-2026-what-changed) where it is missing. Two catches from [migration write-ups](https://www.buildmvpfast.com/blog/threejs-webgl-to-webgpu-renderer-migration-2026): custom shaders and post-processing must be rewritten in TSL (three.js's shading language), and Firefox on Linux, Intel Macs and Android still falls back to WebGL. So write new effects in TSL from day one and treat WebGPU as a speed-up, not a requirement.
+**Renderer:** start on the classic WebGL renderer, then switch to `WebGPURenderer` once the scene is stable. WebGPU is on by default in Chrome, Edge and Safari 26, and [three.js falls back to WebGL 2 automatically](https://www.utsubo.com/blog/threejs-2026-what-changed) where it is missing. Two catches from [migration write-ups](https://www.buildmvpfast.com/blog/threejs-webgl-to-webgpu-renderer-migration-2026): custom shaders and post-processing must be rewritten in TSL (three.js's shading language), and Firefox on Linux, Intel Macs and Android still falls back to WebGL. So write new effects in TSL from day one and treat WebGPU as a speed-up, not a requirement. (Dropped Nov 13 by Finley's decision on R8.8: no TSL was written, the effects in use are WebGL-only, and WebGPU was tried and taken out in 4E, so there is no TSL rule.)
 
 ## Recommended tech stack
 
@@ -241,7 +241,6 @@ check it in the browser, and commit.
 - The plan is data in the store; the scene only draws from it. No feature edits another feature's objects directly.
 - Every new action is undoable and respects locks.
 - Use real units: feet and inches in the UI, metres internally, NAVD88 elevations.
-- New shaders and effects in TSL so the WebGPU switch is painless.
 - One phase per branch; commit small; keep the app runnable after every commit.
 - When porting a feature, compare against the legacy file's behaviour and note any deliberate change in `PLAN.md`.
 
