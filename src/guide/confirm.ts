@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { usePlanStore } from '../store/planStore'
 import { useGuideMode } from './mode'
+import { focusedElement } from '../ui/returnFocus'
 
 /**
  * Questions before a destructive step (4C), in one styled dialog instead of
@@ -16,6 +17,8 @@ export interface ConfirmAsk {
 interface ConfirmState {
   readonly ask: ConfirmAsk | null
   readonly onYes: (() => void) | null
+  /** What had focus when the question was asked; focus goes back there when it closes (R10.7). Kept after the answer for the closing dialog. */
+  readonly opener: HTMLElement | null
   readonly request: (ask: ConfirmAsk, onYes: () => void) => void
   readonly answer: (yes: boolean) => void
 }
@@ -23,7 +26,8 @@ interface ConfirmState {
 export const useConfirm = create<ConfirmState>((set, get) => ({
   ask: null,
   onYes: null,
-  request: (ask, onYes) => set({ ask, onYes }),
+  opener: null,
+  request: (ask, onYes) => set({ ask, onYes, opener: focusedElement() }),
   answer: (yes) => {
     const run = get().onYes
     set({ ask: null, onYes: null })

@@ -1,7 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { useConfirm } from './confirm'
+import { returnFocusTo } from '../ui/returnFocus'
 
-/** The one confirm dialog (4C): Cancel has focus first, Escape and a click outside cancel. */
+const backToOpener = returnFocusTo(() => useConfirm.getState().opener)
+
+/** The one confirm dialog (4C): Cancel has focus first, Escape and a click outside cancel; closing hands focus back to what asked (R10.7). */
 export function ConfirmDialog() {
   const ask = useConfirm((s) => s.ask)
   const answer = useConfirm((s) => s.answer)
@@ -9,7 +12,7 @@ export function ConfirmDialog() {
     <Dialog.Root open={ask !== null} onOpenChange={(on) => !on && answer(false)}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog confirm-dialog" data-testid="confirm-dialog">
+        <Dialog.Content className="dialog confirm-dialog" data-testid="confirm-dialog" onCloseAutoFocus={backToOpener}>
           <Dialog.Title className="dialog-title">{ask?.title}</Dialog.Title>
           <Dialog.Description className="confirm-body">{ask?.body}</Dialog.Description>
           <div className="confirm-actions">
