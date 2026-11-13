@@ -9,9 +9,17 @@ import type { Floor } from './types'
 
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
-const cabin = (scheme: string, name: string) => all.find((s) => s.id === scheme)!.objects.find((o) => o.name === name)!
-const prow = cabin('C', 'Gathering prow')
-const octagonA = cabin('A', 'Gathering octagon')
+const prow = all.find((s) => s.id === 'C')!.objects.find((o) => o.name === 'Gathering prow')!
+// an octagon cabin stored the old planner's older way: rectangle rooms and an opening placed by side
+const octagon = {
+  w: 28, d: 28, h: 11, shape: 'oct',
+  floors: [{
+    name: 'Main floor',
+    rooms: [{ id: 1, name: 'Kitchen', type: 'kitchen', x: 0, z: -2, w: 14, d: 12 }, { id: 2, name: 'Dining', type: 'dining', x: 0, z: 10, w: 14, d: 8 }],
+    openings: [{ id: 3, room: 2, side: 's', pos: 0.5, width: 10, kind: 'slider' }],
+    furniture: [],
+  }],
+}
 const box = { w: 30, d: 20, h: 9, floors: [] as unknown[] }
 
 describe('reading floor plans', () => {
@@ -23,9 +31,9 @@ describe('reading floor plans', () => {
     expect(f.furniture).toHaveLength(raw.furniture.length)
   })
 
-  test("A's rectangle rooms become polygons fitted to the walls, and its side openings are anchored to an edge", () => {
-    const [f] = readFloors(octagonA)
-    const raw = (octagonA.floors as { rooms: unknown[]; openings: unknown[] }[])[0]
+  test('rectangle rooms become polygons fitted to the walls, and side openings are anchored to an edge', () => {
+    const [f] = readFloors(octagon)
+    const raw = octagon.floors[0]
     expect(f.rooms).toHaveLength(raw.rooms.length)
     expect(f.rooms.every((r) => r.pts.length >= 3)).toBe(true)
     expect(f.openings.length).toBeGreaterThan(0)

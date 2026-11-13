@@ -3,7 +3,7 @@ import { buildingMasses } from '../masses'
 import type { EdgeRail } from './railRules'
 import { loadIslandaleTerrain } from '../../site/islandale'
 import { loadSchemes, schemeById } from '../../site/schemes'
-import { planFromScheme } from '../../store/fromLegacy'
+import { planFromScheme, planObjectFromLegacy } from '../../store/fromLegacy'
 import { usePlanStore } from '../../store/planStore'
 import { setRailDrawResolver } from '../../store/railResolver'
 import type { Plan, PlanObject } from '../../store/types'
@@ -31,17 +31,15 @@ function railed(plan: Plan): Record<string, Record<number, number[]>> {
   return out
 }
 
-describe('Schemes C and C2–C4 rail where they did', () => {
+describe('Scheme C rails where it did', () => {
   // the same table as e2e/paths-rails.spec.ts (LEGACY_RAILED), read from the old planner
   // the prow's front stair runs into rising ground, so its handrails stop with its treads (PLAN.md, stairs into the ground)
-const LEGACY_RAILED = (id: string) => ({ [`${id}-0`]: [3], [`${id}-1`]: [1, 2], [`${id}-2`]: [1, 2, 3], [`${id}-3`]: [1, 2, 3] })
-  for (const id of ['C', 'C2', 'C3', 'C4']) {
-    test(`${id}: the same masses carry rails`, () => {
-      const byMass = railed(schemePlan(id))
-      const masses = Object.fromEntries(Object.entries(byMass).map(([k, v]) => [k, Object.keys(v).map(Number)]))
-      expect(masses).toEqual(LEGACY_RAILED(id))
-    })
-  }
+  const LEGACY_RAILED = { 'C-0': [3], 'C-1': [1, 2], 'C-2': [1, 2, 3], 'C-3': [1, 2, 3] }
+  test('C: the same masses carry rails', () => {
+    const byMass = railed(schemePlan('C'))
+    const masses = Object.fromEntries(Object.entries(byMass).map(([k, v]) => [k, Object.keys(v).map(Number)]))
+    expect(masses).toEqual(LEGACY_RAILED)
+  })
 
   test('C rails these edges (what railedEdges() reports in the scene)', () => {
     expect(railed(schemePlan('C'))).toEqual({
@@ -92,14 +90,12 @@ describe('the store keeps what is drawn on the first per-edge write', () => {
     })
   }
 
-  test("A-0's deck keeps the runs past the house on its covered edge 0 when another edge is switched off", () => {
-    store().loadScheme('A')
-    store().lockAll(false)
-    const before = runsOf('A-0', 1)
+  test("C-1's porch keeps the runs past the house on its covered edge 0 when another edge is switched off", () => {
+    const before = runsOf('C-1', 1)
     expect(before[0].length).toBeGreaterThan(0)
-    const edge = objectRails(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['A-0'])[1]!.findIndex((e) => e.free && e.runs.length > 0)
-    store().setRail('A-0', 1, edge, 'off')
-    const after = runsOf('A-0', 1)
+    const edge = objectRails(planRailWorld(objectsOf(store().plan), terrain), store().plan.objects['C-1'])[1]!.findIndex((e) => e.free && e.runs.length > 0)
+    store().setRail('C-1', 1, edge, 'off')
+    const after = runsOf('C-1', 1)
     expect(after[edge]).toEqual([])
     expect(after.filter((_, i) => i !== edge)).toEqual(before.filter((_, i) => i !== edge))
   })
@@ -166,13 +162,10 @@ describe('the store keeps what is drawn on the first per-edge write', () => {
 })
 
 describe('standalone decks', () => {
-  test('a ring deck 1.5 ft up gets no guard by the legacy rule, and one where forced on', () => {
-    const plan = schemePlan('E')
-    const ring = objectsOf(plan).filter((o) => o.type === 'deck')
-    expect(ring.length).toBeGreaterThan(0)
-    const world = planRailWorld(objectsOf(plan), terrain)
-    const low = ring.find((o) => objectRails(world, o)[0]!.every((e) => !e.drawn))!
-    expect(low).toBeDefined()
+  test('a deck 1.5 ft up gets no guard by the legacy rule, and one where forced on', () => {
+    const low = planObjectFromLegacy('low', { t: 'deck', name: 'Low deck', w: 13.6, d: 5, h: 1.5, lift: 0, support: 'posts', rot: 330, x: -7.8, n: -15.12 })
+    const world = planRailWorld([...objectsOf(schemePlan('C')), low], terrain)
+    expect(objectRails(world, low)[0]!.every((e) => !e.drawn)).toBe(true)
     const forced = { ...low, params: { ...low.params, rail: true } }
     expect(objectRails(world, forced)[0]!.every((e) => e.drawn && e.free)).toBe(true)
   })

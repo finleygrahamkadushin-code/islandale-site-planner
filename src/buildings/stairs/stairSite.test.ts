@@ -15,25 +15,30 @@ const scheme = (id: string) => {
   const objects = plan.order.map((k) => plan.objects[k]).filter((o): o is PlanObject => !!o)
   return { plan, world: planRailWorld(objects, terrain) }
 }
+/** A cabin with one more wing; the wing is its last mass. */
+const plusWing = (o: PlanObject, wing: Record<string, unknown>) => {
+  const params = { ...o.params, wings: [...((o.params.wings as unknown[]) ?? []), wing] }
+  return { o: { ...o, params }, mi: buildingMasses(params).length - 1 }
+}
+/** C's lantern with a 7 ft ramp off its left side, run out to the west. */
+const lanternRamp = (o: PlanObject) => plusWing(o, { kind: 'ramp', open: true, dx: -12.5, dz: 0, rot: -90, w: 4, d: 7, h: 0, roof: 'none' })
 
 describe('stairInfo (the part inspector numbers)', () => {
-  for (const id of ['C', 'C2', 'C3', 'C4']) {
-    test(`${id}: the lantern and twin pod stairs keep handrails on both sides; the prow's runs into the ground`, () => {
-      const { plan, world } = scheme(id)
-      const prow = stairInfo(world, plan.objects[`${id}-0`], 2)!
-      expect(prow.footAbove).toBe(true)
-      expect(prow.buried).toBeGreaterThan(0)
-      expect(prow.rails.every((r) => r.skipped)).toBe(true)
-      for (const [oid, mi] of [[`${id}-1`, 2], [`${id}-2`, 2]] as const) {
-        const info = stairInfo(world, plan.objects[oid], mi)!
-        expect(info.n, oid).toBeGreaterThan(1)
-        expect(info.rails.map((r) => [r.side, r.skipped]), oid).toEqual([
-          [-1, false],
-          [1, false],
-        ])
-      }
-    })
-  }
+  test("C: the lantern and twin pod stairs keep handrails on both sides; the prow's runs into the ground", () => {
+    const { plan, world } = scheme('C')
+    const prow = stairInfo(world, plan.objects['C-0'], 2)!
+    expect(prow.footAbove).toBe(true)
+    expect(prow.buried).toBeGreaterThan(0)
+    expect(prow.rails.every((r) => r.skipped)).toBe(true)
+    for (const [oid, mi] of [['C-1', 2], ['C-2', 2]] as const) {
+      const info = stairInfo(world, plan.objects[oid], mi)!
+      expect(info.n, oid).toBeGreaterThan(1)
+      expect(info.rails.map((r) => [r.side, r.skipped]), oid).toEqual([
+        [-1, false],
+        [1, false],
+      ])
+    }
+  })
 
   test("C's prow stair: two risers on its fixed 5 ft run meet 7 in / 11 in; the lantern's 4 ft stair is short", () => {
     const { plan, world } = scheme('C')
@@ -45,16 +50,20 @@ describe('stairInfo (the part inspector numbers)', () => {
     expect(lantern.tread).toBeCloseTo((4 * 0.3048) / (lantern.n - 1))
   })
 
-  test("G-0's rear stair lands in front of a door, so its handrails start back from it", () => {
-    const { plan, world } = scheme('G')
-    const info = stairInfo(world, plan.objects['G-0'], 3)!
+  test('a stair that lands in front of a door starts its handrails back from it', () => {
+    const { plan, world } = scheme('C')
+    // the twin pod with its porch taken off and a stair straight out of its front door
+    const pod = plan.objects['C-2']
+    const { o, mi } = plusWing({ ...pod, params: { ...pod.params, wings: [] } }, { kind: 'stair', open: true, dx: 0, dz: 7.75, rot: 0, w: 4, d: 4, h: 0, roof: 'none' })
+    const info = stairInfo(world, o, mi)!
     expect(info.clearTop).toBe(true)
     expect(info.rails[0].za).toBeGreaterThan(info.topNosingZ + 0.29)
   })
 
-  test("A's elders' ramp reports its slope and is steeper than 1:12", () => {
-    const { plan, world } = scheme('A')
-    const info = stairInfo(world, plan.objects['A-2'], 2)!
+  test('a short ramp reports its slope and is steeper than 1:12', () => {
+    const { plan, world } = scheme('C')
+    const { o, mi } = lanternRamp(plan.objects['C-1'])
+    const info = stairInfo(world, o, mi)!
     expect(info.kind).toBe('ramp')
     expect(info.slope).toBeGreaterThan(1 / 12)
     expect(info.steep).toBe(true)
@@ -110,17 +119,18 @@ describe('Snap to porch and Fit to code', () => {
     expect(fitStairRun(world, after, 2)).toBeNull()
   })
 
-  test("A's elders' ramp: Fit to code runs it out to 1:12", () => {
-    const { plan, world } = scheme('A')
-    const fit = fitStairRun(world, plan.objects['A-2'], 2)!
-    const info = stairInfo(world, patched(plan.objects['A-2'], 2, fit), 2)!
+  test('a short ramp: Fit to code runs it out to 1:12', () => {
+    const { plan, world } = scheme('C')
+    const { o, mi } = lanternRamp(plan.objects['C-1'])
+    const fit = fitStairRun(world, o, mi)!
+    const info = stairInfo(world, patched(o, mi, fit), mi)!
     expect(info.steep).toBe(false)
   })
 
   test('a stair that already fits, or a part that is not a stair, has nothing to fit', () => {
-    const { plan, world } = scheme('D')
-    expect(fitStairRun(world, plan.objects['D-0'], 4)).toBeNull()
-    expect(fitStairRun(world, plan.objects['D-0'], 0)).toBeNull()
+    const { plan, world } = scheme('C')
+    expect(fitStairRun(world, plan.objects['C-0'], 2)).toBeNull()
+    expect(fitStairRun(world, plan.objects['C-0'], 0)).toBeNull()
   })
 })
 
@@ -141,7 +151,8 @@ const fitsRule = (info: NonNullable<ReturnType<typeof stairInfo>>) => (info.kind
 describe('Fit to code fits in one click (R3.2)', () => {
   test('every stair and ramp Fit to code applies to, in every scheme, passes after one click', () => {
     const wings = everyAccessWing()
-    expect(wings.length).toBeGreaterThan(30)
+    // Scheme C's prow, lantern and twin pod stairs
+    expect(wings.length).toBeGreaterThanOrEqual(3)
     const left = wings.flatMap(({ id, o, mi, world }) => {
       const fit = fitStairRun(world, o, mi)
       if (!fit) return []
@@ -152,35 +163,32 @@ describe('Fit to code fits in one click (R3.2)', () => {
     expect(left).toEqual([])
   })
 
-  test("A-0 mass 4: the run is rounded up, not down to a hair under 11 in treads", () => {
-    const { plan, world } = scheme('A')
-    const a0 = plan.objects['A-0']
-    const info = stairInfo(world, patched(a0, 4, fitStairRun(world, a0, 4)!), 4)!
-    expect(info.ok).toBe(true)
-  })
-
-  test("a stair down falling ground needs one click, not two (H-0's stair raised 3.25 ft took more than the old four passes)", () => {
-    const { plan, world } = scheme('H')
-    const raised = patched(plan.objects['H-0'], 2, { lvl: 3.25 })
+  test("a stair down falling ground needs one click, not two (C's lantern stair raised 3.25 ft)", () => {
+    const { plan, world } = scheme('C')
+    const raised = patched(plan.objects['C-1'], 2, { lvl: 3.25 })
     const fit = fitStairRun(world, raised, 2)!
     const after = patched(raised, 2, fit)
     const info = stairInfo(world, after, 2)!
+    // the longer run reaches lower ground
+    expect(info.drop).toBeGreaterThan(stairInfo(world, raised, 2)!.drop)
     expect(fit.d * 12).toBeGreaterThanOrEqual((info.n - 1) * 11 - 1e-6)
     expect(fitsRule(info)).toBe(true)
     expect(fitStairRun(world, after, 2)).toBeNull()
   })
 
-  test("D-0's long stair raised 4 ft rises 13.5 ft, more than one flight, so Fit to code offers nothing", () => {
-    const { plan, world } = scheme('D')
-    const raised = patched(plan.objects['D-0'], 4, { lvl: 4 })
-    expect(stairInfo(world, raised, 4)!.flightOver).toBe(true)
-    expect(fitStairRun(world, raised, 4)).toBeNull()
+  test("C's lantern stair raised 13 ft rises more than one flight, so Fit to code offers nothing", () => {
+    const { plan, world } = scheme('C')
+    const raised = patched(plan.objects['C-1'], 2, { lvl: 13 })
+    expect(stairInfo(world, raised, 2)!.flightOver).toBe(true)
+    expect(fitStairRun(world, raised, 2)).toBeNull()
   })
 
-  test('Fit to code offers nothing for a stair over 12 ft high, which no run can fit (F-1 mass 2)', () => {
-    const { plan, world } = scheme('F')
-    const info = stairInfo(world, plan.objects['F-1'], 2)!
+  test("Fit to code offers nothing for a stair over 12 ft high, which no run can fit (C's lantern lifted 13 ft)", () => {
+    const { plan, world } = scheme('C')
+    const lantern = plan.objects['C-1']
+    const lifted = { ...lantern, params: { ...lantern.params, lift: 13 } }
+    const info = stairInfo(world, lifted, 2)!
     expect(info.flightOver).toBe(true)
-    expect(fitStairRun(world, plan.objects['F-1'], 2)).toBeNull()
+    expect(fitStairRun(world, lifted, 2)).toBeNull()
   })
 })

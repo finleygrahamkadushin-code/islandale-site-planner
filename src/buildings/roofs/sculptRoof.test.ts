@@ -226,14 +226,15 @@ describe('the height check reads the finish (review fix R4.5)', () => {
   }
 })
 
-describe('schemes D–I', () => {
-  const schemes = loadSchemes().slice(6, 12)
-  const masses = schemes.flatMap((s) =>
-    s.objects.filter((o) => o.t === 'house').flatMap((o) => buildingMasses(o as Record<string, unknown>).filter((m) => isSculpted(m.roof)).map((m) => ({ id: `${s.id} ${o.name} ${m.roof}`, m }))),
+describe("Scheme C's cabins under a dome, a shell and a sod roof", () => {
+  const houses = loadSchemes().flatMap((s) => s.objects.filter((o) => o.t === 'house'))
+  const masses = houses.flatMap((o) =>
+    (['dome', 'shell', 'sod'] as const).map((roof) => ({ id: `${o.name} ${roof}`, m: buildingMasses({ ...(o as Record<string, unknown>), roof })[0] })),
   )
 
-  test('every scheme has sculpted roofs', () => {
-    expect(new Set(masses.map((x) => x.id.split(' ')[0]))).toEqual(new Set(['D', 'E', 'F', 'G', 'H', 'I']))
+  test('every one is sculpted', () => {
+    expect(masses.length).toBeGreaterThan(0)
+    expect(masses.every((x) => isSculpted(x.m.roof))).toBe(true)
   })
 
   test.each(masses.map((x) => [x.id, x.m] as const))('%s builds a closed slab that rises as sculptRiseFt says', (_, m: Mass) => {
@@ -274,15 +275,19 @@ describe('gambrel', () => {
 })
 
 describe('prow tip column', () => {
-  const prowOf = (id: string): Mass => {
-    const o = loadSchemes().find((s) => s.id === id)?.objects.find((x) => x.name === 'Gathering prow')
-    return buildingMasses(o as Record<string, unknown>)[0]
+  const prowC = loadSchemes().find((s) => s.id === 'C')?.objects.find((x) => x.name === 'Gathering prow') as Record<string, unknown>
+  const prowOf = (extra: Record<string, unknown> = {}): Mass => buildingMasses({ ...prowC, ...extra })[0]
+  // C's prow as a vaulted shell, dipped 4.5 ft, under a roof outline of its own that runs out to a tip
+  const SHELL = {
+    vault: true,
+    roofDip: 4.5,
+    roofPts: [[-16.5, -15.5], [16.5, -15.5], [16.5, 5.42], [1.5, 21], [-10.91, 14.01], [-12.14, 13.2], [-13.23, 12.23], [-14.2, 11.14], [-15.01, 9.91], [-15.66, 8.6], [-16.12, 7.22], [-16.41, 5.79], [-16.5, 4.41]],
   }
   const roofOf = (m: Mass) =>
     buildRoof(massPoly(m), { type: m.roof, pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow: { roofPts: m.roofPts, gable: m.gable, vault: m.vault, dip: m.roofDip } })
 
-  test('C4\'s shell gets one column under its tip, under the roof', () => {
-    const m = prowOf('C4')
+  test('a prow shell with its own roof outline gets one column under its tip, under the roof', () => {
+    const m = prowOf(SHELL)
     const r = roofOf(m)
     expect(r.tip).toBeDefined()
     const tip = r.tip!
@@ -293,8 +298,8 @@ describe('prow tip column', () => {
   })
 
   test('C\'s prow, with no roof outline of its own, has none; tipPost false turns it off', () => {
-    expect(roofOf(prowOf('C')).tip).toBeUndefined()
-    const m = prowOf('C4')
+    expect(roofOf(prowOf()).tip).toBeUndefined()
+    const m = prowOf(SHELL)
     const off = buildRoof(massPoly(m), { type: 'prow', pitch: m.pitch, ridge: m.ridge, overhangFt: m.overhang, prow: { roofPts: m.roofPts, vault: m.vault }, tipPost: false })
     expect(off.tip).toBeUndefined()
   })

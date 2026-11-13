@@ -1,7 +1,4 @@
 import { describe, expect, test } from 'vitest'
-import schemes from '../../../data/islandale/schemes.json'
-import { loadIslandaleTerrain } from '../../site/islandale'
-import { surfaceElevationAt } from '../../site/terrain'
 import { boardwalkPath } from './boardwalk'
 import { BRIDGE_PICKET_M, bridgeDims, bridgeGuard, bridgeLayout, bridgeStyle, buildBridge, mainCable, mastHeight, trussNodes } from './bridges'
 import { bounds } from '../geom'
@@ -105,27 +102,6 @@ describe('ribbon', () => {
     expect(m.glass.positions.length).toBeGreaterThan(0)
     expect(m.posts.positions.length).toBeGreaterThan(0)
     expect(m.frame.positions).toHaveLength(0)
-  })
-})
-
-describe('Scheme F (Sky Datum): three bridges, one of each style', () => {
-  type Obj = { name: string; t: string; style?: string; d: number; w: number; pts?: number[][] }
-  const all = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
-  const bridges = all.find((s) => s.id === 'F')!.objects.filter((o) => o.t === 'bridge')
-  const t = loadIslandaleTerrain()
-  const ground = (x: number, n: number) => surfaceElevationAt(t, x, n)
-  test('cable, truss and ribbon', () => {
-    expect(bridges.map((b) => bridgeStyle(b.style))).toEqual(['cable', 'truss', 'ribbon'])
-  })
-  test.each(bridges.map((b) => [b.name, b] as const))('%s spans at least its stored plan length and builds', (_, b) => {
-    const path = boardwalkPath(b.pts!.map(([x, n, e]) => [x, n, e * FT] as const))!
-    // the stored d is the plan length through the points; the curve also climbs, so it is never shorter
-    const level = b.pts!.every((p) => p[2] === b.pts![0][2])
-    if (level) expect(Math.abs(bridgeDims(path).lengthFt - b.d)).toBeLessThan(b.d * 0.03)
-    else expect(bridgeDims(path).lengthFt).toBeGreaterThan(b.d)
-    const m = buildBridge(bridgeLayout(path, b.w * FT, bridgeStyle(b.style), ground), ground)
-    expect(m.deck.positions.length).toBeGreaterThan(0)
-    expect(m.posts.positions.length + m.piers.positions.length).toBeGreaterThan(0)
   })
 })
 

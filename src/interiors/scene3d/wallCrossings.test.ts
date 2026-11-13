@@ -4,6 +4,7 @@ import { buildWallShell, wallThicknessFt } from '../../buildings/walls/wallShell
 import { massPoly } from '../../buildings/masses'
 import { layoutOpenings } from '../../buildings/openings/openingLayout'
 import { sheetBuildings } from '../../export/sheets/model/model'
+import { loadSchemes } from '../../site/schemes'
 import { usePlanStore } from '../../store/planStore'
 import { crossingHoles } from './wallCrossings'
 
@@ -44,12 +45,11 @@ describe('doorways in a wall across another part\'s floor', () => {
   })
 
   test('a doorway across a curved wall is cut over every chord it spans, as one opening', () => {
-    store().loadScheme('D')
-    const d1 = store().plan.objects['D-1'].params
-    // the gallery's curved wall runs across the three pods' floors
-    const holes = crossingHoles(d1, 0, solid, buildingMasses(d1)[0].h)
+    // the main walls drawn as an ellipse: their curved right end runs across the wing's floor
+    const p = { ...twoParts(12), shape: 'ellipse' }
+    const holes = crossingHoles(p, 0, solid, 9)
     const ids = [...new Set(holes.map((h) => h.id))]
-    expect(ids.length).toBeGreaterThanOrEqual(3)
+    expect(ids).toHaveLength(1)
     for (const id of ids) {
       const pieces = holes.filter((h) => h.id === id).sort((p, q) => p.u0 - q.u0)
       // the pieces meet end to end round the wall, and the doorway is about a door wide
@@ -85,11 +85,11 @@ describe('doorways in a wall across another part\'s floor', () => {
   })
 
   test('in every scheme, each interior opening the sheets find in a part\'s wall is cut through it, and scheme C has none', () => {
-    for (const scheme of ['C', 'C2', 'C3', 'C4', 'D', 'E', 'F', 'G', 'H', 'I']) {
+    for (const scheme of loadSchemes().map((s) => s.id)) {
       store().loadScheme(scheme)
       const objects = store().plan.order.map((k) => store().plan.objects[k])
       const holes = objects.flatMap((o) => (o.type === 'house' ? buildingMasses(o.params).flatMap((m, mi) => crossingHoles(o.params, mi, solid, m.h).map((h) => ({ o, h }))) : []))
-      if (scheme.startsWith('C')) expect(holes, scheme).toEqual([])
+      if (scheme === 'C') expect(holes, scheme).toEqual([])
       for (const b of sheetBuildings(objects, store().site.terrain)) {
         const o = store().plan.objects[b.id]
         b.floors.forEach((f) => {

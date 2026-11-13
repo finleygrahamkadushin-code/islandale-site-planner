@@ -190,9 +190,9 @@ describe('openings on curved and outline walls (along-cuts) keep the fit rules',
   })
 })
 
-describe('the opening check list for Scheme C and its prow variants', () => {
-  test.each(['C', 'C2', 'C3', 'C4'])('Scheme %s: after Fit all, openings clear corners, keep 4 in apart, stay under the eave and on the floor', (schemeId) => {
-    const plan = planFromScheme(schemeById(loadSchemes(), schemeId))
+describe('the opening check list for Scheme C', () => {
+  test('Scheme C: after Fit all, openings clear corners, keep 4 in apart, stay under the eave and on the floor', () => {
+    const plan = planFromScheme(schemeById(loadSchemes(), 'C'))
     for (const o of Object.values(plan.objects)) {
       if (o.type !== 'house') continue
       const { params } = refitAll(withCutIds(o.params))
