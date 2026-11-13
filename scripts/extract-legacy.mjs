@@ -1,5 +1,6 @@
-// Extracts the Islandale site data and the scheme library from the legacy
-// single-file planner into JSON under data/islandale/.
+// Extracts the Islandale site data and Scheme C from the legacy single-file
+// planner into JSON under data/islandale/. (This copy keeps Scheme C only;
+// `main` keeps the whole scheme library.)
 //
 // GRID, PARCEL and LOT_SQFT are one-line JSON-ish constants and are parsed
 // directly. The schemes are built by code (a literal for A-C, then IIFEs that
@@ -89,9 +90,16 @@ function schemeId(name) {
   return m[1]
 }
 
-const schemeList = schemes.map((s) => ({ id: schemeId(s.name), ...JSON.parse(JSON.stringify(s)) }))
+const allSchemes = schemes.map((s) => ({ id: schemeId(s.name), ...JSON.parse(JSON.stringify(s)) }))
+const allIds = allSchemes.map((s) => s.id)
+if (new Set(allIds).size !== allIds.length) throw new Error(`duplicate scheme ids: ${allIds.join(', ')}`)
+// This copy of the planner holds Scheme C ("C · Prow & Lantern") only; the
+// full set of 12 schemes is on the `main` branch.
+const KEPT_SCHEME_IDS = ['C']
+const schemeList = allSchemes.filter((s) => KEPT_SCHEME_IDS.includes(s.id))
 const ids = schemeList.map((s) => s.id)
-if (new Set(ids).size !== ids.length) throw new Error(`duplicate scheme ids: ${ids.join(', ')}`)
+const missing = KEPT_SCHEME_IDS.filter((id) => !ids.includes(id))
+if (missing.length) throw new Error(`scheme(s) ${missing.join(', ')} not found in the legacy file`)
 
 // --- write -----------------------------------------------------------------
 fs.mkdirSync(outDir, { recursive: true })
@@ -127,8 +135,14 @@ const parcelOut = {
 const write = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj) + '\n')
 write('terrain.json', terrain)
 write('parcel.json', parcelOut)
-write('schemes.json', { meta, schemes: schemeList })
+write('schemes.json', {
+  meta: {
+    ...meta,
+    kept: `Scheme ${KEPT_SCHEME_IDS.join(', ')} only, of the ${allIds.length} schemes in the legacy file; the full set is on the main branch`,
+  },
+  schemes: schemeList,
+})
 
 console.log(`terrain ${grid.nx}x${grid.ny} @ ${grid.sp} m, ${grid.z.length} samples`)
 console.log(`parcel ${parcel.ring.length} vertices, ${lotSqFt} sq ft`)
-console.log(`schemes ${schemeList.length}: ${ids.join(', ')}`)
+console.log(`schemes ${schemeList.length} of ${allIds.length}: ${ids.join(', ')}`)
