@@ -494,6 +494,12 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .command-group [cmdk-group-heading] { padding: 8px 10px 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .command-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
 .command-item[data-selected='true'] { background: var(--tool-on-bg); }
+/* a Select entry's second line: kind and position, so same-named objects differ (R10.1) */
+.command-label { display: flex; flex-direction: column; gap: 1px; }
+.command-detail { font-size: 12px; color: var(--muted); }
+/* the 3D view takes focus from the keyboard after Select or Place (R10.1); the ring shows only then */
+.viewport:focus { outline: none; }
+.viewport:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .command-item kbd, .help-row kbd { padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; font: 12px/1.6 ui-monospace, monospace; color: var(--muted); }
 .help-sheet { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 16px; }
 .help-sheet h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); }

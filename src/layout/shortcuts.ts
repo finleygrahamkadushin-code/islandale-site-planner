@@ -25,7 +25,8 @@ export const SHORTCUT_GROUPS: readonly { readonly title: string; readonly items:
     items: [
       { keys: 'Q / E', does: 'Turn 5° (while placing too)' },
       { keys: 'R', does: 'Turn 90° (Shift+R the other way)' },
-      { keys: 'Arrows', does: 'Nudge 1 ft (Shift: 5 ft)' },
+      { keys: 'Arrows', does: 'Nudge 1 ft north, south, east or west, whichever way the view faces (Shift: 5 ft); while placing they move the ghost' },
+      { keys: 'Enter', does: 'While placing, put it down' },
       { keys: keys('Mod+D'), does: 'Duplicate' },
       { keys: keys('Mod+G'), does: 'Group (with Shift: ungroup); a click then picks the whole group' },
       { keys: 'Double-click', does: 'Edit an object or group alone (the rest fades); Esc or a double-click on empty space leaves' },

@@ -3,6 +3,7 @@ import { Scene } from '../scene/Scene'
 import { TopBar } from '../ui/TopBar'
 import { SidePanel } from '../ui/SidePanel'
 import { Toast } from '../ui/Toast'
+import { Announcer } from '../ui/Announcer'
 import { ViewStrip } from '../ui/ViewStrip'
 import { useKeyboardShortcuts } from '../ui/useKeyboardShortcuts'
 import { lazy, Suspense, useState } from 'react'
@@ -73,6 +74,7 @@ export function App() {
         </ErrorBoundary>
       )}
       <Toast />
+      <Announcer />
       <Overlays />
       <ArchiveDialog />
       <PresentBar />

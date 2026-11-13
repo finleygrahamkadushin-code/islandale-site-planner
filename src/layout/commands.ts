@@ -6,6 +6,11 @@ import { LIBRARY, type LibraryGroup } from '../tools/library'
 import { useLibraryOpen } from '../tools/libraryOpen'
 import { useAddMode } from '../tools/addMode'
 import { useSingleKeys } from '../ui/singleKeys'
+import { startPlacingAtView } from '../tools/keyboardPlace'
+import { selectByKeyboard } from '../tools/keyboardSelect'
+import { isOutside, isolationNow } from '../tools/isolate'
+import { isObjectVisible } from '../store/selectors'
+import { positionWords } from '../ui/announce'
 import { useOpenSections, type SectionId } from '../ui/InspectorSection'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
@@ -32,6 +37,10 @@ export interface Command {
   readonly group: string
   /** The keyboard shortcut, when there is one. */
   readonly keys?: string
+  /** A second line that tells same-named entries apart (R10.1). */
+  readonly detail?: string
+  /** When command search closes after it, focus goes to the 3D view, where the arrows act (R10.1). */
+  readonly focusView?: true
   readonly run: () => void
 }
 
@@ -82,9 +91,11 @@ export function commandsFor(s: PlanState): Command[] {
       id: `place-${item.id}`,
       group: 'Place',
       label: `Place ${item.name}`,
+      focusView: true as const,
+      // the ghost starts where the view looks, so the arrows and Enter can place it (R10.1)
       run: () => {
         tab(tabFor(item.group))
-        get().setTool('place', item.id)
+        startPlacingAtView(item.id)
       },
     })),
     ...DISPLAY_STYLES.map((d, i) => ({ id: `style-${d.id}`, group: 'Display', label: d.label, keys: String(i + 1), run: () => get().setDisplayStyle(d.id) })),
@@ -135,4 +146,31 @@ export function commandsFor(s: PlanState): Command[] {
     if (one.type === 'house') cmds.push({ id: 'interior', group: `${one.name}`, label: 'Open the floor plan', keys: 'I', run: () => useInteriorView.getState().open(one.id) })
   }
   return cmds
+}
+
+/** What an object is, in a word, for its Select entry. */
+const kindOf = (type: string): string => (type === 'house' ? 'building' : type)
+
+/**
+ * One "Select <name>" entry per object that is shown (R10.1): not hidden,
+ * and not faded by an isolation. Same-named objects (scheme C's trees) are
+ * told apart by their kind and position, written as the inspector's
+ * Placement fields write it. Command search lists them only once something
+ * is typed, so the list stays short.
+ */
+export function objectCommands(s: PlanState): Command[] {
+  const iso = isolationNow()
+  return s.plan.order
+    .filter((id) => s.plan.objects[id] && isObjectVisible(s, id) && !isOutside(iso, id))
+    .map((id) => {
+      const o = s.plan.objects[id]
+      return {
+        id: `select-${id}`,
+        group: 'Objects',
+        label: `Select ${o.name}`,
+        detail: `${kindOf(o.type)} · ${positionWords(o.position)}`,
+        focusView: true as const,
+        run: () => selectByKeyboard(id),
+      }
+    })
 }

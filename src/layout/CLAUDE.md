@@ -11,8 +11,8 @@ How the screen is organised (Phase 4B): the Site / Build / Interior / Present ta
 | Which panels the right side shows on each tab | `../ui/SidePanel.tsx` (built from `TabPanel`) |
 | The Interior and Present tabs' own panels | `TabPanels.tsx` |
 | The bottom bar: pointer readout, camera hint, Clear measurements | `BottomBar.tsx`; the readout maths is `../site/pointer.ts` |
-| What command search can run | `commands.ts` (`commandsFor`) |
-| The command search and shortcuts dialogs | `Overlays.tsx` (`useOverlay` says which is open); the search itself is `CommandMenu.tsx`, loaded on first use (`../app/prefetch.ts` fetches it after the first frame) |
+| What command search can run | `commands.ts` (`commandsFor`; `objectCommands`, the "Select …" entries shown once something is typed, R10.1) |
+| The command search and shortcuts dialogs | `Overlays.tsx` (`useOverlay` says which is open, and `afterClose` sends focus to the 3D view, `../scene/planView.ts`, after Select or Place); the search itself is `CommandMenu.tsx`, loaded on first use (`../app/prefetch.ts` fetches it after the first frame) |
 | The shortcuts sheet's list | `shortcuts.ts` (one table) |
 | Keys 1–4, F, I, W | `viewKeys.ts`; Cmd/Ctrl+K and ? are in `../ui/useKeyboardShortcuts.ts` |
 | Turning single-key shortcuts off (R10.5): the setting, the Help sheet's checkbox | `../ui/singleKeys.ts` (`useSingleKeys`, `singleKeyOff`), `Overlays.tsx` (`HelpSheet`) |

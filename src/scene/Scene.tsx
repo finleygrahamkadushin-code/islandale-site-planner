@@ -28,6 +28,7 @@ import { useLiveDrag, type DragState } from './editing'
 import { ContactShadows } from './ContactShadows'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useSplash } from '../present/viewState'
+import { PLAN_VIEW_ID } from './planView'
 
 // AO, tone mapping and anti-aliasing arrive just after the first frame, so the view shows sooner (4E)
 const Effects = lazy(() => import('./Effects').then((m) => ({ default: m.Effects })))
@@ -64,7 +65,20 @@ export function Scene() {
   if (!webgl) return <NoWebGL />
   return (
     // isolate mode: a double-click that no object took (empty space, the ground, a faded object) leaves it
-    <div className="viewport" data-tour="view" onDoubleClick={(e) => !wasClaimed(e.nativeEvent) && useIsolate.getState().leave()}>
+    // a keyboard target too (R10.1): after Select or Place in command search focus lands here, where the arrows act
+    <div
+      className="viewport"
+      id={PLAN_VIEW_ID}
+      tabIndex={0}
+      role="application"
+      aria-label="3D view of the plan"
+      aria-describedby="plan-view-keys"
+      data-tour="view"
+      onDoubleClick={(e) => !wasClaimed(e.nativeEvent) && useIsolate.getState().leave()}
+    >
+    <p id="plan-view-keys" className="sr-only">
+      Arrow keys move the selection or the object being placed 1 foot north, south, east or west, 5 feet with Shift. Q and E turn it 5 degrees, R a quarter turn. Enter puts down an object being placed. Delete removes the selection. Escape stops placing or clears the selection. Command search selects and places objects by name.
+    </p>
     <LabelLayer />
     <WithDrag>{(drag) => <PartHud drag={drag} />}</WithDrag>
     <PaintHud />

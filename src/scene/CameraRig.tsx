@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Box3, Raycaster, Vector2, Vector3, type Mesh, type Object3D } from 'three'
 import { usePlanStore } from '../store/planStore'
 import { viewPose } from './views'
-import { useFocusRequest } from './cameraFocus'
+import { setViewCentreSource, useFocusRequest } from './cameraFocus'
 import { onGround } from './frame'
 import { PROBES_ON } from '../app/probes'
 
@@ -36,6 +36,13 @@ export function CameraRig() {
   const controls = useThree((s) => s.controls) as unknown as Controls | null
   const invalidate = useThree((s) => s.invalidate)
   const flight = useRef<Flight | null>(null)
+
+  // keyboard placing starts the ghost where the view looks (R10.1): the orbit target, as a site point
+  useEffect(() => {
+    if (!controls) return
+    setViewCentreSource(() => ({ x: controls.target.x, n: -controls.target.z }))
+    return () => setViewCentreSource(null)
+  }, [controls])
 
   useEffect(() => {
     if (!request || !controls) return
