@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clearSaves } from './fresh'
+import { openFresh } from './fresh'
 import { openMenu, pickView } from './menus'
+import { viewSettled } from './settle'
 
 /**
  * Phase 4E, steps 9 and 10: the light theme, and the planner at phone
@@ -17,15 +18,19 @@ const SIZES = [
 const TABS = ['site', 'build', 'interior', 'present'] as const
 
 async function open(page: Page) {
-  await page.goto('/')
-  await clearSaves(page)
-  await page.reload()
-  await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
+  await openFresh(page)
   await page.evaluate(() => {
     const s = (window as any).islandale.store.getState()
     s.loadScheme('C')
     s.select([])
   })
+}
+
+/** Whether the tool strip ends above the sheet, and the bottom row above the tool strip (1 px allowed for rounding). */
+async function stacking(page: Page) {
+  const [sheet, strip, row] = await Promise.all(['.side', '.toolstrip', '.bottom-row'].map((sel) => page.locator(sel).boundingBox()))
+  if (!sheet || !strip || !row) return null
+  return { stripOverSheet: strip.y + strip.height <= sheet.y + 1, rowOverStrip: row.y + row.height <= strip.y + 1 }
 }
 
 const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth && document.body.scrollWidth <= window.innerWidth)
@@ -72,12 +77,9 @@ for (const size of SIZES) {
       await page.getByTestId('sheet-toggle').click()
       await expect(inspector).toBeVisible()
 
-      // the tool strip and the bottom row sit above the sheet, not under it
-      const sheetTop = (await page.locator('.side').boundingBox())!.y
-      const stripBottom = (await page.locator('.toolstrip').boundingBox())!
-      expect(stripBottom.y + stripBottom.height).toBeLessThanOrEqual(sheetTop + 1)
-      const row = (await page.locator('.bottom-row').boundingBox())!
-      expect(row.y + row.height).toBeLessThanOrEqual(stripBottom.y + 1)
+      // the tool strip and the bottom row sit above the sheet, not under it. They follow the sheet's
+      // height through a ResizeObserver, which reports a frame after the sheet unfolds: read until it has
+      await expect.poll(() => stacking(page), { message: 'tool strip above the sheet, bottom row above the strip', timeout: 15_000 }).toEqual({ stripOverSheet: true, rowOverStrip: true })
 
       // the bar: two rows at most, the mode switch always in it; Export and the theme in the menus
       const rowHeight = (await page.getByTestId('menu-file').boundingBox())!.height
@@ -150,7 +152,8 @@ test.describe('screenshots', () => {
           await page.getByTestId('tab-build').click()
           const id = await firstCabin(page)
           await page.evaluate((i) => (window as any).islandale.store.getState().select([i]), id)
-          await page.waitForTimeout(1500)
+          // the selection drawn, its labels placed
+          await viewSettled(page)
           await page.screenshot({ path: `test-results/narrow/${size.name}-${scheme}.png` })
           await openMenu(page, 'file')
           await page.screenshot({ path: `test-results/narrow/${size.name}-${scheme}-file.png` })
