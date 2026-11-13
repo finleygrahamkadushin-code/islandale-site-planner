@@ -39,6 +39,16 @@ These change what gets built. Each has a default that will be used if nothing el
 6. **Top bar direction** (R9.1). Default: one row; Export, Import, Reset, Clear, Sheets, 3D model and History move into a File menu; display options into a View menu.
 7. **Is the Escape-with-a-tooltip behaviour right?** (R1) Default: Escape still reaches the plan when a tooltip closes on it.
 
+**Answered Nov 13.** Finley answered "Yes, use them" to the lead session's recommended answers for decisions 2 to 7 (branch `claude/review-decisions-6842ee`). Decision 1 is still open.
+
+- **2 (stair code):** the defaults stand: 7 in / 11 in (IBC 1011.5.2), 36 in guards (IRC R312.1), each row naming its source. With it, **R3.4 is fixed, not kept as a legacy rule**: a stair of n risers has n − 1 treads, so the run is (n − 1) × 11 in in Fit to code, the + chip, Connect, the stair-wing tread check and the path-piece check, and the stair is drawn that way (PLAN.md).
+- **3 (what counts for the buffer and setbacks):** yes to all three, as the default; nothing more to do here.
+- **4 (clock time):** yes, as the default.
+- **5 (the tracked plan file):** the default: the file stays the shared home, and the dev server no longer writes a save whose plan matches the file, so opening the app or changing only view settings leaves it alone (`vite/planFileStore.ts`).
+- **6 (top bar):** the default, already built in R9.
+- **7 (Escape and tooltips):** the default, already built in R1.
+- With these, Finley's answers on the open items: **R6.14** both gaps are intended (hiding ignores locks; a copy is unlocked), now commented and pinned by tests; **R8.8** the TSL rule is dropped from `CLAUDE.md` and `PLAN.md`; **R11.4** the units rule is corrected to what the store keeps, `params` untouched; **R11's formatters** are down to one on screen (`formatLengthField`) and one on drawings (`formatArch`); **R2.10** the panel and site sheet say which ramp items the route check leaves out, without building them.
+
 ## Who does what
 
 Finley asked (Nov 10) for the fixes to go to Opus 5.5 agents, to save usage on the larger model. Status and owner per part:
