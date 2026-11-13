@@ -58,10 +58,9 @@ describe('code check', () => {
   })
 
   // measured wall to shore and wall to lot line (R2.3), Scheme C still passes every site row
-  it('passes Scheme C on the site rules at the default setbacks, but for the Gathering prow in the shoreline buffer', () => {
+  it('passes Scheme C on the site rules at the default setbacks', () => {
     const { rows } = check(C, 'C')
-    // measured from the approximate high-water line (item 11), the prow is 24'-9" past the top of bank, inside the 35 ft buffer (it passed at 35'-1" from the lot line)
-    expect(row(rows, 'shore')).toMatchObject({ verdict: 'fail', text: 'inside the 35 ft buffer: Gathering prow' })
+    expect(row(rows, 'shore')).toMatchObject({ verdict: 'pass', text: 'all buildings clear', names: [] })
     expect(row(rows, 'decks').verdict).toBe('pass')
     expect(row(rows, 'side')).toMatchObject({ verdict: 'pass', text: 'all buildings 10 ft or more from the lot lines' })
     expect(row(rows, 'in-lot').verdict).toBe('pass')

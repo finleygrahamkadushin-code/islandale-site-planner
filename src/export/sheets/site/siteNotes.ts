@@ -109,7 +109,7 @@ function setbacksBlock(s: Setbacks): NoteBlock {
     title: 'Setbacks in force',
     rows: [
       { label: 'Shoreline setback', value: `${s.shoreFt} ft from the top of bank (east), the high-water line (south-west)` },
-      { label: 'Top of bank', value: `${s.bankFt} ft in from the east high-water line` },
+      { label: 'Top of bank', value: `${s.bankFt} ft in from the east lot line at the water` },
       { label: 'Side and rear lot lines', value: `${s.sideFt} ft` },
       ...(s.treeZones ? [{ label: 'Tree protection zones', value: `0–${TREE_ZONE_1_FT} ft from the water no removal; ${TREE_ZONE_1_FT}–${TREE_ZONE_2_FT} ft limited removal` }] : []),
     ],

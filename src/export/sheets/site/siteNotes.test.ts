@@ -118,8 +118,11 @@ describe('a planning aid, not a code review (R2.7, R2.8)', () => {
 
   test('next, where the shoreline buffer is measured from, and that a survey may move it (item 11): the panel in full, the sheet in one line', () => {
     expect(notes.code.notes[2]).toBe(SHORE_LINE_SHEET_NOTE)
-    expect(SHORE_LINE_SHEET_NOTE.length).toBeLessThanOrEqual(PLANNING_AID_NOTE.length + 5)
-    expect(SHORE_LINE_NOTE).toMatch(/8 ft contour of the terrain model/)
+    // two sheet lines at most
+    expect(SHORE_LINE_SHEET_NOTE.length).toBeLessThanOrEqual(2 * 105)
+    expect(SHORE_LINE_SHEET_NOTE).toMatch(/east shore from the top of bank, 45 ft in from the assessor's lot line; south-west shore from the terrain's 8 ft contour/)
+    expect(SHORE_LINE_NOTE).toMatch(/east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line/)
+    expect(SHORE_LINE_NOTE).toMatch(/south-west shore from the 8 ft contour of the terrain model/)
     expect(SHORE_LINE_NOTE).toMatch(/mean higher high water/)
     expect(SHORE_LINE_NOTE).toMatch(/ordinary high water mark can only come from a survey and may be further landward/)
   })
@@ -147,9 +150,9 @@ describe('the line along the water is called what it is: the assessor\'s lot lin
   test('the sheet\'s setback notes and the Setbacks panel never call it the OHWM', () => {
     const rows = block(notesFor(planOf(CURRENT_SCHEME_ID)), 'setbacks').rows.map((r) => `${r.label} ${r.value}`).join(' · ')
     expect(rows).not.toMatch(/OHWM|ordinary high water/i)
-    expect(rows).toContain('in from the east high-water line')
+    expect(rows).toContain('in from the east lot line at the water')
     const panel = panelText(SetbacksPanel)
     expect(panel).not.toMatch(/OHWM/)
-    expect(panel).toContain('Top of bank, in from the east high-water line')
+    expect(panel).toContain('Top of bank, in from the east lot line at the water')
   })
 })

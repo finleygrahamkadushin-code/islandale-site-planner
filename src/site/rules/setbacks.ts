@@ -11,8 +11,9 @@ import type { Setbacks } from '../../store/types'
  * water when it has none; ground between the lot line and the high-water
  * line is at the water (0 from it). The east shore (from edges up to
  * EAST_BANK_LAST_EDGE) is banked, so its setback is measured from the top of
- * bank, `bankFt` in from the water's edge. The south-west shore after it is
- * measured from the water's edge.
+ * bank, which stays `bankFt` in from the lot line, a fixed place on the
+ * ground (Finley, Nov 13). The south-west shore after it, the "to shore"
+ * distances and the tree zones are measured from the water's edge.
  */
 
 /**
@@ -115,25 +116,38 @@ export function pointInLot(parcel: Parcel, x: number, n: number): boolean {
   return pointInPolygon(parcel.ring, x, n)
 }
 
+/** Distance past the top of bank on the east shore: `bankFt` in from the lot line there, metres (Infinity without a banked shore). */
+function pastTopOfBank(parcel: Parcel, x: number, n: number, bankM: number): number {
+  let past = Infinity
+  forEdges(parcel, true, (edge, a, b) => {
+    if (edge <= EAST_BANK_LAST_EDGE) past = Math.min(past, closestOnSeg(x, n, a, b).d - bankM)
+  })
+  return past
+}
+
 /**
- * The nearest stretch of the water's edge, ranked by distance past the bank
- * (as the old planner ranks it): on the east shore past the top of bank,
- * `bankFt` in from the water's edge; on the south-west shore from the
- * water's edge. Below high water the point is at the water: `d` is 0.
+ * The nearer shore, ranked by distance past the bank (as the old planner
+ * ranks it): on the east shore past the top of bank, `bankFt` in from the lot
+ * line; on the south-west shore from the water's edge. `d` and `at` are the
+ * water's edge on that shore; below high water the point is at it (`d` 0).
  */
 export function nearestShore(parcel: Parcel, x: number, n: number, bankFt: number): ShoreHit | null {
-  const bankM = ftToM(bankFt)
+  const pastBank = pastTopOfBank(parcel, x, n, ftToM(bankFt))
   const below = belowHighWater(parcel, x, n)
-  let best: ShoreHit | null = null
+  let bankWater: EdgeHit | null = null
+  let swWater: EdgeHit | null = null
   for (const s of waterSegments(parcel)) {
-    const hit = closestOnSeg(x, n, s.a, s.b)
-    const d = below ? 0 : hit.d
-    const banked = s.edge <= EAST_BANK_LAST_EDGE
-    const past = banked ? d - bankM : d
-    // below high water every stretch is at 0: the one actually nearest names the shore
-    if (!best || past < best.past || (below && past === best.past && hit.d < Math.hypot(x - best.at[0], n - best.at[1]))) best = { d, edge: s.edge, at: below ? [x, n] : hit.at, past, banked }
+    const { d, at } = closestOnSeg(x, n, s.a, s.b)
+    if (s.edge <= EAST_BANK_LAST_EDGE) {
+      if (!bankWater || d < bankWater.d) bankWater = { d, edge: s.edge, at }
+    } else if (!swWater || d < swWater.d) swWater = { d, edge: s.edge, at }
   }
-  return best
+  const swPast = swWater ? (below ? 0 : swWater.d) : Infinity
+  const banked = !!bankWater && pastBank <= swPast
+  const water = banked ? bankWater : swWater
+  if (!water) return null
+  const d = below ? 0 : water.d
+  return { d, edge: water.edge, at: below ? [x, n] : water.at, past: banked ? pastBank : d, banked }
 }
 
 /** Nearest side or rear lot line (every edge that isn't shoreline). */

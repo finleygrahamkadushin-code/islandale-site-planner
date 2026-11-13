@@ -69,7 +69,8 @@ describe('site sheet model · Scheme C', () => {
     expect(model.buffer.flat().every(inLot)).toBe(true)
     expect(model.topOfBank.flat().every(inLot)).toBe(true)
     for (const [x, y] of model.topOfBank.flat().filter((_, i) => i % 5 === 0)) {
-      expect(nearestShore(SITE.parcel, ftToM(x), ftToM(y), 0)!.d).toBeCloseTo(ftToM(DEFAULT_SETBACKS.bankFt), 0)
+      // 45 ft in from the lot line along the water (with no bank offset, `past` is the distance to it)
+      expect(nearestShore(SITE.parcel, ftToM(x), ftToM(y), 0)!.past).toBeCloseTo(ftToM(DEFAULT_SETBACKS.bankFt), 0)
     }
   })
 

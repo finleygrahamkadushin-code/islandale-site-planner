@@ -36,10 +36,6 @@ test.beforeEach(async ({ page }) => {
 test('setback sliders move the code check and clearances, are saved, and are never an undo step', async ({ page }) => {
   test.setTimeout(180_000)
   const shore = page.getByTestId('code-check').locator('[data-row="shore"]')
-  // measured from the approximate high-water line (item 11), the Gathering prow is inside the default 35 ft buffer; a 20 ft one clears it
-  await expect(shore).toHaveAttribute('data-verdict', 'fail')
-  await expect(shore).toContainText('inside the 35 ft buffer: Gathering prow')
-  await setRange(page, 'Shoreline setback', 20)
   await expect(shore).toHaveAttribute('data-verdict', 'pass')
   await setRange(page, 'Shoreline setback', 120)
   await expect(shore).toHaveAttribute('data-verdict', 'fail')
@@ -87,8 +83,8 @@ test('the program budget sits on the Build tab, and a rules-off scheme is checke
 test('the shoreline buffer says where it is measured from, and the view names the approximate high-water line (item 11)', async ({ page }) => {
   test.setTimeout(120_000)
   await expect(page.getByTestId('shore-line-note')).toHaveText(
-    'The shoreline buffer is measured from the 8 ft contour of the terrain model, an estimate of mean higher high water; the legal ordinary high water mark can only come from a survey and may be further landward.',
+    "On the east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line; on the south-west shore from the 8 ft contour of the terrain model, an estimate of mean higher high water. The legal ordinary high water mark can only come from a survey and may be further landward.",
   )
   await expect(page.getByTestId('high-water-label')).toHaveText('approximate high-water line (8 ft NAVD88, from the terrain; not surveyed)')
-  await expect(page.getByTestId('setbacks')).toContainText('Top of bank, in from the east high-water line')
+  await expect(page.getByTestId('setbacks')).toContainText('Top of bank, in from the east lot line at the water')
 })

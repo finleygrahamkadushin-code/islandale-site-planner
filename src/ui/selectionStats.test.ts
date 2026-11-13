@@ -29,17 +29,17 @@ describe('clearance rows (5E)', () => {
   const plan = planFromScheme(schemeById(loadSchemes(), 'C'))
   const prow = plan.objects['C-0']
 
-  test("the Gathering prow reads to shore, to lot line and to nearest; only the shore row warns at the default setbacks (item 11)", () => {
+  test("the Gathering prow reads to shore, to lot line and to nearest, none in warning at the default setbacks", () => {
     const rows = clearanceRows(prow, plan, site, DEFAULT_SETBACKS)
     expect(rows.map((r) => r.label)).toEqual(['To shore', 'To lot line', 'To nearest'])
-    // from the approximate high-water line (item 11; 80'-1" and 35'-1" from the lot line before): now inside the buffer
-    expect(rows[0].text).toBe(`69'-9" to shore · 24'-9" past bank · inside buffer`)
-    expect(rows.map((r) => r.warn)).toEqual([true, false, false])
+    // to shore is to the approximate high-water line (item 11; 80'-1" to the lot line before); past bank is from the top of bank, 45 ft in from the lot line, unchanged
+    expect(rows[0].text).toBe(`69'-9" to shore · 35'-1" past bank`)
+    expect(rows.some((r) => r.warn)).toBe(false)
   })
 
-  test('a 20 ft setback puts the prow clear of the buffer, with no warning', () => {
-    const rows = clearanceRows(prow, plan, site, { ...DEFAULT_SETBACKS, shoreFt: 20 })
-    expect(rows[0]).toMatchObject({ warn: false, text: `69'-9" to shore · 24'-9" past bank` })
+  test('the strict 50 ft setback puts the prow inside the buffer, in warning', () => {
+    const rows = clearanceRows(prow, plan, site, { ...DEFAULT_SETBACKS, shoreFt: 50 })
+    expect(rows[0]).toMatchObject({ warn: true, text: expect.stringMatching(/inside buffer$/) })
   })
 
   test('a lone object has no nearest row', () => {

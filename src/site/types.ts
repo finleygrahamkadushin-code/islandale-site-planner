@@ -32,9 +32,9 @@ export interface Parcel {
   readonly shorelineEdges: { readonly first: number; readonly last: number }
   /**
    * The approximate high-water line (8 ft NAVD88 contour of the terrain,
-   * `highWater.ts`), worked out when the site loads. The shoreline buffer, the
-   * distances to the shore and the tree zones measure from it; the top of bank
-   * stays where it is, `bankFt` in from the lot line. A parcel without one (a
+   * `highWater.ts`), worked out when the site loads. The south-west shore's
+   * buffer, the distances to the shore and the tree zones measure from it; the
+   * top of bank stays `bankFt` in from the lot line. A parcel without one (a
    * test's) measures from the lot line, as before.
    */
   readonly highWater?: HighWaterLine

@@ -29,10 +29,11 @@ export const ROUTE_UNCHECKED_NOTE = 'Accessible route: ramp landing width, edge 
  * decision 1: "Yes, 8 ft contour"), printed beside the notes above.
  */
 export const SHORE_LINE_NOTE =
-  'The shoreline buffer is measured from the 8 ft contour of the terrain model, an estimate of mean higher high water; the legal ordinary high water mark can only come from a survey and may be further landward.'
+  "On the east shore the shoreline buffer is measured from the top of bank, 45 ft in from the assessor's lot line; on the south-west shore from the 8 ft contour of the terrain model, an estimate of mean higher high water. The legal ordinary high water mark can only come from a survey and may be further landward."
 
-/** The same on the site plan, in one sheet line (the lead session's call, Nov 13: Scheme C's notes stay beside its drawing on one Tabloid page). */
-export const SHORE_LINE_SHEET_NOTE = "Buffer from the terrain's 8 ft contour (est. high water); a survey may put the legal OHWM further in."
+/** The same on the site plan, in two sheet lines (the lead session's call, Nov 13: Scheme C's notes stay beside its drawing on one Tabloid page). */
+export const SHORE_LINE_SHEET_NOTE =
+  "Shoreline buffer: east shore from the top of bank, 45 ft in from the assessor's lot line; south-west shore from the terrain's 8 ft contour (est. high water). A survey may put the legal OHWM further in."
 
 export const ASSUMED = 'assumed'
 

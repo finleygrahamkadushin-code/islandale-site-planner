@@ -38,7 +38,7 @@ export const TINT_LEGEND: readonly { readonly label: string; readonly colour: st
 /** What the tints need to know about a ground point, metres. */
 export interface PointFacts {
   readonly inLot: boolean
-  /** Plain distance to the banked east shore's water's edge (Infinity when there is none). */
+  /** Plain distance to the banked east shore's lot line, from which the top of bank is set (Infinity when there is none). */
   readonly dBank: number
   /** Plain distance to the south-west shore's water's edge (the high-water line). */
   readonly dShore: number
@@ -61,19 +61,22 @@ export function pointFacts(parcel: Parcel, x: number, n: number): PointFacts {
   const ring = parcel.ring
   let dBank = Infinity
   let dShore = Infinity
+  let dWater = Infinity
   let dLine = Infinity
   for (let i = 0; i < ring.length; i++) {
-    if (isShorelineEdge(parcel, i)) continue
-    dLine = Math.min(dLine, closestOnSeg(x, n, ring[i], ring[(i + 1) % ring.length]).d)
+    const { d } = closestOnSeg(x, n, ring[i], ring[(i + 1) % ring.length])
+    if (!isShorelineEdge(parcel, i)) dLine = Math.min(dLine, d)
+    // the top of bank stays bankFt in from the east shore's lot line
+    else if (i <= EAST_BANK_LAST_EDGE) dBank = Math.min(dBank, d)
   }
-  // the shores measure from the water's edge (the high-water line); below it, a point is at the water
+  // the south-west shore and the tree zones measure from the water's edge (the high-water line); below it, a point is at the water
   const below = belowHighWater(parcel, x, n)
   for (const s of waterSegments(parcel)) {
     const d = below ? 0 : closestOnSeg(x, n, s.a, s.b).d
-    if (s.edge <= EAST_BANK_LAST_EDGE) dBank = Math.min(dBank, d)
-    else dShore = Math.min(dShore, d)
+    dWater = Math.min(dWater, d)
+    if (s.edge > EAST_BANK_LAST_EDGE) dShore = Math.min(dShore, d)
   }
-  return { inLot: pointInLot(parcel, x, n), dBank, dShore, dWater: Math.min(dBank, dShore), dLine }
+  return { inLot: pointInLot(parcel, x, n), dBank, dShore, dWater, dLine }
 }
 
 /** Ground colour for one point; `slope` is 1 − the normal's up component. */
