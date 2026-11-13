@@ -9,7 +9,7 @@ import type { Ground } from '../../../site/earthworks/earthworks'
 import { lotFacts } from '../../../site/lotFacts'
 import { codeCheck, type CodeVerdict } from '../../../site/rules/codeCheck'
 import { BUILDING_CAP_SQFT, PROGRAM_CAP_SQFT, programBudget, type BuildingProgram, type ProgramBudget } from '../../../site/rules/program'
-import { PLANNING_AID_NOTE } from '../../../site/rules/ruleSources'
+import { PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE } from '../../../site/rules/ruleSources'
 import { TREE_ZONE_1_FT, TREE_ZONE_2_FT } from '../../../site/rules/setbacks'
 import type { Site } from '../../../site/types'
 import { sqFtToAcres } from '../../../site/units'
@@ -76,9 +76,9 @@ export function flagLine(budget: ProgramBudget): string | null {
 }
 
 /** The Code check panel's hint, a sentence a line. */
+// guards and handrails share a line (R2.10), so the route note fits and Scheme C's notes stay beside its drawing on Tabloid
 export const CODE_HINT = [
-  'Guards: 36 in on any open side more than 30 in up, with openings under 4 in.',
-  'Handrails: 34–38 in on stairs with 4 or more risers and on ramps rising more than 6 in.',
+  'Guards: 36 in over 30 in up, openings under 4 in. Handrails: 34–38 in, on 4+ risers and ramps over 6 in.',
   'In the shoreline buffer: only paths, stairs, ramps and structures under 30 in.',
 ] as const
 
@@ -164,8 +164,8 @@ export function siteNotes(input: SiteNotesInput): SiteNotes {
       title: 'Code check · SJCC 18.50.540',
       rulesOff: check.rulesOff,
       rows: check.rows.map((r) => ({ id: r.id, label: r.label, verdict: r.verdict, text: r.text, names: r.names.map((x) => x.name) })),
-      // a planning aid, not a code review (R2.7), saying which limits are assumed (R2.8), as the panel says it
-      notes: [PLANNING_AID_NOTE, ...CODE_HINT],
+      // a planning aid, not a code review (R2.7), saying which limits are assumed (R2.8), and what the route check leaves out (R2.10), as the panel says it
+      notes: [PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, ...CODE_HINT],
     },
   }
 }

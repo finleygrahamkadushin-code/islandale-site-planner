@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useEarthworks } from '../earthworks/useEarthworks'
 import { usePlanStore } from '../../store/planStore'
 import { codeCheck, type CodeRow } from './codeCheck'
-import { limitText, PLANNING_AID_NOTE, RULE_LIMITS } from './ruleSources'
+import { limitText, PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE, RULE_LIMITS } from './ruleSources'
 
 /** The shortened old hint, a sentence a line. */
 const HINT = [
@@ -45,6 +45,9 @@ export function CodeCheckPanel() {
       </header>
       <p className="small" data-testid="planning-aid">
         {PLANNING_AID_NOTE}
+      </p>
+      <p className="small muted" data-testid="route-unchecked">
+        {ROUTE_UNCHECKED_NOTE}
       </p>
       {result.rulesOff && <p className="small muted">{RULES_OFF_TEXT}</p>}
       <ul className="int-program">

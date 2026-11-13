@@ -11,7 +11,7 @@ import { usePlanStore } from '../../../store/planStore'
 import { DEFAULT_SETBACKS, type Plan } from '../../../store/types'
 import { CURRENT_SCHEME_ID } from '../../../site/schemes'
 import { clearanceRows } from '../../../ui/selectionStats'
-import { PLANNING_AID_NOTE } from '../../../site/rules/ruleSources'
+import { PLANNING_AID_NOTE, ROUTE_UNCHECKED_NOTE } from '../../../site/rules/ruleSources'
 import { siteNotes, VERDICT_TEXT, type SiteNotes } from './siteNotes'
 import { earthworksFor, objectsOf, planOf, SCHEMES, SITE } from './siteTestKit'
 
@@ -109,9 +109,14 @@ describe('a planning aid, not a code review (R2.7, R2.8)', () => {
     expect(notes.code.notes[0]).toBe(PLANNING_AID_NOTE)
   })
 
+  test('next, what the accessible route check leaves out (R2.10)', () => {
+    expect(notes.code.notes[1]).toBe(ROUTE_UNCHECKED_NOTE)
+  })
+
   test('the Code check panel says the same, word for word', () => {
     const text = panelText(CodeCheckPanel)
     expect(text).toContain(squeeze(PLANNING_AID_NOTE))
+    expect(text).toContain(squeeze(ROUTE_UNCHECKED_NOTE))
     expect(text).toContain('Height 35 ft above average grade (assumed)')
     expect(text).toContain('Ramp handrails rise over 6 in (ADA 405.8)')
   })

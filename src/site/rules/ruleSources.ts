@@ -17,6 +17,13 @@ import { TREE_ZONE_1_FT, TREE_ZONE_2_FT } from './setbacks'
 /** One line on the Tabloid sheet's notes column (about 100 characters at most), so it never pushes the notes onto a page of their own. */
 export const PLANNING_AID_NOTE = 'A planning aid, not a code review: the county limits here are assumed. Confirm them with the county.'
 
+/**
+ * What the accessible-route check (ADA 2010 §402–405, `paths/route/`) does not
+ * test, printed beside the note above (R2.10, Finley's decision: say so, don't
+ * build them yet). One sheet line too.
+ */
+export const ROUTE_UNCHECKED_NOTE = 'Accessible route: ramp landing width, edge protection, passing spaces and door clearance are not checked.'
+
 export const ASSUMED = 'assumed'
 
 export interface RuleLimit {
