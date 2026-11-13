@@ -10,18 +10,25 @@ import { usePresent } from '../present/present'
 import { useDragMove } from '../tools/useDragMove'
 import { pickedIds } from '../tools/groups'
 import { isolationNow } from '../tools/isolate'
+import { addsToSelection } from '../tools/addMode'
 
 /** A click that moved this far was a drag or an orbit, not a pick (legacy wing-select). */
 const PICK_SLOP_PX = 4
 
 /**
- * Click to select, shift-click to add or remove, hover highlight. A
+ * Click to select, shift-click (or any click with Add to selection on, R10.2)
+ * to add or remove, hover highlight. A
  * second click on the selected building (or an Alt+click) picks the part
  * under the pointer, main walls included. In Paint mode a click picks the
  * element (wall, roof, rail…) the Exterior panel paints instead. With the
  * Select tool, dragging the selected object moves it (useDragMove).
  */
 const ignore = (): void => undefined
+/**
+ * Clicks already handled. While a press on a selected object holds pointer capture (useDragMove), R3F hands
+ * the release's click to the captured object as well as to the hit, so one click would toggle twice.
+ */
+const handledClicks = new WeakSet<Event>()
 /** Present mode (4D): objects take no clicks, hovers or drags. */
 const PRESENT_HANDLERS = { onClick: ignore, onPointerOver: ignore, onPointerMove: ignore, onPointerOut: ignore, onPointerDown: ignore, onPointerUp: ignore }
 
@@ -42,6 +49,8 @@ export function useObjectInteraction(o: PlanObject) {
   const onClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation()
+      if (handledClicks.has(e.nativeEvent)) return
+      handledClicks.add(e.nativeEvent)
       const s = usePlanStore.getState()
       // the Measure tool picks the point on the object, whatever it is
       if (s.measuring) {
@@ -57,7 +66,7 @@ export function useObjectInteraction(o: PlanObject) {
         s.setPaintFocus(hit.focus)
         return
       }
-      if (e.shiftKey) return toggleSelect(o.id)
+      if (addsToSelection(e)) return toggleSelect(o.id)
       const already = s.selection.length === 1 && s.selection[0] === o.id
       const mass = o.type === 'house' ? massOf(e.object) : undefined
       if (mass !== undefined && (already || e.altKey)) {

@@ -12,10 +12,13 @@ import { idsInBox } from './arrange'
 import { pickedIds } from './groups'
 import { isOutside, isolationNow } from './isolate'
 import { startDragSession, type DragSession } from './dragSession'
+import { addsToSelection, afterBox, useAddMode } from './addMode'
 
 /**
  * Box select (4B): with the Select tool, Shift-drag on empty ground draws a
  * north-up box and selects every visible object whose centre is inside.
+ * With Add to selection on (R10.2, no modifier key) a plain drag draws the
+ * box and it adds to the selection instead.
  * The drag is followed with window listeners (pointer on a level plane at
  * the press point), so it does not depend on which mesh the pointer is
  * over; the click that ends it is not a "click on nothing". View state.
@@ -56,7 +59,10 @@ export function useBoxSelect() {
   const onPointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       const s = usePlanStore.getState()
-      if (e.button !== 0 || !e.shiftKey || toolOf(s) !== 'select') return
+      if (e.button !== 0 || !addsToSelection(e) || toolOf(s) !== 'select') return
+      // a press on an object reaches the ground behind it too: that is a Shift-click on the object, not a box
+      if (e.intersections[0] && e.intersections[0].eventObject !== e.eventObject) return
+      const add = useAddMode.getState().on
       e.stopPropagation()
       session.current?.cancel()
       if (controls) controls.enabled = false
@@ -77,7 +83,7 @@ export function useBoxSelect() {
         // isolate mode: only what is isolated can be boxed; a box takes whole groups except in the open one
         const iso = isolationNow()
         const shown = st.plan.order.map((id) => st.plan.objects[id]).filter((o) => o && isObjectVisible(st, o.id) && !isOutside(iso, o.id))
-        st.select(pickedIds(st.plan, idsInBox(shown, a, b), iso?.group ?? null))
+        st.select(afterBox(st.selection, pickedIds(st.plan, idsInBox(shown, a, b), iso?.group ?? null), add))
       }
       const pointerId = e.nativeEvent.pointerId
       session.current = startDragSession(window, {

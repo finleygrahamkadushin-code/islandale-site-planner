@@ -98,6 +98,50 @@ test('Shift-drag on the ground selects a group, and dragging one moves them all 
   expect(await steps(page)).toBe(1)
 })
 
+test('Shift-click adds and removes: the ground behind an object starts no box, and one click toggles once', async ({ page }) => {
+  test.setTimeout(120_000)
+  const click = async (id: string) => {
+    const at = await screenOf(page, await pos(page, id))
+    await page.keyboard.down('Shift')
+    await page.mouse.click(at.x, at.y)
+    await page.keyboard.up('Shift')
+  }
+  await click('C-0')
+  await click('C-3')
+  await expect.poll(() => state<string[]>(page, '[...s.selection].sort()')).toEqual(['C-0', 'C-3'])
+  await click('C-3')
+  await expect.poll(() => state<string[]>(page, 's.selection')).toEqual(['C-0'])
+})
+
+test('Add to selection: without Shift, clicks add and remove and a ground drag boxes more (R10.2)', async ({ page }) => {
+  test.setTimeout(150_000)
+  await page.getByTestId('tool-add-select').click()
+  await expect(page.getByTestId('tool-add-select')).toHaveAttribute('aria-pressed', 'true')
+  for (const id of ['C-0', 'C-3']) {
+    const at = await screenOf(page, await pos(page, id))
+    await page.mouse.click(at.x, at.y)
+  }
+  await expect.poll(() => state<string[]>(page, '[...s.selection].sort()')).toEqual(['C-0', 'C-3'])
+  const again = await screenOf(page, await pos(page, 'C-3'))
+  await page.mouse.click(again.x, again.y)
+  await expect.poll(() => state<string[]>(page, 's.selection')).toEqual(['C-0'])
+  // a plain drag on empty ground boxes, and the box adds to what is picked
+  const from = await screenOf(page, { x: 6, n: -6 })
+  const to = await screenOf(page, { x: -18, n: 16 })
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(to.x, to.y, { steps: 10 })
+  await page.mouse.up()
+  const sel = await state<string[]>(page, 's.selection')
+  expect(sel[0]).toBe('C-0')
+  expect(sel.length).toBeGreaterThan(1)
+  expect(await steps(page)).toBe(0)
+  await page.getByTestId('tool-add-select').click()
+  const one = await screenOf(page, await pos(page, 'C-3'))
+  await page.mouse.click(one.x, one.y)
+  await expect.poll(() => state<string[]>(page, 's.selection')).toEqual(['C-3'])
+})
+
 test('Cmd+K finds and runs "Lock all", "Golden hour" and "Place Guest cabin"', async ({ page }) => {
   test.setTimeout(120_000)
   const run = async (text: string) => {

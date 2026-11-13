@@ -4,6 +4,7 @@ import { SAVED_VIEWS } from '../scene/views'
 import { useFocusRequest } from '../scene/cameraFocus'
 import { LIBRARY, type LibraryGroup } from '../tools/library'
 import { useLibraryOpen } from '../tools/libraryOpen'
+import { useAddMode } from '../tools/addMode'
 import { useOpenSections, type SectionId } from '../ui/InspectorSection'
 import { useInteriorView } from '../interiors/editor/interiorView'
 import { requestDelete } from '../guide/confirm'
@@ -75,6 +76,7 @@ export function commandsFor(s: PlanState): Command[] {
     { id: 'tool-connect', group: 'Tools', label: 'Connect two ends', keys: 'C', run: () => (tab('build'), get().setTool('connect')) },
     { id: 'tool-library', group: 'Tools', label: 'Open the library', keys: 'L', run: () => useLibraryOpen.getState().setOpen(true) },
     { id: 'snap', group: 'Tools', label: s.snap ? 'Snap off' : 'Snap on', keys: 'S', run: () => get().setSnap(!get().snap) },
+    { id: 'add-select', group: 'Tools', label: useAddMode.getState().on ? 'Add to selection off' : 'Add to selection on: clicks add, drags box (no Shift)', run: () => useAddMode.getState().setOn(!useAddMode.getState().on) },
     ...LIBRARY.map((item) => ({
       id: `place-${item.id}`,
       group: 'Place',
