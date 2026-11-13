@@ -106,5 +106,8 @@ describe('dimension labels (5E)', () => {
   test('feet and inches with the dash', () => {
     expect(ftIn(ftToM(32.5))).toBe(`32'-6"`)
     expect(ftIn(ftToM(0.5))).toBe(`6"`)
+    // to the inch, to the quarter inch under a foot, written as a builder writes it (R11: was 9.5")
+    expect(ftIn(ftToM(9.5 / 12))).toBe(`9 1/2"`)
+    expect(ftIn(ftToM(12 + 6.3 / 12))).toBe(`12'-6"`)
   })
 })

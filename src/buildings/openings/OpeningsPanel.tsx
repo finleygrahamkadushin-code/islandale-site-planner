@@ -5,7 +5,7 @@ import { fitMass, massWalls } from './openingEdits'
 import { FIT, asKind, type CutData, type FitNote, type PlacedOpening } from './openingLayout'
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import { FeetInchesField } from '../../ui/FeetInchesField'
-import { formatFeetInches } from '../../ui/feetInches'
+import { formatLengthField } from '../../ui/feetInches'
 import { InspectorSection } from '../../ui/InspectorSection'
 import { Tip } from '../../guide/Tip'
 
@@ -85,7 +85,7 @@ export function OpeningsPanel({ id }: { readonly id: string }) {
           <select value={String(wallSel)} onChange={(e) => setWall(e.target.value === 'along' ? 'along' : Number(e.target.value))} data-testid="opening-wall">
             {walls.map((w) => (
               <option key={w.edge} value={w.edge}>
-                {w.label.split(' · ')[1]} · {formatFeetInches(w.lengthFt)}
+                {w.label.split(' · ')[1]} · {formatLengthField(w.lengthFt)}
               </option>
             ))}
             {hasAlong && <option value="along">curved wall</option>}
@@ -139,7 +139,7 @@ export function OpeningsPanel({ id }: { readonly id: string }) {
         </div>
       )}
       <p className="muted small">
-        Openings keep {formatFeetInches(FIT.cornerFt)} from corners, {formatFeetInches(FIT.gapFt)} apart and {formatFeetInches(FIT.headFt)} under the eave. Lengths take 2' 9", 33 in or 2.75.
+        Openings keep {formatLengthField(FIT.cornerFt)} from corners, {formatLengthField(FIT.gapFt)} apart and {formatLengthField(FIT.headFt)} under the eave. Lengths take 2' 9", 33 in or 2.75.
       </p>
     </InspectorSection>
   )

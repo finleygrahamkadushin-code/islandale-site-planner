@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { layoutStair, risersFor, runFt, stairMath } from './connectStair'
-import { ftIn, reverseSpec, specEnds } from './connectSpec'
+import { stairVerdict } from './connectPlan'
+import { reverseSpec, specEnds } from './connectSpec'
 import { M_PER_FT as FT } from '../../site/units'
 
 const IN = 0.0254
@@ -23,10 +24,11 @@ describe('stair math', () => {
     expect(runFt(6)).toBeLessThan(55 / 12 + 1e-5)
   })
 
-  test('ftIn writes feet and inches', () => {
-    expect(ftIn(154)).toBe('12 ft 10 in')
-    expect(ftIn(24)).toBe('2 ft')
-    expect(ftIn(7)).toBe('7 in')
+  test('the stair verdict gives the run as the inspector writes a length (R11)', () => {
+    const L = layoutStair([0, 0], [5 * FT, 0], 36 * IN, 0, { widthFt: 4 })
+    expect(stairVerdict(L)).toBe(`Stair · 6 risers · 5' run · not accessible (stairs)`)
+    const longer = layoutStair([0, 0], [5.5 * FT, 0], 43 * IN, 0, { widthFt: 4 })
+    expect(stairVerdict(longer)).toBe(`Stair · 7 risers · 5' 6" run · not accessible (stairs)`)
   })
 })
 

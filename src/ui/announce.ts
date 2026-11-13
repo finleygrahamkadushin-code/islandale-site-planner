@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { mToFt } from '../site/units'
-import { formatFeetInches } from './feetInches'
+import { formatLengthField } from './feetInches'
 
 /**
  * What the keyboard just did, said through one polite live region
@@ -19,5 +19,5 @@ export const announce = (text: string): void => useAnnounce.getState().say(text)
 
 /** A site point as the inspector's Placement fields write it: "East 10' 4", North -20'". */
 export function positionWords(p: { readonly x: number; readonly n: number }): string {
-  return `East ${formatFeetInches(mToFt(p.x))}, North ${formatFeetInches(mToFt(p.n))}`
+  return `East ${formatLengthField(mToFt(p.x))}, North ${formatLengthField(mToFt(p.n))}`
 }

@@ -3,7 +3,7 @@ import { usePlanStore } from '../store/planStore'
 import { useEarthworks } from '../site/earthworks/useEarthworks'
 import { usePointerGround } from '../site/pointer'
 import { toScene } from '../scene/frame'
-import { formatFeetInches } from '../ui/feetInches'
+import { formatLengthField } from '../ui/feetInches'
 import { FT_PER_M } from '../site/units'
 import { measureOf, type MeasurePoint, type Measurement } from './measure'
 
@@ -12,7 +12,7 @@ const LIFT_M = 0.08
 const LINE_COLOR = '#d1581e'
 
 const at = (p: MeasurePoint) => toScene(p.x, p.n, p.z + LIFT_M)
-const ft = (m: number) => formatFeetInches(Math.abs(m) * FT_PER_M)
+const ft = (m: number) => formatLengthField(Math.abs(m) * FT_PER_M)
 
 /** "24'-1" across · 24'-4" sloped · rises 3'-2"" (old planner measure label). */
 export function measureText(m: Measurement): string {

@@ -1,3 +1,4 @@
+import { formatLengthField } from '../../ui/feetInches'
 import { MAX_RISER_IN, type Ground } from '../pieces'
 import { checkChain, type ChainCheck } from './connectCheck'
 import { layoutStair, type StairLayout } from './connectStair'
@@ -9,7 +10,6 @@ import {
   ZTOL,
   clampWidth,
   ftE,
-  ftIn,
   ftTxt,
   hyp,
   pct,
@@ -252,7 +252,7 @@ function walkOption(c: Ctx): ConnectOption {
 export function stairVerdict(L: StairLayout | null): string {
   if (!L || !L.risers) return 'Stair · no stair needed'
   const head = `${L.type === 'L' ? 'L-stair' : 'Stair'} · ${L.risers} riser${L.risers > 1 ? 's' : ''}`
-  const mid = `${L.type === 'L' ? ` · ${L.landingFt}×${L.landingFt} landing` : ''} · ${ftIn(L.runIn)} run${L.pad ? ` + ${Math.round(L.pad.lenFt)} ft ${L.pad.kind}` : ''}`
+  const mid = `${L.type === 'L' ? ` · ${L.landingFt}×${L.landingFt} landing` : ''} · ${formatLengthField(L.runIn / 12)} run${L.pad ? ` + ${Math.round(L.pad.lenFt)} ft ${L.pad.kind}` : ''}`
   return `${head}${mid} · not accessible (stairs)`
 }
 
