@@ -46,3 +46,17 @@ test('after the confirm dialog closes, focus goes back to the control that opene
   await expect(page.getByTestId('confirm-dialog')).toHaveCount(0)
   await expect(page.getByTestId('delete-object')).toBeFocused()
 })
+
+test('the task tabs control a tab panel labelled by the current tab (R10.4)', async ({ page }) => {
+  for (const [id, name] of [['build', 'Build'], ['site', 'Site'], ['interior', 'Interior']] as const) {
+    const tab = page.getByTestId(`tab-${id}`)
+    await tab.click()
+    await expect(tab).toHaveAttribute('aria-selected', 'true')
+    const panelId = await tab.getAttribute('aria-controls')
+    expect(panelId, `tab ${id} names its panel`).toBeTruthy()
+    const panel = page.locator(`[id="${panelId}"]`)
+    await expect(panel).toHaveAttribute('role', 'tabpanel')
+    await expect(panel).toHaveAttribute('aria-labelledby', `task-tab-${id}`)
+    await expect(page.getByRole('tabpanel', { name })).toHaveCount(1)
+  }
+})

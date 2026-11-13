@@ -114,6 +114,8 @@ input:disabled { opacity: 0.5; }
   display: flex; flex-direction: column; gap: 10px;
 }
 .side input[type='range'] { width: 100%; padding: 0; }
+/* the task tabs' tab panel (R10.4) adds no box: the panels stay the side panel's own flex children */
+.task-panel { display: contents; }
 .panel {
   pointer-events: auto;
   border: 1px solid var(--line); border-radius: 8px; padding: 12px;

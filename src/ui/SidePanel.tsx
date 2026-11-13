@@ -10,7 +10,7 @@ import { ProgramPanel } from '../site/rules/ProgramPanel'
 import { CodeCheckPanel } from '../site/rules/CodeCheckPanel'
 import { ConnectPanel } from '../paths/connect/ConnectPanel'
 import { RoutePanel } from '../paths/route/RoutePanels'
-import { TabPanel } from '../layout/TaskTabs'
+import { TabPanel, TaskPanel } from '../layout/TaskTabs'
 import { InteriorTabPanel, PresentTabPanel } from '../layout/TabPanels'
 import { useCheckPanelShown } from '../guide/hides'
 
@@ -42,27 +42,29 @@ export function SidePanel() {
         {folded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
         {folded ? 'Show the panel' : 'Fold the panel down'}
       </button>
-      <TabPanel tabs={['site', 'build']}>{hasSelection && <Inspector />}</TabPanel>
-      <TabPanel tabs={['site']}>
-        {!hasSelection && <LotFactsPanel />}
-        {!hasSelection && <SetbacksPanel />}
-        {!hasSelection && codeCheck && <CodeCheckPanel />}
-        {!hasSelection && <LayersPanel />}
-        <EnvironmentPanel />
-        {!hasSelection && <LegendPanel />}
-      </TabPanel>
-      <TabPanel tabs={['build']}>
-        <ConnectPanel />
-        {!hasSelection && program && <ProgramPanel />}
-        {!hasSelection && route && <RoutePanel />}
-        {!hasSelection && <LayersPanel />}
-      </TabPanel>
-      <TabPanel tabs={['interior']}>
-        <InteriorTabPanel />
-      </TabPanel>
-      <TabPanel tabs={['present']}>
-        <PresentTabPanel />
-      </TabPanel>
+      <TaskPanel>
+        <TabPanel tabs={['site', 'build']}>{hasSelection && <Inspector />}</TabPanel>
+        <TabPanel tabs={['site']}>
+          {!hasSelection && <LotFactsPanel />}
+          {!hasSelection && <SetbacksPanel />}
+          {!hasSelection && codeCheck && <CodeCheckPanel />}
+          {!hasSelection && <LayersPanel />}
+          <EnvironmentPanel />
+          {!hasSelection && <LegendPanel />}
+        </TabPanel>
+        <TabPanel tabs={['build']}>
+          <ConnectPanel />
+          {!hasSelection && program && <ProgramPanel />}
+          {!hasSelection && route && <RoutePanel />}
+          {!hasSelection && <LayersPanel />}
+        </TabPanel>
+        <TabPanel tabs={['interior']}>
+          <InteriorTabPanel />
+        </TabPanel>
+        <TabPanel tabs={['present']}>
+          <PresentTabPanel />
+        </TabPanel>
+      </TaskPanel>
     </aside>
   )
 }
