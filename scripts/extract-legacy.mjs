@@ -3,8 +3,8 @@
 // `main` keeps the whole scheme library.)
 //
 // GRID, PARCEL and LOT_SQFT are one-line JSON-ish constants and are parsed
-// directly. The schemes are built by code (a literal for A-C, then IIFEs that
-// derive C2-C4 and push D-I), so that region of the file is run in a Node vm
+// directly. The schemes are built by code (a literal for the first three, then
+// IIFEs that derive the variants and push the rest), so that region of the file is run in a Node vm
 // sandbox with only Math and console available, and the resulting array is
 // captured. Nothing else from the legacy file is executed.
 import fs from 'node:fs'
