@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openFresh } from './fresh'
-import { viewSettled } from './settle'
+import { clearSaves } from './fresh'
 
 /**
  * Phase 5D done-when, first half: Schemes A, B and D–I load and draw every
@@ -24,7 +23,10 @@ function collectErrors(page: Page): string[] {
 }
 
 test.beforeEach(async ({ page }) => {
-  await openFresh(page)
+  await page.goto('/')
+  await clearSaves(page)
+  await page.reload()
+  await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
 })
 
 for (const id of SCHEMES) {
@@ -37,16 +39,14 @@ for (const id of SCHEMES) {
       st.loadScheme(s)
       st.setLabelMode('none')
     }, id)
-    // the scheme is drawn once the view stops drawing (a fixed wait read the old scheme on a busy machine)
-    await viewSettled(page)
+    await page.waitForTimeout(1500)
     const stats = await page.evaluate(() => (window as any).islandale.sceneStats() as { meshes: number; triangles: number })
     expect(stats.meshes).toBeGreaterThan(200)
     expect(stats.triangles).toBeGreaterThan(20_000)
     const strip = page.getByRole('navigation', { name: 'Saved views' })
     for (const view of VIEWS) {
       await strip.getByRole('button', { name: view, exact: true }).click()
-      // the camera has landed and the labels are placed
-      await viewSettled(page)
+      await page.waitForTimeout(1400)
       await page.screenshot({ path: `test-results/old-designs/${id}-${view.replace(/\W+/g, '-').toLowerCase()}.png` })
     }
     expect(errors).toEqual([])
