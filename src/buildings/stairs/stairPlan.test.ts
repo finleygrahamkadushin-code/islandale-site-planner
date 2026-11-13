@@ -14,35 +14,48 @@ const tris = (items: readonly StairItem[]) => items.reduce((s, i) => s + triangl
 const box = (m: MeshData) => bounds(m)
 
 describe('planStair: a stair', () => {
-  test('splits the fixed run into one tread per 7 in riser', () => {
+  test('splits the fixed run into n - 1 treads under n 7 in risers (R3.4)', () => {
     const { info } = planStair({ ...base, groundAt: flatGround(0.9) })
     expect(info.n).toBe(6)
     expect(info.rise).toBeCloseTo(0.15)
-    expect(info.tread).toBeCloseTo(2 / 6)
-    expect(info.topNosingZ).toBeCloseTo(-1 + 2 / 6)
-    // 13.1 in treads, 5.9 in risers
+    expect(info.tread).toBeCloseTo(2 / 5)
+    // the top riser stands at the wing's top edge, under the floor's edge
+    expect(info.topNosingZ).toBeCloseTo(-1)
+    // 15.7 in treads, 5.9 in risers
     expect(info.ok).toBe(true)
     expect(planStair({ ...base, run: 1.2 }).info.ok).toBe(false)
   })
 
-  test('draws n treads, n risers, two stringers, a foot plate and both handrails', () => {
+  test('a 3 ft drop over 55 in: five 11 in treads, which pass', () => {
+    const IN = 0.0254
+    const { info, items } = planStair({ ...base, run: 55 * IN, drop: 36 * IN, groundAt: flatGround(36 * IN) })
+    expect(info.n).toBe(6)
+    expect(info.tread / IN).toBeCloseTo(11)
+    expect(info.ok).toBe(true)
+    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe(5 * 12)
+  })
+
+  test('draws n - 1 treads, a riser under each, two stringers, a foot plate and both handrails', () => {
     const { items } = planStair({ ...base, groundAt: flatGround(0.9) })
-    // each tread and riser is a box: 12 triangles
-    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe(6 * 12)
-    expect(triangleCount(of(items, 'riser')[0].mesh)).toBe(6 * 12)
+    // each tread and riser is a box: 12 triangles; on a straight host the top riser is the floor's own edge
+    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe(5 * 12)
+    expect(triangleCount(of(items, 'riser')[0].mesh)).toBe(5 * 12)
     expect(of(items, 'stringer')).toHaveLength(1)
     expect(of(items, 'foot')).toHaveLength(1)
     expect(of(items, 'rail').map((r) => r.side)).toEqual([-1, 1])
     expect(of(items, 'post')).toHaveLength(0)
   })
 
-  test('the top tread is flush with the floor and the last nosing is at the foot', () => {
+  test('the first tread is one riser below the floor at the top edge and the last nosing is at the foot', () => {
     const { items, info } = planStair(base)
     const t = box(of(items, 'tread')[0].mesh)
-    expect(t.max[1]).toBeCloseTo(0)
-    expect(t.min[2]).toBeCloseTo(-1)
+    expect(t.max[1]).toBeCloseTo(-0.15)
+    // tucked under the floor's edge by the nosing
+    expect(t.min[2]).toBeCloseTo(-1 - 0.025)
     expect(t.max[2]).toBeCloseTo(1)
-    expect(info.topTread).toHaveLength(1)
+    // a straight host leaves nothing at floor level to fill
+    expect(info.topTread).toHaveLength(0)
+    expect(info.dropped).toBe(0)
     // the last riser and the stringers reach the ground at the foot
     expect(box(of(items, 'riser')[0].mesh).min[1]).toBeCloseTo(-0.9)
     expect(box(of(items, 'stringer')[0].mesh).min[1]).toBeCloseTo(-0.9)
@@ -61,14 +74,16 @@ describe('planStair: a stair', () => {
     const { items, info } = planStair(base)
     const [left, right] = info.rails
     expect(left.skipped).toBe(false)
-    expect(left.za).toBeCloseTo(-1 + 2 / 6)
+    // the top nosing is the floor's edge, so the rail starts 5 cm past the host
+    expect(left.za).toBeCloseTo(-1 + 0.05)
     expect(left.zb).toBeCloseTo(1)
-    // 1.67 m of rail: two bays, three posts
+    // 1.95 m of rail: two bays, three posts
     expect(left.posts).toHaveLength(3)
     expect(right.posts).toHaveLength(3)
     expect(left.balusters).toBeGreaterThan(10)
     const r = box(of(items, 'rail')[1].mesh)
-    expect(r.max[1]).toBeCloseTo(WING_RAIL_M + 0.03, 2)
+    // highest at its top end, 5 cm down the nosing line (0.15 m risers over 0.4 m treads)
+    expect(r.max[1]).toBeCloseTo(WING_RAIL_M + 0.03 - 0.05 * (0.15 / 0.4), 2)
     expect(r.max[0]).toBeCloseTo(0.6 - 0.03 + 0.03)
   })
 
@@ -148,7 +163,8 @@ describe('planStair: a stair', () => {
     expect(of(items, 'foot')).toHaveLength(0)
     // every tread drawn sits on or over the ground
     const t = box(of(items, 'tread')[0].mesh)
-    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe((info.n - info.buried) * 12)
+    // a straight host: the n - 1 treads under the floor, less those buried
+    expect(triangleCount(of(items, 'tread')[0].mesh)).toBe((info.n - 1 - info.buried) * 12)
     expect(t.max[2]).toBeLessThan(1)
     // handrails stop over the last tread, not out in the grass
     for (const r of info.rails) expect(r.zb).toBeLessThanOrEqual(t.max[2] + 1e-6)
@@ -181,7 +197,7 @@ describe('planStair: fitting the top to the host', () => {
     const H = hostCurve(topEdge, 1.2, 2)
     expect(evalH(H, 0.6)).toBeCloseTo(-0.82)
     // the handrail on the far side starts 5 cm past the host where that is below the top nosing
-    expect(info.rails[1].za).toBeCloseTo(Math.max(-1 + 2 / 6, evalH(H, 0.57) + 0.05))
+    expect(info.rails[1].za).toBeCloseTo(Math.max(-1, evalH(H, 0.57) + 0.05))
   })
 
   test('band gives the region between a curve and a line, split where the curve passes it', () => {

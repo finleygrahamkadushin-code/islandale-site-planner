@@ -42,7 +42,7 @@ describe('stairInfo (the part inspector numbers)', () => {
     expect(prow.ok).toBe(true)
     const lantern = stairInfo(world, plan.objects['C-1'], 2)!
     expect(lantern.ok).toBe(false)
-    expect(lantern.tread).toBeCloseTo((4 * 0.3048) / lantern.n)
+    expect(lantern.tread).toBeCloseTo((4 * 0.3048) / (lantern.n - 1))
   })
 
   test("G-0's rear stair lands in front of a door, so its handrails start back from it", () => {
@@ -103,6 +103,8 @@ describe('Snap to porch and Fit to code', () => {
     const info = stairInfo(world, after, 2)!
     expect(info.ok).toBe(true)
     expect(info.tread).toBeGreaterThanOrEqual(11 * 0.0254 - 1e-6)
+    // n risers, n - 1 treads: the fitted run is (n - 1) × 11 in, rounded up to the inch (R3.4)
+    expect(fit.d * 12).toBeCloseTo(Math.ceil(((info.n - 1) * 11) - 1e-6), 1)
     expect(stairAttached(after, 2)).toBe(true)
     // fitted once, it fits
     expect(fitStairRun(world, after, 2)).toBeNull()
@@ -162,8 +164,9 @@ describe('Fit to code fits in one click (R3.2)', () => {
     const raised = patched(plan.objects['H-0'], 2, { lvl: 3.25 })
     const fit = fitStairRun(world, raised, 2)!
     const after = patched(raised, 2, fit)
-    expect(fit.d).toBeGreaterThan(12.8)
-    expect(fitsRule(stairInfo(world, after, 2)!)).toBe(true)
+    const info = stairInfo(world, after, 2)!
+    expect(fit.d * 12).toBeGreaterThanOrEqual((info.n - 1) * 11 - 1e-6)
+    expect(fitsRule(info)).toBe(true)
     expect(fitStairRun(world, after, 2)).toBeNull()
   })
 

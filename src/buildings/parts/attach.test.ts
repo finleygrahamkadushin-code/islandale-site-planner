@@ -76,9 +76,11 @@ describe('attachSpec', () => {
     expect(attachSpec(buildingMasses(box()), 0, 3, 'porch', flat(1), 6)).toMatchObject({ wing: { h: 7, rot: -90, dx: -14 } })
   })
 
-  test('a stair takes 11 in of run per 7 in riser of its drop (no slab, at least 0.3 m), at least 6 ft', () => {
-    // 2 m: 12 risers, 132 in of run
-    expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(2), 9)).toMatchObject({ wing: { kind: 'stair', w: 5, d: 11, h: 0, roof: 'none' } })
+  test('a stair takes 11 in of run per tread, one fewer than its 7 in risers (no slab, at least 0.3 m), at least 6 ft', () => {
+    // 2 m: 12 risers, 11 treads, 121 in of run (R3.4)
+    const r = attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(2), 9)
+    expect(r).toMatchObject({ wing: { kind: 'stair', w: 5, h: 0, roof: 'none' } })
+    expect('wing' in r && Number(r.wing.d) * 12).toBeCloseTo(121, 6)
     expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(0.2), 9)).toMatchObject({ wing: { d: 6 } })
     expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(5), 9)).toEqual({ reason: stairTooHighText(5 / FT) })
   })
@@ -163,6 +165,11 @@ describe('stairs and ramps from the + chip meet the planner rule (R3.3)', () => 
       expect(m.ok).toBe(true)
     })
   }
+  test('a stair down a 6 ft drop runs its ten 11 in treads, 9 ft 2 in, not one tread more (R3.4)', () => {
+    const r = attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(6 * FT), 9)
+    if (!('wing' in r)) throw new Error(r.reason)
+    expect(Number(r.wing.d) * 12).toBeCloseTo(110, 6)
+  })
   test('a stair over 12 ft high is refused: it needs landings', () => {
     expect(attachSpec(buildingMasses(box()), 0, 2, 'stair', flat(13 * FT), 9)).toEqual({ reason: stairTooHighText(13) })
   })

@@ -3,7 +3,7 @@ import type { RailStyle } from '../rails/railEdits'
 import { band, EXT_M, evalH, hClamp, hFlat, hMax, hostCurve, hTop, type TopEdge, type XZ } from './stairCurve'
 import { box, prismX, slab } from './stairMesh'
 import { handrail, railSection, WING_RAIL_M, type HandrailCtx, type StairRailInfo } from './stairRails'
-import { FLIGHT_RISE_MAX_M, HANDRAIL_RISERS, RAMP_HANDRAIL_RISE_M, RAMP_RUN_RISE_MAX_M, stairGeomMath, TREAD_MIN_M } from './stairs'
+import { FLIGHT_RISE_MAX_M, HANDRAIL_RISERS, RAMP_HANDRAIL_RISE_M, RAMP_RUN_RISE_MAX_M, stairGeomMath, TREAD_MIN_M, treadsFor } from './stairs'
 
 /**
  * Pure stair and ramp layout, ported from the old planner's stair-geom
@@ -163,21 +163,30 @@ function rails(c: Ctx, add: Add, zMin: number, zMax: number, line: (z: number) =
   })
 }
 
-/** Nosed treads, closed risers, housed stringers, support posts and (n > 1) handrails. */
+/**
+ * Nosed treads, closed risers, housed stringers, support posts and (n > 1)
+ * handrails. Level 0 is the floor: with a curved host it fills the gap to
+ * the wing's top edge, where the top riser stands; levels 1 to n - 1 are
+ * the treads, sharing the run (R3.4: the old planner drew a floor-level
+ * tread too, one tread per riser). One riser keeps the floor level over the
+ * whole run and steps down at the foot.
+ */
 function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
   const { w, run, drop, zf, Ht } = c
   const M = stairGeomMath(drop, run)
   const over = spec.n && spec.n > 0 ? Math.floor(spec.n) : 0
   const n = Math.max(1, over || M.n || 1)
   const rise = drop / n
-  const tread = run / n
+  const tread = n > 1 ? run / treadsFor(n) : run
   const ok = over ? tread >= TREAD_MIN_M - 1e-9 : M.ok
   const nos = spec.nosing !== undefined && Number.isFinite(spec.nosing) ? Math.max(0, spec.nosing) : 0.025
-  const Z = (i: number) => -run / 2 + i * tread
+  // where level i ends going down the run is Z(i + 1); level 0 ends at the top edge when there are treads
+  const skip = n > 1 ? 1 : 0
+  const Z = (i: number) => -run / 2 + Math.max(0, i - skip) * tread
   const z1 = Z(1)
   const top = hTop(Ht)
-  // a tread whose top is under the ground at its middle is left out, with everything below and after it
-  const under = (i: number) => c.gAt(Z(i) + tread / 2) > -i * rise + GROUND_TOL_M
+  // a tread whose top is under the ground at its middle (the floor: at the top edge) is left out, with everything below and after it
+  const under = (i: number) => c.gAt(i === 0 ? Z(0) : (Z(i) + Z(i + 1)) / 2) > -i * rise + GROUND_TOL_M
   let firstUnder = n
   for (let i = 0; i < n; i++) if (under(i)) { firstUnder = i; break }
   const zEnd = firstUnder < n ? Math.max(Z(0), Z(firstUnder) - nos) : zf
@@ -191,7 +200,8 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
     const low = i === 0 ? Ht : top > Z(i) + 1e-9 ? hMax(Ht, Z(i) - nos) : hFlat(w, Z(i) - nos)
     const polys = band(low, Z(i + 1))
     if (i === 0) topTread = polys
-    if (!polys.length) dropped++
+    // level 0 is only the fill to a curved host: a straight host leaves it empty, which drops nothing
+    if (!polys.length && (i > 0 || skip === 0)) dropped++
     for (const p of polys) slab(tg, p, () => -i * rise, TREAD_T)
   }
   // closed risers behind each nosing, down to the next tread (the last to the ground)
@@ -246,7 +256,7 @@ function planSteps(c: Ctx, spec: StairSpec, add: Add): Body {
 
   // handrails over the nosing line, from the top nosing to the foot, only with more than one riser
   const yN = (z: number) => (-(z - z1) * rise) / tread
-  const yT = (z: number) => -Math.max(0, Math.min(n - 1, Math.floor((z - Z(0)) / tread + 1e-9))) * rise
+  const yT = (z: number) => -Math.max(0, Math.min(n - 1, Math.floor((z - z1) / tread + 1e-9) + skip)) * rise
   const railInfo = c.railOn && n > 1 ? rails(c, add, z1, Math.min(zf, zEnd), yN, yT) : []
   const flightOver = drop > FLIGHT_RISE_MAX_M + 1e-9
   const handrailMissing = n >= HANDRAIL_RISERS && !railInfo.some((r) => !r.skipped)
