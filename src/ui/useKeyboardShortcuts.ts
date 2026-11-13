@@ -12,7 +12,8 @@ import { announce, positionWords } from './announce'
 import { isPresenting, usePresent } from '../present/present'
 import { useConfirm } from '../guide/confirm'
 import { useIsolate } from '../tools/isolate'
-import { keepsKey, keyTargetOf } from './keyOwner'
+import { keepsKey, keyTargetOf, searchChordFromField } from './keyOwner'
+import { ON_MAC } from './keyHint'
 import { singleKeyOff } from './singleKeys'
 
 /** A layer that covers the plan without holding focus inside it (the old planner's overlay). */
@@ -25,8 +26,10 @@ export function useKeyboardShortcuts(): void {
       // a control that already acted on the key (a tab or radio moving on) keeps it. Not Escape: a tooltip closing
       // on it marks it handled too, and must not cost the plan its Escape; a layer that owns Escape stops it itself
       if (e.defaultPrevented && e.key !== 'Escape') return
-      // so does a text field, a slider or tab under its arrow keys, and anything inside a dialog or menu (keyOwner)
-      if (keepsKey(keyTargetOf(e.target), e.key)) return
+      // so does a text field, a slider or tab under its arrow keys, and anything inside a dialog or menu (keyOwner);
+      // a text field gives up only command search's chord, so search opens from the inspector's fields too
+      const target = keyTargetOf(e.target)
+      if (keepsKey(target, e.key) && !searchChordFromField(target, e, ON_MAC)) return
       // single-character shortcuts turned off (R10.5): arrows, Escape, Delete and the Ctrl / Cmd chords still work
       if (singleKeyOff(e)) return
       if (document.querySelector(MODAL_SELECTOR)) return

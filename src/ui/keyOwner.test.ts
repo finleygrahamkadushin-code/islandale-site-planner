@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { keepsKey, type KeyTarget } from './keyOwner'
+import { keepsKey, searchChordFromField, type KeyTarget } from './keyOwner'
 
 const button: KeyTarget = { tag: 'BUTTON' }
 const input = (inputType: string): KeyTarget => ({ tag: 'INPUT', inputType })
@@ -49,5 +49,31 @@ describe('keepsKey', () => {
     for (const key of ['Delete', 'Backspace', 'ArrowRight', 'q', 'z', 'Escape', '1']) {
       expect(keepsKey(inDialog, key), key).toBe(true)
     }
+  })
+})
+
+describe('searchChordFromField: command search opens from a text field', () => {
+  const k = (mods: { meta?: boolean; ctrl?: boolean; alt?: boolean; shift?: boolean }, key = 'k') => ({ key, metaKey: !!mods.meta, ctrlKey: !!mods.ctrl, altKey: !!mods.alt, shiftKey: !!mods.shift })
+
+  test('⌘K anywhere and Ctrl+K off a Mac, from a text field, a text area or an editable', () => {
+    for (const t of [input('text'), input('number'), { tag: 'TEXTAREA' }, { tag: 'DIV', editable: true }] as KeyTarget[]) {
+      expect(searchChordFromField(t, k({ meta: true }), true)).toBe(true)
+      expect(searchChordFromField(t, k({ meta: true }), false)).toBe(true)
+      expect(searchChordFromField(t, k({ ctrl: true }, 'K'), false)).toBe(true)
+    }
+  })
+
+  test('Ctrl+K on a Mac stays with the field (it deletes to the end of the line); so do other chords', () => {
+    expect(searchChordFromField(input('text'), k({ ctrl: true }), true)).toBe(false)
+    expect(searchChordFromField(input('text'), k({ meta: true, ctrl: true }), false)).toBe(false)
+    expect(searchChordFromField(input('text'), k({ meta: true, alt: true }), true)).toBe(false)
+    expect(searchChordFromField(input('text'), k({ meta: true }, 'z'), true)).toBe(false)
+    expect(searchChordFromField(input('text'), k({}), true)).toBe(false)
+  })
+
+  test('not from a field inside a dialog or menu, and not when nothing is a field', () => {
+    expect(searchChordFromField({ ...input('text'), inLayer: true }, k({ meta: true }), true)).toBe(false)
+    expect(searchChordFromField(button, k({ meta: true }), true)).toBe(false)
+    expect(searchChordFromField(null, k({ meta: true }), true)).toBe(false)
   })
 })

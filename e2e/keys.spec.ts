@@ -145,3 +145,16 @@ test('single-key shortcuts can be turned off in Help: letters rest, arrows and C
   await page.getByTestId('open-help').click()
   await expect(page.getByTestId('single-keys')).not.toBeChecked()
 })
+
+test('Ctrl / Cmd+K opens command search with the cursor in an inspector text field, and the field keeps its text', async ({ page }) => {
+  const name = page.getByLabel('Name', { exact: true })
+  await name.click()
+  await expect(name).toBeFocused()
+  const before = await name.inputValue()
+  await page.keyboard.press('ControlOrMeta+k')
+  await expect(page.getByTestId('command-input')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('command-input')).toHaveCount(0)
+  await expect(name).toHaveValue(before)
+  expect((await snapshot(page)).undoSteps).toBe(0)
+})
