@@ -116,6 +116,19 @@ export function pointInLot(parcel: Parcel, x: number, n: number): boolean {
   return pointInPolygon(parcel.ring, x, n)
 }
 
+/**
+ * Plain distance to the lot line along the water (the assessor's shoreline
+ * edges), metres: no bank offset, no high-water line, so no ties below high
+ * water. The lot-width rule finds its seaward point by it.
+ */
+export function shoreLotLineDistance(parcel: Parcel, x: number, n: number): number {
+  let d = Infinity
+  forEdges(parcel, true, (_edge, a, b) => {
+    d = Math.min(d, closestOnSeg(x, n, a, b).d)
+  })
+  return d
+}
+
 /** Distance past the top of bank on the east shore: `bankFt` in from the lot line there, metres (Infinity without a banked shore). */
 function pastTopOfBank(parcel: Parcel, x: number, n: number, bankM: number): number {
   let past = Infinity
