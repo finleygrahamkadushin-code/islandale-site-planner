@@ -167,14 +167,19 @@ test('C-0 with Roofs off: every opening located, walls and rooms drawn, the meas
   await page.waitForTimeout(3_000)
   const before = await sceneStats(page)
   await openOn(page, 'C-0')
-  await expect(dialog(page)).not.toContainText(/drawn as|approximate/i)
+  // no building sheet calls a wall approximate (the old "(curve drawn as box)" notes); the site plan's "approximate high-water line" is not one
+  const buildingSheets = dialog(page).locator('.sheets-building:not([data-testid="site-sheet"])')
+  await expect(buildingSheets).toHaveCount(1)
+  await expect(buildingSheets).not.toContainText(/drawn as|approximate/i)
 
-  // Scheme C's walls are straight, so every opening is located from the left of its wall
+  // an opening on a straight wall is located from its left end, one on the prow's curved wall round from P1
   const fromLeft = await columnOf(page, 'Openings', 'From left')
+  const around = await columnOf(page, 'Openings', 'Round from P1')
   expect(fromLeft).toBeGreaterThanOrEqual(0)
+  expect(around).toBeGreaterThanOrEqual(0)
   const openings = await tableRows(page, 'Openings')
   expect(openings.length).toBeGreaterThan(0)
-  for (const row of openings) expect(NONE_OR_ZERO.test(row[fromLeft]), `opening ${row[0]} has a location`).toBe(false)
+  for (const row of openings) expect(NONE_OR_ZERO.test(row[fromLeft]) && NONE_OR_ZERO.test(row[around]), `opening ${row[0]} has a location`).toBe(false)
 
   const walls = dialog(page).locator('.sheet-svg g[aria-label$=" walls"]')
   expect(await walls.count()).toBeGreaterThan(0)
