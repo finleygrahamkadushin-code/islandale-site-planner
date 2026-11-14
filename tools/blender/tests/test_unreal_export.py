@@ -12,7 +12,7 @@ import traceback
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from islandale3d.bake.targets import blends as style_blends, targets  # noqa: E402
-from islandale3d.unreal import frame, names, scene_doc, uvs  # noqa: E402
+from islandale3d.unreal import frame, gltf, names, scene_doc, uvs  # noqa: E402
 
 STYLES = json.loads((HERE.parent / "styles.json").read_text())
 BLENDS = style_blends(STYLES)
@@ -241,6 +241,36 @@ def test_camera_uses_its_own_sensor():
     except ValueError:
         return
     raise AssertionError("a vertical sensor fit must be refused")
+
+
+def tiny_glb(bad_index=False, bad_minmax=False):
+    """A one-triangle .glb built by hand."""
+    import struct as st
+    pos = [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
+    pb = b"".join(st.pack("<3f", *p) for p in pos)
+    ib = st.pack("<3H", 0, 1, 3 if bad_index else 2) + b"\0\0"
+    doc = {"asset": {"version": "2.0"}, "buffers": [{"byteLength": len(pb) + len(ib)}],
+           "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": len(pb)},
+                           {"buffer": 0, "byteOffset": len(pb), "byteLength": 6}],
+           "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
+                          "min": [0, 0, 0], "max": [1, 2 if bad_minmax else 1, 0]},
+                         {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"}],
+           "materials": [{"name": "kurinuki"}],
+           "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1, "material": 0}]}],
+           "nodes": [{"mesh": 0}], "scenes": [{"nodes": [0]}], "scene": 0}
+    j = json.dumps(doc).encode()
+    j += b" " * (-len(j) % 4)
+    blob = pb + ib
+    out = st.pack("<4sII", b"glTF", 2, 12 + 8 + len(j) + 8 + len(blob))
+    return out + st.pack("<II", len(j), 0x4E4F534A) + j + st.pack("<II", len(blob), 0x004E4942) + blob
+
+
+def test_validator_passes_a_good_glb_and_catches_bad_ones():
+    good = gltf.validate(tiny_glb())
+    assert good["problems"] == [] and good["stats"]["triangles"] == 1 and good["stats"]["materials"] == ["kurinuki"]
+    assert any("index" in p for p in gltf.validate(tiny_glb(bad_index=True))["problems"])
+    assert any("min/max" in p for p in gltf.validate(tiny_glb(bad_minmax=True))["problems"])
+    assert gltf.validate(b"nope")["problems"]
 
 
 def main():
