@@ -44,7 +44,7 @@ Elevations add a fourth stage: an image captured from the live 3D scene (`elevat
 | The site plan's line textures: setback hatching, water lines, bank ticks, gravel, tufts | `site/siteHatch.ts`; small geometry (joining iso-lines, smooth paths) in `site/siteGeom.ts` |
 | The site plan drawn as SVG, and its pages | `site/SiteMarks.tsx`, `site/SiteSheet.tsx`; its line in the fit note is `site/SiteFit.tsx` |
 | Sections (6I): where A–A and B–B start (the main part's axes through its centroid, B–B onto a nearby opening) and how far they may move | `section/sectionCuts.ts` |
-| A section as data: cut walls with their openings, floors, roofs (cut from the scene's own roof mesh), posts, retaining walls, the ground, what is seen beyond, its levels | `section/sectionView.ts`; the line, plane and triangle maths in `section/sectionGeom.ts`; the roof and gable triangles and the ground in `section/sectionSource.ts` |
+| A section as data: cut walls with their openings, floors, roofs (cut from the scene's own roof mesh), posts, stairs (cut when the cut passes through them), retaining walls, the ground, what is seen beyond (less what a cut part's far wall and floor hide), its levels | `section/sectionView.ts`; the line, plane and triangle maths in `section/sectionGeom.ts`; the roof and gable triangles and the ground in `section/sectionSource.ts` |
 | A section's dimension chains, level labels (feet above the floor and NAVD88), note and page extent | `section/sectionLayout.ts` |
 | A section drawn as SVG; the cut marks on the plan, dragged or moved with the arrow keys | `section/SectionSheet.tsx`, `section/SectionMarks.tsx` |
 
