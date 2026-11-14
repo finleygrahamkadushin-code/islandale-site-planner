@@ -1,6 +1,6 @@
 # 6F · Unreal scene export
 
-Status: **building** (Nov 14 2026, branch `claude/phase-6f-unreal-export-18dd15`, cut from `scheme-c-only`). Check-in A is waived for this part (deadline Nov 19); check-in B is the Unreal screenshots.
+Status: **built; at check-in B** (Nov 14 2026, branch `claude/phase-6f-unreal-export-18dd15`, cut from `scheme-c-only`). Check-in A was waived for this part (deadline Nov 19). Results are at the end of this page.
 
 `tools/blender/export_unreal.py` builds the dressed Scheme C scene the way `build_scene.py` does and writes it out for Unreal: one `.glb` per group, plus `scene.json`, which tells 6G everything a `.glb` can't hold.
 
@@ -13,6 +13,8 @@ Status: **building** (Nov 14 2026, branch `claude/phase-6f-unreal-export-18dd15`
 | `styles.json` | `tools/blender/styles.json` | The same file `build_scene.py` and the bake read |
 
 ## Outputs (`build/3d/unreal/scene/`, beside the textures; gitignored)
+
+`build/3d/unreal/` as a whole (`textures/` + `scene/` + `README.md`) is a self-contained bundle: every path in `scene.json` is relative to it and the app's manifest is copied in, so it can be copied to another machine (2.7 GB; the biggest file is 97 MB).
 
 - `terrain.glb`, `sea.glb`, `earthworks.glb`, `site.glb`, `trees.glb`, and `building_<slug>.glb` for each building (`building_gathering_prow.glb`, `building_family_lantern.glb`, `building_family_twin_pod.glb`, `building_elders_wedge.glb`).
 - Each file holds **one mesh object** `SM_<Group>` (all of the group's meshes joined, transforms applied), with one primitive per material slot, so Unreal makes one static mesh per group. Every object sits at the origin: the vertices are already in site coordinates, so placing every actor at (0, 0, 0) puts it exactly where the app has it.
@@ -61,4 +63,21 @@ On a straight mass (`wallEi: "edge"`), the export makes one wall mesh per outlin
 - **Pure tests** (any Python 3, or Blender's): `tools/blender/tests/test_unreal_export.py`. Group assignment, slot names, UV scaling and island shifting, the Blender → UE frame, the sun and camera rotations, and `scene.json` assembly (schema and values from a fake scene).
 - **Blender test:** `tests/test_unreal_blender.py`. A two-wall corner welds to one mesh with no gap. A UV-scaled quad exported to `.glb` reads back with TEXCOORD_0 = (u/6, 1 − v/6) and positions as (x, z, −y).
 - **The run on Scheme C:** every group written, slot names all in `materials.json` (or a blend or `planner_`), triangle totals match the export, sizes reported.
-- **Check-in B in Unreal 5.8.4:** `tools/unreal/check_6f.py` runs under `UnrealEditor-Cmd` in a throwaway project outside the repo. It imports every `.glb` with Interchange, places them at the origin with a sun from `scene.json`, and reads the bounds back: the sea's Z = tide × 100, each building's lowest point on the ground under it, and the app's north (the bay is south-east of the cabins) at −Y. It then saves a top-down screenshot and one from a `scene.json` camera. Every Unreal call is checked against the installed engine first. If the headless editor can't render, the report says what failed and gives the editor steps.
+- **Check-in B in Unreal 5.8.4:** `tools/unreal/check_6f.py` runs in the full editor (`-ExecutePythonScript`; the commandlet can't place actors) in a throwaway project outside the repo. It imports every `.glb` with Interchange, places them at the origin with a sun from `scene.json`, and reads the bounds back: the sea's Z = tide × 100, each building's lowest point on the ground under it, and the app's north (the bay is south-east of the cabins) at −Y. It then saves a top-down screenshot and one from a `scene.json` camera. Every Unreal call is checked against the installed engine first. If the headless editor can't render, the report says what failed and gives the editor steps.
+
+## Results (Nov 14)
+
+- **Tests:** 22 pure tests (frames, rotations, names, UV0, scene.json) and 2 Blender tests (corner weld; UV0 and axes read back out of a real `.glb`) pass. `check_export.py` passes on the fresh export.
+- **The run on Scheme C** (exported from this branch, 86,437 triangles):
+  - 9 files in 7.5 s, 8.9 MB: terrain 23,662 triangles, sea 2, earthworks 21,828, site 7,166, trees 5,360, Elders' wedge 4,158, Family lantern 2,750, Family twin pod 4,240, Gathering prow 17,271.
+  - Every triangle accounted for (the 2 missing are the export's clipped water, which the sea replaces).
+  - 41 slots, all bound to a 6E set, a blend or a colour.
+  - Walls welded on all four straight masses (17 on the prow, 8 on the lantern, 4 on each of the others). The wainscot top is 9.13 m, as in the renders.
+- **The seam:** a Blender close-up of the lantern with true displacement shows the corner crack before the weld and an unbroken corner after it (`build_scene.py --weld-walls`).
+- **Unreal 5.8.4 (Interchange, Nanite on):**
+  - All 9 files import in about 20 s.
+  - Every mesh's bounds match `scene.json` within 0.005 cm.
+  - The sea sits at exactly 188.976 cm (6.2 ft).
+  - Each building's app position (manifest x, n) lies inside its mesh at (100x, −100n), so north is −Y.
+  - Straight down through each building, the ground (terrain or its earthworks pad) is hit, and the building's lowest point sits 0.7–2.1 m into it, never above it.
+  - The top-down capture matches a top-down of the app's own export, and the shadows fall east under the 272° evening sun.

@@ -32,7 +32,7 @@ Unreal = (100x, −100y, 100z) cm from Blender: +X east, +Y south (north is −Y
 
 ## Check-in B
 
-A screenshot from every scene.json camera (aerial, hero and detail for each of the four buildings), rendered by the editor on this Mac, plus a top-down view with north up.
+A still from every scene.json camera (an aerial, plus a hero and a detail view of each of the four buildings) and a top-down view with north up, from whichever machine builds the level.
 
 ## Unreal Python APIs it needs (confirmed against the installed 5.8.4)
 
@@ -105,3 +105,13 @@ Finley expects to build the level on a Windows PC with an RTX 5090 ("i think i s
 5. **Order:**
    - first `check_6f.py` (the same check that passed here);
    - then `import_islandale.py --scene <bundle>/scene` once 6G is written: its asset phases in the commandlet, its level phase in the editor.
+
+## Learned from 6F's check (lighting)
+
+The scene captures came out with pitch-black shadow sides. The real-time SkyLight added nothing to a SceneCapture2D taken right after the level was built. The stills in 6G should come from Movie Render Queue, or from the editor viewport once the sky capture has updated, with a fixed exposure in the PostProcessVolume.
+
+## What 6G needs from Finley
+
+- **Which machine:** say whether the level is built on the RTX 5090 PC; the plan works on either. The Mac renders it too, but without hardware ray tracing or the path tracer, and Nanite tessellation there is unverified.
+- **Disk:** about 5–7 GB for the project on whichever machine builds it. This Mac has about 32 GB free (Nov 14), enough, but tight alongside the other sessions' work.
+- **The PC set-up** in the list above (Unreal 5.8.4, the two plugins, the repo on `scheme-c-only`, the 2.7 GB bundle).
