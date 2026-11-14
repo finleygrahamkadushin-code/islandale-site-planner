@@ -1,6 +1,6 @@
 # Blender pipeline
 
-This folder turns the planner's 3D export into a Blender scene with real exterior materials, and renders it. The Unreal steps (6E–6G) will start from here; see `PLAN-PHASE6.md`.
+This folder turns the planner's 3D export into a Blender scene with real exterior materials, and renders it. The Unreal steps (6E–6G) start from here; see `PLAN-PHASE6-REST.md`.
 
 ```
 app (Export 3D model)  ─►  <slug>.glb + <slug>.manifest.json  ─►  check_export.py  ─►  build_scene.py  ─►  .blend + renders
@@ -62,6 +62,25 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
   - **Shift check (the material repeats):** a half-tile-shifted render at 1024 px, compared channel by channel (the worst channel counts, including Alpha and Transmission). The mean difference must be under 0.01 and the worst single row or column under 0.03, or both within 1.5 × the map's own render noise for detail finer than a pixel.
   - `--checks-only` re-runs both checks on an existing bake without re-rendering the maps; `--previews-only` redraws the previews from the PNGs.
 
+## Export for Unreal (6F)
+
+```bash
+# One .glb per group + scene.json, into build/3d/unreal/scene/ beside 6E's textures (about 8 s)
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/export_unreal.py -- \
+    --glb build/3d/export/c-prow-lantern.glb [--textures DIR] [--out DIR] [--season jun --hour 17] [--preview-textures]
+
+# Tests: the pure parts (frames, names, UV0, scene.json), then a weld and a .glb round trip in Blender
+/Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 tools/blender/tests/test_unreal_export.py
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 -P tools/blender/tests/test_unreal_blender.py
+```
+
+- **Groups:** `terrain`, `sea` (the 6 km plane at the tide), `earthworks`, `site`, `trees`, and `building_<name>` for each building. Each file is one mesh object `SM_<Group>` in site coordinates, so every actor goes at the origin.
+- **UV0** = UVMeters / 6, so 6E's 6 m tiles map 1:1; each island is moved by whole tiles toward 0 (smaller numbers, same picture).
+- **Material slots** are named for 6G: a 6E set key (`kurinuki`, `stucco__aa9d13`), `elders_wainscot__<oid>`, `terrain`, or `planner_<rrggbb>` for surfaces that keep the app's colours. Stand-ins carry a flat colour (or a BC preview with `--preview-textures`).
+- **The lantern seam:** a straight mass's walls are joined into one mesh per building and welded at the corners (`build_scene.py --weld-walls` does the same for renders).
+- **Axes in Unreal:** +X east, +Y south (north is −Y), Z up, centimetres.
+- **Portable:** `scene.json` uses paths relative to itself, and the app's manifest is copied beside it, so `build/3d/unreal/` (textures + scene + README) can be copied to another machine as it is. Plan: `PLAN-6F.md`; the Unreal side: `tools/unreal/README.md`.
+
 ## Files
 
 | File | What it does |
@@ -75,6 +94,7 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 | `islandale3d/materials/` | The procedural materials, one module per family. |
 | `styles.json` | Which material each surface wears. |
 | `swatch.py` | Renders one material on a test cabin. |
+| `export_unreal.py`, `islandale3d/unreal/` | The Unreal export (6F): frames and rotations (`frame.py`), group and slot names (`names.py`), UV0 (`uvs.py`), `scene.json` (`scene_doc.py`), and the Blender side (`assemble.py`). Tests in `tests/`. |
 | `bake_textures.py`, `islandale3d/bake/` | The Unreal texture bake (6E): which sets (`targets.py`), the flat renders (`render.py`), encoding and PNGs (`encode.py`), seams (`seams.py`), `materials.json` (`manifest.py`), the contact sheet (`contact.py`). Tests in `tests/`. |
 
 ## What the export must contain
