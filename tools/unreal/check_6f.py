@@ -18,6 +18,7 @@ Then it captures a top-down view (north up) and the view from every scene.json c
 Every Unreal call here was checked against the installed engine (tools/unreal/dump_api.py)."""
 import argparse
 import json
+import re
 import pathlib
 import sys
 import time
@@ -184,6 +185,11 @@ def capture(world, out_dir: pathlib.Path, name, loc, rotation, fov=None, ortho_w
     return str(out_dir / name)
 
 
+def safe_name(text: str) -> str:
+    """A camera name as a file name that is valid on Windows and macOS: [a-z0-9_] only."""
+    return re.sub(r"[^a-z0-9]+", "_", text.lower().replace("’", "").replace("'", "")).strip("_")
+
+
 def shots(scene, out_dir):
     world = sub(unreal.UnrealEditorSubsystem).get_editor_world()
     lo = [min(g["bounds_cm"]["min"][i] for g in scene["groups"] if g["group"].startswith("building_")) for i in range(3)]
@@ -193,7 +199,7 @@ def shots(scene, out_dir):
     files = [capture(world, out_dir, "top_down_north_up.png", unreal.Vector(cx, cy, 20000.0),
                      unreal.Rotator(roll=0.0, pitch=-90.0, yaw=-90.0), ortho_width=width)]
     for c in scene["cameras"]:
-        files.append(capture(world, out_dir, "cam_" + c["name"].lower().replace(" ", "_").replace("’", "") + ".png",
+        files.append(capture(world, out_dir, "cam_" + safe_name(c["name"]) + ".png",
                              vec(c["eye_cm"]), rot(c["rotation"]), fov=c["horizontal_fov_deg"]))
     return files
 
@@ -254,7 +260,7 @@ class Shooter:
 
 def finish(report, out_dir):
     report["ok"] = (all(r["ok"] for r in report["bounds"]) and all(r["ok"] for r in report["north_and_ground"])
-                    and report["sea"]["ok"])
+                    and report["sea"]["ok"] and not report.get("shots_error") and report.get("shaders_settled", True))
     report["seconds"] = round(time.time() - report["_t0"], 1)
     (out_dir / "check.json").write_text(json.dumps({k: v for k, v in report.items() if k != "_t0"}, indent=2))
     log(f"done ok={report['ok']} in {report['seconds']}s -> {out_dir / 'check.json'}")

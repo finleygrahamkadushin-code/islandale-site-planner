@@ -38,14 +38,17 @@ def camera_kind(name: str) -> str:
     return "detail" if low.endswith(" detail") else "hero"
 
 
-def camera(name: str, eye_m, look_m, lens_mm: float) -> dict:
+def camera(name: str, eye_m, aim_m, lens_mm: float, sensor_mm: float = frame.FILMBACK_MM, sensor_fit: str = "AUTO") -> dict:
+    """aim_m is a point along the view (eye + 10 m forward), not a subject: use `rotation`, not a look-at."""
+    if sensor_fit not in ("AUTO", "HORIZONTAL"):
+        raise ValueError(f"{name}: sensor fit {sensor_fit} (the export assumes a horizontal fit on a landscape frame)")
     return {
         "name": name.removeprefix("CAM "), "kind": camera_kind(name),
-        "eye_m": _r(eye_m), "look_m": _r(look_m),
-        "eye_cm": _r(frame.to_ue(eye_m), 2), "look_cm": _r(frame.to_ue(look_m), 2),
-        "rotation": frame.camera_rotator(eye_m, look_m),
-        "focal_length_mm": round(lens_mm, 3), "filmback_mm": [frame.FILMBACK_MM, round(frame.FILMBACK_MM * 9 / 16, 3)],
-        "horizontal_fov_deg": round(frame.horizontal_fov_deg(lens_mm), 3),
+        "eye_m": _r(eye_m), "aim_point_m": _r(aim_m),
+        "eye_cm": _r(frame.to_ue(eye_m), 2), "aim_point_cm": _r(frame.to_ue(aim_m), 2),
+        "rotation": frame.camera_rotator(eye_m, aim_m),
+        "focal_length_mm": round(lens_mm, 3), "filmback_mm": [round(sensor_mm, 3), round(sensor_mm * 9 / 16, 3)],
+        "horizontal_fov_deg": round(frame.horizontal_fov_deg(lens_mm, sensor_mm), 3),
     }
 
 
@@ -53,7 +56,8 @@ def group(name: str, file: str, mesh: str, triangles: int, slots: list[str], lo_
     lo_ue, hi_ue = frame.to_ue(lo_m), frame.to_ue(hi_m)
     out = {
         "group": name, "file": file, "mesh": mesh, "actor_location_cm": [0.0, 0.0, 0.0], "triangles": int(triangles),
-        "slots": sorted(slots),
+        "slots": list(slots),               # in material-index order: slot i of the static mesh is slots[i]
+        "slot_index": {s: i for i, s in enumerate(slots)},
         "bounds_m": {"min": _r(lo_m), "max": _r(hi_m)},
         # y flips sign, so Unreal's min y is Blender's max y
         "bounds_cm": {"min": _r((lo_ue[0], hi_ue[1], lo_ue[2]), 2), "max": _r((hi_ue[0], lo_ue[1], hi_ue[2]), 2)},
@@ -87,7 +91,9 @@ def material(slot: str, info: dict, materials: dict, blends: dict, exag: float) 
     if kind == "color":
         h = names.color_hex(info["srgb"])
         rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-        return {"kind": "color", "srgb": "#" + h, "linear": [round(names.srgb_to_linear(c), 5) for c in rgb]}
+        alpha = info.get("alpha", 1.0)
+        return {"kind": "color", "srgb": "#" + h, "linear": [round(names.srgb_to_linear(c), 5) for c in rgb],
+                "alpha": round(alpha, 3), "translucent": alpha < names.OPAQUE}
     raise ValueError(f"unknown slot kind {kind!r} for {slot!r}")
 
 

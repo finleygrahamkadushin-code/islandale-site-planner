@@ -30,21 +30,44 @@ def _outer_wall(it) -> bool:
     return it.part == "wall" and not it.props.get("interior") and not it.props.get("decor")
 
 
+MIRRORED: list = []            # names of objects whose baked transform was mirrored, for the export log
+
+
+def bake_transform(ob) -> bool:
+    """Put an object's world transform (the glTF node hierarchy's) into its vertices and leave it at the origin unparented.
+    A mirrored transform (negative determinant) reverses the faces' winding, so it is turned back. Returns True if mirrored."""
+    if ob.data.users > 1:                         # glTF meshes shared between nodes: never edit the others
+        ob.data = ob.data.copy()
+    mw = ob.matrix_world.copy()
+    ob.parent = None
+    ob.data.transform(mw)
+    ob.matrix_world = Matrix.Identity(4)
+    mirrored = mw.determinant() < 0
+    if mirrored:
+        MIRRORED.append(ob.name)
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+        bm.to_mesh(ob.data)
+        bm.free()
+    return mirrored
+
+
 def join(objects: list, name: str | None = None):
-    """Join objects into the first (bpy.ops.object.join keeps materials, UV maps by name and custom normals) and apply its
-    transform, so the vertices are in site coordinates. Returns the joined object."""
+    """Join objects into the first, every one first baked to site coordinates (bake_transform), so the join only appends
+    (bpy.ops.object.join keeps materials, UV maps by name and custom normals). Fails if any polygon went missing, e.g. an
+    object the join skipped. Returns the joined object."""
     keep = objects[0]
+    polys = 0
     for ob in objects:
-        if ob.data.users > 1:                     # glTF meshes shared between nodes: join must not edit the others
-            ob.data = ob.data.copy()
+        bake_transform(ob)
+        polys += len(ob.data.polygons)
     if len(objects) > 1:
         with bpy.context.temp_override(active_object=keep, object=keep, selected_objects=objects,
                                        selected_editable_objects=objects):
             bpy.ops.object.join()
-    mw = keep.matrix_world.copy()                 # the glTF node hierarchy's world transform, baked into the vertices
-    keep.parent = None
-    keep.data.transform(mw)
-    keep.matrix_world = Matrix.Identity(4)
+    if len(keep.data.polygons) != polys:
+        raise RuntimeError(f"join into {keep.name}: {polys} polygons in, {len(keep.data.polygons)} out")
     if name:
         keep.name = name
         keep.data.name = name
@@ -85,6 +108,13 @@ def weld_straight_walls(site) -> dict:
     return out
 
 
+def _alpha(mat) -> float:
+    if not mat or not mat.node_tree:
+        return 1.0
+    bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    return float(bsdf.inputs["Alpha"].default_value) if bsdf is not None else 1.0
+
+
 def _base_color(mat):
     """A glTF-imported material's base colour (linear), from its Principled BSDF."""
     if not mat or not mat.node_tree:
@@ -119,11 +149,15 @@ class Slots:
                 oid = item.props.get("oid")
                 top = self.wall_base[oid] + self.blends[blend]["height_m"]
                 slot, info = names.wainscot_slot(blend, oid), {"kind": "wainscot", "oid": oid, "top_z_m": top}
+                had = self.info.get(slot)
+                if had and had.get("oid") != oid:
+                    raise ValueError(f"buildings {had['oid']} and {oid} would share the wainscot slot {slot}")
         else:                                   # keeps the app's colour: interiors, furniture, cars, ceilings
             colour = item.props.get("color") if single and item.props.get("color") else None
             srgb = names.color_hex(colour) if colour else names.color_hex(
                 [names.linear_to_srgb(c) for c in _base_color(mat)])
-            slot, info = names.planner_slot(srgb), {"kind": "color", "srgb": srgb}
+            alpha = _alpha(mat)
+            slot, info = names.planner_slot(srgb, alpha), {"kind": "color", "srgb": srgb, "alpha": alpha}
         self.info.setdefault(slot, info)
         return slot
 

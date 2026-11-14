@@ -15,6 +15,8 @@ DROPPED_KINDS = ("water",)      # the export's clipped water; the sea plane repl
 TERRAIN_SLOT = "terrain"
 PLANNER_PREFIX = "planner_"
 _HEX = re.compile(r"^#?([0-9a-fA-F]{6})$")
+_PLANNER = re.compile(r"^planner_([0-9a-f]{6})(?:_a(\d{2}))?$")
+OPAQUE = 0.995                  # alpha at or above this is opaque
 
 
 def slug(text: str) -> str:
@@ -82,8 +84,29 @@ def color_hex(rgb) -> str:
     return f"{r:02x}{g:02x}{b:02x}"
 
 
-def planner_slot(rgb) -> str:
-    return PLANNER_PREFIX + color_hex(rgb)
+def planner_slot(rgb, alpha: float = 1.0) -> str:
+    """planner_<rrggbb>, or planner_<rrggbb>_a<NN> (alpha in hundredths) for a see-through surface, so a translucent and an
+    opaque material of one colour stay apart."""
+    a = max(0.0, min(1.0, float(alpha)))
+    return PLANNER_PREFIX + color_hex(rgb) + ("" if a >= OPAQUE else f"_a{min(99, round(a * 100)):02d}")
+
+
+def parse_planner(slot: str) -> tuple[str, float] | None:
+    """('rrggbb', alpha) of a planner slot, else None."""
+    m = _PLANNER.match(slot)
+    if not m:
+        return None
+    return m.group(1), (int(m.group(2)) / 100 if m.group(2) else 1.0)
+
+
+def building_groups(names_by_oid: dict) -> dict:
+    """oid -> group for every building: building_<slug>, with the oid added to any name two buildings share (their meshes
+    would otherwise land in one file)."""
+    base = {oid: group_for("building", name) for oid, name in names_by_oid.items()}
+    seen: dict = {}
+    for oid, g in base.items():
+        seen.setdefault(g, []).append(oid)
+    return {oid: (g if len(seen[g]) == 1 else f"{g}_{slug(str(oid))}") for oid, g in base.items()}
 
 
 def linear_to_srgb(c: float) -> float:
@@ -100,7 +123,7 @@ def slot_kind(slot: str, materials: dict, blends: dict) -> str:
     """set | wainscot | terrain | color; raises for a name 6G could not bind."""
     if slot == TERRAIN_SLOT:
         return "terrain"
-    if slot.startswith(PLANNER_PREFIX) and _HEX.match(slot[len(PLANNER_PREFIX):]):
+    if parse_planner(slot):
         return "color"
     if slot in materials:
         return "set"

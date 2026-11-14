@@ -213,6 +213,36 @@ def test_scene_json_catches_an_unbound_slot():
     assert any("M_Kurinuki" in p for p in scene_doc.validate(doc, SETS, BLENDS))
 
 
+def test_translucent_planner_colours_stay_apart():
+    assert names.planner_slot("#808080", 0.4) == "planner_808080_a40"
+    assert names.planner_slot("#808080", 1.0) == "planner_808080"
+    assert names.parse_planner("planner_808080_a40") == ("808080", 0.4)
+    assert names.slot_kind("planner_808080_a40", SETS, BLENDS) == "color"
+    m = scene_doc.material("planner_808080_a40", {"kind": "color", "srgb": "808080", "alpha": 0.4}, SETS, BLENDS, 1)
+    assert m["translucent"] and m["alpha"] == 0.4
+
+
+def test_two_buildings_with_one_name_get_two_groups():
+    got = names.building_groups({"C-1": "Cabin 1", "C-2": "Cabin-1", "C-3": "Elders’ wedge"})
+    assert got["C-3"] == "building_elders_wedge"
+    assert got["C-1"] != got["C-2"] and got["C-1"].startswith("building_cabin_1_")
+
+
+def test_slots_keep_material_index_order():
+    g = scene_doc.group("x", "x.glb", "SM_X", 1, ["steel", "cedar", "glass"], (0, 0, 0), (1, 1, 1))
+    assert g["slots"] == ["steel", "cedar", "glass"] and g["slot_index"]["glass"] == 2
+
+
+def test_camera_uses_its_own_sensor():
+    c = scene_doc.camera("CAM X", (0, 0, 0), (0, 10, 0), 18.0, sensor_mm=24.0)
+    assert c["filmback_mm"][0] == 24.0 and abs(c["horizontal_fov_deg"] - 67.380) < 1e-3
+    try:
+        scene_doc.camera("CAM X", (0, 0, 0), (0, 10, 0), 18.0, sensor_fit="VERTICAL")
+    except ValueError:
+        return
+    raise AssertionError("a vertical sensor fit must be refused")
+
+
 def main():
     tests = [(k, f) for k, f in globals().items() if k.startswith("test_") and callable(f)]
     failed = 0

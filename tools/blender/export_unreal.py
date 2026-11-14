@@ -59,13 +59,13 @@ def find_textures(explicit=None) -> pathlib.Path:
 
 
 def group_items(site) -> dict:
-    """group -> [Item], buildings named from the manifest."""
+    """group -> [Item]; buildings named from the manifest, one group per building even if two share a name."""
+    bnames = {it.props.get("oid"): (it.planner or {}).get("name") or it.props.get("objName") or f"Building {it.props.get('oid')}"
+              for it in site.items if it.kind == "building"}
+    bgroup = names.building_groups(bnames)
     out: dict = {}
     for it in site.items:
-        name = None
-        if it.kind == "building":
-            name = (it.planner or {}).get("name") or it.props.get("objName") or f"Building {it.props.get('oid')}"
-        g = names.group_for(it.kind, name)
+        g = bgroup[it.props.get("oid")] if it.kind == "building" else names.group_for(it.kind)
         if g:
             out.setdefault(g, []).append(it)
     return out
@@ -77,7 +77,8 @@ def camera_entries(cams) -> list:
     for cam in cams:
         eye = cam.matrix_world.translation
         fwd = cam.matrix_world.to_3x3() @ Vector((0.0, 0.0, -1.0))
-        out.append(scene_doc.camera(cam.name, tuple(eye), tuple(eye + fwd * 10.0), cam.data.lens))
+        out.append(scene_doc.camera(cam.name, tuple(eye), tuple(eye + fwd * 10.0), cam.data.lens, cam.data.sensor_width,
+                                    cam.data.sensor_fit))
     return out
 
 
@@ -109,7 +110,8 @@ def write_bundle_readme(out: pathlib.Path, textures: pathlib.Path, scene_bytes: 
     biggest = f"{big.name}, {big.stat().st_size / 1e6:.0f} MB"
     size = f"{(tex_bytes + scene_bytes) / 1e9:.1f} GB ({tex_bytes / 1e9:.1f} GB of textures)"
     (where / "README.md").write_text(BUNDLE_README.format(
-        date=datetime.date.today().isoformat(), textures=os.path.relpath(textures, where), scene=os.path.relpath(out, where),
+        date=datetime.date.today().isoformat(), textures=pathlib.Path(os.path.relpath(textures, where)).as_posix(),
+        scene=pathlib.Path(os.path.relpath(out, where)).as_posix(),
         size=size, biggest=biggest))
 
 
@@ -133,7 +135,7 @@ def main(argv):
     styles = json.loads(pathlib.Path(a.styles).read_text())
     if style_blends(styles).keys() != blends.keys():
         sys.exit(f"styles.json's blends {sorted(style_blends(styles))} differ from the bake's {sorted(blends)}: re-bake")
-    out = pathlib.Path(a.out) if a.out else textures.parent / "scene"
+    out = (pathlib.Path(a.out) if a.out else textures.parent / "scene").resolve()
     out.mkdir(parents=True, exist_ok=True)
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="islandale-6f-"))
 
@@ -180,6 +182,9 @@ def main(argv):
             info = slots.info[m.name]
             set_name = standins._set_for(m.name, info)
             tiles.append(materials[set_name]["tile_m"] if set_name else 6.0)
+        slot_names = [m.name for m in ob.data.materials]
+        if len(set(slot_names)) != len(slot_names):
+            raise RuntimeError(f"{g}: a material slot appears twice: {slot_names}")
         uvinfo = assemble.make_uv0(ob.data, tiles)
         tris = assemble.triangles(ob.data)
         if g != "sea":
@@ -201,7 +206,10 @@ def main(argv):
         pathlib.Path(a.glb).stem + ".manifest.json")
     manifest_copy = out / manifest_path.name                 # the app's own positions, for 6F's north check
     shutil.copyfile(manifest_path, manifest_copy)
-    rel_textures = pathlib.Path(os.path.relpath(textures, out)).as_posix()
+    try:
+        rel_textures = pathlib.Path(os.path.relpath(textures, out)).as_posix()
+    except ValueError:                                       # Windows: textures and --out on different drives
+        sys.exit(f"the textures ({textures}) and --out ({out}) must be on one drive, so scene.json can point between them")
     mats_doc = {s: scene_doc.material(s, info, materials, blends, exag) for s, info in slots.info.items()}
     wains = {s: m for s, m in mats_doc.items() if m["kind"] == "wainscot"}
     doc = scene_doc.build(
@@ -227,7 +235,7 @@ def main(argv):
     total = sum(v["bytes"] for v in log.values())
     write_bundle_readme(out, textures, total)
     (out / "export_unreal.log.json").write_text(json.dumps(
-        {"groups": log, "welds": welds, "triangles_export": tris_export, "triangles_in": tris_in, "triangles_out_without_sea": tris_out,
+        {"groups": log, "welds": welds, "mirrored_objects": assemble.MIRRORED, "triangles_export": tris_export, "triangles_in": tris_in, "triangles_out_without_sea": tris_out,
          "bytes": total, "seconds": round(time.time() - t0, 1), "problems": problems}, indent=2) + "\n")
     print(f"UNREAL wrote {len(log)} files ({total / 1e6:.1f} MB) and scene.json to {out} in {time.time() - t0:.1f}s; "
           f"triangles {tris_in} in, {tris_out} out (sea apart); welded {welds}")

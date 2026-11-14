@@ -122,6 +122,20 @@ def test_uv0_and_axes_survive_the_glb():
     assert any(abs(gz + 2.0) < 1e-5 for _x, _y, gz in pos), "Blender y = 2 north is glTF z = -2"
 
 
+def test_a_mirrored_node_keeps_its_faces_facing_out():
+    """A glTF node mirrored in x: baking its transform must keep the face's normal pointing where it pointed in the scene."""
+    clean()
+    holder = bpy.data.objects.new("mirror", None)
+    bpy.context.scene.collection.objects.link(holder)
+    holder.scale = (-1.0, 1.0, 1.0)
+    ob = quad("q", [(0, 0, 0), (0, 0, 1), (1, 0, 1), (1, 0, 0)], holder)     # faces -y before mirroring
+    bpy.context.view_layer.update()
+    want = (ob.matrix_world.to_3x3().inverted_safe().transposed() @ ob.data.polygons[0].normal).normalized()
+    assert assemble.bake_transform(ob) is True
+    got = ob.data.polygons[0].normal
+    assert (got - want).length < 1e-6, (tuple(got), tuple(want))
+
+
 def main():
     tests = [(k, f) for k, f in globals().items() if k.startswith("test_") and callable(f)]
     failed = 0
