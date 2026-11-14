@@ -1,6 +1,8 @@
 import type { LocalPoint } from '../../../buildings/footprint'
 import { partPoints } from '../model/parts'
-import type { SheetBuilding, SheetPart } from '../types'
+import type { Extent } from '../Page'
+import { ptToFt } from '../svgDims'
+import type { AnyScale, SheetBounds, SheetBuilding, SheetPart } from '../types'
 import { centroidOf, depthOf, lookOf, type CutLine } from './sectionGeom'
 
 /**
@@ -30,6 +32,9 @@ export interface SectionCut extends CutLine {
 export type CutOffsets = Readonly<Record<string, Partial<Record<CutId, number>>>>
 
 export const CUT_TITLE: Readonly<Record<CutId, string>> = { A: 'Section A–A (long)', B: 'Section B–B (cross)' }
+
+/** The room a plan gives its cut marks past its dimensions on every side: a bubble, its arrow and a gap, paper points. */
+const CUT_MARK_PAD_PT = 26
 
 /** A cut keeps this far inside the building's outermost points, feet (3 in). */
 const INSET_FT = 0.25
@@ -86,4 +91,31 @@ export function sectionCuts(b: SheetBuilding, moved: Partial<Record<CutId, numbe
   const lengthFt = Math.max(main.wFt, main.dFt)
   const crossDefault = nudge(main, { origin: c, dir: crossDir, look: lookOf(crossDir) }, lengthFt)
   return [cutOf(b, 'A', c, longDir, 0, moved.A), cutOf(b, 'B', c, crossDir, crossDefault, moved.B)]
+}
+
+/** The room the cut marks take past a plan's dimensions on each side, feet at the scale. */
+export const cutMarkPadFt = (scale: AnyScale): number => ptToFt(CUT_MARK_PAD_PT, scale)
+
+/** A drawing's box grown by `pad` feet on every side. */
+export const padExtent = (e: Extent, pad: number): Extent => ({ x: e.x - pad, y: e.y - pad, w: e.w + 2 * pad, h: e.h + 2 * pad })
+
+/** Where a cut's line enters and leaves a box, as u along it, low then high; null when it misses the box. */
+export function cutReachIn(c: CutLine, box: SheetBounds): readonly [number, number] | null {
+  let lo = -Infinity
+  let hi = Infinity
+  const axes: readonly (readonly [number, number, number, number])[] = [
+    [c.origin[0], c.dir[0], box.minx, box.maxx],
+    [c.origin[1], c.dir[1], box.minz, box.maxz],
+  ]
+  for (const [o, d, min, max] of axes) {
+    if (Math.abs(d) < 1e-12) {
+      if (o < min || o > max) return null
+      continue
+    }
+    const t0 = (min - o) / d
+    const t1 = (max - o) / d
+    lo = Math.max(lo, Math.min(t0, t1))
+    hi = Math.min(hi, Math.max(t0, t1))
+  }
+  return lo <= hi ? [lo, hi] : null
 }

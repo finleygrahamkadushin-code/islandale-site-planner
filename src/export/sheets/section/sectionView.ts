@@ -49,7 +49,7 @@ export interface SectionView {
   readonly floors: readonly CutBand[]
   /** Each cut roof as a closed outline to fill: a slab's own section, or the surface with a roof band under it. */
   readonly roofs: readonly (readonly UY[])[]
-  /** Posts, skirts and retaining walls the cut passes through, closed outlines. */
+  /** Posts, skirts, gable infill off the walls and retaining walls the cut passes through, closed outlines. */
   readonly solids: readonly (readonly UY[])[]
   /** What is seen beyond the cut, as thin polylines: roofs, openings, parts, posts, stairs. */
   readonly beyond: readonly (readonly UY[])[]
@@ -59,6 +59,8 @@ export interface SectionView {
   readonly levels: readonly SectionLevel[]
   /** The cut walls' outside faces along u, low to high, for the width chain. */
   readonly faces: readonly number[]
+  /** The span of everything the cut passes through (walls, floors, roofs), for the overall width; null when it passes through nothing. */
+  readonly cutSpan: Interval | null
   /** Highest and lowest y drawn. */
   readonly top: number
   readonly bottom: number
@@ -135,6 +137,27 @@ function cutWalls(cut: SectionCut, part: SheetPart, meshes: PartMeshes | undefin
       y1: Math.max(plate, gableTop(cut, meshes, u0, u1)),
       opening: outer ? openingAt(part, outer.edge, outer.t) : null,
     }
+  })
+}
+
+/** A gable infill this close to a cut wall is that wall's gable end, feet. */
+const ON_WALL_FT = 0.05
+/** A gable infill standing off the walls (a prow's, at its roof's own outline) is drawn this thick when its part has no wall to take it from, feet. */
+const GABLE_FT = 0.5
+
+/** Gable infill the cut passes through away from the cut walls (a prow roof stands its gables at its eave line): a band the wall's thickness, from its foot to the roof. */
+function gableCuts(cut: SectionCut, part: SheetPart, meshes: PartMeshes | undefined, walls: readonly CutWall[]): UY[][] {
+  const segs = cutAll(meshes?.gables ?? [], cut).filter(([a, b]) => !walls.some((w) => Math.min(a[0], b[0]) >= w.u0 - ON_WALL_FT && Math.max(a[0], b[0]) <= w.u1 + ON_WALL_FT))
+  const byU = new Map<number, number[]>()
+  for (const [a, b] of segs) {
+    const u = Math.round(((a[0] + b[0]) / 2) * 100) / 100
+    byU.set(u, [...(byU.get(u) ?? []), a[1], b[1]])
+  }
+  const t = part.edges.find((e) => e.thicknessFt > 0)?.thicknessFt ?? GABLE_FT
+  return [...byU].flatMap(([u, ys]) => {
+    const y0 = Math.min(...ys)
+    const y1 = Math.max(...ys)
+    return y1 - y0 > SAME_LEVEL_FT ? [rect(u - t / 2, u + t / 2, y0, y1)] : []
   })
 }
 
@@ -316,6 +339,7 @@ export function sectionView(b: SheetBuilding, src: SectionSource, cut: SectionCu
   const floors: CutBand[] = []
   const roofs: UY[][] = []
   const beyond: UY[][] = []
+  const gables: UY[][] = []
   const levels: SectionLevel[] = []
   for (const part of b.parts) {
     const meshes = meshesOf(part)
@@ -323,6 +347,7 @@ export function sectionView(b: SheetBuilding, src: SectionSource, cut: SectionCu
     const isCut = spans.length > 0
     const partWalls = cutWalls(cut, part, meshes)
     walls.push(...partWalls)
+    gables.push(...gableCuts(cut, part, meshes, partWalls))
     if (isCut && meshes?.floor) {
       floors.push(...spans.map(([u0, u1]) => ({ part: part.name, u0, u1, y0: part.levelFt - FLOOR_FT, y1: part.levelFt })))
       levels.push({ label: part.massIndex === b.parts[0]?.massIndex ? 'Floor' : `${part.name} floor`, yFt: part.levelFt })
@@ -344,14 +369,16 @@ export function sectionView(b: SheetBuilding, src: SectionSource, cut: SectionCu
   }
   const supports = supportsOf(cut, b)
   beyond.push(...supports.beyond)
-  const solids = [...supports.solids, ...(b.earthworks?.walls ?? []).flatMap((w) => retainingCut(cut, src, w))]
+  const solids = [...supports.solids, ...gables, ...(b.earthworks?.walls ?? []).flatMap((w) => retainingCut(cut, src, w))]
   const { grade, survey } = groundAlong(cut, src, uMin - GROUND_RUN_FT, uMax + GROUND_RUN_FT)
   const faces = outerFaces(walls)
   if (faces.length) {
     for (const u of [faces[0], faces[faces.length - 1]]) levels.push({ label: GRADE_LABEL, yFt: src.grade(planAt(cut, u)) })
   } else if (grade.length) levels.push({ label: GRADE_LABEL, yFt: Math.min(...grade.map((g) => g[1])) })
   const allY = [...walls.flatMap((w) => [w.y0, w.y1]), ...floors.flatMap((f) => [f.y0, f.y1]), ...roofs.flat().map((p) => p[1]), ...beyond.flat().map((p) => p[1]), ...solids.flat().map((p) => p[1]), ...grade.map((g) => g[1]), ...survey.map((g) => g[1]), 0]
+  const cutUs = [...walls.flatMap((w) => [w.u0, w.u1]), ...floors.flatMap((f) => [f.u0, f.u1]), ...roofs.flat().map((p) => p[0])]
   return {
+    cutSpan: cutUs.length ? [Math.min(...cutUs), Math.max(...cutUs)] : null,
     cut,
     uMin,
     uMax,

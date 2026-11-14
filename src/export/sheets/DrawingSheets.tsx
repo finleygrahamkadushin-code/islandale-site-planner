@@ -6,6 +6,7 @@ import { elevationView, sheetBuildings } from './model/model'
 import { SIDES } from './elevation/sides'
 import { tablesCsv } from './tables/table'
 import { largestScaleThatFits, smallestPaper, tileDrawing } from './tiles'
+import type { Extent } from './Page'
 import { PAPERS, SCALE_LABEL, SITE_SCALE_LABEL, type PaperId, type Scale, type SheetBuilding, type SiteScale } from './types'
 import { usePlanStore } from '../../store/planStore'
 import type { Terrain } from '../../site/types'
@@ -20,7 +21,7 @@ import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { buildSiteSheet, SiteSheet, type SiteSheetInput } from './site/SiteSheet'
 import { siteNotes } from './site/siteNotes'
 import { SiteFit } from './site/SiteFit'
-import { sectionCuts, type CutId, type CutOffsets } from './section/sectionCuts'
+import { cutMarkPadFt, padExtent, sectionCuts, type CutId, type CutOffsets } from './section/sectionCuts'
 import { planGround, sectionSource, type SectionSource } from './section/sectionSource'
 import { sectionView } from './section/sectionView'
 import { sectionLayout } from './section/sectionLayout'
@@ -89,8 +90,11 @@ export function DrawingSheets({ onClose, opener }: Props) {
   }, [buildings, pick])
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
   const fittedScale = useMemo(
-    () => largestScaleThatFits(SCALES, paper, (s) => shown.flatMap((b) => floorPlans(b).map((f) => planLayout(f.building, s, show.rooms ? f.floor : null).extent))),
-    [shown, paper, show.rooms],
+    () =>
+      largestScaleThatFits(SCALES, paper, (s) =>
+        shown.flatMap((b) => floorPlans(b).map((f) => withCutMarks(planLayout(f.building, s, show.rooms ? f.floor : null).extent, s, show.sections))),
+      ),
+    [shown, paper, show.rooms, show.sections],
   )
   const scale = chosenScale ?? fittedScale
   // the section cuts: where the plan sheets' marks have moved them (view state, like the paper and scale: not saved or undone)
@@ -303,7 +307,7 @@ interface FitProps {
   readonly terrain: Terrain
   readonly paper: PaperId
   readonly scale: Scale
-  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly rooms: boolean; readonly supports: boolean }
+  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly sections: boolean; readonly rooms: boolean; readonly supports: boolean }
 }
 
 /** How many pages the plans and elevations take on this paper, and the smallest paper that fits each plan on one. */
@@ -311,7 +315,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
   const fits = useMemo(
     () =>
       buildings.map((b) => {
-        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null).extent)
+        const plans = floorPlans(b).map((f) => withCutMarks(planLayout(f.building, scale, show.rooms ? f.floor : null).extent, scale, show.sections))
         const foundation = show.supports && hasSupports(b) ? planLayout({ ...b, earthworks: null }, scale, null, true).extent : null
         const sides = SIDES.map((side) => elevationLayout(b, elevationView(objects, terrain, b, side), undefined, scale).extent)
         return {
@@ -321,7 +325,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
           smallest: smallestPaper(Math.max(...plans.map((e) => e.w)), Math.max(...plans.map((e) => e.h)), scale),
         }
       }),
-    [buildings, objects, terrain, paper, scale, show.rooms, show.supports],
+    [buildings, objects, terrain, paper, scale, show.rooms, show.supports, show.sections],
   )
   if (!fits.length || !(show.plan || show.elevations)) return null
   const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
@@ -339,6 +343,9 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
     </p>
   )
 }
+
+/** A floor plan's extent with the room its section marks take, when the sections are shown. */
+const withCutMarks = (e: Extent, scale: Scale, sections: boolean): Extent => (sections ? padExtent(e, cutMarkPadFt(scale)) : e)
 
 /** Characters no file system takes in a name. */
 const fileSafe = (name: string) => name.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'plan'

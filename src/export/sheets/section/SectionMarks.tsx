@@ -2,7 +2,8 @@ import { useRef, type KeyboardEvent, type PointerEvent } from 'react'
 import type { LocalPoint } from '../../../buildings/footprint'
 import type { Pen } from '../plan/planLayout'
 import { formatArch } from '../format'
-import type { CutId, SectionCut } from './sectionCuts'
+import type { SheetBounds } from '../types'
+import { cutReachIn, type CutId, type SectionCut } from './sectionCuts'
 import { planAt } from './sectionGeom'
 
 /**
@@ -12,7 +13,7 @@ import { planAt } from './sectionGeom'
  * and is a slider the arrow keys move (6 in, or 1 in with Shift).
  */
 
-/** The line runs this far past the building at each end, feet. */
+/** With no box to reach, the line runs this far past the building at each end, feet. */
 const PAST_FT = 2.5
 /** Drags and keys move the cut in steps of this, feet (1 in), or 6 in for a plain arrow key. */
 const STEP_FT = 1 / 12
@@ -24,13 +25,15 @@ interface Props {
   readonly cuts: readonly SectionCut[]
   readonly pen: Pen
   readonly onMove?: (id: CutId, offsetFt: number) => void
+  /** The plan's drawing and dimensions: each line runs across it and its bubbles sit just outside, clear of the dimension text. */
+  readonly box?: SheetBounds
 }
 
-export function SectionMarks({ cuts, pen, onMove }: Props) {
+export function SectionMarks({ cuts, pen, onMove, box }: Props) {
   return (
     <g className="section-marks">
       {cuts.map((c) => (
-        <CutMark key={c.id} cut={c} pen={pen} onMove={onMove} />
+        <CutMark key={c.id} cut={c} pen={pen} onMove={onMove} box={box} />
       ))}
     </g>
   )
@@ -40,10 +43,11 @@ const clamp = (c: SectionCut, v: number) => Math.min(c.maxFt, Math.max(c.minFt, 
 
 const SCREEN_KEYS: Readonly<Record<string, LocalPoint>> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
 
-function CutMark({ cut: c, pen, onMove }: { readonly cut: SectionCut; readonly pen: Pen; readonly onMove?: Props['onMove'] }) {
+function CutMark({ cut: c, pen, onMove, box }: { readonly cut: SectionCut; readonly pen: Pen; readonly onMove?: Props['onMove']; readonly box?: SheetBounds }) {
   const r = pen.text * 1.1
-  const a = planAt(c, c.reach[0] - PAST_FT)
-  const b = planAt(c, c.reach[1] + PAST_FT)
+  const [from, to] = (box && cutReachIn(c, box)) ?? [c.reach[0] - PAST_FT, c.reach[1] + PAST_FT]
+  const a = planAt(c, from)
+  const b = planAt(c, to)
   const drag = useRef<{ readonly x: number; readonly y: number; readonly offset: number; readonly svg: SVGSVGElement } | null>(null)
   const label = `Section ${c.id}–${c.id}, ${c.kind}`
 
@@ -90,7 +94,8 @@ function CutMark({ cut: c, pen, onMove }: { readonly cut: SectionCut; readonly p
       {ends.map((p, i) => {
         // the bubble just past the line's end, the arrow on the side the section looks toward
         const out = i === 0 ? -1 : 1
-        const centre: LocalPoint = [p[0] + c.dir[0] * r * out, p[1] + c.dir[1] * r * out]
+        const past = r + pen.small * 0.4
+        const centre: LocalPoint = [p[0] + c.dir[0] * past * out, p[1] + c.dir[1] * past * out]
         const tip: LocalPoint = [centre[0] + c.look[0] * r * 2.1, centre[1] + c.look[1] * r * 2.1]
         const side: LocalPoint = [c.dir[0] * r * 0.95, c.dir[1] * r * 0.95]
         const handle = onMove

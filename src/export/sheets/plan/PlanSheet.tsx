@@ -10,9 +10,9 @@ import { RoofMarks } from './RoofMarks'
 import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
 import { planFigures } from './roomLayout'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
-import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
+import { arrowHead, centreMark, dimBounds, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
 import { SectionMarks } from '../section/SectionMarks'
-import type { CutId, SectionCut } from '../section/sectionCuts'
+import { cutMarkPadFt, padExtent, type CutId, type SectionCut } from '../section/sectionCuts'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -38,9 +38,14 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
   const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
   // the rooms name the space inside the walls, so the walls' own part name gives way to them
   const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
+  const marked = !!cuts?.length
+  // the cut marks sit outside the dimensions, so the page holds a bubble's room more on every side
+  const extent = marked ? padExtent(layout.extent, cutMarkPadFt(info.scale)) : layout.extent
+  const dimBox = dimBounds(layout.dims)
+  const box = dimBox ? { minx: Math.min(dimBox.minx, b.bounds.minx), maxx: Math.max(dimBox.maxx, b.bounds.maxx), minz: Math.min(dimBox.miny, b.bounds.minz), maxz: Math.max(dimBox.maxy, b.bounds.maxz) } : b.bounds
   return (
-    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`${title} of ${b.name}`}>
-      {grid && <Grid extent={layout.extent} pen={pen} />}
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={extent} label={`${title} of ${b.name}`}>
+      {grid && <Grid extent={extent} pen={pen} />}
       {b.earthworks && layout.earth && <EarthLines earth={b.earthworks} plan={layout.earth} pen={pen} />}
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
@@ -73,7 +78,7 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
       {layout.earth && <EarthLabels plan={layout.earth} pen={pen} />}
       <CurveNotes notes={layout.notes} pen={pen} />
       {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
-      {cuts && cuts.length > 0 && <SectionMarks cuts={cuts} pen={pen} onMove={onMoveCut} />}
+      {marked && <SectionMarks cuts={cuts} pen={pen} onMove={onMoveCut} box={box} />}
     </TiledDrawing>
   )
 }

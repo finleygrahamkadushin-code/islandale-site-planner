@@ -21,6 +21,8 @@ const ROW_FT = 1.5
 const MARGIN_FT = 1.5
 /** A rise shorter than this gets no dimension, feet (a quarter inch). */
 const MIN_RISE_FT = 1 / 48
+/** Neighbouring rises too short for their text set it out by this many text heights in turn. */
+const CROWD_STEP = 1.7
 /** Below the ground this far the earth hatching stops, feet. */
 export const EARTH_DEPTH_FT = 1.5
 
@@ -56,7 +58,7 @@ export function sectionLayout(view: SectionView, floorNavdFt: number, scale: Sca
     const rise = ys[i] - ys[i - 1]
     if (rise < MIN_RISE_FT) continue
     crowded = rise < textWidthFt(formatArch(rise), pen.text) * 1.1 ? crowded + 1 : 0
-    dims.push(dimensionLine([left, -ys[i - 1]], [left, -ys[i]], CHAIN_FT, { ...opts, textOffsetFt: opts.textOffsetFt + pen.text * 1.2 * (crowded % 3), normal: [-1, 0] }))
+    dims.push(dimensionLine([left, -ys[i - 1]], [left, -ys[i]], CHAIN_FT, { ...opts, textOffsetFt: opts.textOffsetFt + pen.text * CROWD_STEP * (crowded % 3), normal: [-1, 0] }))
   }
   if (ys.length >= 2) dims.push(dimensionLine([left, -ys[0]], [left, -view.top], CHAIN_FT + OVERALL_FT, { ...opts, normal: [-1, 0] }))
 
@@ -64,8 +66,11 @@ export function sectionLayout(view: SectionView, floorNavdFt: number, scale: Sca
   const f = view.faces
   for (let i = 1; i < f.length; i++) if (f[i] - f[i - 1] > MIN_RISE_FT) dims.push(dimensionLine([f[i - 1], base], [f[i], base], BELOW_FT, { ...opts, normal: [0, 1] }))
   const rows = f.length > 2 ? 1 : 0
-  if (f.length >= 2) dims.push(dimensionLine([f[0], base], [f[f.length - 1], base], BELOW_FT + ROW_FT * rows, { ...opts, normal: [0, 1] }))
-  dims.push(dimensionLine([view.uMin, base], [view.uMax, base], BELOW_FT + ROW_FT * (rows + (f.length >= 2 ? 1 : 0)), { ...opts, normal: [0, 1] }))
+  // with only two faces the chain is already the overall width
+  if (f.length > 2) dims.push(dimensionLine([f[0], base], [f[f.length - 1], base], BELOW_FT + ROW_FT * rows, { ...opts, normal: [0, 1] }))
+  const span = view.cutSpan
+  const sameAsFaces = span && f.length >= 2 && Math.abs(span[0] - f[0]) < MIN_RISE_FT && Math.abs(span[1] - f[f.length - 1]) < MIN_RISE_FT
+  if (span && span[1] - span[0] > MIN_RISE_FT && !sameAsFaces) dims.push(dimensionLine([span[0], base], [span[1], base], BELOW_FT + ROW_FT * (rows + (f.length >= 2 ? 1 : 0)), { ...opts, normal: [0, 1] }))
 
   const labelYs = spreadApart(ys, pen.small * 1.25)
   const labelW = Math.max(0, ...view.levels.map((l) => textWidthFt(levelText(l.label, l.yFt, floorNavdFt), pen.small)))

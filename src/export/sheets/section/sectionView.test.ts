@@ -9,7 +9,7 @@ import type { PlanObject } from '../../../store/types'
 import { sheetBuildings } from '../model/model'
 import type { SheetBuilding } from '../types'
 import { sectionCuts, type SectionCut } from './sectionCuts'
-import { planAt, type UY } from './sectionGeom'
+import { planAt, type Tri, type UY } from './sectionGeom'
 import { planGround, sectionSource } from './sectionSource'
 import { GRADE_LABEL, ROOF_FT, sectionView, type SectionView } from './sectionView'
 
@@ -165,5 +165,25 @@ describe('the ground', () => {
     expect(top).toBeLessThanOrEqual(w.topHighFt + 1e-9)
     // the uphill wall holds the bank up well above the cut floor
     expect(top - w.bottomFt).toBeGreaterThan(2)
+  })
+})
+
+describe('gable infill off the walls', () => {
+  test('a gable standing at a roof’s own outline, as a prow’s does, is drawn cut where the section crosses it', () => {
+    const o = house('P', {})
+    const b = sheetBuildings([o], flat)[0]
+    const src = sectionSource(o, b, planGround([o], flat))
+    // a gable quad 1 ft outside the right wall's face, from the plate up to 12 ft
+    const quad: Tri[] = [
+      [[13, 9, -2], [13, 9, 2], [13, 12, 2]],
+      [[13, 9, -2], [13, 12, 2], [13, 12, -2]],
+    ]
+    const withGable = { ...src, parts: src.parts.map((p, i) => (i === 0 ? { ...p, gables: [...p.gables, ...quad] } : p)) }
+    const a = sectionView(b, withGable, sectionCuts(b)![0])
+    const band = a.solids.find((s) => Math.min(...s.map((q) => q[1])) === 9 && Math.max(...s.map((q) => q[1])) === 12)
+    expect(band).toBeDefined()
+    const us = band!.map((q) => q[0])
+    expect((Math.min(...us) + Math.max(...us)) / 2).toBeCloseTo(13, 6)
+    expect(Math.max(...us) - Math.min(...us)).toBeCloseTo(b.parts[0].edges[0].thicknessFt, 6)
   })
 })

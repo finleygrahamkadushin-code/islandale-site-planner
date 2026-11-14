@@ -89,6 +89,10 @@ function SectionDrawing({ building: b, view, layout, info, title, hatch }: Drawi
           ))}
         </g>
         <g fill={POCHE} stroke="#000" strokeWidth={pen.heavy} strokeLinejoin="miter" data-seen="cut">
+          {/* posts and retaining walls first, so a floor slab or roof band they run up to covers their top */}
+          {view.solids.map((s, i) => (
+            <polygon key={`s${i}`} points={pts(s)} />
+          ))}
           {view.floors.map((f, i) => (
             <rect key={`f${i}`} x={f.u0} y={-f.y1} width={f.u1 - f.u0} height={f.y1 - f.y0} />
           ))}
@@ -97,9 +101,6 @@ function SectionDrawing({ building: b, view, layout, info, title, hatch }: Drawi
           ))}
           {view.walls.map((w, i) => (
             <WallCut key={`w${i}`} wall={w} pen={pen} />
-          ))}
-          {view.solids.map((s, i) => (
-            <polygon key={`s${i}`} points={pts(s)} />
           ))}
         </g>
         {g.length > 1 && <polyline points={pts(g)} fill="none" stroke="#000" strokeWidth={pen.heavy} data-grade="finished" />}
@@ -132,7 +133,8 @@ function WallCut({ wall: w, pen }: { readonly wall: CutWall; readonly pen: Pen }
       {piece(w.y0, sill, 'below')}
       {piece(head, w.y1, 'above')}
       {w.opening.kind === 'window' && <line x1={mid} y1={-sill} x2={mid} y2={-head} stroke="#000" strokeWidth={pen.thin} />}
-      <text x={mid} y={-head - pen.small * 0.6} fontSize={pen.small} textAnchor="middle" fill="#000" stroke="none">
+      {/* the tag stands up in the opening, clear of the poche */}
+      <text x={mid} y={-(sill + head) / 2} transform={`rotate(-90 ${mid} ${-(sill + head) / 2}) translate(0 ${-pen.small * 0.9})`} fontSize={pen.small} textAnchor="middle" dominantBaseline="central" fill="#000" stroke="none">
         {w.opening.tag}
       </text>
     </g>
