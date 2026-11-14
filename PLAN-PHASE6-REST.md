@@ -66,6 +66,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
 - **6I · Section sheets:**
   - One long and one cross section per building, with the cut chosen on its plan sheet. They show floor, walls, roof, the cut ground and openings, with heights in NAVD88.
   - Check-in B: PDFs of every Scheme C building at 1/4" = 1'-0".
+  - Full plan (check-in A, waived Nov 14): `PLAN-6I.md`.
 - **6J · Render button:**
   - `three-gpu-pathtracer` from the current camera or a saved view, with progress and Stop, saved as PNG. The live view stays as it is.
   - Check-in B: a Golden hour still of Scheme C rendered on your Mac in a few minutes.
