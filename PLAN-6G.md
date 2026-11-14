@@ -88,7 +88,7 @@ The bundle that goes to the PC is 2.7 GB (`build/3d/unreal/`; the biggest file i
 
 ## Platforms: this Mac and the PC
 
-**Decided (Nov 14): all Unreal work and rendering happen on Finley's Windows PC with an RTX 5090.** Unreal keeps crashing on the Mac ("also unreal keeps crashing so again all the rendering happens on the 5090"). The Mac does the app, the tests and the Blender export; the bundle travels on an ExFAT USB drive. The scripts still run on both, and the Mac notes below are for the record.
+**Decided (Nov 14): all Unreal work and rendering happen on Finley's Windows PC with an RTX 5080.** (Finley said "5090" at first and corrected it to 5080 the same day.) Unreal keeps crashing on the Mac ("also unreal keeps crashing so again all the rendering happens on the 5090"). The Mac does the app, the tests and the Blender export; the bundle travels on an ExFAT USB drive. The scripts still run on both, and the Mac notes below are for the record.
 
 Two ways to drive the PC, using the same import code:
 - **A Claude session there** starts from `tools/unreal/HANDOFF-PC.md`.

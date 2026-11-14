@@ -1,6 +1,6 @@
 # Islandale in Unreal on the PC: start here
 
-This brief is for a fresh Claude Code session on Finley's Windows PC (RTX 5090), with no other context. Unreal does all the Unreal work and rendering for the Islandale project on this PC, because Unreal crashes on the Mac where everything else is made.
+This brief is for a fresh Claude Code session on Finley's Windows PC (RTX 5080), with no other context. Unreal does all the Unreal work and rendering for the Islandale project on this PC, because Unreal crashes on the Mac where everything else is made.
 
 **What Islandale is:** a site planner app for one waterfront lot. Scheme C ("C · Prow & Lantern") has four cabins: the Gathering prow, the Family lantern, the Family twin pod and the Elders' wedge. The Mac exports the scene from Blender as a **bundle**:
 - one `.glb` per group (terrain, sea, earthworks, site, trees, each cabin);
@@ -53,7 +53,7 @@ Your job is phase **6G**: a polished Unreal level of Scheme C. The deadline is *
 - Sun: a DirectionalLight at `scene.json`'s rotation, marked as the atmosphere sun.
 - ExponentialHeightFog, a PostProcessVolume with fixed exposure, and the 9 CineCameraActors from `scene.json`.
 - The import is safe to run twice.
-- One still per camera plus a top-down view, rendered on the 5090 (Movie Render Queue; the Path Tracer is welcome for finals). Shadow sides must not be black; the scene captures in the 6F check were.
+- One still per camera plus a top-down view, rendered on the 5080 (Movie Render Queue; the Path Tracer is welcome for finals). Shadow sides must not be black; the scene captures in the 6F check were.
 
 ## 4. What to send back to the Mac
 
