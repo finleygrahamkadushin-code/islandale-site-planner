@@ -1,16 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clearSaves } from './fresh'
+import { openFresh } from './fresh'
 import { openSection } from './inspector'
+import { viewSettled } from './settle'
 
 /** Phase 5A: Scheme C's parts can be picked, resized, added and removed, and each rail edge switched, with undo and locks. */
 
 const SCHEMES = ['C']
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
-  await clearSaves(page)
-  await page.reload()
-  await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
+  await openFresh(page)
   await page.waitForFunction(() => (window as any).islandale?.railedEdges, null, { timeout: 60_000 })
 })
 
@@ -59,6 +57,7 @@ test('a picked deck shows its rail chips, and a click cycles that edge', async (
   const { mass, edges } = await railedWing(page, id)
   await store(page, 'pickPart', { objectId: id, mass })
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 10), id)
+  await viewSettled(page)
   const chip = page.getByTestId(`rail-chip-${mass}-${edges[0]}`)
   await expect(chip).toBeVisible({ timeout: 15_000 })
   // auto → on → off: the second click takes the rail off
@@ -99,6 +98,7 @@ test('a stair can be added off a free edge from its + chip, and undo takes it aw
   const start = await wings(page, id)
   await store(page, 'pickPart', { objectId: id, mass: 0 })
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 26, 12), id)
+  await viewSettled(page)
   const plus = page.locator('[data-testid^="add-chip-0-"]').first()
   await expect(plus).toBeVisible({ timeout: 15_000 })
   await plus.click({ force: true })
@@ -133,6 +133,7 @@ test('the picked part follows its edge square, grip and knob under the mouse, on
   expect(mi).toBeGreaterThan(0)
   await store(page, 'pickPart', { objectId: id, mass: mi })
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 30, 18), id)
+  await viewSettled(page)
   for (const h of ['part-handle-0', 'part-handle-1', 'part-handle-2', 'part-handle-3', 'part-grip', 'part-knob']) {
     await expect(page.getByTestId(h), h).toBeVisible({ timeout: 15_000 })
   }
@@ -192,6 +193,8 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
   await expect.poll(async () => (await railedEdges(page))[id]?.[3], { timeout: 30_000 }).toBeTruthy()
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 9), id)
   await store(page, 'select', [id])
+  // the points are found by raycasting, which reads the camera and meshes as last drawn: draw the new view first
+  await viewSettled(page)
   const spots: { x: number; y: number }[] = await page.evaluate((id) => (window as any).islandale.railPointsOf(id, 3), id)
   expect(spots.length, 'rail points of Deck 3 on screen').toBeGreaterThan(0)
   const state = () =>
@@ -205,6 +208,8 @@ test('a click on the rail of a selected cabin picks the deck it rails, plain or 
     await store(page, 'pickPart', null)
     await store(page, 'select', [id])
     await expect(page.locator('.rail-chip')).toHaveCount(0)
+    // the click's raycast reads each mesh as last drawn: a rail rebuilt by the change is only hit once it is drawn
+    await viewSettled(page)
     if (alt) await page.keyboard.down('Alt')
     await page.mouse.click(p.x, p.y)
     if (alt) await page.keyboard.up('Alt')
@@ -222,6 +227,8 @@ test('a rail clicked in 3D can be removed on its own from its chip, and undo put
   await expect.poll(async () => (await railedEdges(page))[id]?.[3], { timeout: 30_000 }).toBeTruthy()
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 9), id)
   await store(page, 'select', [id])
+  // as above: raycasts read the view as last drawn
+  await viewSettled(page)
   const spots: { x: number; y: number }[] = await page.evaluate((id) => (window as any).islandale.railPointsOf(id, 3), id)
   expect(spots.length).toBeGreaterThan(0)
   const before = await railedEdges(page)
@@ -267,6 +274,7 @@ test('hiding a cabin with a part picked takes its chips, grip and knob away with
   const overlay = page.locator('[data-testid^="add-chip-"], [data-testid^="rail-chip-"], [data-testid="part-grip"], [data-testid="part-knob"]')
   await store(page, 'pickPart', { objectId: id, mass: 3 })
   await page.evaluate((id) => (window as any).islandale.focus(id, 180, 22, 10), id)
+  await viewSettled(page)
   await expect(page.getByTestId('part-grip')).toBeAttached({ timeout: 15_000 })
   await openSection(page, 'visibility')
   await page.locator('section.inspector').getByRole('button', { name: 'Hide', exact: true }).click()
