@@ -12,6 +12,7 @@ Read `PLAN.md` first. We are rebuilding the planner as a Vite + TypeScript + Rea
 - Work one phase at a time. Before coding a phase, state the plan in a few lines and wait for an OK. After each phase, run the app, check it in the browser, and commit.
 - Don't start a phase until the one before passes its done-when check (table in `PLAN.md`, "Build order").
 - This copy holds Scheme C ("C · Prow & Lantern") only, and every test loads Scheme C only. The full set of 12 schemes is on `main`.
+- Several sessions (Claude and Codex) work here at once. The shared board, `~/.claude/boards/islandale.md`, says what is decided, merged, waiting and owned right now. Before you recommend or redo a change, check the board and `git log scheme-c-only`, since another session may already have done it. After you merge something, or Finley decides something, add a dated line to the board and delete lines that are no longer true. A hook shows the board in every Claude session's context with each message.
 
 ## Layout
 

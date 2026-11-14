@@ -2,6 +2,10 @@
 
 **Follow `CLAUDE.md`.** It is the one rule file for this repo, for Claude and for you. Read it first, then `PLAN.md`. This file only adds how to share the repo with the Claude sessions that work here too.
 
+## The shared board
+
+Read `~/.claude/boards/islandale.md` before you start, and again before you recommend or redo a change: it says what is decided, merged, waiting and owned right now, and another session may already have done what you are about to do. Claude sessions see it on every message; you don't, so read it yourself. After you merge something, or Finley decides something, add a dated line to it.
+
 ## Branches
 
 - The main line is **`scheme-c-only`** (Scheme C only). `main` keeps all 12 schemes as an archive; don't work from it.
