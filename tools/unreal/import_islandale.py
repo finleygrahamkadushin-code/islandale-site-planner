@@ -19,6 +19,7 @@ import sys
 import unreal
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import api_check  # noqa: E402
 import islandale_plan  # noqa: E402
 
 PHASES = ("textures", "masters", "instances", "meshes", "level")
@@ -56,6 +57,7 @@ def main(argv):
     scene_dir = pathlib.Path(a.scene)
     scene = json.loads((scene_dir / "scene.json").read_text())
     materials_json = islandale_plan.load_materials(scene, scene_dir)
+    api_check.require(api_check.IMPORT_6G + api_check.IMPORT_6G_SOURCE, log)   # before anything is changed
     plan = islandale_plan.plan(scene, materials_json, scene_dir)
     todo = [p for p in a.only.split(",") if p]
     unknown = sorted(set(todo) - set(PHASES))
@@ -67,4 +69,5 @@ def main(argv):
             globals()[f"run_{phase}"](plan)
 
 
-main(sys.argv[1:])
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -6,6 +6,7 @@ the real API (5.8.4), not a guess. Runs inside Unreal:
 names.txt: one dotted name per line (unreal.Class, unreal.Class.method, unreal.Class.property); # starts a comment.
 Without it, the names in DEFAULT_NAMES. Writes {name: {"exists": bool, "kind": ..., "doc": first lines}}."""
 import json
+import pathlib
 import sys
 
 import unreal
@@ -198,26 +199,8 @@ unreal.SystemLibrary.get_project_directory
 """.split()
 
 
-def describe(name):
-    parts = name.split(".")
-    obj = unreal
-    for p in parts[1:]:
-        if not hasattr(obj, p):
-            # editor properties are not attributes of the class; look them up in the class docstring
-            doc = getattr(obj, "__doc__", "") or ""
-            if f"``{p}``" in doc:
-                line = next((ln.strip() for ln in doc.splitlines() if f"``{p}``" in ln), "")
-                return {"exists": True, "kind": "editor_property", "doc": line}
-            return {"exists": False}
-        obj = getattr(obj, p)
-    kind = type(obj).__name__
-    doc = (getattr(obj, "__doc__", "") or "").strip()
-    out = {"exists": True, "kind": kind, "doc": "\n".join(doc.splitlines()[:40])}
-    if isinstance(obj, type) and issubclass(obj, unreal.EnumBase):
-        out["members"] = sorted(m for m in dir(obj) if m.isupper())
-    elif isinstance(obj, type):
-        out["editor_properties"] = [ln.split("``")[1] for ln in doc.splitlines() if ln.strip().startswith("- ``")]
-    return out
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from api_check import describe  # noqa: E402  (shared with the self-check)
 
 
 def main(argv):

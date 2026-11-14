@@ -25,6 +25,9 @@ import time
 
 import unreal
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import api_check  # noqa: E402
+
 ROOT = "/Game/Islandale6F"
 MESHES = f"{ROOT}/Meshes"
 LEVEL = f"{ROOT}/Check6F_" + time.strftime("%Y%m%d_%H%M%S")   # a fresh level each run (throwaway project)
@@ -205,17 +208,19 @@ def shots(scene, out_dir):
 
 
 PROBE_EVERY_S = 6.0               # editor mode: a small probe capture this often until the picture stops changing
-PROBE_MIN_S, PROBE_MAX_S = 60.0, 1200.0
+PROBE_MIN_S, PROBE_MAX_S = 60.0, 2400.0     # a new project on a new machine compiles shaders for a long while
 PROBE_STABLE = 3                 # this many probes in a row within PROBE_TOL of each other's file size
 PROBE_TOL = 0.01
+PROBE_MIN_BYTES = 20000          # a blank or black 480 x 270 capture compresses below this; it never counts as settled
 
 
 class Shooter:
     """Editor mode: shaders compile asynchronously while the editor ticks, so take a small probe capture every few seconds
-    and shoot once the probe stops changing (no Python API reports the shader queue in 5.8.4)."""
+    and shoot once the probe stops changing (no Python API reports the shader queue in 5.8.4). on_done(report) runs at the
+    end, after check.json is written; then the editor quits if quit_after."""
 
-    def __init__(self, scene, out_dir, report, quit_after):
-        self.scene, self.out_dir, self.report, self.quit_after = scene, out_dir, report, quit_after
+    def __init__(self, scene, out_dir, report, quit_after, on_done=None):
+        self.scene, self.out_dir, self.report, self.quit_after, self.on_done = scene, out_dir, report, quit_after, on_done
         self.t0 = time.time()
         self.last_probe = 0.0
         self.sizes = []
@@ -233,7 +238,8 @@ class Shooter:
 
     def settled(self):
         last = self.sizes[-PROBE_STABLE:]
-        return len(last) == PROBE_STABLE and min(last) > 0 and (max(last) - min(last)) <= PROBE_TOL * max(last)
+        return (len(last) == PROBE_STABLE and min(last) > PROBE_MIN_BYTES
+                and (max(last) - min(last)) <= PROBE_TOL * max(last))
 
     def tick(self, _dt):
         now = time.time() - self.t0
@@ -254,6 +260,8 @@ class Shooter:
             self.report["shots_error"] = repr(e)
         finish(self.report, self.out_dir)
         unreal.EditorPythonScripting.set_keep_python_script_alive(False)
+        if self.on_done:
+            self.on_done(self.report)
         if self.quit_after:
             unreal.SystemLibrary.quit_editor()
 
@@ -266,6 +274,41 @@ def finish(report, out_dir):
     log(f"done ok={report['ok']} in {report['seconds']}s -> {out_dir / 'check.json'}")
 
 
+def run(scene_dir: pathlib.Path, out_dir: pathlib.Path, skip_import=False, with_shots=True, quit_after=False,
+        on_done=None, say=log):
+    """Self-check, import, place, check, then (editor only) the screenshots on later ticks. Returns the report so far."""
+    api_check.require(api_check.CHECK_6F + api_check.CHECK_6F_SOURCE, say)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    scene = json.loads((scene_dir / "scene.json").read_text())
+    manifest = json.loads((scene_dir / scene["source"]["manifest"]).read_text())   # paths in scene.json are relative to it
+    report = {"_t0": time.time(), "engine": unreal.SystemLibrary.get_engine_version(), "imports": {}}
+    meshes_by_group = {}
+    for g in scene["groups"]:
+        dest = f"{MESHES}/{g['group']}"
+        if not skip_import:
+            imported = import_group(scene_dir / g["file"], dest)
+            report["imports"][g["group"]] = {"objects": len(imported or [])}
+        meshes = [p for p in unreal.EditorAssetLibrary.list_assets(dest, recursive=True, include_folder=False)
+                  if isinstance(unreal.EditorAssetLibrary.load_asset(p), unreal.StaticMesh)]
+        if len(meshes) != 1:
+            raise RuntimeError(f"{g['group']}: expected one static mesh in {dest} after importing {g['file']}, "
+                               f"found {len(meshes)}")
+        meshes_by_group[g["group"]] = meshes[0].split(".")[0]
+        say(f"imported {g['group']} -> {meshes_by_group[g['group']]}")
+    placed = build_level(scene, meshes_by_group)
+    say(f"level {LEVEL} built: {len(placed)} meshes at the origin, sun, sky, fog, {len(scene['cameras'])} cameras")
+    report["bounds"] = check_bounds(scene, meshes_by_group)
+    report["north_and_ground"] = check_north_and_ground(scene, manifest, placed)
+    report["sea"] = check_sea(scene, placed)
+    if not with_shots:
+        finish(report, out_dir)
+        if on_done:
+            on_done(report)
+        return report
+    Shooter(scene, out_dir, report, quit_after, on_done)
+    return report
+
+
 def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--scene", required=True)
@@ -274,31 +317,8 @@ def main(argv):
     ap.add_argument("--no-shots", action="store_true")
     ap.add_argument("--quit", action="store_true", help="editor mode: quit the editor when done")
     a = ap.parse_args(argv)
-    scene_dir, out_dir = pathlib.Path(a.scene), pathlib.Path(a.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    scene = json.loads((scene_dir / "scene.json").read_text())
-    manifest = json.loads((scene_dir / scene["source"]["manifest"]).read_text())   # paths in scene.json are relative to it
-    report = {"_t0": time.time(), "engine": unreal.SystemLibrary.get_engine_version(), "imports": {}}
-    meshes_by_group = {}
-    for g in scene["groups"]:
-        dest = f"{MESHES}/{g['group']}"
-        if not a.skip_import:
-            imported = import_group(scene_dir / g["file"], dest)
-            report["imports"][g["group"]] = {"objects": len(imported or [])}
-        meshes = [p for p in unreal.EditorAssetLibrary.list_assets(dest, recursive=True, include_folder=False)
-                  if isinstance(unreal.EditorAssetLibrary.load_asset(p), unreal.StaticMesh)]
-        if len(meshes) != 1:
-            raise RuntimeError(f"{g['group']}: expected one static mesh in {dest}, found {meshes}")
-        meshes_by_group[g["group"]] = meshes[0].split(".")[0]
-        log(f"imported {g['group']} -> {meshes_by_group[g['group']]}")
-    placed = build_level(scene, meshes_by_group)
-    report["bounds"] = check_bounds(scene, meshes_by_group)
-    report["north_and_ground"] = check_north_and_ground(scene, manifest, placed)
-    report["sea"] = check_sea(scene, placed)
-    if a.no_shots:
-        finish(report, out_dir)
-        return
-    Shooter(scene, out_dir, report, a.quit)
+    run(pathlib.Path(a.scene), pathlib.Path(a.out), a.skip_import, not a.no_shots, a.quit)
 
 
-main(sys.argv[1:])
+if __name__ == "__main__":
+    main(sys.argv[1:])

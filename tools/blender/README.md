@@ -79,6 +79,7 @@ You can also save the files from the app: the top bar's **3D model** button. Ope
 - **Material slots** are named for 6G: a 6E set key (`kurinuki`, `stucco__aa9d13`), `elders_wainscot__<oid>`, `terrain`, or `planner_<rrggbb>` for surfaces that keep the app's colours. Stand-ins carry a flat colour (or a BC preview with `--preview-textures`).
 - **The lantern seam:** a straight mass's walls are joined into one mesh per building and welded at the corners (`build_scene.py --weld-walls` does the same for renders).
 - **Axes in Unreal:** +X east, +Y south (north is −Y), Z up, centimetres.
+- **Check it from the files** (no Unreal needed): `Blender -b --factory-startup -P tools/blender/verify_unreal_export.py -- --scene build/3d/unreal/scene --app-glb build/3d/export/c-prow-lantern.glb --out <folder>`. It re-imports every `.glb` and checks structure, axes, bounds against the app, north, floor levels, ground contact, the sea at the tide, UV0 scale, material names and the lantern seam, then renders from above and from each camera. It exits 1 on a failure.
 - **Portable:** `scene.json` uses paths relative to itself, and the app's manifest is copied beside it, so `build/3d/unreal/` (textures + scene + README) can be copied to another machine as it is. Plan: `PLAN-6F.md`; the Unreal side: `tools/unreal/README.md`.
 
 ## Files

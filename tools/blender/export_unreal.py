@@ -84,19 +84,25 @@ def camera_entries(cams) -> list:
 
 BUNDLE_README = """# Islandale Unreal bundle (Scheme C)
 
-Made by `tools/blender/export_unreal.py` (6F) on {date}. Everything 6G needs, with relative paths only, so this folder can be
-copied to another machine (an ExFAT drive is fine: the biggest file is {biggest}).
+Made by `tools/blender/export_unreal.py` (6F) on {date}. It holds everything Unreal needs, with relative paths only, so this
+folder can be copied to another machine as it is (an ExFAT USB drive is fine: the biggest file is {biggest}).
 
     {textures}/         6E: one seamless 6 m tile per material (T_<set>_BC / _ORM / _H / _N) and materials.json
     {scene}/            6F: one .glb per group (one static mesh each, in site coordinates), scene.json, the app's manifest
 
 Size: about {size}. Axes in Unreal: +X east, +Y south (north is -Y), Z up, centimetres; place every mesh at the origin.
 
-On the other machine (Unreal Engine 5.8, with this repo checked out on branch scheme-c-only):
-1. Make or open the Unreal project; enable the Python Editor Script Plugin and Editor Scripting Utilities (Interchange is on).
-2. Check the files open:  UnrealEditor <Project>.uproject -ExecutePythonScript="tools/unreal/check_6f.py --scene <this folder>/{scene} --out <somewhere> --quit"
-3. Build the level (6G, still being written):  UnrealEditor-Cmd <Project>.uproject -run=pythonscript -script="tools/unreal/import_islandale.py --scene <this folder>/{scene}"
-See PLAN-6G.md for what each step makes and what the PC needs.
+## On the Windows PC (Unreal Engine 5.8)
+
+1. Get the Islandale repo on branch scheme-c-only (git clone, then git checkout scheme-c-only).
+2. Copy THIS folder into the repo as build\\3d\\unreal (so build\\3d\\unreal\\scene\\scene.json exists).
+3. Double-click tools\\unreal\\run_islandale_pc.bat. It makes an Unreal project in Documents\\IslandaleUE (first time
+   only), then Unreal opens, imports these files, checks them and saves a screenshot from above and from each camera,
+   and closes itself. The first run compiles shaders and can take 10-40 minutes.
+4. Copy back the newest folder in pc-runs\\ (inside this folder): run_log.txt says what happened, step by step.
+
+If Unreal is not in C:\\Program Files\\Epic Games\\UE_5.8, set UE_ROOT to its folder first. A Claude session on the PC
+should start from tools/unreal/HANDOFF-PC.md. Building the finished level (6G) is described in PLAN-6G.md.
 """
 
 

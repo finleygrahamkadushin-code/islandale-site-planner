@@ -63,7 +63,8 @@ On a straight mass (`wallEi: "edge"`), the export makes one wall mesh per outlin
 - **Pure tests** (any Python 3, or Blender's): `tools/blender/tests/test_unreal_export.py`. Group assignment, slot names, UV scaling and island shifting, the Blender → UE frame, the sun and camera rotations, and `scene.json` assembly (schema and values from a fake scene).
 - **Blender test:** `tests/test_unreal_blender.py`. A two-wall corner welds to one mesh with no gap. A UV-scaled quad exported to `.glb` reads back with TEXCOORD_0 = (u/6, 1 − v/6) and positions as (x, z, −y).
 - **The run on Scheme C:** every group written, slot names all in `materials.json` (or a blend or `planner_`), triangle totals match the export, sizes reported.
-- **Check-in B in Unreal 5.8.4:** `tools/unreal/check_6f.py` runs in the full editor (`-ExecutePythonScript`; the commandlet can't place actors) in a throwaway project outside the repo. It imports every `.glb` with Interchange, places them at the origin with a sun from `scene.json`, and reads the bounds back: the sea's Z = tide × 100, each building's lowest point on the ground under it, and the app's north (the bay is south-east of the cabins) at −Y. It then saves a top-down screenshot and one from a `scene.json` camera. Every Unreal call is checked against the installed engine first. If the headless editor can't render, the report says what failed and gives the editor steps.
+- **Check-in B, from the files (Nov 14, after Finley moved all Unreal work to the Windows 5090 PC because Unreal crashes on the Mac):** `tools/blender/verify_unreal_export.py` re-imports every `.glb` into a clean Blender scene and checks what the export claims. It renders the result from above and from every `scene.json` camera in place of Unreal screenshots. The same check runs in Unreal on the PC: `tools/unreal/check_6f.py`, started by `run_islandale_pc.bat`.
+- **The earlier run in Unreal on the Mac** (superseded, kept for the record): `tools/unreal/check_6f.py` ran in the full editor (`-ExecutePythonScript`; the commandlet can't place actors) in a throwaway project outside the repo. It imports every `.glb` with Interchange, places them at the origin with a sun from `scene.json`, and reads the bounds back: the sea's Z = tide × 100, each building's lowest point on the ground under it, and the app's north (the bay is south-east of the cabins) at −Y. It then saves a top-down screenshot and one from a `scene.json` camera. Every Unreal call is checked against the installed engine first. If the headless editor can't render, the report says what failed and gives the editor steps.
 
 ## Results (Nov 14)
 
@@ -81,3 +82,28 @@ On a straight mass (`wallEi: "edge"`), the export makes one wall mesh per outlin
   - Each building's app position (manifest x, n) lies inside its mesh at (100x, −100n), so north is −Y.
   - Straight down through each building, the ground (terrain or its earthworks pad) is hit, and the building's lowest point sits 0.7–2.1 m into it, never above it.
   - The top-down capture matches a top-down of the app's own export, and the shadows fall east under the 272° evening sun.
+
+### Check-in B from the files (`verify_unreal_export.py`, Nov 14, all pass)
+
+- **Files:**
+  - every `.glb` passes the structural check (`islandale3d/unreal/gltf.py`; the Khronos validator isn't installed and no download was made): glTF 2.0, chunk lengths, accessors and indices in range, POSITION min/max true, unit normals;
+  - attributes are only POSITION, NORMAL and TEXCOORD_0;
+  - triangle counts match `scene.json`.
+- **Units and axes:** metres in the files (Unreal ×100 into cm). +Y is up in the glTF (terrain elevations 1.25–14.01 m) and north is −Z. Read back as Blender (x, −z, y), every file's raw bounds match `scene.json` within 0.05 mm.
+- **Materials:** all 41 names in the files are 6E sets, the wainscot blend, the terrain blend or planner colours, and match each group's `scene.json` slots.
+- **Bounds:**
+  - each re-imported group matches `scene.json` within 0.05 mm;
+  - the terrain covers exactly the app's grid: x −120…120 m, n −100…100 m.
+- **North and floor levels:** each building's app position (manifest x east, n north) lies inside it, and all 33 footprint corners of its walled masses have geometry within 5 cm at the floor level and at the wall top. Floor levels: prow 7.072 m, lantern 9.0115 m, twin pod 9.1743 m, Elders' wedge 8.2277 m.
+- **Ground:** every support the app tags (`foundation`, `post`, `structure`; 17, 9, 21 and 28 per building) is in the Unreal file. Each one stands on the ground or on other building geometry within 5 cm:
+  - on the ground: 9, 5, 11 and 24, with piers reaching 0.55–0.83 m below grade;
+  - on a deck: the porch columns, 8, 4, 10 and 4.
+
+  None floats.
+- **Sea:** every vertex at 1.88976 m (the 6.2 ft tide); 6 km across.
+- **UV0:** one 6 m tile per UV unit. The median |ΔUV| × 6 ÷ edge length is 1.000 on every building, the site, the trees and the sea, and 0.998–1.000 on the ground (gentle slopes keep a plan projection, so the ratio there is the cosine of the slope).
+- **Lantern seam:**
+  - the 8 wall meshes are one mesh, with 882 vertices welded;
+  - at all 8 octagon corners the walls on either side share one vertex column (0.0 mm apart);
+  - a Blender close-up with true displacement shows the crack at a corner before the weld and none after it.
+- **Renders:** `blender_top_down_north_up.png` and one per camera (9). With them are the evidence files: `verify.json`, and the seam close-ups before and after the weld.
