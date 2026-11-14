@@ -210,12 +210,13 @@ def wainscot_bases(site):
     return out
 
 
-def dress(site, styles_path, allow_missing=False):
+def dress(site, styles_path, allow_missing=False, wall_base=None):
     """UVs and materials for the whole site. Returns (report: material name -> meshes wearing it, the Styler).
-    Interior partitions and furniture keep the planner's own colours."""
+    Interior partitions and furniture keep the planner's own colours. wall_base: wainscot_bases measured earlier (before
+    the walls were welded, which would move each wall's ground probe to the building's centre); measured here if None."""
     sty = Styler(styles_path, allow_missing)
     outlines = {oid: [m["outline"] for m in o.get("masses", []) if m.get("outline")] for oid, o in site.objects.items()}
-    wall_base = wainscot_bases(site)
+    wall_base = wainscot_bases(site) if wall_base is None else wall_base
     report = {}
     s = sty.styles["site"]
     terrain_mat = None
