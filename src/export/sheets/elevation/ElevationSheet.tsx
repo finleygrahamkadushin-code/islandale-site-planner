@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { formatArch } from '../format'
+import { formatArch, levelText } from '../format'
 import { elevationView } from '../model/model'
 import { SIDE_LABEL, SIDES } from './sides'
 import type { ElevationImage, ElevationSide, ElevationView, Scale, SheetBuilding } from '../types'
@@ -186,9 +186,6 @@ function SurveyLine({ view, pen }: { readonly view: ElevationView; readonly pen:
   )
 }
 
-const SEP = ' '
-export const levelText = (label: string, yFt: number, floorNavdFt: number) =>
-  `${label}${SEP}${yFt >= 0 ? '+' : ''}${formatArch(yFt)}${SEP}(NAVD88 ${formatArch(floorNavdFt + yFt)})`
 
 /** Dimension lines and the drawing's edges for one elevation, in (u, -y) feet. */
 export function elevationLayout(b: SheetBuilding, view: ElevationView, image: ElevationImage | undefined, scale: Scale): { dims: DimLine[]; extent: Extent; base: number; labelYs: number[] } {

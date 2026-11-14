@@ -11,6 +11,8 @@ import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './Room
 import { planFigures } from './roomLayout'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
 import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
+import { SectionMarks } from '../section/SectionMarks'
+import type { CutId, SectionCut } from '../section/sectionCuts'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -24,10 +26,13 @@ interface Props {
   readonly furniture: boolean
   /** "Floor plan", or the floor's own name on a cabin of several. */
   readonly title?: string
+  /** The building's section cuts, marked across the plan; with `onMoveCut`, their bubbles drag and take the arrow keys. */
+  readonly cuts?: readonly SectionCut[]
+  readonly onMoveCut?: (id: CutId, offsetFt: number) => void
 }
 
 /** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, and the floor's rooms (partitions, interior doors, names and areas) and furniture inside it. What the parts stand on has its own foundation plan. */
-export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan' }: Props) {
+export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan', cuts, onMoveCut }: Props) {
   const pen = penSizes(info.scale)
   const shownFloor = rooms && floor?.rooms.length ? floor : null
   const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
@@ -68,6 +73,7 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
       {layout.earth && <EarthLabels plan={layout.earth} pen={pen} />}
       <CurveNotes notes={layout.notes} pen={pen} />
       {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
+      {cuts && cuts.length > 0 && <SectionMarks cuts={cuts} pen={pen} onMove={onMoveCut} />}
     </TiledDrawing>
   )
 }

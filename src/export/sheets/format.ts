@@ -27,6 +27,11 @@ export function formatArch(ft: number): string {
 /** A level above (or below) the main floor with its sign: +2'-11", −0'-1 1/4". */
 export const formatLevel = (ft: number): string => `${ft >= 0 ? '+' : ''}${formatArch(ft)}`
 
+/** Between a level mark's name, height and NAVD88 height: an em space. */
+const LEVEL_SEP = '\u2003'
+/** A level mark's words: its name, its height above the main floor and its NAVD88 height. */
+export const levelText = (label: string, yFt: number, floorNavdFt: number): string => `${label}${LEVEL_SEP}${formatLevel(yFt)}${LEVEL_SEP}(NAVD88 ${formatArch(floorNavdFt + yFt)})`
+
 /** Inches as 7 1/4", 1/2", 11", to the nearest 1/4 inch. */
 export function formatInches(inches: number): string {
   if (!Number.isFinite(inches)) return '—'
