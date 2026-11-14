@@ -11,7 +11,7 @@ import type { SheetBuilding } from '../types'
 import { sectionCuts, type SectionCut } from './sectionCuts'
 import { planAt, type Tri, type UY } from './sectionGeom'
 import { planGround, sectionSource } from './sectionSource'
-import { GRADE_LABEL, ROOF_FT, sectionView, type SectionView } from './sectionView'
+import { FLOOR_FT, GRADE_LABEL, ROOF_FT, sectionView, WAIST_FT, type SectionView } from './sectionView'
 
 // flat ground at 10 m over an 81 x 81 grid at 2 m, centred on the origin
 const flat: Terrain = { lon0: 0, lat0: 0, spacing: 2, nx: 81, ny: 81, x0: -80, n0: -80, z: new Array(81 * 81).fill(10) }
@@ -185,5 +185,78 @@ describe('gable infill off the walls', () => {
     const us = band!.map((q) => q[0])
     expect((Math.min(...us) + Math.max(...us)) / 2).toBeCloseTo(13, 6)
     expect(Math.max(...us) - Math.min(...us)).toBeCloseTo(b.parts[0].edges[0].thicknessFt, 6)
+  })
+})
+
+describe('what the far wall hides', () => {
+  const o = house('H', {})
+  const b0 = sheetBuildings([o], flat)[0]
+  const src = sectionSource(o, b0, planGround([o], flat))
+  const cut = sectionCuts(b0)![0]
+  const plate = b0.parts[0].levelFt + b0.parts[0].wallFt
+  /** The building with one post at u = 2 ft, this far beyond the cut, from 2 ft below the floor to 8 ft above it. */
+  const withPost = (depth: number): SheetBuilding => {
+    const base = b0.supports[0]
+    if (!base) throw new Error('the cabin has no supports to copy')
+    const post = { ...base.posts[0], at: planAt(cut, 2, depth), footFt: -2, topFt: 8, onGround: false }
+    return { ...b0, supports: [{ ...base, posts: [post], skirt: null }] }
+  }
+  /** The points of the lines seen beyond that lie wholly at u = 2 ft, a post's width either way (the post's pieces). */
+  const postPoints = (v: SectionView) => v.beyond.filter((l) => l.every(([u]) => Math.abs(u - 2) < 0.6)).flat()
+
+  test('a post behind the far wall shows only below the floor', () => {
+    const v = sectionView(withPost(30), src, cut)
+    const pts = postPoints(v)
+    expect(pts.length).toBeGreaterThan(0)
+    expect(Math.min(...pts.map(([, y]) => y))).toBeCloseTo(-2, 6)
+    expect(Math.max(...pts.map(([, y]) => y))).toBeCloseTo(-FLOOR_FT, 6)
+    expect(pts.every(([, y]) => y <= -FLOOR_FT + 1e-6 || y >= plate - 1e-6)).toBe(true)
+  })
+
+  test('a post inside the walls, nearer than the far wall, is seen whole', () => {
+    const v = sectionView(withPost(3), src, cut)
+    const ys = postPoints(v).map(([, y]) => y)
+    expect(Math.min(...ys)).toBeCloseTo(-2, 6)
+    expect(Math.max(...ys)).toBeCloseTo(8, 6)
+  })
+
+  test('a post just past the far wall’s face is hidden too, as a porch post on that wall is', () => {
+    // the cabin is 18 ft deep, centred on the cut: its far face is 9 ft back
+    const v = sectionView(withPost(9.1), src, cut)
+    expect(Math.max(...postPoints(v).map(([, y]) => y))).toBeCloseTo(-FLOOR_FT, 6)
+  })
+
+  test('the far wall’s own windows stay seen', () => {
+    const window = { id: 11, edge: 2, kind: 'window', x: 10.5, w: 3, h: 4, sill: 3 }
+    const { c } = sections([house('W', { cuts: [window, { ...window, id: 21, edge: 1, x: 7.5 }] })], flat, 'W')
+    expect(c.beyond.some((l) => l.length === 5 && Math.min(...l.map((p) => p[1])) === 3 && Math.max(...l.map((p) => p[1])) === 7)).toBe(true)
+  })
+})
+
+describe('a stair the cut passes through', () => {
+  const plan = usePlanStore.getState().plan
+  const objects = plan.order.map((id) => plan.objects[id]).filter((x): x is PlanObject => !!x)
+  const pod = objects.find((x) => x.name === 'Family twin pod')
+  if (!pod) throw new Error('no Family twin pod in Scheme C')
+  const { b, c } = sections(objects, usePlanStore.getState().site.terrain, pod.id)
+  const stair = b.parts.find((p) => p.stair && c.cut && p.outline.length >= 3)
+  if (!stair?.stair) throw new Error('the twin pod has no stair')
+
+  test('the twin pod’s cross section runs down its stair and draws it cut: its risers, with a waist under them', () => {
+    const s = stair.stair!
+    const solid = c.solids.find((poly) => {
+      const ys = poly.map((p) => p[1])
+      return Math.abs(Math.max(...ys) - stair.levelFt) < 1e-6 && Math.abs(Math.min(...ys) - (stair.levelFt - s.dropFt - WAIST_FT)) < 1e-6
+    })
+    expect(solid).toBeDefined()
+    // a riser is a vertical step: two points one above the other a riser apart
+    const risers = solid!.slice(1).filter((p, i) => Math.abs(p[0] - solid![i][0]) < 1e-9 && Math.abs(solid![i][1] - p[1] - s.dropFt / s.risers) < 1e-6)
+    expect(risers).toHaveLength(s.risers)
+  })
+
+  test('and no longer draws it thin as if beyond', () => {
+    const s = stair.stair!
+    const thin = c.beyond.filter((l) => l.length === 2 * s.risers + 1)
+    expect(thin).toHaveLength(0)
   })
 })

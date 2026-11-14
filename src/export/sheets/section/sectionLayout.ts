@@ -26,7 +26,7 @@ const CROWD_STEP = 1.7
 /** Below the ground this far the earth hatching stops, feet. */
 export const EARTH_DEPTH_FT = 1.5
 
-export const SECTION_NOTE: readonly string[] = ['Heights above the main floor, NAVD88 in brackets.', 'Floor slab (11 3/4″) and roof band (10″) drawn nominal;', 'walls, openings, roofs and ground as the plan builds them.']
+export const SECTION_NOTE: readonly string[] = ['Heights above the main floor, NAVD88 in brackets.', 'Floor slab (11 3/4″), roof band (10″) and stair waist (9″) drawn nominal;', 'walls, openings, roofs and ground as the plan builds them.']
 
 export interface SectionLayout {
   readonly dims: DimLine[]

@@ -153,6 +153,66 @@ export function silhouette(segs: readonly (readonly [UY, UY])[], step: number): 
   return runs.filter((r) => r.top.length >= 2)
 }
 
+/** How far beyond the cut a closed outline reaches at u: its farthest crossing straight back from the cut line, or null where it is not behind u. */
+export function farDepthAt(poly: readonly LocalPoint[], c: CutLine, u: number): number | null {
+  const back: CutLine = { origin: planAt(c, u), dir: c.look, look: lookOf(c.look) }
+  const ds = lineCrossings(poly, back).map((x) => x.u)
+  return ds.length >= 2 ? Math.max(...ds) : null
+}
+
+/** An axis-aligned box on the drawing: u from `u0` to `u1`, y from `y0` to `y1`. */
+export interface Box {
+  readonly u0: number
+  readonly u1: number
+  readonly y0: number
+  readonly y1: number
+}
+
+/** The stretch (0–1) of segment a→b inside a box, or null when it stays outside (Liang–Barsky). */
+function insideStretch(a: UY, b: UY, box: Box): Interval | null {
+  const du = b[0] - a[0]
+  const dy = b[1] - a[1]
+  let t0 = 0
+  let t1 = 1
+  for (const [p, q] of [
+    [-du, a[0] - box.u0],
+    [du, box.u1 - a[0]],
+    [-dy, a[1] - box.y0],
+    [dy, box.y1 - a[1]],
+  ]) {
+    if (Math.abs(p) < EPS) {
+      if (q < 0) return null
+      continue
+    }
+    const t = q / p
+    if (p < 0) t0 = Math.max(t0, t)
+    else t1 = Math.min(t1, t)
+    if (t0 > t1) return null
+  }
+  return t1 - t0 > EPS ? [t0, t1] : null
+}
+
+/** A polyline less what lies inside a box: the pieces left outside it, each with at least two points. */
+export function clipOutsideBox(pts: readonly UY[], box: Box): UY[][] {
+  const at = (a: UY, b: UY, t: number): UY => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+  const out: UY[][] = []
+  let run: UY[] = pts.length ? [pts[0]] : []
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const a = pts[i]
+    const b = pts[i + 1]
+    const inside = insideStretch(a, b, box)
+    if (!inside) {
+      run.push(b)
+      continue
+    }
+    if (inside[0] > EPS) run.push(at(a, b, inside[0]))
+    if (run.length >= 2) out.push(run)
+    run = inside[1] < 1 - EPS ? [at(a, b, inside[1]), b] : []
+  }
+  if (run.length >= 2) out.push(run)
+  return out
+}
+
 /** The centroid of a closed outline (its vertices' mean when it has no area). */
 export function centroidOf(poly: readonly LocalPoint[]): LocalPoint {
   let a = 0

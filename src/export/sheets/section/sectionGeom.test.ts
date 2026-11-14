@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LocalPoint } from '../../../buildings/footprint'
-import { centroidOf, clipBeyond, cutTriangle, lineIntervals, lookOf, silhouette, subtractIntervals, type CutLine, type Tri } from './sectionGeom'
+import { centroidOf, clipBeyond, clipOutsideBox, cutTriangle, farDepthAt, lineIntervals, lookOf, silhouette, subtractIntervals, type CutLine, type Tri } from './sectionGeom'
 
 const along = (origin: LocalPoint, dir: LocalPoint): CutLine => ({ origin, dir, look: lookOf(dir) })
 const square = (h: number): LocalPoint[] => [
@@ -91,4 +91,42 @@ describe('a silhouette', () => {
 
 it('finds the centroid of an outline', () => {
   expect(centroidOf(square(4).map(([x, z]): LocalPoint => [x + 3, z]))).toEqual([3, 0])
+})
+
+describe('what hides what beyond the cut', () => {
+  it('finds how far an outline reaches straight back from the cut, and nothing past its sides', () => {
+    const c = along([0, 0], [1, 0])
+    expect(farDepthAt(square(10), c, 3)).toBeCloseTo(10)
+    expect(farDepthAt(square(10), c, 12)).toBeNull()
+  })
+
+  it('reads a slanted back wall where it is at each u', () => {
+    const wedge: LocalPoint[] = [
+      [-10, 0],
+      [10, 0],
+      [10, -20],
+      [-10, -10],
+    ]
+    const c = along([0, 0], [1, 0])
+    expect(farDepthAt(wedge, c, -10 + 1e-9)).toBeCloseTo(10)
+    expect(farDepthAt(wedge, c, 0)).toBeCloseTo(15)
+  })
+
+  it('keeps the pieces of a line outside a box, and drops a line wholly inside it', () => {
+    const box = { u0: 0, u1: 10, y0: 0, y1: 10 }
+    expect(clipOutsideBox([[-5, 5], [15, 5]], box)).toEqual([
+      [[-5, 5], [0, 5]],
+      [[10, 5], [15, 5]],
+    ])
+    expect(clipOutsideBox([[2, 2], [8, 8]], box)).toEqual([])
+    expect(clipOutsideBox([[-5, 20], [15, 20]], box)).toEqual([[[-5, 20], [15, 20]]])
+  })
+
+  it('cuts a post standing behind a wall down to what shows below it', () => {
+    const post: [number, number][] = [[4, -3], [5, -3], [5, 9], [4, 9], [4, -3]]
+    const pieces = clipOutsideBox(post, { u0: 0, u1: 10, y0: -1, y1: 9 })
+    const ys = pieces.flat().map((p) => p[1])
+    expect(Math.max(...ys.filter((y) => y < 9))).toBeCloseTo(-1)
+    expect(pieces.flat().every(([, y]) => y <= -1 + 1e-9 || y >= 9 - 1e-9)).toBe(true)
+  })
 })
