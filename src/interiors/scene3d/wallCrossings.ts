@@ -1,7 +1,7 @@
 /**
  * Interior openings that sit in a part's own wall where it runs across
- * another part's floor (D-1's gallery doors into the pods, a cased opening
- * through D-0's round wing). The interior plan puts a doorway there, but the
+ * another part's floor (a gallery's doors into the pods beside it, a cased
+ * opening through a round wing). The interior plan puts a doorway there, but the
  * wall is the part's exterior wall, built whole by its shell, so without a
  * hole the doorway is walled shut. These are the holes to cut through it.
  */

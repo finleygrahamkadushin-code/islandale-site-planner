@@ -161,11 +161,14 @@ describe('plan store', () => {
     })
   })
 
-  test('loading a variant swaps the whole plan and is undoable', () => {
-    store().loadScheme('C3')
-    expect(store().plan.schemeId).toBe('C3')
-    history().undo()
+  test('loading a scheme swaps the whole plan and is undoable', () => {
+    store().clearPlan()
+    const bare = store().plan
+    store().loadScheme('C')
     expect(store().plan.schemeId).toBe('C')
+    expect(store().plan.order.length).toBeGreaterThan(bare.order.length)
+    history().undo()
+    expect(store().plan).toEqual(bare)
   })
 
   test('environment and display style change no plan data and add no undo step', () => {

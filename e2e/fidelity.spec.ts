@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 import { clearSaves } from './fresh'
 import { pickView, STYLE_IDS } from './menus'
 
-/** Phase 3B: Scheme C and its prow variants draw every wing, rail, step and tree without errors. */
+/** Phase 3B: Scheme C draws every wing, rail, step and tree without errors. */
 
-const PROW = 'C-0' // Gathering prow in Scheme C and its variants
+const PROW = 'C-0' // Scheme C's Gathering prow
 const STYLES = ['Realistic', 'White model'] as const
 
 function collectErrors(page: Page): string[] {
@@ -25,11 +25,11 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
 })
 
-test('Scheme C and C2 to C4 render with all their wings, in Realistic and White model, with no console errors', async ({ page }) => {
-  // eight scheme and style combinations, each a full rebuild of the scene
+test('Scheme C renders with all its wings, in Realistic and White model, with no console errors', async ({ page }) => {
+  // each style is a full rebuild of the scene
   test.setTimeout(240_000)
   const errors = collectErrors(page)
-  for (const id of ['C', 'C2', 'C3', 'C4']) {
+  for (const id of ['C']) {
     await page.evaluate((s) => (window as any).islandale.store.getState().loadScheme(s), id)
     for (const name of STYLES) {
       await pickView(page, STYLE_IDS[name])

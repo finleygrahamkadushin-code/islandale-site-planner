@@ -2,7 +2,7 @@ import { lazy, Suspense, useRef, useState } from 'react'
 import * as Menu from '@radix-ui/react-dropdown-menu'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { exportModel } from '../export/model3d/exportModel'
-import { CURRENT_SCHEME_ID } from '../site/schemes'
+import { CURRENT_SCHEME_ID, hasSchemeChoice } from '../site/schemes'
 import { openSchemeNow } from '../site/archive/openScheme'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { usePlanStore } from '../store/planStore'
@@ -32,7 +32,8 @@ const askClear = () =>
   )
 
 /**
- * The top bar's File menu (R9.1): the designs, the plan file, the drawings,
+ * The top bar's File menu (R9.1): the designs (only when the data holds more
+ * than one scheme), the plan file, the drawings,
  * the 3D model and the saves. Reset and Clear still ask first. A step that
  * opens a dialog runs once the menu has closed, so the dialog hands focus
  * back to the File button.
@@ -41,6 +42,7 @@ export function FileMenu() {
   const [legacyOpen, setLegacyOpen] = useState(false)
   const [sheetsOpen, setSheetsOpen] = useState(false)
   const readOnly = usePlanStore((s) => s.readOnly)
+  const schemeChoice = usePlanStore((s) => hasSchemeChoice(s.schemes))
   const trigger = useRef<HTMLButtonElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const { later, onCloseAutoFocus } = useAfterClose(trigger)
@@ -48,10 +50,14 @@ export function FileMenu() {
   return (
     <>
       <TopMenu label="File" testId="menu-file" triggerRef={trigger} onCloseAutoFocus={onCloseAutoFocus}>
-        <MenuItem hint="Every scheme, with its plan and how it meets the brief" data-testid="open-archive" onSelect={later(() => useArchiveOpen.getState().setOpen(true))}>
-          Designs…
-        </MenuItem>
-        <Menu.Separator className="menu-rule" />
+        {schemeChoice && (
+          <>
+            <MenuItem hint="Every scheme, with its plan and how it meets the brief" data-testid="open-archive" onSelect={later(() => useArchiveOpen.getState().setOpen(true))}>
+              Designs…
+            </MenuItem>
+            <Menu.Separator className="menu-rule" />
+          </>
+        )}
         <MenuItem hint="Download the plan as a JSON file" data-testid="export-plan" onSelect={downloadPlanFile}>
           Export
         </MenuItem>

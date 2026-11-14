@@ -11,6 +11,16 @@ import type { Pt } from '../svgDims'
 const store = () => usePlanStore.getState()
 const objects = (): PlanObject[] => store().plan.order.map((id) => store().plan.objects[id])
 
+/** Scheme C's twin pod redrawn as a blob (its straight wings kept), with a door and a window run round its wall. */
+const curvedCabin = (): PlanObject => {
+  const base = store().plan.objects['C-2']
+  const cuts = [
+    { id: 1, along: true, kind: 'door', x: 3, w: 3, h: 7, sill: 0 },
+    { id: 2, along: true, kind: 'window', x: 20, w: 6, h: 4, sill: 3 },
+  ]
+  return { ...base, params: { ...base.params, shape: 'blob', w: 34, d: 22, pts: undefined, cuts } }
+}
+
 const opening = (a: Pt, b: Pt): SheetOpening => ({
   tag: 'W1',
   kind: 'window',
@@ -136,42 +146,35 @@ describe('overall dimensions', () => {
   })
 
   test('chains every piece of an opening on a straight wall, and notes every opening on a curve with its place round from P1', () => {
-    try {
-      for (const scheme of ['C', 'D', 'G']) {
-        store().loadScheme(scheme)
-        for (const b of sheetBuildings(objects(), store().site.terrain)) {
-          const layout = planLayout(b, 0.25)
-          const values = layout.dims.map((d) => d.text.value)
-          for (const p of b.parts) {
-            for (const o of p.openings) {
-              for (const piece of o.pieces.filter((x) => !p.edges[x.edge].curved)) {
-                const w = Math.hypot(piece.b[0] - piece.a[0], piece.b[1] - piece.a[1])
-                // a sliver under a quarter inch shares its stop with the next
-                if (w > 1 / 48) expect(values.some((v) => Math.abs(v - w) < 0.05)).toBe(true)
-              }
-              const note = layout.notes.find((n) => n.lines[0].startsWith(`${o.tag} `))
-              expect(!!note).toBe(o.onCurve)
-              if (note) expect(note.lines[1]).toBe(`${formatArch(o.aroundFt ?? NaN)} from P1`)
-            }
+    const terrain = store().site.terrain
+    let onCurve = 0
+    for (const b of [...sheetBuildings(objects(), terrain), ...sheetBuildings([curvedCabin()], terrain)]) {
+      const layout = planLayout(b, 0.25)
+      const values = layout.dims.map((d) => d.text.value)
+      for (const p of b.parts) {
+        for (const o of p.openings) {
+          for (const piece of o.pieces.filter((x) => !p.edges[x.edge].curved)) {
+            const w = Math.hypot(piece.b[0] - piece.a[0], piece.b[1] - piece.a[1])
+            // a sliver under a quarter inch shares its stop with the next
+            if (w > 1 / 48) expect(values.some((v) => Math.abs(v - w) < 0.05)).toBe(true)
           }
+          const note = layout.notes.find((n) => n.lines[0].startsWith(`${o.tag} `))
+          expect(!!note).toBe(o.onCurve)
+          if (note) expect(note.lines[1]).toBe(`${formatArch(o.aroundFt ?? NaN)} from P1`)
+          if (o.onCurve) onCurve++
         }
       }
-    } finally {
-      store().loadScheme('C')
     }
+    expect(onCurve).toBeGreaterThan(0)
   })
 
-  test("no chord of a curve is dimensioned on its own: scheme D's plans carry a handful of dimensions, not one per chord", () => {
-    store().loadScheme('D')
-    try {
-      for (const b of sheetBuildings(objects(), store().site.terrain)) {
-        const straight = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved && e.lengthFt >= 1 / 48))
-        const chains = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved).flatMap((e) => Math.max(0, openingStops(e.a, e.b, p.openings).length - 1)))
-        const overall = planLayout(b, 0.25).dims.filter((d) => d.label).length
-        expect(planLayout(b, 0.25).dims).toHaveLength(straight.length + chains.reduce((s, n) => s + n, 0) + overall)
-      }
-    } finally {
-      store().loadScheme('C')
+  test("no chord of a curve is dimensioned on its own: a curved cabin's plan carries a handful of dimensions, not one per chord", () => {
+    for (const b of sheetBuildings([curvedCabin()], store().site.terrain)) {
+      expect(b.parts[0].edges.filter((e) => e.curved).length).toBeGreaterThan(10)
+      const straight = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved && e.lengthFt >= 1 / 48))
+      const chains = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved).flatMap((e) => Math.max(0, openingStops(e.a, e.b, p.openings).length - 1)))
+      const overall = planLayout(b, 0.25).dims.filter((d) => d.label).length
+      expect(planLayout(b, 0.25).dims).toHaveLength(straight.length + chains.reduce((s, n) => s + n, 0) + overall)
     }
   })
 })

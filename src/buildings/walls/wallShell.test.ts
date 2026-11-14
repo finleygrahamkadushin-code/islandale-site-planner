@@ -293,10 +293,10 @@ describe('the Walls editor on a curved mass', () => {
   })
 })
 
-describe('schemes D–I', () => {
+describe("every scheme's cabins", () => {
   type Obj = { name: string; t: string } & Record<string, unknown>
   const list = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
-  const houses = list.slice(6, 12).flatMap((s) => s.objects.filter((o) => o.t === 'house').map((o) => ({ id: s.id, o })))
+  const houses = list.flatMap((s) => s.objects.filter((o) => o.t === 'house').map((o) => ({ id: s.id, o })))
 
   test.each(houses.map((x, k) => [`${x.id}:${k}`, x.o] as const))('%s: every enclosed mass has its holes cut and its wall area adds up', (_, o) => {
     buildingMasses(o).forEach((m) => {
@@ -304,7 +304,7 @@ describe('schemes D–I', () => {
       const poly = massPoly(m)
       const openings = layoutOpenings(poly, m.cuts, { wallHeightFt: m.h }).openings
       const shell = buildWallShell(poly, m.h, openings, { cap: true, thicknessFt: m.walls === 'glass' ? GLASS_WALL_FT : T })
-      // along-cuts may overlap (D's sliders do by 0.02 ft): the hole is their union
+      // along-cuts may overlap: the hole is their union
       const cut = unionArea(shell.holes)
       expect(area(all(shell, 'outer'))).toBeCloseTo(perimeterOf(poly) * m.h - cut, 4)
       expect(shell.holes.length).toBeGreaterThanOrEqual(openings.filter((op) => !op.hidden).length)

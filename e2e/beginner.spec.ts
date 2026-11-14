@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clearSaves } from './fresh'
+import { openFresh } from './fresh'
+import { boxSettled, viewSettled } from './settle'
 
 /**
  * Phase 4C done-when: someone new, in Beginner mode, can place a cabin, move
@@ -29,10 +30,7 @@ const screenOf = async (page: Page, p: Pos) => {
 
 /** A truly new browser: no mode chosen, no tour seen, no saved plan. */
 async function asNewcomer(page: Page) {
-  await page.goto('/')
-  await clearSaves(page, { newcomer: true })
-  await page.reload()
-  await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
+  await openFresh(page, { newcomer: true })
   await page.waitForFunction(() => (window as any).islandale?.screenOf, null, { timeout: 60_000 })
 }
 
@@ -46,6 +44,9 @@ test('a new browser opens in Beginner and the five-step tour runs once, points a
   const plan = await page.evaluate(() => JSON.stringify((window as any).islandale.store.getState().plan))
   for (const step of ['orbit', 'select', 'move', 'lock', 'save']) {
     await expect(tour).toHaveAttribute('data-step', step)
+    // the card is placed from the labels and moved every 400 ms until they stop: click it where it stays
+    await viewSettled(page)
+    await boxSettled(tour)
     await expect(tour).toBeInViewport()
     await page.getByTestId('tour-next').click()
   }
@@ -56,14 +57,18 @@ test('a new browser opens in Beginner and the five-step tour runs once, points a
   // remembered: a reload doesn't start it again
   await page.reload()
   await expect(page.getByTestId('save-status')).toHaveText('Saved', { timeout: 20_000 })
-  await page.waitForTimeout(1500)
+  // the tour starts, if at all, once the plan has loaded; by the time the view has drawn and gone still it would show
+  await viewSettled(page)
   await expect(tour).toHaveCount(0)
 
   // Help replays it; Back works; Escape ends it
   await page.getByTestId('open-help').click()
   await page.getByTestId('take-tour').click()
   await expect(tour).toHaveAttribute('data-step', 'orbit')
+  await boxSettled(tour)
   await page.getByTestId('tour-next').click()
+  await expect(tour).toHaveAttribute('data-step', 'select')
+  await boxSettled(tour)
   await page.getByTestId('tour-back').click()
   await expect(tour).toHaveAttribute('data-step', 'orbit')
   await page.keyboard.press('Escape')

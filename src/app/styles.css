@@ -45,7 +45,7 @@ input:disabled { opacity: 0.5; }
 /* part chips over the labels (ChipLayer); each anchor is moved every frame by its ScreenChip */
 .chips { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
 .chip-anchor { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
-.chip-anchor:has(> .measure-label) { pointer-events: none; } /* measure and clearance labels let clicks through to the view */
+.chip-anchor:has(> .measure-label, > .high-water-label) { pointer-events: none; } /* measure, clearance and high-water labels let clicks through to the view */
 .label {
   position: absolute; left: 0; top: 0; will-change: transform;
   font-size: 11px; line-height: 1; white-space: nowrap;
@@ -448,7 +448,8 @@ button.link:hover:not(:disabled) { text-decoration: underline; }
 .legend li { display: flex; align-items: center; gap: 8px; }
 .legend-key { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
 .legend-key.line { height: 4px; border-radius: 2px; border: 0; }
-.measure-label {
+/* the high-water label is not a measurement, so it has its own class, drawn the same way (its fill is set inline) */
+.measure-label, .high-water-label {
   padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none;
   font-size: 12px; font-variant-numeric: tabular-nums; color: #fff; background: #b94c19; /* 5.1:1 (R10.3) */
 }

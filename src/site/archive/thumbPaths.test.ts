@@ -64,7 +64,7 @@ describe('scheme thumbnails', () => {
   })
 
   it('rounds coordinates to 0.1 m', () => {
-    const t = schemeThumb(schemeById(schemes, 'D'), site)
+    const t = schemeThumb(schemeById(schemes, 'C'), site)
     const decimals = (t.buildings.join('').match(/\.\d+/g) ?? []).map((s) => s.length - 1)
     expect(Math.max(0, ...decimals)).toBeLessThanOrEqual(1)
   })

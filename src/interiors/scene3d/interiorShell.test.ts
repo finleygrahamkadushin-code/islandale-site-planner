@@ -8,7 +8,7 @@ import { innerOutlines, prismArea, shapesOf, type Prism } from './interiorShell'
 
 type Obj = { name: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
-const cabin = (scheme: string, name: string) => all.find((s) => s.id === scheme)!.objects.find((o) => o.name === name)!
+const cabin = (name: string) => all.find((s) => s.id === 'C')!.objects.find((o) => o.name === name)!
 
 const outlines = (params: Record<string, unknown>): Pt[][] =>
   buildingMasses(params)
@@ -35,29 +35,24 @@ function overlap(a: Prism, b: Prism): number {
   return G.intersectRegion(a.outer as Pt[], G.toPieces(b.outer as Pt[])).reduce((s, x) => s + G.area(x), 0)
 }
 
-const CURVED: [string, string][] = [
-  ['C', 'Gathering prow'],
-  ['D', 'Family · Kelp pods'],
-  ['G', 'Family · kelp kidney'],
-  ['G', 'Gathering · tide shell'],
-  ['D', 'Gathering · the Nautilus'],
-]
+/** Scheme C's cabins with a curved main wall. */
+const CURVED = ['Gathering prow']
 
 describe('interior shell (6K · K1)', () => {
   test.each(CURVED)(
-    '%s %s: no partition reaches the outer face of a curved wall',
-    (sid, name) => {
-      const o = cabin(sid, name)
+    'C %s: no partition reaches the outer face of a curved wall',
+    (name) => {
+      const o = cabin(name)
       for (const p of partitions(interior3d(o)))
         for (const q of [p.outer, ...p.holes].flat()) expect(depthInside(o, q as Pt)).toBeGreaterThan(0.2)
     },
     30_000,
   )
 
-  test.each([...CURVED, ['C', 'Family lantern'], ['C', 'Family twin pod'], ['C', 'Elders’ wedge']] as [string, string][])(
-    '%s %s: partitions that share a height never overlap in plan',
-    (sid, name) => {
-      const ps = partitions(interior3d(cabin(sid, name)))
+  test.each([...CURVED, 'Family lantern', 'Family twin pod', 'Elders’ wedge'])(
+    'C %s: partitions that share a height never overlap in plan',
+    (name) => {
+      const ps = partitions(interior3d(cabin(name)))
       for (let i = 0; i < ps.length; i++)
         for (let j = i + 1; j < ps.length; j++) {
           if (ps[i].y1 <= ps[j].y0 + 1e-6 || ps[j].y1 <= ps[i].y0 + 1e-6) continue
@@ -68,7 +63,7 @@ describe('interior shell (6K · K1)', () => {
   )
 
   test("C's gathering cabin has a floor over everything inside its walls, and none past them", () => {
-    const o = cabin('C', 'Gathering prow')
+    const o = cabin('Gathering prow')
     const floors = interior3d(o).prisms.filter((p) => p.part === 'floor')
     const inside = shapesOf(innerOutlines(o, 0).flatMap((P) => G.toPieces(P))).reduce((s, x) => s + prismArea(x), 0)
     const covered = floors.reduce((s, p) => s + prismArea(p), 0)

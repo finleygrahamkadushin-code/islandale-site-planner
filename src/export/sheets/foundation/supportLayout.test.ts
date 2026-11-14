@@ -114,17 +114,15 @@ describe('the plan with and without its supports', () => {
 describe('Scheme C', () => {
   const store = () => usePlanStore.getState()
   beforeAll(() => store().setReadOnly(null))
-  for (const scheme of ['C', 'C2', 'C3', 'C4']) {
-    test(`${scheme}: no two chains of a part repeat, and their words never sit on one another`, () => {
-      store().loadScheme(scheme)
-      const objects = store().plan.order.map((id) => store().plan.objects[id])
-      for (const b of sheetBuildings(objects, store().site.terrain)) {
-        for (const s of b.supports) {
-          const chains = supportChains({ ...b, supports: [s] }, opts, pen)
-          const texts = chains.flat().map((d) => d.text)
-          texts.forEach((t, i) => texts.slice(i + 1).forEach((u) => expect(Math.hypot(t.x - u.x, t.y - u.y)).toBeGreaterThan(pen.text * 0.5)))
-        }
+  test('no two chains of a part repeat, and their words never sit on one another', () => {
+    store().loadScheme('C')
+    const objects = store().plan.order.map((id) => store().plan.objects[id])
+    for (const b of sheetBuildings(objects, store().site.terrain)) {
+      for (const s of b.supports) {
+        const chains = supportChains({ ...b, supports: [s] }, opts, pen)
+        const texts = chains.flat().map((d) => d.text)
+        texts.forEach((t, i) => texts.slice(i + 1).forEach((u) => expect(Math.hypot(t.x - u.x, t.y - u.y)).toBeGreaterThan(pen.text * 0.5)))
       }
-    })
-  }
+    }
+  })
 })

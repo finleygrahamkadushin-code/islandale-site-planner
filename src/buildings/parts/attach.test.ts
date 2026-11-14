@@ -207,7 +207,8 @@ describe('stairs and ramps from the + chip meet the planner rule (R3.3)', () => 
         })
       }
     }
-    expect(added).toBeGreaterThan(100)
+    // Scheme C's four cabins give 63 stairs and ramps
+    expect(added).toBeGreaterThan(50)
     expect(born).toEqual([])
   }, 60000)
 })

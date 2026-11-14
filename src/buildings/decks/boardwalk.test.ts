@@ -51,17 +51,16 @@ describe('boardwalkColumns', () => {
   })
 })
 
-describe('the Elders’ walk on the Islandale terrain (C and C2–C4)', () => {
+describe('the Elders’ walk on the Islandale terrain (Scheme C)', () => {
   const t = loadIslandaleTerrain()
   const ground = (x: number, n: number) => surfaceElevationAt(t, x, n)
-  const variants = all.filter((s) => /^C\d?$/.test(s.id))
-  const walks = variants.map((s) => {
+  const walks = all.filter((s) => s.id === 'C').map((s) => {
     const o = s.objects.find((b) => b.t === 'bridge')!
     return [s.id, boardwalkPath(o.pts!.map(([x, n, e]) => [x, n, e * FT] as const))!] as const
   })
 
-  test('there are four variants, each with its boardwalk', () => {
-    expect(walks.map(([id]) => id)).toEqual(['C', 'C2', 'C3', 'C4'])
+  test('Scheme C has its boardwalk', () => {
+    expect(walks.map(([id]) => id)).toEqual(['C'])
   })
   test.each(walks)('%s never dips into the ground', (_, p) => {
     for (const s of p.samples) expect(s.e - RIBBON_DEPTH_M).toBeGreaterThan(ground(s.x, s.n))

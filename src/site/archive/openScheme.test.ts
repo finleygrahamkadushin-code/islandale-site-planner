@@ -11,31 +11,40 @@ describe('opening a scheme (5F)', () => {
     useConfirm.getState().answer(false)
   })
 
+  /** Scheme C cleared to the bare lot, with no undo history, so opening C changes the plan. */
+  const cleared = () => {
+    usePlanStore.getState().clearPlan()
+    usePlanStore.temporal.getState().clear()
+    return usePlanStore.getState().plan
+  }
+
   test('asks first, and Cancel keeps the plan', () => {
-    openScheme('H')
-    expect(useConfirm.getState().ask?.title).toBe('Open H · Sod & Contour?')
+    const bare = cleared()
+    openScheme('C')
+    expect(useConfirm.getState().ask?.title).toBe('Open C · Prow & Lantern?')
     useConfirm.getState().answer(false)
-    expect(usePlanStore.getState().plan.schemeId).toBe('C')
+    expect(usePlanStore.getState().plan).toBe(bare)
   })
 
   test('Open loads it in one undo step, selects the gathering building, frames the view and says so', () => {
+    const bare = cleared()
     const n = usePlanStore.getState().viewRequest?.n ?? 0
-    openScheme('H')
+    openScheme('C')
     useConfirm.getState().answer(true)
     const s = usePlanStore.getState()
-    expect(s.plan.schemeId).toBe('H')
+    expect(s.plan.schemeId).toBe('C')
+    expect(s.plan.order.length).toBeGreaterThan(bare.order.length)
     expect(s.plan.objects[s.selection[0]].name).toMatch(/Gathering/)
     expect(s.viewRequest).toEqual({ id: 'overview', n: n + 1 })
-    expect(s.toast?.text).toBe('Opened H · Sod & Contour')
+    expect(s.toast?.text).toBe('Opened C · Prow & Lantern')
     expect(usePlanStore.temporal.getState().pastStates.length).toBe(1)
     usePlanStore.temporal.getState().undo()
-    expect(usePlanStore.getState().plan.schemeId).toBe('C')
+    expect(usePlanStore.getState().plan.order).toEqual(bare.order)
   })
 
   test('a rules-off scheme says so', () => {
-    openSchemeNow('F')
-    expect(usePlanStore.getState().toast?.text).toBe(openedText('F · Sky Datum', true))
-    expect(openedText('F · Sky Datum', true)).toMatch(/Rules off/)
+    expect(openedText('C · Prow & Lantern', true)).toMatch(/Rules off/)
+    expect(openedText('C · Prow & Lantern', false)).not.toMatch(/Rules off/)
   })
 
   test('every scheme has a building to select', () => {
@@ -47,13 +56,13 @@ describe('opening a scheme (5F)', () => {
 })
 
 describe('cabins without a floor plan (5F)', () => {
-  test('F, I, two of E and one of H have none; C has all', async () => {
+  test('every cabin of Scheme C has one', async () => {
     const { hasFloorPlan } = await import('../../interiors/model')
     const missing = (id: string) => {
       openSchemeNow(id)
       const p = usePlanStore.getState().plan
       return p.order.map((k) => p.objects[k]).filter((o) => o.type === 'house' && !hasFloorPlan(o.params)).length
     }
-    expect([missing('C'), missing('E'), missing('F'), missing('H'), missing('I')]).toEqual([0, 2, 5, 1, 3])
+    expect(missing('C')).toBe(0)
   })
 })

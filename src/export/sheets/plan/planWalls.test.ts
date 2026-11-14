@@ -81,15 +81,12 @@ describe('thickness dimensions and notes', () => {
     expect(g.at[1] + g.lines.length * 0.5).toBeLessThan(layout.extent.y + layout.extent.h)
   })
 
-  test("C4's curved prow wall is labelled once with both radii, not again for the deck along it", () => {
-    store().loadScheme('C4')
-    const id = store().plan.order.find((x) => store().plan.objects[x].type === 'house') ?? ''
-    const b = sheetBuildings([store().plan.objects[id]], store().site.terrain)[0]
+  test("the Gathering prow's curved wall is labelled once with both radii, not again for the deck along it", () => {
+    const b = sheetBuildings([store().plan.objects['C-0']], store().site.terrain)[0]
     const wall = b.parts[0].arcs[0]
     expect(wall.innerRadiusFt).toBeCloseTo(wall.radiusFt - FIT.wallFt, 9)
     const same = planLayout(b, 0.25).arcs.filter((a) => Math.abs(a.radiusFt - wall.radiusFt) < 1e-6)
     expect(same).toHaveLength(1)
     expect(same[0].innerRadiusFt).not.toBeNull()
-    store().loadScheme('C')
   })
 })

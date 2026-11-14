@@ -9,7 +9,7 @@ import { schemeObjects, schemeSummaries, schemeSummary } from './schemeSummary'
 const site = loadIslandale()
 const schemes = loadSchemes()
 
-const WITHOUT_PLAN: Record<string, number> = { C: 0, A: 0, B: 0, D: 0, E: 2, F: 5, G: 0, H: 1, I: 3 }
+const WITHOUT_PLAN: Record<string, number> = { C: 0 }
 
 describe('scheme summaries', () => {
   // the first call does the work; the timing is logged for the plan
@@ -32,8 +32,10 @@ describe('scheme summaries', () => {
     }
   })
 
-  it('marks D, E and F rules off', () => {
-    expect(all.filter((s) => s.rulesOff).map((s) => s.id)).toEqual(['D', 'E', 'F'])
+  it('marks none of the schemes rules off, and carries the flag when a scheme sets it', () => {
+    expect(all.filter((s) => s.rulesOff).map((s) => s.id)).toEqual([])
+    const dream = schemeSummary({ ...schemeById(schemes, 'C'), id: 'Z', rulesOff: true }, site)
+    expect(dream).toMatchObject({ rulesOff: true, group: 'dream' })
   })
 
   it('counts cabins without a floor plan', () => {
@@ -42,9 +44,9 @@ describe('scheme summaries', () => {
 
   it('groups the current scheme, the brief and the dream schemes', () => {
     const ids = (g: string) => all.filter((s) => s.group === g).map((s) => s.id)
-    expect(ids('current')).toEqual(['C', 'C2', 'C3', 'C4'])
-    expect(ids('brief')).toEqual(['A', 'B', 'G', 'H', 'I'])
-    expect(ids('dream')).toEqual(['D', 'E', 'F'])
+    expect(ids('current')).toEqual(['C'])
+    expect(ids('brief')).toEqual([])
+    expect(ids('dream')).toEqual([])
   })
 
   it('says the route is not checked while walks are not path pieces', () => {
@@ -52,10 +54,10 @@ describe('scheme summaries', () => {
   })
 
   it('carries the tag and blurb and counts cabins', () => {
-    const h = byId('H')
-    expect(h.tag.length).toBeGreaterThan(0)
-    expect(h.blurb.length).toBeGreaterThan(0)
-    expect(h.cabins).toBe(programBudget(schemeObjects(schemeById(schemes, 'H'))).buildings.length)
+    const c = byId('C')
+    expect(c.tag.length).toBeGreaterThan(0)
+    expect(c.blurb.length).toBeGreaterThan(0)
+    expect(c.cabins).toBe(programBudget(schemeObjects(schemeById(schemes, 'C'))).buildings.length)
   })
 
   it('returns the cached summary on a second call', () => {

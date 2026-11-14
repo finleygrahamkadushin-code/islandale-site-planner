@@ -216,7 +216,7 @@ describe('part actions', () => {
 
   test('a standalone deck keeps its rails on its own params, as mass 0', () => {
     const deck: PlanObject = {
-      id: 'D-1',
+      id: 'deck-1',
       type: 'deck',
       name: 'Ring deck',
       position: { x: 0, n: 0 },
@@ -346,7 +346,7 @@ describe('the picked part', () => {
     ['selecting something else', () => store().select([WEDGE])],
     ['selecting nothing', () => store().select([])],
     ['shift-selecting', () => store().toggleSelect(WEDGE)],
-    ['loading a scheme', () => store().loadScheme('C2')],
+    ['loading a scheme', () => store().loadScheme('C')],
     ['replacing the plan', () => store().replacePlan(store().plan)],
     ['opening a saved plan', () => store().hydrate({ plan: store().plan })],
     ['deleting its building', () => store().deleteObjects([PROW])],

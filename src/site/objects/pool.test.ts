@@ -48,7 +48,7 @@ describe('infinity edges (legacy poolInfEdges)', () => {
     expect(poolInfinityEdges(rect, undefined)).toEqual([2])
   })
 
-  test('Scheme D’s kidney tide pool spills over edges 11 to 25, as in the old planner', () => {
+  test('a 22 × 11 ft kidney pool (bend 0.45) spills over edges 11 to 25, as in the old planner', () => {
     const P = localFootprint({ w: 22, d: 11, shape: 'kidney', bend: 0.45 })
     expect(P).toHaveLength(37)
     expect(poolInfinityEdges(P, undefined)).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25])

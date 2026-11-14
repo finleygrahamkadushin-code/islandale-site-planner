@@ -11,8 +11,8 @@ import { M_PER_FT as FT } from '../../site/units'
 
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes?: { id: string; objects: Obj[] }[] }).schemes ?? (schemes as unknown as { id: string; objects: Obj[] }[])
-const scheme = (id: string) => all.find((s) => s.id === id)!
-const mainOf = (id: string, name: string) => buildingMasses(scheme(id).objects.find((o) => o.name === name)!)[0]
+const cabinOf = (name: string) => all.find((s) => s.id === 'C')!.objects.find((o) => o.name === name)!
+const mainOf = (name: string) => buildingMasses(cabinOf(name))[0]
 
 const vertices = (m: MeshData) => Array.from({ length: m.positions.length / 3 }, (_, i) => [m.positions[i * 3], m.positions[i * 3 + 1], m.positions[i * 3 + 2]] as const)
 const hex: LocalPoint[] = [0, 60, 120, 180, 240, 300].map((a) => [10 * Math.cos((a * Math.PI) / 180), 8 * Math.sin((a * Math.PI) / 180)] as const)
@@ -109,12 +109,13 @@ describe('fitted roofs keep their creases where an outline edge crosses them', (
     expect(triangleCount(r.roof)).toBe(8)
   })
 
-  test("A's family pods and B's gathering fan draw their butterfly V at both ends", () => {
-    for (const [id, name] of [['A', 'Family pods'], ['B', 'Gathering fan']] as const) {
-      const m = mainOf(id, name)
+  test("a butterfly on a parallelogram or a trapezoid (C's twin pod reshaped) draws its V at both ends", () => {
+    for (const shape of [{ shape: 'para', skew: 5 }, { shape: 'trap', taper: 0.6 }]) {
+      const m = buildingMasses({ ...cabinOf('Family twin pod'), ...shape, ridge: 'x' })[0]
+      expect(m.roof).toBe('butterfly')
       const r = polyRoof(massPoly(m), m.roof, m.pitch, m.ridge, m.overhang)
       const valley = ringHeights(r, massPoly(m), m.overhang).filter(([, , z]) => Math.abs(z) < 1e-6)
-      expect(new Set(valley.map(([x]) => x.toFixed(3))).size, `${id} ${name}`).toBe(2)
+      expect(new Set(valley.map(([x]) => x.toFixed(3))).size, shape.shape).toBe(2)
       for (const [, y] of valley) expect(y).toBeCloseTo(0.25, 6)
     }
   })
@@ -122,7 +123,7 @@ describe('fitted roofs keep their creases where an outline edge crosses them', (
 
 describe('prow roofs', () => {
   test('the gathering prow rises at its pitch to the ridge and closes its back end with a gable', () => {
-    const m = mainOf('C', 'Gathering prow')
+    const m = mainOf('Gathering prow')
     const poly = massPoly(m)
     const r = prowRoof(poly, m.pitch, m.ridge, m.overhang)
     expect(triangleCount(r.roof)).toBeGreaterThan(10)
@@ -134,8 +135,8 @@ describe('prow roofs', () => {
     expect(r.rise).toBeGreaterThan(0.5)
   })
 
-  test('C4 builds its vaulted, dipped prow with clerestory glass', () => {
-    const m = mainOf('C4', 'Gathering prow')
+  test("a vaulted, dipped prow (C's prow with vault and a 4.5 ft dip) gets clerestory glass", () => {
+    const m = buildingMasses({ ...cabinOf('Gathering prow'), vault: true, roofDip: 4.5 })[0]
     expect(m.vault).toBe(true)
     const r = prowRoof(massPoly(m), m.pitch, m.ridge, m.overhang, { roofPts: m.roofPts, vault: m.vault, dip: m.roofDip })
     expect(triangleCount(r.glass)).toBeGreaterThan(0)

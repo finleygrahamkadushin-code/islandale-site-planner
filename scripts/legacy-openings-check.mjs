@@ -3,7 +3,8 @@
 import { chromium } from '@playwright/test'
 
 const URL = 'http://localhost:8777/islandale-planner.html'
-const SCHEMES = [/^C · Prow/, /^C2/, /^C3/, /^C4/]
+// this copy tests Scheme C only (the full set is on main)
+const SCHEMES = [/^C · Prow/]
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })

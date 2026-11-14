@@ -1,6 +1,6 @@
 # Site section
 
-The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours, the schemes, the earthworks that reshape the ground (cuts, fills, berms, sunk floors, ponds, retaining walls), the site objects (trees, boulders, meadow, pond, pool, sheds, pads and parked cars), and the environment (sun, sky, season, tide). **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
+The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours, Scheme C (this copy holds Scheme C only; `main` keeps all 12), the earthworks that reshape the ground (cuts, fills, berms, sunk floors, ponds, retaining walls), the site objects (trees, boulders, meadow, pond, pool, sheds, pads and parked cars), and the environment (sun, sky, season, tide). **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
 
 ## Start here, by task
 
@@ -11,7 +11,7 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | The parcel line, lot area, shoreline buffer and stakes | `parcel.ts`, `buffer.ts`, `ParcelLine.tsx`, `SiteMarks.tsx`; the data is `data/islandale/parcel.json` |
 | The approximate high-water line (8 ft NAVD88 contour) the shoreline buffer and shore distances measure from | `highWater.ts` (the line, built in `islandale.ts`), `rules/setbacks.ts` (`waterSegments`, `belowHighWater`), drawn in `ParcelLine.tsx` |
 | Contour lines | `contours.ts` (drawn in `SiteMarks.tsx`) |
-| The schemes as the old planner wrote them | `schemes.ts`; the data is `data/islandale/schemes.json` |
+| Scheme C as the old planner wrote it; whether there is a scheme to choose (`hasSchemeChoice`) | `schemes.ts`; the data is `data/islandale/schemes.json` (Scheme C only) |
 | Units and the site frame (metres, x east, n north, NAVD88) | `units.ts`, `types.ts` |
 | Shared plane geometry: point in polygon, point to segment (used by every section) | `geom2d.ts` |
 | A sunk, bermed or earth-supported building: what it asks of the ground | `earthworks/earthworksSpec.ts` |
@@ -23,8 +23,8 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 | The outline the rules measure a building from | `rules/ruleOutline.ts` |
 | The code check (setback, lot width, height, guards, handrails, tree zone, route, levels) | `rules/codeCheck.ts` (entry), `rules/codeCheckRows.ts`, `rules/codeCheckRails.ts`, `rules/codeCheckPaths.ts`, `rules/lotWidth.ts`, `rules/height.ts`; panel `rules/CodeCheckPanel.tsx` |
 | Program budget (enclosed, covered, deck sq ft; 1,600 sq ft cap) and lot coverage | `rules/program.ts`, `rules/ProgramPanel.tsx`; coverage is `lotFacts.ts` (`coverageOf`) |
-| The Designs archive (5F): scheme cards, their summaries and plan thumbnails | `archive/ArchiveDialog.tsx` (shell, lazy), `archive/ArchiveBrowser.tsx` (groups), `archive/SchemeCard.tsx`, `archive/schemeSummary.ts`, `archive/thumbPaths.ts`, `archive/SchemeThumb.tsx` |
-| Opening a scheme: ask, load, frame, select the gathering building, message | `archive/openScheme.ts` (the top bar's Scheme list uses it too) |
+| The Designs archive (5F), hidden while the data holds one scheme: scheme cards, their summaries and plan thumbnails | `archive/ArchiveDialog.tsx` (shell, lazy), `archive/ArchiveBrowser.tsx` (groups), `archive/SchemeCard.tsx`, `archive/schemeSummary.ts`, `archive/thumbPaths.ts`, `archive/SchemeThumb.tsx` |
+| Opening a scheme: ask, load, frame, select the gathering building, message | `archive/openScheme.ts` (the top bar's Scheme list uses it too, when it shows; File → Reset uses `openSchemeNow`) |
 | Clearances to shore, lot line and nearest object; dimension labels | `rules/clearances.ts`, `rules/ClearanceStats.tsx` (inspector), `rules/ClearanceMarks.tsx` (3D) |
 | Pond water level | `earthworks/earthworks.ts` (`pondLevel`), `earthworks/earthworksSpec.ts` (`pondLevelOf`) |
 | The ground everything else stands on, with earthworks applied | `earthworks/useEarthworks.ts` (used across buildings and paths) |
@@ -39,13 +39,13 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 
 ## Folder map
 
-- **Top level (the lot itself):** `islandale.ts` loads the terrain grid and parcel from `data/islandale/`. `terrain.ts` gives ground height, `parcel.ts`, `buffer.ts` and `contours.ts` the lot and its lines, and `schemes.ts` the old planner's schemes. `TerrainMesh.tsx`, `ParcelLine.tsx` and `SiteMarks.tsx` draw them.
+- **Top level (the lot itself):** `islandale.ts` loads the terrain grid and parcel from `data/islandale/`. `terrain.ts` gives ground height, `parcel.ts`, `buffer.ts` and `contours.ts` the lot and its lines, and `schemes.ts` the old planner's Scheme C. `TerrainMesh.tsx`, `ParcelLine.tsx` and `SiteMarks.tsx` draw them.
 - **`earthworks/`:** everything that reshapes the ground. **`objects/`:** things placed on the site that aren't buildings or path pieces. **`environment/`:** sun, sky, tide and their panel.
 - Pure maths is in `.ts` files with tests beside them; meshes are `*Mesh.tsx`.
 
 ## Data: where the site keeps things
 
-- **The lot (fixed, not in the plan):** `data/islandale/terrain.json` (survey grid, metres NAVD88), `parcel.json` (lot ring, area, shoreline edges) and `schemes.json`. `npm run extract` (`scripts/extract-legacy.mjs`) extracts them from the old planner; don't edit them by hand.
+- **The lot (fixed, not in the plan):** `data/islandale/terrain.json` (survey grid, metres NAVD88), `parcel.json` (lot ring, area, shoreline edges) and `schemes.json` (Scheme C only). `npm run extract` (`scripts/extract-legacy.mjs`) extracts them from the old planner; don't edit them by hand.
 - **Earthworks:** a building's `params.earth` (sink, berm, sides, slope, crest, margin, court, retaining walls and their material; see the `EarthSpec` fields in `earthworks/earthworksSpec.ts`), read together with `params.support`.
 - **Site objects:** `PlanObject`s (`../store/types.ts`) of their own types (`tree`, `boulder`, `meadow`, `pond`, `pool`, `pad`, `shed`, `shop`). Their look comes from `params` plus a seed from the object id (`objectSeed`), so they draw the same every time.
 - **Environment:** `environment` in the plan store: `{ season, hour, tideFt }` (`Environment` in `../store/types.ts`). It's saved with the plan but isn't an undo step.
@@ -64,6 +64,6 @@ The Islandale lot on Lopez Island: the surveyed ground, parcel line and contours
 
 ## Checks for this section
 
-- **Unit tests:** `npx vitest run src/site` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root. `tsc -p .` checks nothing. A few heavy "every scheme" tests in `src/export/sheets/` can time out when the machine is busy; re-run them alone before you blame a change.
-- **Browser tests for site work:** `e2e/graphics.spec.ts` (display styles, saved views, sun settings survive a reload) and `e2e/old-designs.spec.ts` (schemes D–I draw their site objects; about 5 minutes). For earthworks under paths and rails, also run `e2e/paths-rails.spec.ts`.
+- **Unit tests:** `npx vitest run src/site` (fast). Then `npx tsc -p tsconfig.app.json` from the repo root. `tsc -p .` checks nothing. A few heavy "every scheme" tests in `src/export/sheets/` (now Scheme C only) can time out when the machine is busy; re-run them alone before you blame a change.
+- **Browser tests for site work:** `e2e/graphics.spec.ts` (display styles, saved views, sun settings survive a reload), `e2e/site-rules.spec.ts` (setbacks, code check, program budget) and `e2e/archive.spec.ts` (no Scheme list or Designs with one scheme; Reset gives Scheme C). For earthworks under paths and rails, also run `e2e/paths-rails.spec.ts`.
 - The old planner is the reference for behaviour. Files name the legacy function they port (`earthOf`, `earthRebuild`, `poolMesh`, `updateSun` and so on), so find them with `tools/map.sh def NAME`.

@@ -73,10 +73,11 @@ describe('the notes column fits, or takes a page of its own', () => {
   })
 
   test('notes measured too tall beside the drawing move to a page of their own', () => {
-    const notes = notesFor('E')
-    const e = siteSheetModel(modelInputFor(planOf('E')))
-    expect(notesHeightIn(notes, 4.1)).toBeGreaterThan(notesHeightIn(notesFor('C'), 4.1))
-    const l = fitNotes(siteLayout(e, 'tabloid', 0.05, false), notes, 0.05, true)
+    // Scheme C's notes with the code check's rows written out three times over
+    const c = notesFor('C')
+    const notes = { ...c, code: { ...c.code, rows: [...c.code.rows, ...c.code.rows, ...c.code.rows] } }
+    expect(notesHeightIn(notes, 4.1)).toBeGreaterThan(notesHeightIn(c, 4.1))
+    const l = fitNotes(siteLayout(model, 'tabloid', 0.05, false), notes, 0.05, true)
     expect(l.mode).toBe('notesPage')
     expect(l.pages).toBe(2)
     // and the estimate doesn't offer Tabloid as the one page that holds them

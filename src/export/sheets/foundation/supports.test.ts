@@ -16,7 +16,7 @@ import { M_PER_FT as FT } from '../../../site/units'
  * What the parts stand on, on the sheets, checked against the support
  * layout the 3D scene builds (supportPlan and the wing post helpers, fed the
  * ground by hand here): every footprint shape, every support kind, any turn,
- * deck and porch wings, a standalone deck, and schemes C to C4.
+ * deck and porch wings, a standalone deck, and Scheme C.
  */
 
 const SHAPES = ['rect', 'poly', 'ellipse', 'kidney', 'teardrop', 'blob', 'ribbon'] as const
@@ -136,29 +136,27 @@ describe('wings and decks', () => {
   })
 })
 
-describe('schemes C to C4', () => {
+describe('Scheme C', () => {
   const store = () => usePlanStore.getState()
   beforeAll(() => store().setReadOnly(null))
-  for (const scheme of ['C', 'C2', 'C3', 'C4']) {
-    test(`${scheme}: every post stands under its own part, porch posts clear of the walls`, () => {
-      store().loadScheme(scheme)
-      const objects = store().plan.order.map((id) => store().plan.objects[id])
-      const buildings = sheetBuildings(objects, store().site.terrain)
-      expect(buildings.length).toBeGreaterThan(0)
-      for (const b of buildings) {
-        const closed = b.parts.filter((p) => p.kind === 'wall').map((p) => p.outline)
-        for (const s of b.supports) {
-          const part = b.parts[s.massIndex]
-          expect(s.part).toBe(part.name)
-          for (const p of s.posts) {
-            expect(pointInPolygon(part.outline, p.at[0], p.at[1])).toBe(true)
-            expect(p.topFt).toBeGreaterThanOrEqual(p.footFt)
-            if (s.kind === 'porch posts') expect(closed.some((c) => pointInPolygon(c, p.at[0], p.at[1]))).toBe(false)
-          }
+  test('every post stands under its own part, porch posts clear of the walls', () => {
+    store().loadScheme('C')
+    const objects = store().plan.order.map((id) => store().plan.objects[id])
+    const buildings = sheetBuildings(objects, store().site.terrain)
+    expect(buildings.length).toBeGreaterThan(0)
+    for (const b of buildings) {
+      const closed = b.parts.filter((p) => p.kind === 'wall').map((p) => p.outline)
+      for (const s of b.supports) {
+        const part = b.parts[s.massIndex]
+        expect(s.part).toBe(part.name)
+        for (const p of s.posts) {
+          expect(pointInPolygon(part.outline, p.at[0], p.at[1])).toBe(true)
+          expect(p.topFt).toBeGreaterThanOrEqual(p.footFt)
+          if (s.kind === 'porch posts') expect(closed.some((c) => pointInPolygon(c, p.at[0], p.at[1]))).toBe(false)
         }
       }
-    })
-  }
+    }
+  })
   test("C-0's main walls stand on 8 in posts on beams", () => {
     store().loadScheme('C')
     const objects = store().plan.order.map((id) => store().plan.objects[id])

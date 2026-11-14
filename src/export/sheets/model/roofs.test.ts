@@ -108,19 +108,20 @@ describe('the roof rise is the scene’s', () => {
         expect(b.levels.topFt).toBeCloseTo(Math.max(0, ...b.parts.map((p) => p.levelFt + p.wallFt + (p.roof?.riseFt ?? 0))), 9)
       }
     }
-    expect(checked).toBeGreaterThan(100)
+    expect(checked).toBeGreaterThan(10)
     store().loadScheme('C')
   })
 
-  test('with the shell curl and the finish: D-0’s copper shell and F-0’s glass dome', () => {
-    const rise = (scheme: string, id: string, name: string) => {
-      store().loadScheme(scheme)
-      const p = sheetBuildings(objects(), store().site.terrain).find((b) => b.id === id)?.parts.find((q) => q.name === name)
-      return p?.roof?.riseFt ?? NaN
-    }
-    expect(rise('D', 'D-0', 'Main')).toBeCloseTo(13.54, 2)
-    expect(rise('F', 'F-0', 'Wing 2')).toBeCloseTo(4.23, 2)
-    store().loadScheme('C')
+  test('with the shell curl and the finish: a copper shell and a glass dome built on the twin pod', () => {
+    const base = store().plan.objects['C-2']
+    const dome = { kind: 'wall', open: false, dx: 0, dz: 16, w: 11, d: 11, h: 7, shape: 'oct', roof: 'dome', roofMat: 'glass', pitch: 8, ridge: 'x', overhang: 0.5, walls: 'glass' }
+    const params = { shape: 'blob', w: 34, d: 22, pts: undefined, roof: 'shell', curl: 0.85, roofMat: 'copper', pitch: 6, ridge: 'z', overhang: 2.5, wings: [dome], cuts: [] }
+    const o: PlanObject = { ...base, params: { ...base.params, ...params } }
+    const b = sheetBuildings([o], store().site.terrain)[0]
+    const masses = buildingMasses(o.params)
+    const look = buildingLook(o, 'realistic', 0)
+    expect([0, 1].map((mi) => roofFinish(look, mi).finish)).toEqual(['copper', 'glass'])
+    for (const mi of [0, 1]) expect(b.parts.find((p) => p.massIndex === mi)?.roof?.riseFt).toBeCloseTo(sceneRiseFt(o, masses[mi], mi), 6)
   })
 
   test('for parts built in code: every roof type on every shape', () => {
@@ -265,11 +266,13 @@ describe('turned parts', () => {
 })
 
 describe('scheme C', () => {
-  test('C4’s shell prow: its dipped tip eave, top and underside, and the tip column on the plan', () => {
-    store().loadScheme('C4')
-    const o = objects().find((x) => x.id === 'C4-0')
-    const b = sheetBuildings(objects(), store().site.terrain).find((x) => x.id === 'C4-0')
-    if (!o || !b) throw new Error('no C4-0')
+  test('the prow as a vaulted shell drawn to its own outline: its dipped tip eave, top and underside, and the tip column on the plan', () => {
+    store().loadScheme('C')
+    const base = store().plan.objects['C-0']
+    const roofPts = [[-16.5, -15.5], [16.5, -15.5], [16.5, 5.4], [1.5, 21], [-16.5, 4.4]]
+    const o: PlanObject = { ...base, params: { ...base.params, roofPts, vault: true, roofDip: 4.5 } }
+    const b = sheetBuildings([o], store().site.terrain)[0]
+    if (!b) throw new Error('no sheet building')
     const m = buildingMasses(o.params)[0]
     const r = b.parts[0].roof
     if (!r?.tip) throw new Error('no tip column')
@@ -281,12 +284,10 @@ describe('scheme C', () => {
     expect(r.tip.topFt).toBeCloseTo(levelOf(r, 'tip column top'), 9)
     expect(buildingToMass(m, r.tip.at)[0]).toBeCloseTo(mToFt(built.tip.x), 6)
     expect(buildingToMass(m, r.tip.at)[1]).toBeCloseTo(mToFt(built.tip.z), 6)
-    expect(levelOf(r, 'ridge')).toBeCloseTo(9.625, 3)
     // the tip column stands under the roof, and the Levels table lists the tip
     expect(within(r.tip.at, r.eave, 0)).toBe(true)
     const levels = sheetTables(b).find((t) => t.title === 'Levels')
     expect(levels?.rows.map((row) => row[0])).toEqual(expect.arrayContaining(['Main tip eave', 'Main tip eave, underside', 'Main tip column top', 'Main ridge']))
-    store().loadScheme('C')
   })
 
   test('C’s prow draws its ridge and hips; its sheds an arrow; its pods their hips and valley', () => {

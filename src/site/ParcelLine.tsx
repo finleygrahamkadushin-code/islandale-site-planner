@@ -71,7 +71,7 @@ function HighWaterLine({ parcel, terrain }: { readonly parcel: Parcel; readonly 
       <Line points={line.points} color={HIGH_WATER_LINE} lineWidth={2} dashed dashSize={0.6} gapSize={0.3} />
       {!presenting && (
         <ScreenChip position={line.mid} layer={LAYER.label}>
-          <div className="measure-label high-water-label" style={{ background: HIGH_WATER_LINE }} data-testid="high-water-label">
+          <div className="high-water-label" style={{ background: HIGH_WATER_LINE }} data-testid="high-water-label">
             {HIGH_WATER_LABEL}
           </div>
         </ScreenChip>
