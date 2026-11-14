@@ -55,7 +55,7 @@ def main(argv):
     a = ap.parse_args(argv)
     scene_dir = pathlib.Path(a.scene)
     scene = json.loads((scene_dir / "scene.json").read_text())
-    materials_json = json.loads(pathlib.Path(scene["textures"]["materials_json"]).read_text())
+    materials_json = islandale_plan.load_materials(scene, scene_dir)
     plan = islandale_plan.plan(scene, materials_json, scene_dir)
     todo = [p for p in a.only.split(",") if p]
     unknown = sorted(set(todo) - set(PHASES))

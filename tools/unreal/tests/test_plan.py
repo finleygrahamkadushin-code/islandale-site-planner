@@ -12,7 +12,7 @@ MJ = {"materials": {s: {"tile_m": 6.0, "maps": MAPS(s), "constants": {"Metallic"
                                "displacement_center": 1.0}}
                     for s in ("kurinuki", "glass", "stucco__aa9d13", "ledgestone_cool", "meadow__63c904", "beach")}}
 SCENE = {
-    "textures": {"folder": "/tex", "materials_json": "/tex/materials.json"},
+    "textures": {"folder": "../textures", "materials_json": "../textures/materials.json"},
     "materials": {
         "kurinuki": {"kind": "set", "set": "kurinuki", "ue": {"master": "opaque"}},
         "glass": {"kind": "set", "set": "glass", "ue": {"master": "glass"}},
@@ -34,9 +34,9 @@ def test_sets_used_include_blend_layers():
 
 
 def test_texture_settings_per_map():
-    tex = {t["asset"]: t for t in P.textures(SCENE, MJ)}
+    tex = {t["asset"]: t for t in P.textures(SCENE, MJ, pathlib.Path("/bundle/scene"))}
     bc, n = tex["/Game/Islandale/Textures/kurinuki/T_kurinuki_BC"], tex["/Game/Islandale/Textures/kurinuki/T_kurinuki_N"]
-    assert bc["srgb"] and bc["source"] == "/tex/kurinuki/T_kurinuki_BC.png"
+    assert bc["srgb"] and pathlib.Path(bc["source"]) == pathlib.Path("/bundle/scene/../textures/kurinuki/T_kurinuki_BC.png")
     assert not n["srgb"] and n["compression"] == "TC_NORMALMAP" and n["flip_green_channel"] is False
     assert tex["/Game/Islandale/Textures/kurinuki/T_kurinuki_ORM"]["compression"] == "TC_MASKS"
     assert len(tex) == 6 * 4

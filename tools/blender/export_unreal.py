@@ -14,6 +14,8 @@ materials.json, in this checkout or the main one. --out: by default a scene/ fol
 import argparse
 import datetime
 import json
+import os
+import shutil
 import pathlib
 import subprocess
 import sys
@@ -77,6 +79,38 @@ def camera_entries(cams) -> list:
         fwd = cam.matrix_world.to_3x3() @ Vector((0.0, 0.0, -1.0))
         out.append(scene_doc.camera(cam.name, tuple(eye), tuple(eye + fwd * 10.0), cam.data.lens))
     return out
+
+
+BUNDLE_README = """# Islandale Unreal bundle (Scheme C)
+
+Made by `tools/blender/export_unreal.py` (6F) on {date}. Everything 6G needs, with relative paths only, so this folder can be
+copied to another machine (an ExFAT drive is fine: the biggest file is {biggest}).
+
+    {textures}/         6E: one seamless 6 m tile per material (T_<set>_BC / _ORM / _H / _N) and materials.json
+    {scene}/            6F: one .glb per group (one static mesh each, in site coordinates), scene.json, the app's manifest
+
+Size: about {size}. Axes in Unreal: +X east, +Y south (north is -Y), Z up, centimetres; place every mesh at the origin.
+
+On the other machine (Unreal Engine 5.8, with this repo checked out on branch scheme-c-only):
+1. Make or open the Unreal project; enable the Python Editor Script Plugin and Editor Scripting Utilities (Interchange is on).
+2. Check the files open:  UnrealEditor <Project>.uproject -ExecutePythonScript="tools/unreal/check_6f.py --scene <this folder>/{scene} --out <somewhere> --quit"
+3. Build the level (6G, still being written):  UnrealEditor-Cmd <Project>.uproject -run=pythonscript -script="tools/unreal/import_islandale.py --scene <this folder>/{scene}"
+See PLAN-6G.md for what each step makes and what the PC needs.
+"""
+
+
+def write_bundle_readme(out: pathlib.Path, textures: pathlib.Path, scene_bytes: int) -> None:
+    """A README in the folder that holds both textures/ and scene/ (the bundle), or in scene/ if they are apart."""
+    together = textures.parent == out.parent
+    where = out.parent if together else out
+    files = [f for f in list(textures.rglob("*")) + list(out.rglob("*")) if f.is_file()]
+    tex_bytes = sum(f.stat().st_size for f in files if textures in f.parents)
+    big = max(files, key=lambda f: f.stat().st_size)
+    biggest = f"{big.name}, {big.stat().st_size / 1e6:.0f} MB"
+    size = f"{(tex_bytes + scene_bytes) / 1e9:.1f} GB ({tex_bytes / 1e9:.1f} GB of textures)"
+    (where / "README.md").write_text(BUNDLE_README.format(
+        date=datetime.date.today().isoformat(), textures=os.path.relpath(textures, where), scene=os.path.relpath(out, where),
+        size=size, biggest=biggest))
 
 
 def main(argv):
@@ -163,16 +197,21 @@ def main(argv):
               f"max |uv| {uvinfo['max_abs_uv']}")
 
     exag = site.manifest.get("exag", 1)
+    manifest_path = pathlib.Path(a.manifest) if a.manifest else pathlib.Path(a.glb).with_name(
+        pathlib.Path(a.glb).stem + ".manifest.json")
+    manifest_copy = out / manifest_path.name                 # the app's own positions, for 6F's north check
+    shutil.copyfile(manifest_path, manifest_copy)
+    rel_textures = pathlib.Path(os.path.relpath(textures, out)).as_posix()
     mats_doc = {s: scene_doc.material(s, info, materials, blends, exag) for s, info in slots.info.items()}
     wains = {s: m for s, m in mats_doc.items() if m["kind"] == "wainscot"}
     doc = scene_doc.build(
         generated=datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         git=_git("rev-parse", "--short", "HEAD"),
-        source={"glb": str(pathlib.Path(a.glb).resolve()), "scheme": site.manifest.get("scene"),
-                "export_commit": site.manifest.get("commit"), "exported_at": site.manifest.get("exportedAt"),
-                "styles": str(pathlib.Path(a.styles).resolve())},
-        textures={"folder": str(textures), "materials_json": str(textures / "materials.json"), "res": mj.get("res"),
-                  "tile_m": mj.get("tile_m"), "git": mj.get("git"), "maps_relative_to": "folder"},
+        source={"glb_name": pathlib.Path(a.glb).name, "manifest": manifest_copy.name, "scheme": site.manifest.get("scene"),
+                "export_commit": site.manifest.get("commit"), "exported_at": site.manifest.get("exportedAt")},
+        textures={"folder": rel_textures, "materials_json": f"{rel_textures}/materials.json", "res": mj.get("res"),
+                  "tile_m": mj.get("tile_m"), "git": mj.get("git"),
+                  "paths": "folder and materials_json are relative to this scene.json; maps are relative to folder"},
         exag=exag, tide_ft=tide_ft,
         sun_doc=scene_doc.sun(a.season, a.hour, az, el, site.manifest.get("sun")),
         cameras=camera_entries(cams), groups=group_docs, materials_doc=mats_doc,
@@ -186,6 +225,7 @@ def main(argv):
     problems = scene_doc.validate(doc, materials, blends)
     (out / "scene.json").write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
     total = sum(v["bytes"] for v in log.values())
+    write_bundle_readme(out, textures, total)
     (out / "export_unreal.log.json").write_text(json.dumps(
         {"groups": log, "welds": welds, "triangles_export": tris_export, "triangles_in": tris_in, "triangles_out_without_sea": tris_out,
          "bytes": total, "seconds": round(time.time() - t0, 1), "problems": problems}, indent=2) + "\n")

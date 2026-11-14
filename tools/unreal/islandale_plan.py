@@ -51,8 +51,8 @@ def sets_used(scene: dict) -> list[str]:
     return sorted(out)
 
 
-def textures(scene: dict, materials_json: dict) -> list[dict]:
-    folder = pathlib.Path(scene["textures"]["folder"])
+def textures(scene: dict, materials_json: dict, scene_dir: pathlib.Path = pathlib.Path(".")) -> list[dict]:
+    folder = scene_dir / scene["textures"]["folder"]      # relative to scene.json (an absolute path also works)
     out = []
     for s in sets_used(scene):
         for key, rel in materials_json["materials"][s]["maps"].items():
@@ -120,8 +120,13 @@ def actors(scene: dict) -> list[dict]:
     return out
 
 
+def load_materials(scene: dict, scene_dir: pathlib.Path) -> dict:
+    """materials.json, found relative to scene.json."""
+    return json.loads((scene_dir / scene["textures"]["materials_json"]).read_text())
+
+
 def plan(scene: dict, materials_json: dict, scene_dir: pathlib.Path) -> dict:
-    return {"textures": textures(scene, materials_json), "masters": sorted({i["parent"] for i in instances(scene, materials_json)}),
+    return {"textures": textures(scene, materials_json, scene_dir), "masters": sorted({i["parent"] for i in instances(scene, materials_json)}),
             "instances": instances(scene, materials_json), "meshes": meshes(scene, scene_dir), "level": LEVEL,
             "actors": actors(scene), "actor_tag": ACTOR_TAG}
 
@@ -129,7 +134,7 @@ def plan(scene: dict, materials_json: dict, scene_dir: pathlib.Path) -> dict:
 def main(argv):
     scene_path = pathlib.Path(argv[0])
     scene = json.loads(scene_path.read_text())
-    materials_json = json.loads(pathlib.Path(scene["textures"]["materials_json"]).read_text())
+    materials_json = load_materials(scene, scene_path.parent)
     print(json.dumps(plan(scene, materials_json, scene_path.parent), indent=2))
 
 
