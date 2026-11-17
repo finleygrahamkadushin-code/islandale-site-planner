@@ -305,11 +305,11 @@
             },
             {
               "id": 9108,
-              "kind": "window",
+              "kind": "slider",
               "x": 70.88,
-              "w": 8,
-              "h": 5,
-              "sill": 2.5,
+              "w": 10,
+              "h": 7,
+              "sill": 0,
               "along": true
             },
             {
@@ -384,29 +384,6 @@
                   ]
                 },
                 {
-                  "id": 5549,
-                  "name": "Pantry",
-                  "type": "pantry",
-                  "pts": [
-                    [
-                      -3.5,
-                      -13
-                    ],
-                    [
-                      -3.5,
-                      -8
-                    ],
-                    [
-                      -8,
-                      -8
-                    ],
-                    [
-                      -8,
-                      -13
-                    ]
-                  ]
-                },
-                {
                   "id": 5550,
                   "name": "Laundry & storage",
                   "type": "laundry",
@@ -431,22 +408,10 @@
                 },
                 {
                   "id": 5545,
-                  "name": "Kitchen",
+                  "name": "Kitchen · hearth",
                   "type": "kitchen",
                   "pts": [
                     [
-                      -8,
-                      -8
-                    ],
-                    [
-                      -4,
-                      -8
-                    ],
-                    [
-                      -4,
-                      4.33
-                    ],
-                    [
                       -14,
                       4.33
                     ],
@@ -455,18 +420,11 @@
                       -13
                     ],
                     [
-                      -8,
+                      -3.5,
                       -13
-                    ]
-                  ]
-                },
-                {
-                  "id": 5551,
-                  "name": "Hearth hall",
-                  "type": "hall",
-                  "pts": [
+                    ],
                     [
-                      -4,
+                      -3.5,
                       -8
                     ],
                     [
@@ -475,10 +433,6 @@
                     ],
                     [
                       3,
-                      4.33
-                    ],
-                    [
-                      -4,
                       4.33
                     ]
                   ]
@@ -565,96 +519,26 @@
                   "id": 5555,
                   "room": 5547,
                   "edge": 1,
-                  "pos": 0.536,
+                  "pos": 0.5357,
                   "width": 6.5,
                   "kind": "open",
                   "flip": false,
                   "out": false
                 },
                 {
-                  "id": 5556,
-                  "room": 5548,
-                  "edge": 1,
-                  "pos": 0.318,
-                  "width": 2.5,
-                  "kind": "door",
-                  "flip": false,
-                  "out": true
-                },
-                {
-                  "id": 5557,
-                  "room": 5549,
-                  "edge": 2,
-                  "pos": 0.28,
-                  "width": 2.83,
-                  "kind": "door",
-                  "flip": false,
-                  "out": true
-                },
-                {
                   "id": 5558,
                   "room": 5550,
                   "edge": 0,
-                  "pos": 0.45,
+                  "pos": 0.7,
                   "width": 2.5,
-                  "kind": "door",
+                  "kind": "pocket",
                   "flip": false,
                   "out": true
-                },
-                {
-                  "id": 5559,
-                  "room": 5545,
-                  "edge": 1,
-                  "pos": 0.406,
-                  "width": 8,
-                  "kind": "open",
-                  "flip": false,
-                  "out": false
-                },
-                {
-                  "id": 5560,
-                  "room": 5552,
-                  "edge": 3,
-                  "pos": 0.497,
-                  "width": 6,
-                  "kind": "open",
-                  "flip": false,
-                  "out": false
-                },
-                {
-                  "id": 5561,
-                  "room": 5553,
-                  "edge": 0,
-                  "pos": 0.179,
-                  "width": 6,
-                  "kind": "open",
-                  "flip": false,
-                  "out": false
-                },
-                {
-                  "id": 5562,
-                  "room": 5553,
-                  "edge": 0,
-                  "pos": 0.482,
-                  "width": 5,
-                  "kind": "open",
-                  "flip": false,
-                  "out": false
-                },
-                {
-                  "id": 5563,
-                  "room": 5553,
-                  "edge": 0,
-                  "pos": 0.813,
-                  "width": 6,
-                  "kind": "open",
-                  "flip": false,
-                  "out": false
                 },
                 {
                   "id": 5564,
                   "room": 5545,
-                  "edge": 3,
+                  "edge": 0,
                   "pos": 0.365,
                   "width": 6,
                   "kind": "slider",
@@ -674,8 +558,8 @@
                 {
                   "id": 5566,
                   "room": 5545,
-                  "edge": 4,
-                  "pos": 0.5,
+                  "edge": 1,
+                  "pos": 0.2857,
                   "width": 4,
                   "kind": "window",
                   "flip": false,
@@ -684,7 +568,7 @@
                 {
                   "id": 5567,
                   "room": 5545,
-                  "edge": 3,
+                  "edge": 0,
                   "pos": 0.111,
                   "width": 2.5,
                   "kind": "window",
@@ -747,7 +631,7 @@
                   "edge": 4,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "window",
+                  "kind": "slider",
                   "flip": false,
                   "out": false
                 },
@@ -757,7 +641,7 @@
                   "edge": 5,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "window",
+                  "kind": "slider",
                   "flip": false,
                   "out": false
                 },
@@ -767,7 +651,7 @@
                   "edge": 6,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "window",
+                  "kind": "slider",
                   "flip": false,
                   "out": false
                 },
@@ -777,7 +661,37 @@
                   "edge": 7,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "window",
+                  "kind": "slider",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5594,
+                  "room": 5552,
+                  "edge": 3,
+                  "pos": 0.5,
+                  "width": 11.63,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5595,
+                  "room": 5553,
+                  "edge": 0,
+                  "pos": 0.3036,
+                  "width": 16.3,
+                  "kind": "open",
+                  "flip": false,
+                  "out": false
+                },
+                {
+                  "id": 5596,
+                  "room": 5548,
+                  "edge": 2,
+                  "pos": 0.64,
+                  "width": 2.33,
+                  "kind": "pocket",
                   "flip": false,
                   "out": false
                 }
@@ -786,51 +700,41 @@
                 {
                   "id": 5574,
                   "type": "fridge",
-                  "x": -12.25,
-                  "z": -11,
-                  "rot": 270,
+                  "x": -5.17,
+                  "z": -11.25,
+                  "rot": 0,
                   "w": 3,
                   "d": 2.5,
                   "mirror": false
                 },
                 {
-                  "id": 5575,
-                  "type": "counter",
-                  "x": -12.5,
-                  "z": -7.5,
-                  "rot": 270,
-                  "w": 4,
-                  "d": 2,
-                  "mirror": false
-                },
-                {
                   "id": 5576,
                   "type": "counter",
-                  "x": -9.62,
+                  "x": -7.21,
                   "z": -11.5,
                   "rot": 0,
-                  "w": 2.75,
+                  "w": 1.08,
                   "d": 2,
                   "mirror": false
                 },
                 {
                   "id": 5577,
                   "type": "island",
-                  "x": -6.4,
-                  "z": -2.5,
-                  "rot": 90,
-                  "w": 5,
+                  "x": -9,
+                  "z": -6.25,
+                  "rot": 0,
+                  "w": 4,
                   "d": 2.5,
                   "mirror": false
                 },
                 {
                   "id": 5578,
                   "type": "wardrobe",
-                  "x": -5.75,
-                  "z": -11.9,
-                  "rot": 0,
-                  "w": 3.5,
-                  "d": 1.25,
+                  "x": -12.5,
+                  "z": -9.5,
+                  "rot": 270,
+                  "w": 2,
+                  "d": 2,
                   "mirror": false
                 },
                 {
@@ -942,6 +846,26 @@
                   "w": 3,
                   "d": 3,
                   "mirror": false
+                },
+                {
+                  "type": "sink",
+                  "x": -11.25,
+                  "z": -11.5,
+                  "rot": 0,
+                  "w": 3,
+                  "d": 2,
+                  "mirror": false,
+                  "id": 5597
+                },
+                {
+                  "type": "dishwasher",
+                  "x": -8.75,
+                  "z": -11.5,
+                  "rot": 0,
+                  "w": 2,
+                  "d": 2,
+                  "mirror": false,
+                  "id": 5598
                 }
               ]
             }
