@@ -1939,7 +1939,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "valleyFall": 0.5
         },
         "locked": false,
         "hidden": false,

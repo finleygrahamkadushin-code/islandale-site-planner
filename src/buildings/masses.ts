@@ -51,6 +51,8 @@ export interface Mass {
   readonly gable?: string
   readonly vault?: boolean
   readonly roofDip?: number
+  /** Butterfly roofs: how far the valley falls toward the back (−z), feet, so it drains; negative falls toward the front. */
+  readonly valleyFall?: number
   readonly cuts: readonly LegacyCut[]
   readonly steps?: DeckSteps
   /** false: a roof over part of a deck, with no floor of its own. */
@@ -147,6 +149,7 @@ function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mas
     gable: typeof p.gable === 'string' ? p.gable : undefined,
     vault: p.vault === true,
     roofDip: typeof p.roofDip === 'number' ? p.roofDip : undefined,
+    valleyFall: typeof p.valleyFall === 'number' && Number.isFinite(p.valleyFall) ? p.valleyFall : undefined,
     cuts: Array.isArray(p.cuts) ? (p.cuts as LegacyCut[]) : [],
     steps: deckSteps(p.steps),
     slab: p.slab !== false,

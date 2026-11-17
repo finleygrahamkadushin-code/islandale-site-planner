@@ -105,3 +105,33 @@ describe("the Gathering prow's back gable", () => {
     expect(Math.max(...xs)).toBeGreaterThan(4.9)
   })
 })
+
+describe('a butterfly valley that falls to drain', () => {
+  const plan = box(19, 11.5)
+  const at = (fall?: number) => buildRoof(plan, { type: 'butterfly', pitch: 3, ridge: 'z', overhangFt: 1.5, valleyFall: fall })
+  /** Heights of the roof's points on the valley line (x = 0), keyed by z. */
+  const valley = (fall?: number) => {
+    const p = at(fall).roof.positions
+    const out = new Map<string, number>()
+    for (let i = 0; i < p.length; i += 3) if (Math.abs(p[i]) < 1e-6) out.set(p[i + 2].toFixed(3), p[i + 1])
+    return [...out.entries()].map(([z, y]) => [Number(z), y]).sort((a, b) => a[0] - b[0])
+  }
+
+  test('without a fall the valley stays level at the eave', () => {
+    for (const [, y] of valley()) expect(y).toBeCloseTo(0, 9)
+  })
+
+  test('with a fall it meets the eave at the back (−z) and is higher at the front by the fall', () => {
+    const v = valley(0.5)
+    expect(v[0][1]).toBeCloseTo(0, 9)
+    expect(v[v.length - 1][1]).toBeCloseTo(0.5 * FT, 9)
+  })
+
+  test('the gable ends follow the sloped valley, and every roof face still faces up', () => {
+    const r = at(0.5)
+    for (let i = 0; i < r.roof.normals.length; i += 3) expect(r.roof.normals[i + 1]).toBeGreaterThan(0)
+    const g = r.gables.positions
+    const ys = (zSign: number) => g.filter((_, i) => i % 3 === 1 && Math.sign(g[i + 1]) === zSign && Math.abs(g[i - 1]) < 1e-6)
+    expect(Math.min(...ys(1))).toBeGreaterThan(0)
+  })
+})

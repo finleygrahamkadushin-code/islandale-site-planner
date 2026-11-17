@@ -36,10 +36,12 @@ export interface RoofParams {
   readonly curl?: number
   readonly roofMat?: string
   readonly open?: boolean
+  /** Butterfly roofs: the valley's fall toward the back (−z local), feet; it meets the eave at the low end. */
+  readonly valleyFall?: number
 }
 
 /** The mass fields a roof is built from. */
-export type RoofMass = Pick<Mass, 'roof' | 'pitch' | 'ridge' | 'overhang' | 'roofPts' | 'gable' | 'vault' | 'roofDip' | 'curl' | 'open'>
+export type RoofMass = Pick<Mass, 'roof' | 'pitch' | 'ridge' | 'overhang' | 'roofPts' | 'gable' | 'vault' | 'roofDip' | 'curl' | 'open' | 'valleyFall'>
 
 /**
  * A mass's roof parameters, as the scene builds its roof and the drawing
@@ -56,6 +58,7 @@ export function roofParamsOf(m: RoofMass, finish: string | null): RoofParams {
     curl: m.curl,
     open: m.open,
     roofMat: finish ?? '',
+    valleyFall: m.valleyFall,
   }
 }
 
@@ -185,7 +188,30 @@ export function buildRoof(poly: readonly LocalPoint[], p: RoofParams): RoofMesh 
 
   const H = (slope * S) / 2
   let rise = H
-  if (type === 'gable' || type === 'shed' || type === 'butterfly' || type === 'gambrel') {
+  // a butterfly's valley falls along the ridge axis toward the back (−z), never below the eave nor above the outer eaves
+  const fallM = type === 'butterfly' ? Math.max(-H, Math.min(H, (p.valleyFall ?? 0) * FT)) : 0
+  if (type === 'butterfly' && fallM !== 0) {
+    // u runs along z when the ridge does, else along x; the back is −z, so with the ridge along x the valley stays level
+    const toBack = along ? 1 : 0
+    const valleyAt = (u: number) => (toBack ? (fallM > 0 ? fallM * (u + L / 2) / L : -fallM * (L / 2 - u) / L) : 0)
+    const profAt = (u: number): (readonly [number, number])[] => [[-S / 2, H], [0, valleyAt(u)], [S / 2, H]]
+    for (const side of [-1, 1]) {
+      const a = P(-L / 2, H, (side * S) / 2)
+      const b = P(L / 2, H, (side * S) / 2)
+      const c = P(L / 2, valleyAt(L / 2), 0)
+      const d = P(-L / 2, valleyAt(-L / 2), 0)
+      // two triangles, since the face twists once the valley slopes
+      face(out.roof, [a, b, c])
+      face(out.roof, [a, c, d])
+      face(out.trim, [P(-L / 2, 0, (side * S) / 2), P(L / 2, 0, (side * S) / 2), b, a])
+    }
+    for (const u of [-wallL / 2, wallL / 2]) {
+      const prof = profAt(u)
+      const inner = prof.map(([v]) => Math.max(-wallS / 2, Math.min(wallS / 2, v))).filter((v, i, arr) => arr.indexOf(v) === i)
+      const outline: (readonly [number, number])[] = [[-wallS / 2, 0], ...inner.map((v) => [v, gableHeightAt(prof, v)] as const), [wallS / 2, 0]]
+      addVertical(out.gables, outline, (v, y) => P(u, y, v), P(u, 0, 0).map((c, k) => c - centre[k]) as unknown as V3)
+    }
+  } else if (type === 'gable' || type === 'shed' || type === 'butterfly' || type === 'gambrel') {
     const prof: (readonly [number, number])[] =
       type === 'gable' ? [[-S / 2, 0], [0, H], [S / 2, 0]]
         : type === 'shed' ? [[-S / 2, slope * S], [S / 2, 0]]
