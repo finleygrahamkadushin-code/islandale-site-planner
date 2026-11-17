@@ -195,6 +195,20 @@ function Selected({ floor, run, disabled, accessibleIn }: SelectedProps) {
             </button>
           </div>
         )}
+        {op.kind === 'pocket' && (
+          <div className="row">
+            <button disabled={disabled} onClick={() => run((_p, f, n) => E.updateOpening(f, op.id, { flip: !op.flip }, n))}>
+              Flip pocket side
+            </button>
+          </div>
+        )}
+        {op.kind === 'folding' && (
+          <div className="row">
+            <button disabled={disabled} onClick={() => run((_p, f, n) => E.updateOpening(f, op.id, { out: !op.out }, n))}>
+              Fold {op.out ? 'in' : 'out'}
+            </button>
+          </div>
+        )}
         <button disabled={disabled} onClick={() => run((_p, f, n) => E.deleteOpening(f, op.id, n))}>
           Delete
         </button>

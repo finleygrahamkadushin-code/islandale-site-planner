@@ -19,6 +19,8 @@ const TOOLS: readonly { readonly id: InteriorTool; readonly label: string; reado
   { id: 'window', label: 'Window', key: 'W' },
   { id: 'slider', label: 'Slider', key: 'L' },
   { id: 'open', label: 'Opening', key: 'O' },
+  { id: 'pocket', label: 'Pocket door', key: 'K' },
+  { id: 'folding', label: 'Folding door', key: 'J' },
 ]
 
 /** Arrow-key nudge, feet: furniture, then rooms; Shift for the bigger step. */

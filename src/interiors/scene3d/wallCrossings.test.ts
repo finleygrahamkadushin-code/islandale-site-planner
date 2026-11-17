@@ -44,6 +44,23 @@ describe('doorways in a wall across another part\'s floor', () => {
     expect(crossingHoles(p, 1, solid, 9)).toEqual([])
   })
 
+  test('a pocket door gets a door-high slider hole and a folding door a door hole, where they cross a wing\'s floor', () => {
+    const pocket = twoParts(12)
+    pocket.floors[0].openings[0].kind = 'pocket'
+    pocket.floors[0].openings[0].width = 2.5
+    const [hp] = crossingHoles(pocket, 0, solid, 9)
+    expect(hp).toMatchObject({ kind: 'slider', v0: 0 })
+    expect(hp.v1).toBeCloseTo(6.75, 5)
+    expect(Math.abs(hp.u1 - hp.u0 - 2.5)).toBeLessThan(0.15) // test points are 0.1 ft apart
+    const fold = twoParts(12)
+    fold.floors[0].openings[0].kind = 'folding'
+    fold.floors[0].openings[0].width = 6
+    const [hf] = crossingHoles(fold, 0, solid, 9)
+    expect(hf).toMatchObject({ kind: 'door', v0: 0 })
+    expect(hf.v1).toBeCloseTo(6.75, 5)
+    expect(hf.u1 - hf.u0).toBeCloseTo(6, 5)
+  })
+
   test('a doorway across a curved wall is cut over every chord it spans, as one opening', () => {
     // the main walls drawn as an ellipse: their curved right end runs across the wing's floor
     const p = { ...twoParts(12), shape: 'ellipse' }

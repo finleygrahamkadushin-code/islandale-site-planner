@@ -11,7 +11,7 @@ import type { SheetBuilding, SheetFloor, SheetInteriorOpening } from '../types'
  */
 
 const NONE = '—'
-const KIND: Readonly<Record<SheetInteriorOpening['kind'], string>> = { door: 'door', window: 'window', slider: 'slider', open: 'cased opening' }
+const KIND: Readonly<Record<SheetInteriorOpening['kind'], string>> = { door: 'door', window: 'window', slider: 'slider', open: 'cased opening', pocket: 'pocket door', folding: 'folding door' }
 const circulation = new Set(CIRCULATION.map((t) => TYPE_LABELS[t]))
 const pct = (part: number, whole: number) => (whole > 0 ? `${Math.round((100 * part) / whole)}%` : NONE)
 

@@ -15,7 +15,7 @@ import { openingGeom } from '../rooms'
 import type { OpeningKind } from '../types'
 
 /** Head height of each kind above its floor, and a window's sill (as the interior partitions cut them). */
-const HEADS: Readonly<Record<OpeningKind, number>> = { door: 6.75, slider: 6.75, open: 7, window: 7 }
+const HEADS: Readonly<Record<OpeningKind, number>> = { door: 6.75, slider: 6.75, open: 7, window: 7, pocket: 6.75, folding: 6.75 }
 const SILL_FT = 3
 /** Spacing of the points tested round the wall, feet. */
 const STEP_FT = 0.1
@@ -28,7 +28,7 @@ const BEYOND_FT = 0.25
 /** Ids for these holes start here, clear of the exterior cuts' own ids. */
 const ID_BASE = 1_000_000
 
-const KIND: Readonly<Record<OpeningKind, WallHole['kind']>> = { door: 'door', slider: 'slider', open: 'cutout', window: 'window' }
+const KIND: Readonly<Record<OpeningKind, WallHole['kind']>> = { door: 'door', slider: 'slider', open: 'cutout', window: 'window', pocket: 'slider', folding: 'door' }
 
 type Pt = LocalPoint
 

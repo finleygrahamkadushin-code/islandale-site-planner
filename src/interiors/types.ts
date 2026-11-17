@@ -26,11 +26,13 @@ export const TYPE_LABELS: Readonly<Record<RoomType, string>> = {
 /** Rooms counted as circulation in the floor stats. */
 export const CIRCULATION: readonly RoomType[] = ['hall', 'entry', 'stairs']
 
-export type OpeningKind = 'door' | 'window' | 'slider' | 'open'
-export const OPENING_KINDS: readonly OpeningKind[] = ['door', 'window', 'slider', 'open']
+export type OpeningKind = 'door' | 'window' | 'slider' | 'open' | 'pocket' | 'folding'
+export const OPENING_KINDS: readonly OpeningKind[] = ['door', 'window', 'slider', 'open', 'pocket', 'folding']
 /** Default widths, feet. */
-export const OPENING_DEFAULTS: Readonly<Record<OpeningKind, number>> = { door: 3, window: 4, slider: 6, open: 6 }
-export const OPENING_LABELS: Readonly<Record<OpeningKind, string>> = { door: 'Door', window: 'Window', slider: 'Slider', open: 'Cased opening' }
+export const OPENING_DEFAULTS: Readonly<Record<OpeningKind, number>> = { door: 3, window: 4, slider: 6, open: 6, pocket: 2.5, folding: 6 }
+export const OPENING_LABELS: Readonly<Record<OpeningKind, string>> = {
+  door: 'Door', window: 'Window', slider: 'Slider', open: 'Cased opening', pocket: 'Pocket door', folding: 'Folding door',
+}
 
 /** Wall thicknesses on the plan, feet: exterior and interior. */
 export const WALL = { ext: 0.5, int: 1 / 3 } as const
@@ -43,7 +45,7 @@ export interface Room {
   readonly pts: readonly Pt[]
 }
 
-/** A door, window, slider or cased opening on one edge of a room. */
+/** A door, window, slider, cased opening, pocket door or folding door on one edge of a room. */
 export interface Opening {
   readonly id: number
   readonly room: number
