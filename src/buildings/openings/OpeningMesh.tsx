@@ -1,4 +1,4 @@
-import { FIT, type OpeningPiece, type PlacedOpening } from './openingLayout'
+import { FIT, foldingLeaves, type OpeningPiece, type PlacedOpening } from './openingLayout'
 import { ftToM } from '../../site/units'
 import type { DisplayStyle } from '../../store/types'
 import type { MeshHandlers } from '../../scene/buildingLook'
@@ -94,10 +94,19 @@ function PieceMesh({ op, p, style, highlight, wallM, paint, handlers }: PiecePro
     </mesh>
   )
 
+  // a folding door is glass panels about FOLD_PANEL_FT wide, each piece on its own, with a mullion between every pair
+  const folding = op.kind === 'folding'
+  const leaves = folding ? foldingLeaves(p.w) : 1
+  const panelW = w / leaves
+
   // mullions stand in the glass, through its plane
   const mullions = []
-  for (let k = 1; k <= op.mullV; k++) mullions.push(bar(-w / 2 + (w * k) / (op.mullV + 1), 0, MULLION_M, h, `mv${k}`, MULLION_M, mid))
-  for (let k = 1; k <= op.mullH; k++) mullions.push(bar(0, -h / 2 + (h * k) / (op.mullH + 1), w, MULLION_M, `mh${k}`, MULLION_M, mid))
+  if (folding) {
+    for (let k = 1; k < leaves; k++) mullions.push(bar(-w / 2 + panelW * k, 0, MULLION_M, h, `fm${k}`, MULLION_M, mid))
+  } else {
+    for (let k = 1; k <= op.mullV; k++) mullions.push(bar(-w / 2 + (w * k) / (op.mullV + 1), 0, MULLION_M, h, `mv${k}`, MULLION_M, mid))
+    for (let k = 1; k <= op.mullH; k++) mullions.push(bar(0, -h / 2 + (h * k) / (op.mullH + 1), w, MULLION_M, `mh${k}`, MULLION_M, mid))
+  }
 
   return (
     <group position={pos} rotation={[0, yaw, 0]} {...handlers}>
@@ -112,7 +121,14 @@ function PieceMesh({ op, p, style, highlight, wallM, paint, handlers }: PiecePro
             <Surface kind="glass" style={style} color={paint?.glass} layer={1} />
           </mesh>
         </>
-      ) : op.kind === 'cutout' ? null : (
+      ) : op.kind === 'cutout' ? null : folding ? (
+        Array.from({ length: leaves }, (_, k) => (
+          <mesh key={k} position={[-w / 2 + panelW * (k + 0.5), 0, mid]} userData={GLASS}>
+            <boxGeometry args={[panelW, h, GLASS_M]} />
+            <Surface kind="glass" style={style} color={paint?.glass} />
+          </mesh>
+        ))
+      ) : (
         <mesh position={[0, 0, mid]} userData={GLASS}>
           <boxGeometry args={[w, h, GLASS_M]} />
           <Surface kind="glass" style={style} color={paint?.glass} />

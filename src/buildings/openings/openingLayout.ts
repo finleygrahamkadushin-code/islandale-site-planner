@@ -27,6 +27,9 @@ export type OpeningKind = 'door' | 'window' | 'slider' | 'cutout' | 'folding'
 /** A folding glass door's panels are about this wide, feet (the 3D mesh and the plan symbol both use it). */
 export const FOLD_PANEL_FT = 2.5
 
+/** How many glass panels a folding door's piece of this width (feet) is cut into: one or more, each near FOLD_PANEL_FT. */
+export const foldingLeaves = (widthFt: number): number => Math.max(1, Math.round(widthFt / FOLD_PANEL_FT))
+
 /** The name each exterior kind goes by in the schedules. */
 export const OPENING_KIND_NAME: Readonly<Record<OpeningKind, string>> = {
   door: 'door',

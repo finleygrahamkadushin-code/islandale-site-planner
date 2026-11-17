@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { layoutOpenings, asKind, OPENING_KIND_LABEL, OPENING_KIND_NAME, type CutData } from './openingLayout'
+import { layoutOpenings, asKind, foldingLeaves, OPENING_KIND_LABEL, OPENING_KIND_NAME, type CutData } from './openingLayout'
 import type { LocalPoint } from '../footprint'
 
 // the 20 x 12 ft box from openingLayout.test.ts: edge 0 is the back wall (20 ft)
@@ -51,6 +51,13 @@ describe('folding exterior opening', () => {
     const folding = layoutOpenings(box, [{ ...tall, kind: 'folding' }], opt)
     expect(folding.openings[0].h).toBe(slider.openings[0].h)
     expect(folding.notes.map((n) => n.field)).toEqual(slider.notes.map((n) => n.field))
+  })
+
+  test('panels are about 2.5 ft each, at least one, so an 8 ft door has 3 and a short piece has 1', () => {
+    expect(foldingLeaves(8)).toBe(3)
+    expect(foldingLeaves(2.5)).toBe(1)
+    expect(foldingLeaves(0.4)).toBe(1)
+    expect(foldingLeaves(12)).toBe(5)
   })
 
   test('along a curve it breaks into several pieces, each with a width', () => {
