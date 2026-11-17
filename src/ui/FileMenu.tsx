@@ -86,7 +86,7 @@ export function FileMenu() {
           data-testid="reset-plan"
           onSelect={later(() => void askReset())}
         >
-          Reset to Scheme C…
+          {hasDefault ? 'Reset to saved default…' : 'Reset to Scheme C…'}
         </MenuItem>
         {hasDefault && (
           <MenuItem hint="Back to Scheme C as saved in the old planner, ignoring your default" data-testid="reset-original" onSelect={later(askResetOriginal)}>
