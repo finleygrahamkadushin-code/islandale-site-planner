@@ -1,11 +1,12 @@
-import { lazy, Suspense, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import * as Menu from '@radix-ui/react-dropdown-menu'
 import { downloadPlanFile, importPlanFile } from '../export/planFile'
 import { exportModel } from '../export/model3d/exportModel'
-import { CURRENT_SCHEME_ID, hasSchemeChoice } from '../site/schemes'
-import { openSchemeNow } from '../site/archive/openScheme'
+import { hasSchemeChoice } from '../site/schemes'
 import { useArchiveOpen } from '../site/archive/archiveOpen'
 import { usePlanStore } from '../store/planStore'
+import { refreshHasDefault, useHasDefault } from '../store/planDefault'
+import { askReset, askResetOriginal, askSaveDefault } from './resetPlan'
 import { useConfirm } from '../guide/confirm'
 import { loadSheets } from '../app/prefetch'
 import { HistorySub } from './HistoryMenu'
@@ -14,12 +15,6 @@ import { MenuItem, TopMenu, useAfterClose } from './TopMenu'
 // loaded on first use, so the first frame doesn't wait for them (4E)
 const DrawingSheets = lazy(() => loadSheets().then((m) => ({ default: m.DrawingSheets })))
 const LegacyPlanner = lazy(() => import('./LegacyPlanner').then((m) => ({ default: m.LegacyPlanner })))
-
-const askReset = () =>
-  useConfirm.getState().request(
-    { title: 'Go back to Scheme C?', body: 'This replaces the current plan with Scheme C as saved in the old planner. You can undo this.', confirmLabel: 'Reset' },
-    () => openSchemeNow(CURRENT_SCHEME_ID),
-  )
 
 const askClear = () =>
   useConfirm.getState().request(
@@ -43,6 +38,10 @@ export function FileMenu() {
   const [sheetsOpen, setSheetsOpen] = useState(false)
   const readOnly = usePlanStore((s) => s.readOnly)
   const schemeChoice = usePlanStore((s) => hasSchemeChoice(s.schemes))
+  const hasDefault = useHasDefault()
+  useEffect(() => {
+    void refreshHasDefault()
+  }, [])
   const trigger = useRef<HTMLButtonElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const { later, onCloseAutoFocus } = useAfterClose(trigger)
@@ -79,9 +78,21 @@ export function FileMenu() {
           </MenuItem>
         )}
         <Menu.Separator className="menu-rule" />
-        <MenuItem hint="Back to Scheme C as saved in the old planner" data-testid="reset-plan" onSelect={later(askReset)}>
+        <MenuItem hint="Make the current plan what Reset and new starts open" data-testid="save-default" disabled={!!readOnly} onSelect={later(() => askSaveDefault())}>
+          Save as default scheme…
+        </MenuItem>
+        <MenuItem
+          hint={hasDefault ? 'Back to the plan you saved as the default' : 'Back to Scheme C as saved in the old planner'}
+          data-testid="reset-plan"
+          onSelect={later(() => void askReset())}
+        >
           Reset to Scheme C…
         </MenuItem>
+        {hasDefault && (
+          <MenuItem hint="Back to Scheme C as saved in the old planner, ignoring your default" data-testid="reset-original" onSelect={later(askResetOriginal)}>
+            Reset to original Scheme C…
+          </MenuItem>
+        )}
         <MenuItem hint="Remove everything from the plan and start from the bare lot" data-testid="clear-plan" className="danger" disabled={!!readOnly} onSelect={later(askClear)}>
           Clear the plan…
         </MenuItem>

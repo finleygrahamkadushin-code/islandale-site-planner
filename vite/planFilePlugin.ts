@@ -1,9 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { resolve } from 'node:path'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 import type { Plugin } from 'vite'
-import { createPlanFileStore, revOf } from './planFileStore'
+import { checkPlanText, createPlanFileStore, revOf } from './planFileStore'
 
 export const PLAN_ENDPOINT = '/__plan'
+/** The saved default scheme, beside the plan file; no revisions, history or change events. */
+export const DEFAULT_ENDPOINT = '/__plan-default'
+export const DEFAULT_FILE_NAME = 'islandale.default.json'
 /** The event the app listens for when the plan file is edited outside the app. */
 export const PLAN_CHANGED_EVENT = 'islandale:plan-file'
 const MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -65,6 +69,50 @@ export function planFilePlugin(dir = 'data/plans'): Plugin {
       }
       server.watcher.on('change', (p) => void onFile(p))
       server.watcher.on('add', (p) => void onFile(p))
+
+      const defaultFile = join(resolve(dir), DEFAULT_FILE_NAME)
+      server.middlewares.use(DEFAULT_ENDPOINT, (req, res) => {
+        void (async () => {
+          try {
+            if (req.method === 'GET') {
+              try {
+                return send(res, 200, await readFile(defaultFile, 'utf8'))
+              } catch (err) {
+                if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+                res.setHeader('X-Plan-Missing', '1')
+                return send(res, 200, 'null')
+              }
+            }
+            if (req.method === 'PUT') {
+              if (declaredTooLarge(req)) {
+                res.setHeader('Connection', 'close')
+                return send(res, 413, tooLargeBody)
+              }
+              const text = await readBody(req)
+              if (text === null) {
+                res.setHeader('Connection', 'close')
+                return send(res, 413, tooLargeBody)
+              }
+              const problem = checkPlanText(text)
+              if (problem) return send(res, 400, { error: problem })
+              await mkdir(resolve(dir), { recursive: true })
+              const temp = `${defaultFile}.${process.pid}.${Date.now()}.tmp`
+              await writeFile(temp, text)
+              try {
+                await rename(temp, defaultFile)
+              } catch (err) {
+                await rm(temp, { force: true })
+                throw err
+              }
+              return send(res, 200, { ok: true })
+            }
+            send(res, 405, { error: 'Use GET or PUT.' })
+          } catch (err) {
+            server.config.logger.error(`[plan default] ${err instanceof Error ? err.message : String(err)}`)
+            send(res, 500, { error: 'The default scheme could not be read or written.' })
+          }
+        })()
+      })
 
       server.middlewares.use(PLAN_ENDPOINT, (req, res) => {
         void (async () => {

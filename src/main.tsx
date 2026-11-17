@@ -7,6 +7,7 @@ import { usePlanStore } from './store/planStore'
 import { activeAutosave, startAutosave } from './store/autosave'
 import { CHANNEL_NAME, startTabLock } from './store/tabLock'
 import { defaultHome, type PlanHome } from './store/planHome'
+import { defaultStore } from './store/planDefault'
 import { artifactDbHome, findArtifactDb, findArtifactDbLikely } from './store/artifactHome'
 import { setRailDrawResolver } from './store/railResolver'
 import { resolveRailDraws } from './buildings/rails/railSite'
@@ -42,7 +43,7 @@ const store = usePlanStore.getState()
 if (findArtifactDbLikely() && store.readOnly === null) store.setReadOnly('opening')
 void Promise.all([tabLock?.ready, findHome()]).then(([, home]) => {
   if (usePlanStore.getState().readOnly === 'opening') usePlanStore.getState().setReadOnly(null)
-  startAutosave({ home })
+  startAutosave({ home, defaults: defaultStore })
 })
 
 const rootEl = document.getElementById('root')

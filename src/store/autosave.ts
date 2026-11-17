@@ -14,6 +14,7 @@ import { HISTORY_KEY, HISTORY_MIN_GAP_MS, OPENED_LABEL, addToHistory, describeCh
 import type { Plan } from './types'
 import { createHomeSync } from './homeSync'
 import type { PlanHome } from './planHome'
+import type { DefaultStore } from './planDefault'
 
 export const SAVE_DELAY_MS = 400
 const RECOVERED_LABEL = 'opened, with the changes made as the tab closed'
@@ -65,6 +66,8 @@ interface Options {
   readonly now?: () => Date
   /** The plan's home (the repo file while the dev server runs); null keeps the plan in this browser only. */
   readonly home?: PlanHome | null
+  /** The saved default scheme: opened on a fresh start (no plan in the home or this browser) instead of Scheme C. */
+  readonly defaults?: DefaultStore | null
 }
 
 interface Candidate extends ReadResult {
@@ -89,6 +92,7 @@ export function startAutosave({
   page = browserPageEvents,
   now = () => new Date(),
   home = null,
+  defaults = null,
 }: Options = {}): Autosave {
   const store = usePlanStore
   let setAsideCount = 0
@@ -295,6 +299,20 @@ export function startAutosave({
     return found
   }
 
+  /** A fresh start: the saved default replaces the Scheme C the store starts with. Anything wrong with it keeps Scheme C. */
+  const openSavedDefault = async (saved: DefaultStore) => {
+    try {
+      const text = await saved.read()
+      if (text === null || stopped) return
+      const { file, newer } = readSavedText(text)
+      if (newer) return
+      store.getState().hydrate({ plan: file.plan, ...file.view })
+      store.temporal.getState().clear()
+    } catch (err) {
+      console.error('[autosave] could not open the saved default; keeping Scheme C', err)
+    }
+  }
+
   /** A home edited elsewhere wins; otherwise the newest copy does. */
   const newest = (found: readonly Candidate[]): Candidate | null =>
     found.find((c) => c.changedOutside) ??
@@ -307,6 +325,7 @@ export function startAutosave({
       if (stopped) return
       entries = readHistory(storedHistory)
       const best = newest(found)
+      if (!best && defaults) await openSavedDefault(defaults)
       if (best) {
         store.getState().hydrate({ plan: best.file.plan, ...best.file.view })
         store.temporal.getState().clear()
