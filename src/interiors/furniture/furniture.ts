@@ -31,6 +31,8 @@ const BED = '#d9d2c3'
 const FIX = '#f4f4f4'
 const WOOD = '#a9865f'
 const CAB = '#cfc8bb'
+/** Counter height, feet: the counter run, the sink base and the dishwasher share it. */
+export const COUNTER_H = 3
 
 export const FURNITURE: Readonly<Record<string, FurnitureType>> = {
   queen: T('Queen bed', 5, 6.67, 2, BED, false, true, 'Sleep'),
@@ -40,7 +42,9 @@ export const FURNITURE: Readonly<Record<string, FurnitureType>> = {
   armchair: T('Armchair', 2.75, 2.75, 2.75, '#9a8b78', false, false, 'Living'),
   coffee: T('Coffee table', 4, 2, 1.4, WOOD, true, false, 'Living'),
   dining8: T('Dining table for 8', 7, 8, 2.5, WOOD, false, false, 'Kitchen'),
-  counter: T('Counter (sink + range)', 10, 2, 3, CAB, 'w', true, 'Kitchen'),
+  counter: T('Counter (sink + range)', 10, 2, COUNTER_H, CAB, 'w', true, 'Kitchen'),
+  sink: T('Kitchen sink', 3, 2, COUNTER_H, CAB, 'w', true, 'Kitchen'),
+  dishwasher: T('Dishwasher', 2, 2, COUNTER_H, '#d6d8da', false, true, 'Kitchen'),
   island: T('Island', 6, 3, 3, CAB, true, false, 'Kitchen'),
   fridge: T('Fridge', 3, 2.5, 6, FIX, false, true, 'Kitchen'),
   toilet: T('Toilet', 1.67, 2.33, 2.5, FIX, false, true, 'Bath'),
@@ -48,6 +52,7 @@ export const FURNITURE: Readonly<Record<string, FurnitureType>> = {
   shower: T('Curbless shower 60×60', 5, 5, 0.1, FIX, false, true, 'Bath'),
   tub: T('Tub', 5, 2.5, 1.8, FIX, false, true, 'Bath'),
   wardrobe: T('Wardrobe', 4, 2, 7, '#9c7b58', 'w', true, 'Storage'),
+  nightstand: T('Nightstand / side table', 1.75, 1.5, 2.17, '#a98a66', 'w', true, 'Sleep'),
   dresser: T('Dresser', 3.5, 1.67, 2.75, '#a98a66', 'w', true, 'Storage'),
   desk: T('Desk', 4, 2, 2.5, WOOD, true, true, 'Other'),
   washer: T('Washer/dryer, stacked', 2.5, 2.5, 6, FIX, false, true, 'Storage'),
@@ -60,8 +65,8 @@ export const FURNITURE: Readonly<Record<string, FurnitureType>> = {
 
 /** Library order. */
 export const FURNITURE_ORDER = [
-  'queen', 'twin', 'bunk', 'sofa', 'armchair', 'coffee', 'stove', 'dining8', 'counter', 'island', 'fridge',
-  'toilet', 'vanity', 'shower', 'tub', 'wardrobe', 'dresser', 'washer', 'desk', 'stair', 'spiral', 'stairdn', 'spiraldn',
+  'queen', 'twin', 'bunk', 'sofa', 'armchair', 'coffee', 'stove', 'dining8', 'counter', 'sink', 'dishwasher', 'island', 'fridge',
+  'toilet', 'vanity', 'shower', 'tub', 'wardrobe', 'dresser', 'nightstand', 'washer', 'desk', 'stair', 'spiral', 'stairdn', 'spiraldn',
 ] as const
 
 export const isStairType = (t: string): boolean => t === 'stair' || t === 'spiral' || t === 'stairdn' || t === 'spiraldn'
@@ -237,6 +242,23 @@ const SYM: Readonly<Record<string, (w: number, d: number) => string>> = {
         s += circ(rxc + du, y0 + rd / 2 + (dv * rd) / 2.2, r) + circ(rxc + du, y0 + rd / 2 + (dv * rd) / 2.2, r * 0.45)
     } else if (w >= 3) s += sink(0)
     return s
+  },
+  sink(w, d) {
+    const x0 = -w / 2
+    const y0 = -d / 2
+    const bw = Math.max(0.3, w - 0.8)
+    const bd = Math.max(0.3, d - 0.75)
+    return rect(x0, y0, w, d) + rect(-bw / 2, y0 + 0.5, bw, bd, rx(0.15)) + circ(0, y0 + 0.5 + bd / 2, 0.1) + circ(0, y0 + 0.25, 0.08) + line(0, y0 + 0.25, 0, y0 + 0.5)
+  },
+  dishwasher(w, d) {
+    const x0 = -w / 2
+    const y0 = -d / 2
+    return rect(x0, y0, w, d) + rect(x0 + 0.1, y0 + 0.1, w - 0.2, d - 0.2, DASH) + line(x0 + 0.3, d / 2 - 0.3, w / 2 - 0.3, d / 2 - 0.3, ' stroke-width="0.12"') + label(0, -0.1, 'DW', Math.min(0.5, w * 0.22))
+  },
+  nightstand(w, d) {
+    const x0 = -w / 2
+    const y0 = -d / 2
+    return rect(x0, y0, w, d, rx(0.06)) + line(x0 + 0.08, d / 2 - 0.45, w / 2 - 0.08, d / 2 - 0.45) + circ(0, d / 2 - 0.22, 0.07)
   },
   island: (w, d) => rect(-w / 2, -d / 2, w, d, rx(0.1)) + line(-w / 2 + 0.1, d / 2 - Math.min(1, d * 0.33), w / 2 - 0.1, d / 2 - Math.min(1, d * 0.33), DASH),
   fridge(w, d) {
