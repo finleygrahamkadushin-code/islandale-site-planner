@@ -28,8 +28,11 @@ const norm = (a: V3): V3 => {
  * both in feet, so textures drawn per foot come out true size.
  */
 export function addPolygon(mesh: MeshData, pts: readonly V3[], outward?: V3): void {
-  if (pts.length < 3) return
-  let poly = pts
+  // a corner repeated by its neighbour (a gable quad whose one end has no height) would leave the
+  // first three corners on a line, so the normal could not be found and the whole polygon was lost
+  const same = (a: V3, b: V3) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9 && Math.abs(a[2] - b[2]) < 1e-9
+  let poly = pts.filter((p, i) => !same(p, pts[(i + pts.length - 1) % pts.length]))
+  if (poly.length < 3) return
   let n = norm(cross(sub(poly[1], poly[0]), sub(poly[2], poly[0])))
   if (outward && dot(n, outward) < 0) {
     poly = [...poly].reverse()

@@ -91,3 +91,17 @@ describe('the box roofs (R11.7)', () => {
     expect(buildRoof(poly, p)).toEqual(prowRoof(poly, p.pitch, p.ridge, p.overhangFt, undefined))
   })
 })
+
+describe("the Gathering prow's back gable", () => {
+  test('is filled across its whole width, both sides of the ridge', async () => {
+    const schemes = (await import('../../../data/islandale/schemes.json')).default
+    const { buildingMasses, massPoly } = await import('../masses')
+    const { roofParamsOf } = await import('./roof')
+    const o = schemes.schemes[0].objects.find((x) => x.name === 'Gathering prow') as unknown as Record<string, unknown>
+    const m = buildingMasses(o)[0]
+    const g = buildRoof(massPoly(m), roofParamsOf(m, null)).gables.positions
+    const xs = g.filter((_, i) => i % 3 === 0)
+    expect(Math.min(...xs)).toBeLessThan(-4.9)
+    expect(Math.max(...xs)).toBeGreaterThan(4.9)
+  })
+})
