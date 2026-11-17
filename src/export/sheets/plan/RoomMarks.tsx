@@ -41,6 +41,14 @@ export function Partitions({ partitions, pen }: { readonly partitions: readonly 
   )
 }
 
+/** A folding door's panels: a zig-zag (V shapes) of two or four panels from jamb to jamb, on the swing side. */
+function foldPanels(o: SheetInteriorOpening, h: number, n: Pt, pen: Pen) {
+  const N = o.widthFt >= 4 ? 4 : 2
+  const depth = Math.min((o.widthFt / N) * 0.8, 1.2)
+  const pts = Array.from({ length: N + 1 }, (_, i) => push(lerp(o.a, o.b, i / N), n, i % 2 === 0 ? h : h + depth))
+  return <polyline points={pts.map((p) => `${p[0]},${p[1]}`).join(' ')} fill="none" stroke="#000" strokeWidth={pen.thin} />
+}
+
 /** An opening in a partition: the partition cleared, jambs across it, and its kind's mark (a door's leaf and swing as stored, a window's glass, a slider's panes, a cased opening's head dashed). */
 function InteriorOpening({ opening: o, pen }: { readonly opening: SheetInteriorOpening; readonly pen: Pen }) {
   // one through a part's wall opens that wall's whole thickness, on either side of the room's edge
@@ -59,7 +67,14 @@ function InteriorOpening({ opening: o, pen }: { readonly opening: SheetInteriorO
           ]
         : o.kind === 'open'
           ? [line(face(o.a, h), face(o.b, h), pen.hair, 'o', `${pen.small * 0.5} ${pen.small * 0.4}`), line(face(o.a, -h), face(o.b, -h), pen.hair, 'i', `${pen.small * 0.5} ${pen.small * 0.4}`)]
-          : []
+          : o.kind === 'pocket'
+            ? [
+                line(o.jamb, o.hinge, pen.thin, 'leaf'),
+                line(o.hinge, lerp(o.jamb, o.hinge, 1.5), pen.hair, 'hide', `${pen.small * 0.5} ${pen.small * 0.4}`),
+              ]
+            : o.kind === 'folding'
+              ? foldPanels(o, h, n, pen)
+              : []
   return (
     <g aria-label={`${o.kind} ${o.room}${o.to ? ` to ${o.to}` : ''}`}>
       <polygon points={pts([face(o.a, clear), face(o.b, clear), face(o.b, -clear), face(o.a, -clear)])} fill="#fff" stroke="none" />
