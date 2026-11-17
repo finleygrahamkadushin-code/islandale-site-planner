@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { buildingMasses } from '../masses'
 import { fitMass, massWalls } from './openingEdits'
-import { FIT, asKind, type CutData, type FitNote, type PlacedOpening } from './openingLayout'
+import { FIT, OPENING_KIND_LABEL, asKind, type CutData, type FitNote, type PlacedOpening } from './openingLayout'
 import { isObjectLocked, usePlanStore } from '../../store/planStore'
 import { FeetInchesField } from '../../ui/FeetInchesField'
 import { formatLengthField } from '../../ui/feetInches'
@@ -10,16 +10,18 @@ import { InspectorSection } from '../../ui/InspectorSection'
 import { Tip } from '../../guide/Tip'
 
 const KINDS = [
-  { id: 'window', label: 'Window' },
-  { id: 'slider', label: 'Slider' },
-  { id: 'door', label: 'Door' },
-  { id: 'cutout', label: 'Cut-out' },
+  { id: 'window', label: OPENING_KIND_LABEL.window },
+  { id: 'slider', label: OPENING_KIND_LABEL.slider },
+  { id: 'folding', label: OPENING_KIND_LABEL.folding },
+  { id: 'door', label: OPENING_KIND_LABEL.door },
+  { id: 'cutout', label: OPENING_KIND_LABEL.cutout },
 ] as const
 
 const NEW_CUT: Record<string, Omit<CutData, 'edge' | 'x'>> = {
   window: { kind: 'window', w: 3, h: 4, sill: 3 },
   door: { kind: 'door', w: 3, h: 7, sill: 0 },
   slider: { kind: 'slider', w: 8, h: 7, sill: 0 },
+  folding: { kind: 'folding', w: 8, h: 7, sill: 0 },
 }
 
 /** Pick a wall of a cabin and edit its openings to the inch; everything is fitted by the shared rules. */
@@ -136,6 +138,9 @@ export function OpeningsPanel({ id }: { readonly id: string }) {
           <button disabled={dis} onClick={() => add('slider')}>
             + Slider
           </button>
+          <button disabled={dis} onClick={() => add('folding')}>
+            + Folding door
+          </button>
         </div>
       )}
       <p className="muted small">
@@ -184,6 +189,7 @@ function OpeningRow({ op, cut, wallLength, notes, focused, disabled, onFocus, on
         {!op.along && <FeetInchesField label="From left" value={op.x} disabled={disabled} onCommit={(x) => onChange({ x })} />}
         {!op.along && <FeetInchesField label="From right" value={fromRight} disabled={disabled} onCommit={(r) => onChange({ x: wallLength - op.w - r })} />}
         <FeetInchesField label="Trim" value={op.trim} disabled={disabled} onCommit={(trim) => onChange({ trim })} />
+        {op.kind !== 'folding' && (
         <label className="field">
           <span className="muted small">Mullions</span>
           <span className="row">
@@ -191,6 +197,7 @@ function OpeningRow({ op, cut, wallLength, notes, focused, disabled, onFocus, on
             <input type="number" min={0} max={8} value={op.mullH} disabled={disabled} aria-label="Cross mullions" onChange={(e) => onChange({ mullH: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
           </span>
         </label>
+        )}
       </div>
       {(status || notes.length > 0) && (
         <ul className="fit-notes small">

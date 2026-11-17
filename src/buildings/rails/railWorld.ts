@@ -158,7 +158,7 @@ function doorsOf(o: PlanObject, masses: readonly Mass[], base: number): DoorItem
     }
     const z = base + ftToM(m.lvl) + SLAB_M
     return layoutOpenings(poly, m.cuts, { wallHeightFt: m.h, buried }).openings.flatMap((op) => {
-      if ((op.kind !== 'door' && op.kind !== 'slider') || op.hidden) return []
+      if ((op.kind !== 'door' && op.kind !== 'slider' && op.kind !== 'folding') || op.hidden) return []
       return op.pieces.map((pc): DoorItem => {
         const A = poly[pc.edge]
         const B = poly[(pc.edge + 1) % poly.length]
@@ -184,7 +184,7 @@ function doorsOf(o: PlanObject, masses: readonly Mass[], base: number): DoorItem
           z,
           u0,
           u1,
-          name: op.kind === 'slider' ? 'Slider' : 'Door',
+          name: op.kind === 'slider' ? 'Slider' : op.kind === 'folding' ? 'Folding door' : 'Door',
         }
       })
     })

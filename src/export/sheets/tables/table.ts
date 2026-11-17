@@ -5,6 +5,7 @@ import { partLevels } from '../model/levels'
 import { roomTables } from './roomTables'
 import { supportsTable } from './supportTables'
 import type { SheetBuilding, SheetPart } from '../types'
+import { OPENING_KIND_NAME } from '../../../buildings/openings/openingLayout'
 
 /** One table of the measurement sheet: every value already written as it is printed. */
 export interface SheetTable {
@@ -123,7 +124,7 @@ function openingsTable(b: SheetBuilding): SheetTable {
     note: "From left: along the wall from its left end as seen from outside to the opening's left edge; for one that turns a corner, on the last wall named. Round from P1: round the part's walls from its P1, the way the arrow there points, to the opening's first edge; it locates every opening on a curve, whose width is round the wall too. All on the outside face of the wall. Door swings are not stored; the plan draws them opening in, dashed.",
     columns: ['Tag', 'Wall', 'Kind', 'Width', 'From left', 'Round from P1', 'Sill', 'Head'],
     rows: b.parts.flatMap((p) =>
-      p.openings.map((o) => [o.tag, o.wall, o.kind, formatArch(o.widthFt), orNone(o.fromLeftFt), orNone(o.aroundFt), formatArch(o.sillFt), formatArch(o.headFt)]),
+      p.openings.map((o) => [o.tag, o.wall, OPENING_KIND_NAME[o.kind], formatArch(o.widthFt), orNone(o.fromLeftFt), orNone(o.aroundFt), formatArch(o.sillFt), formatArch(o.headFt)]),
     ),
   }
 }

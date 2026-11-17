@@ -22,7 +22,28 @@ export const FIT = {
   softTurnDeg: 30,
 } as const
 
-export type OpeningKind = 'door' | 'window' | 'slider' | 'cutout'
+export type OpeningKind = 'door' | 'window' | 'slider' | 'cutout' | 'folding'
+
+/** A folding glass door's panels are about this wide, feet (the 3D mesh and the plan symbol both use it). */
+export const FOLD_PANEL_FT = 2.5
+
+/** The name each exterior kind goes by in the schedules. */
+export const OPENING_KIND_NAME: Readonly<Record<OpeningKind, string>> = {
+  door: 'door',
+  window: 'window',
+  slider: 'slider',
+  cutout: 'cutout',
+  folding: 'folding door',
+}
+
+/** The name each kind goes by in the Openings panel's picker. */
+export const OPENING_KIND_LABEL: Readonly<Record<OpeningKind, string>> = {
+  door: 'Door',
+  window: 'Window',
+  slider: 'Slider',
+  cutout: 'Cut-out',
+  folding: 'Folding door',
+}
 
 /** A cut as stored in params.cuts (or a wing's cuts), with the Phase 3C fields. */
 export interface CutData extends LegacyCut {
@@ -114,14 +135,14 @@ function clearanceAt(edges: readonly Edge[], i: number): number {
   return Math.max(FIT.cornerFt, across)
 }
 
-export const asKind = (k: unknown): OpeningKind => (k === 'window' || k === 'slider' || k === 'cutout' ? k : 'door')
+export const asKind = (k: unknown): OpeningKind => (k === 'window' || k === 'slider' || k === 'cutout' || k === 'folding' ? k : 'door')
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
 
 /** Cut fields with defaults: sill 0 is a real value, not a missing one. */
 function readCut(c: CutData, index: number) {
   const kind = asKind(c.kind ?? 'door')
-  const tall = kind === 'door' || kind === 'slider'
+  const tall = kind === 'door' || kind === 'slider' || kind === 'folding'
   return {
     id: num(c.id, index + 1),
     kind,
