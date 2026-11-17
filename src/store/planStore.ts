@@ -405,7 +405,7 @@ export const usePlanStore = create<PlanState>()(
             const head = (ref.sill ?? 0) + (ref.h ?? 4)
             return cuts.map((c) => {
               if (c.id === cutId) return c
-              if (c.kind === 'door' || c.kind === 'slider') return { ...c, h: head - (c.sill ?? 0) }
+              if (c.kind === 'door' || c.kind === 'slider' || c.kind === 'folding') return { ...c, h: head - (c.sill ?? 0) }
               return { ...c, sill: Math.max(0, head - (c.h ?? 4)) }
             })
           }),

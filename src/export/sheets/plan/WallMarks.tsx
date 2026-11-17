@@ -1,7 +1,8 @@
 import { useId } from 'react'
 import { formatInches } from '../format'
-import type { SheetOpening, SheetPart } from '../types'
+import type { SheetOpening, SheetOpeningPiece, SheetPart } from '../types'
 import type { Pen } from './planLayout'
+import { foldingLeaves } from '../../../buildings/openings/openingLayout'
 import { pts } from './planMarks'
 import { openingTagAt, thicknessTextAt, wallRuns, type ThicknessMark, type WallRun } from './planWalls'
 import { normalAwayFrom, uprightAngle, type Pt } from '../svgDims'
@@ -24,6 +25,22 @@ const unitOf = (a: Pt, b: Pt): Pt => {
   return l > 1e-9 ? [(b[0] - a[0]) / l, (b[1] - a[1]) / l] : [0, 0]
 }
 const push = (p: Pt, d: Pt, k: number): Pt => [p[0] + d[0] * k, p[1] + d[1] * k]
+
+/**
+ * A folding door's plan symbol for one piece: the panels as a zig-zag across
+ * the opening, each leaf from the outside face to mid-wall and back, with no
+ * swing arc. Panels are about 2.5 ft wide (the 3D glass uses the same count).
+ */
+export function foldingZigZag(p: SheetOpeningPiece): Pt[] {
+  const n = foldingLeaves(Math.hypot(p.b[0] - p.a[0], p.b[1] - p.a[1]))
+  const path: Pt[] = []
+  for (let k = 0; k <= n; k++) {
+    const t = k / n
+    // even folds sit on the outside face, odd folds at mid-wall; the last meets the far jamb on the face
+    path.push(k % 2 === 0 || k === n ? lerp(p.a, p.b, t) : lerp(p.midA, p.midB, t))
+  }
+  return path
+}
 const ring = (poly: readonly Pt[]) => `M${poly.map(([x, z]) => `${x} ${z}`).join(' L')} Z`
 
 /** The outline's and inside face's vertices along a run, first edge's start to last edge's end. */
@@ -110,6 +127,7 @@ export function Opening({ opening: o, part, pen }: { readonly opening: SheetOpen
                 line(lerp(p.midA, p.a, k * 2), lerp(p.midB, p.b, k * 2), pen.thin, undefined, `s${k}`),
               )}
             {o.kind === 'cutout' && [line(p.a, p.b, pen.thin, dash, 'o'), line(p.innerA, p.innerB, pen.thin, dash, 'i')]}
+            {o.kind === 'folding' && <polyline points={pts(foldingZigZag(p))} fill="none" stroke="#000" strokeWidth={pen.thin} strokeLinejoin="miter" />}
             {i === 0 && line(p.a, p.innerA, face)}
             {i === last && line(p.b, p.innerB, face)}
           </g>

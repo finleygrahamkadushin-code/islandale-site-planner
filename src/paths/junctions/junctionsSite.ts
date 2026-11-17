@@ -56,7 +56,7 @@ function siteEdges(o: PlanObject, frame: PartFrame, mi: number): SiteEdge[] {
 
 function doorSpans(doors: readonly DoorItem[]): DoorSpan[] {
   return doors.map((d, k) => {
-    const kind = d.name === 'Slider' ? 'slider' : 'door'
+    const kind = d.name === 'Slider' || d.name === 'Folding door' ? 'slider' : 'door'
     return { u0: d.u0, u1: d.u1, kind, label: doors.length > 1 ? `${kind} ${k + 1}` : kind }
   })
 }

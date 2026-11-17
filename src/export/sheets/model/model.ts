@@ -27,7 +27,7 @@ type Bounds = SheetBuilding['bounds']
 /** A wall corner this close to the bounding box's back-left corner is on it, feet (a quarter inch). */
 const ON_CORNER_FT = 1 / 48
 
-const TAG_LETTER: Readonly<Record<SheetOpening['kind'], string>> = { door: 'D', slider: 'D', window: 'W', cutout: 'C' }
+const TAG_LETTER: Readonly<Record<SheetOpening['kind'], string>> = { door: 'D', slider: 'D', folding: 'D', window: 'W', cutout: 'C' }
 
 /** Main floor, metres NAVD88, as the scene sets the group (railOwner's base). */
 export function floorOf(o: PlanObject, world: RailWorld): number {
