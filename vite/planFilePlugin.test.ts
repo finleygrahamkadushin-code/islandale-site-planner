@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events'
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
@@ -12,16 +12,16 @@ type Handler = (req: unknown, res: unknown) => void
 /** Just enough of a Vite dev server to load the plugin. */
 function fakeServer() {
   const watcher = Object.assign(new EventEmitter(), { add: () => undefined })
-  let handler: Handler = () => undefined
+  const handlers: Record<string, Handler> = {}
   const errors: string[] = []
   const sent: unknown[] = []
   const server = {
     watcher,
-    middlewares: { use: (_path: string, h: Handler) => (handler = h) },
+    middlewares: { use: (path: string, h: Handler) => void (handlers[path] = h) },
     ws: { send: (m: unknown) => sent.push(m) },
     config: { logger: { error: (m: string) => errors.push(m) } },
   }
-  return { server, watcher, errors, sent, handle: (req: unknown, res: unknown) => handler(req, res) }
+  return { server, watcher, errors, sent, handle: (req: unknown, res: unknown, path = '/__plan') => handlers[path]?.(req, res) }
 }
 
 function fakeRes() {
@@ -92,5 +92,30 @@ describe('the dev server plan endpoint (R6.13)', () => {
     f.watcher.emit('change', join(dir, PLAN_FILE_NAME))
     await new Promise((r) => setTimeout(r, 50))
     expect(f.sent).toHaveLength(1)
+  })
+
+  test('the default scheme: missing reads as null, a saved plan reads back, a non-plan is refused, and the plan file is untouched', async () => {
+    const f = load()
+    const get = () => {
+      const { res, finished, headers } = fakeRes()
+      f.handle({ method: 'GET', headers: {} }, res, '/__plan-default')
+      return finished.then((r) => ({ ...r, headers }))
+    }
+    const missing = await get()
+    expect(missing.body).toBe('null')
+    expect(missing.headers['x-plan-missing']).toBe('1')
+
+    const text = JSON.stringify({ version: 1, plan: { name: 'mine' } })
+    const put = fakeRes()
+    f.handle(putRequest(Buffer.from(text)), put.res, '/__plan-default')
+    expect((await put.finished).status).toBe(200)
+    expect(await readFile(join(dir, 'islandale.default.json'), 'utf8')).toBe(text)
+    expect((await get()).body).toBe(text)
+    await expect(readFile(join(dir, PLAN_FILE_NAME), 'utf8')).rejects.toThrow()
+
+    const bad = fakeRes()
+    f.handle(putRequest(Buffer.from('{"nope":1}')), bad.res, '/__plan-default')
+    expect((await bad.finished).status).toBe(400)
+    expect((await get()).body).toBe(text)
   })
 })
