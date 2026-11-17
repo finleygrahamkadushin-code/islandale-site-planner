@@ -436,7 +436,7 @@ export interface SheetPartition {
 
 /** A door, window, slider or cased opening in a partition, building frame. */
 export interface SheetInteriorOpening {
-  readonly kind: 'door' | 'window' | 'slider' | 'open'
+  readonly kind: 'door' | 'window' | 'slider' | 'open' | 'pocket' | 'folding'
   /** Its two ends on the partition's centre line; a door hinges at `hinge` (one of them) and closes onto `jamb`. */
   readonly a: LocalPoint
   readonly b: LocalPoint

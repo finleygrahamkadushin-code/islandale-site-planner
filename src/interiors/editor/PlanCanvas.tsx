@@ -9,12 +9,12 @@ import { readFloors } from '../model'
 import { accessibleRoom, fixtureDefaults } from '../furniture/fixtures'
 import { cabinTypeOf, checkProgram, PROGRAMS } from '../program'
 import { newRoomName, roomInfo } from '../rooms'
-import type { Floor, Furniture, Opening, OpeningKind, Room, RoomType } from '../types'
+import { OPENING_KINDS, type Floor, type Furniture, type Opening, type OpeningKind, type Room, type RoomType } from '../types'
 import type { FloorEdit } from '../../store/interiorActions'
 import { usePlanStore } from '../../store/planStore'
 import type { PlanObject } from '../../store/types'
 import { fmtLen } from '../format'
-import { useInteriorView, type PlanView } from './interiorView'
+import { useInteriorView, type InteriorTool, type PlanView } from './interiorView'
 import { PlanLayers, type Preview, type Transform } from './PlanLayers'
 
 /** Plan zoom limits, pixels per foot. */
@@ -67,6 +67,9 @@ function hitOf(target: EventTarget | null): Hit {
 }
 
 /** The view that fits the cabin's floor into a w × h canvas. */
+/** The tools that place an opening (the kinds in types.ts). */
+const isOpeningTool = (t: InteriorTool): t is OpeningKind => (OPENING_KINDS as readonly string[]).includes(t)
+
 export function fitView(params: Record<string, unknown>, fi: number, w: number, h: number, pad = 40): PlanView {
   const b = envelopeOf(params, fi).bboxAll
   if (!(b.w > 0 && b.d > 0)) return { scale: 20, cx: 0, cz: 0 }
@@ -210,7 +213,7 @@ export function PlanCanvas({ o }: { readonly o: PlanObject }) {
     const tool = v.tool
     if (tool === 'room') return start({ kind: 'rect', p0: snapP(p, e).p })
     if (tool === 'split') return start({ kind: 'split', p0: snapP(p, e).p })
-    if (tool === 'door' || tool === 'window' || tool === 'slider' || tool === 'open') {
+    if (isOpeningTool(tool)) {
       const op = openingAt(p, e, tool)
       if (op) commit((_p, f, next) => E.addOpening(f, op, next))
       return
@@ -346,7 +349,7 @@ export function PlanCanvas({ o }: { readonly o: PlanObject }) {
     else if (tool === 'room' || tool === 'split') {
       const q = snapP(p, e)
       setPreview({ pt: q.p, snapKind: q.kind })
-    } else if (tool === 'door' || tool === 'window' || tool === 'slider' || tool === 'open') {
+    } else if (isOpeningTool(tool)) {
       const op = openingAt(p, e, tool)
       setPreview(op ? { ghostOpening: op } : {})
     } else if (tool === 'furniture') {

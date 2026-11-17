@@ -224,7 +224,7 @@ interface OpeningProps {
   readonly hit: boolean
 }
 
-/** A gap in the wall with its symbol: a swing arc for a door, three lines for a window, two leaves for a slider. */
+/** A gap in the wall with its symbol: a swing arc for a door, three lines for a window, two leaves for a slider, a leaf and a dashed pocket for a pocket door, a zig-zag of panels for a folding door. */
 export function OpeningMark({ params, fi, op, rooms, t, color, hit }: OpeningProps) {
   const { S, X, Y } = t
   const id = 'id' in op ? op.id : -1
@@ -240,6 +240,26 @@ export function OpeningMark({ params, fi, op, rooms, t, color, hit }: OpeningPro
     const mid = (g.off0 + g.off1) / 2
     const k = g.t / 5
     marks.push(L(P(0, mid - k), P(0.55 * w, mid - k), 2, 's0'), L(P(0.45 * w, mid + k), P(w, mid + k), 2, 's1'))
+  } else if (op.kind === 'pocket') {
+    // closed leaf in the wall's middle, from the free jamb to the pocket jamb (flip picks it); the dashed run beyond the pocket jamb is the leaf hidden in the wall
+    const mid = (g.off0 + g.off1) / 2
+    const sP = op.flip ? w : 0
+    const sF = op.flip ? 0 : w
+    const hide = op.flip ? w + w * 0.5 : -w * 0.5
+    const [a0, a1] = [P(sP, mid), P(hide, mid)]
+    marks.push(
+      L(P(sF, mid), P(sP, mid), 1.5, 'leaf'),
+      <line key="hide" x1={X(a0[0])} y1={Y(a0[1])} x2={X(a1[0])} y2={Y(a1[1])} stroke={color} strokeWidth={1} strokeDasharray={`${(S * 0.3).toFixed(1)} ${(S * 0.2).toFixed(1)}`} />,
+    )
+  } else if (op.kind === 'folding') {
+    // two or four panels in a zig-zag (V shapes) on the out side, from the jamb to the jamb
+    const sg = op.out ? -1 : 1
+    const face = sg > 0 ? g.off1 : g.off0
+    const N = w >= 4 ? 4 : 2
+    const p = w / N
+    const depth = Math.min(p * 0.8, 1.2) * sg
+    const pts: Pt[] = Array.from({ length: N + 1 }, (_, i) => P(i * p, i % 2 === 0 ? face : face + depth))
+    marks.push(<polyline key="fold" points={pts.map(XY).join(' ')} fill="none" stroke={color} strokeWidth={1} />)
   } else if (op.kind === 'door') {
     const sg = op.out ? -1 : 1
     const f = sg > 0 ? g.off1 : g.off0

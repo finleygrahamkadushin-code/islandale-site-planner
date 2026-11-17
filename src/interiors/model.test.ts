@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
 import schemes from '../../data/islandale/schemes.json'
-import { addRoom, deleteRoom, mergeRooms, moveRoom, moveWall, splitRooms } from './edits'
+import { addRoom, deleteRoom, mergeRooms, moveRoom, moveWall, newOpening, splitRooms } from './edits'
 import { envelopeOf } from './envelope'
 import * as G from './geom'
 import { idCounter, readFloors } from './model'
 import { fitRoom, floorStats, openingGeom, partitionSegments } from './rooms'
-import type { Floor } from './types'
+import { OPENING_DEFAULTS, OPENING_KINDS, OPENING_LABELS, type Floor } from './types'
 
 type Obj = { name: string; t: string } & Record<string, unknown>
 const all = (schemes as unknown as { schemes: { id: string; objects: Obj[] }[] }).schemes
@@ -115,5 +115,51 @@ describe('fitting and editing rooms', () => {
     expect(geoms.every(Boolean)).toBe(true)
     expect(geoms.some((g) => g!.exterior)).toBe(true)
     expect(geoms.some((g) => !g!.exterior)).toBe(true)
+  })
+})
+
+describe('pocket and folding doors', () => {
+  test('the two new kinds have their defaults and labels, and the old kinds are unchanged', () => {
+    expect(OPENING_KINDS).toEqual(['door', 'window', 'slider', 'open', 'pocket', 'folding'])
+    expect(OPENING_DEFAULTS.pocket).toBe(2.5)
+    expect(OPENING_DEFAULTS.folding).toBe(6)
+    expect(OPENING_LABELS.pocket).toBe('Pocket door')
+    expect(OPENING_LABELS.folding).toBe('Folding door')
+    expect(OPENING_DEFAULTS).toMatchObject({ door: 3, window: 4, slider: 6, open: 6 })
+    expect(OPENING_LABELS).toMatchObject({ door: 'Door', window: 'Window', slider: 'Slider', open: 'Cased opening' })
+  })
+
+  test('a new pocket or folding opening takes its default width on a wall that has room', () => {
+    const room = { id: 1, name: 'Hall', type: 'hall' as const, pts: [[0, 0], [12, 0], [12, 10], [0, 10]] as [number, number][] }
+    expect(newOpening(room, 0, 0.5, 'pocket')).toMatchObject({ width: 2.5, kind: 'pocket', flip: false, out: false })
+    expect(newOpening(room, 0, 0.5, 'folding')).toMatchObject({ width: 6, kind: 'folding', flip: false, out: false })
+  })
+
+  test('a plan with pocket and folding openings reads back with their kinds, flip and out', () => {
+    const plan = {
+      w: 30, d: 20, h: 9,
+      floors: [{
+        name: 'Main floor',
+        rooms: [
+          { id: 1, name: 'Hall', type: 'hall', pts: [[-15, -10], [0, -10], [0, 10], [-15, 10]] },
+          { id: 2, name: 'Den', type: 'office', pts: [[0, -10], [15, -10], [15, 10], [0, 10]] },
+        ],
+        openings: [
+          { id: 3, room: 1, edge: 1, pos: 0.5, width: 2.5, kind: 'pocket', flip: true, out: false },
+          { id: 4, room: 2, edge: 3, pos: 0.5, width: 6, kind: 'folding', flip: false, out: true },
+        ],
+        furniture: [],
+      }],
+    }
+    const [f] = readFloors(plan)
+    expect(f.openings.map((o) => [o.id, o.kind, o.width, o.flip, o.out])).toEqual([[3, 'pocket', 2.5, true, false], [4, 'folding', 6, false, true]])
+    // and they come back out of the reader unchanged on a second read
+    expect(readFloors({ ...plan, floors: [{ ...plan.floors[0], openings: f.openings }] })[0].openings).toEqual(f.openings)
+  })
+
+  test('an unknown kind still reads as a door, as before', () => {
+    const rooms = [{ id: 1, name: 'Hall', type: 'hall', pts: [[0, 0], [10, 0], [10, 10], [0, 10]] }]
+    const plan = { w: 10, d: 10, floors: [{ name: 'Main floor', rooms, openings: [{ id: 2, room: 1, edge: 0, pos: 0.5, width: 3, kind: 'nonsense' }], furniture: [] }] }
+    expect(readFloors(plan)[0].openings.map((o) => o.kind)).toEqual(['door'])
   })
 })

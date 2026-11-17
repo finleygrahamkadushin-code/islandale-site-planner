@@ -104,7 +104,7 @@ const SLAB_GAP = 0.01
 const LINE_TOL = 0.05
 const ANG_TOL = 0.002
 /** Heads (ft): doors and sliders at 6'-9", cased openings and windows at 7'; windows sit on a 3 ft sill. */
-const HEADS: Readonly<Record<string, number>> = { door: 6.75, slider: 6.75, open: 7, window: 7 }
+const HEADS: Readonly<Record<string, number>> = { door: 6.75, slider: 6.75, open: 7, window: 7, pocket: 6.75, folding: 6.75 }
 const SILL = 3
 
 const sub = (a: Pt, b: Pt): Pt => [a[0] - b[0], a[1] - b[1]]
