@@ -1565,9 +1565,9 @@
             {
               "id": 9100,
               "edge": 2,
-              "kind": "slider",
-              "x": 7.2917,
-              "w": 4.4167,
+              "kind": "door",
+              "x": 8,
+              "w": 3,
               "h": 7,
               "sill": 0
             },
@@ -1740,8 +1740,8 @@
                   "room": 5521,
                   "edge": 2,
                   "pos": 0.5,
-                  "width": 4.4167,
-                  "kind": "slider",
+                  "width": 3,
+                  "kind": "door",
                   "flip": false,
                   "out": false
                 },
