@@ -305,7 +305,7 @@
             },
             {
               "id": 9108,
-              "kind": "slider",
+              "kind": "folding",
               "x": 70.88,
               "w": 10,
               "h": 7,
@@ -631,7 +631,7 @@
                   "edge": 4,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "slider",
+                  "kind": "folding",
                   "flip": false,
                   "out": false
                 },
@@ -641,7 +641,7 @@
                   "edge": 5,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "slider",
+                  "kind": "folding",
                   "flip": false,
                   "out": false
                 },
@@ -651,7 +651,7 @@
                   "edge": 6,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "slider",
+                  "kind": "folding",
                   "flip": false,
                   "out": false
                 },
@@ -661,7 +661,7 @@
                   "edge": 7,
                   "pos": 0.5,
                   "width": 1.75,
-                  "kind": "slider",
+                  "kind": "folding",
                   "flip": false,
                   "out": false
                 },

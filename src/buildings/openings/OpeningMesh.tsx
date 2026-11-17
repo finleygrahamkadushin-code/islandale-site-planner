@@ -103,6 +103,8 @@ function PieceMesh({ op, p, style, highlight, wallM, paint, handlers }: PiecePro
   const mullions = []
   if (folding) {
     for (let k = 1; k < leaves; k++) mullions.push(bar(-w / 2 + panelW * k, 0, MULLION_M, h, `fm${k}`, MULLION_M, mid))
+    // along a curve every chord is its own flat panel: a mullion where it meets the chord before it
+    if (!p.jambLeft) mullions.push(bar(-w / 2, 0, MULLION_M, h, 'fm0', MULLION_M, mid))
   } else {
     for (let k = 1; k <= op.mullV; k++) mullions.push(bar(-w / 2 + (w * k) / (op.mullV + 1), 0, MULLION_M, h, `mv${k}`, MULLION_M, mid))
     for (let k = 1; k <= op.mullH; k++) mullions.push(bar(0, -h / 2 + (h * k) / (op.mullH + 1), w, MULLION_M, `mh${k}`, MULLION_M, mid))
