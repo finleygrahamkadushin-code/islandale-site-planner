@@ -63,6 +63,36 @@ describe('autosave', () => {
     expect(store().saveStatus).toBe('saved')
   })
 
+  test('a fresh start opens the saved default instead of Scheme C', async () => {
+    store().renameObject(firstId(), 'My hall')
+    const text = serializePlan(store().plan, view)
+    store().loadScheme('C')
+    const { backend } = fakeBackend()
+    const { page } = fakePage()
+    running = startAutosave({ backend, page, defaults: { label: 'test', read: async () => text, write: async () => undefined } })
+    await running.ready
+    expect(store().plan.objects[firstId()].name).toBe('My hall')
+    expect(usePlanStore.temporal.getState().pastStates.length).toBe(0)
+  })
+
+  test('a saved plan beats the saved default, and a broken default keeps Scheme C', async () => {
+    const mine = serializePlan(store().plan, view)
+    store().renameObject(firstId(), 'Other')
+    const defaultText = serializePlan(store().plan, view)
+    store().loadScheme('C')
+    const first = fakeBackend({ [AUTOSAVE_KEY]: mine })
+    running = startAutosave({ backend: first.backend, page: fakePage().page, defaults: { label: 't', read: async () => defaultText, write: async () => undefined } })
+    await running.ready
+    expect(store().plan.objects[firstId()].name).not.toBe('Other')
+    await running.stop()
+
+    store().loadScheme('C')
+    const name = store().plan.objects[firstId()].name
+    running = startAutosave({ backend: fakeBackend().backend, page: fakePage().page, defaults: { label: 't', read: async () => '{nope', write: async () => undefined } })
+    await running.ready
+    expect(store().plan.objects[firstId()].name).toBe(name)
+  })
+
   test('hiding the tab saves straight away', async () => {
     const { backend, db } = fakeBackend()
     const { page, fire } = fakePage()
