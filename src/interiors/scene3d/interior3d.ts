@@ -1,4 +1,5 @@
 import { num } from '../../buildings/footprint'
+import { furnitureBoxes } from './furniture3d'
 import { FURNITURE, furnitureCorners, isStairType, STAIR_RISERS } from '../furniture/furniture'
 import * as G from '../geom'
 import type { Pt } from '../geom'
@@ -299,6 +300,11 @@ export function interior3d(params: Record<string, unknown>): Interior3D {
       const t = FURNITURE[it.type]
       const h = typeof it.h === 'number' && it.h > 0 ? it.h : (t?.h ?? 2.5)
       if (!(it.w > 0 && it.d > 0 && h > 0)) continue
+      const detail = furnitureBoxes(it, y0, h, ry)
+      if (detail) {
+        loose.push(...detail)
+        continue
+      }
       loose.push({ p: [it.x, y0 + h / 2, it.z], size: [it.w, h, it.d], ry, color: t?.color ?? '#9a8f80', part: 'furniture' })
     }
     if (loose.length) clusters.push({ p: [0, 0, 0], ry: 0, boxes: loose, ...EMPTY })
