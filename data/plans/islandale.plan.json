@@ -2979,199 +2979,24 @@
         "hidden": false,
         "labelVisible": true
       },
-      "C-bench-1": {
-        "id": "C-bench-1",
-        "type": "bench",
-        "name": "Long bench",
-        "position": {
-          "x": 2.05,
-          "n": 0.028
-        },
-        "rotation": 77.97,
-        "params": {
-          "w": 11.94,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": true,
-        "group": "long-bench"
-      },
-      "C-bench-2": {
-        "id": "C-bench-2",
-        "type": "bench",
-        "name": "Long bench · 2",
-        "position": {
-          "x": 0.474,
-          "n": -2.583
-        },
-        "rotation": 35.0,
-        "params": {
-          "w": 9.65,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-3": {
-        "id": "C-bench-3",
-        "type": "bench",
-        "name": "Long bench · 3",
-        "position": {
-          "x": -1.267,
-          "n": -3.678
-        },
-        "rotation": 20.06,
-        "params": {
-          "w": 2.16,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-4": {
-        "id": "C-bench-4",
-        "type": "bench",
-        "name": "Long bench · 4",
-        "position": {
-          "x": -1.873,
-          "n": -3.816
-        },
-        "rotation": 5.11,
-        "params": {
-          "w": 2.06,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-5": {
-        "id": "C-bench-5",
-        "type": "bench",
-        "name": "Long bench · 5",
-        "position": {
-          "x": -2.475,
-          "n": -3.79
-        },
-        "rotation": -10.0,
-        "params": {
-          "w": 2.03,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-6": {
-        "id": "C-bench-6",
-        "type": "bench",
-        "name": "Long bench · 6",
-        "position": {
-          "x": -3.05,
-          "n": -3.608
-        },
-        "rotation": -25.11,
-        "params": {
-          "w": 2.06,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-7": {
-        "id": "C-bench-7",
-        "type": "bench",
-        "name": "Long bench · 7",
-        "position": {
-          "x": -3.573,
-          "n": -3.272
-        },
-        "rotation": -40.06,
-        "params": {
-          "w": 2.16,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
-      "C-bench-8": {
-        "id": "C-bench-8",
-        "type": "bench",
-        "name": "Long bench · 8",
-        "position": {
-          "x": -0.844,
-          "n": -3.496
-        },
-        "rotation": 27.53,
-        "params": {
-          "w": 1.0,
-          "d": 1.5,
-          "h": 1.5,
-          "back": true,
-          "standZ": 10.838,
-          "cushion": true
-        },
-        "locked": false,
-        "hidden": false,
-        "labelVisible": false,
-        "group": "long-bench"
-      },
       "C-firepit": {
         "id": "C-firepit",
         "type": "firepit",
-        "name": "Sunken fire pit",
+        "name": "Fire lounge",
         "position": {
-          "x": -1.5,
-          "n": 0.5
+          "x": -1.05,
+          "n": -0.674
         },
         "rotation": 35,
         "params": {
-          "w": 14,
-          "d": 14,
-          "shape": "round",
+          "w": 20,
+          "d": 12,
+          "shape": "lounge",
           "riser": 1.5,
           "seatDepth": 1.75,
           "cushion": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "fireRun": "along"
         },
         "locked": false,
         "hidden": false,
@@ -3182,16 +3007,39 @@
         "type": "outdoorKitchen",
         "name": "Outdoor kitchen",
         "position": {
-          "x": -3.729,
-          "n": 3.683
+          "x": -6.369,
+          "n": -0.119
         },
-        "rotation": 35,
+        "rotation": 125,
         "params": {
           "w": 14,
           "d": 2.5,
           "h": 3,
-          "shape": "straight",
-          "ret": 6,
+          "shape": "L",
+          "ret": 8,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-dining": {
+        "id": "C-dining",
+        "type": "diningTable",
+        "name": "Dining table",
+        "position": {
+          "x": -1.738,
+          "n": 3.496
+        },
+        "rotation": 35,
+        "params": {
+          "w": 8,
+          "d": 3.5,
+          "h": 2.5,
+          "seats": "chairs",
+          "count": 8,
+          "cushion": true,
+          "cushionColor": "#d8c9a8",
           "standZ": 10.838
         },
         "locked": false,
@@ -3217,16 +3065,9 @@
       "C-14",
       "C-15",
       "C-16",
-      "C-bench-1",
-      "C-bench-2",
-      "C-bench-3",
-      "C-bench-4",
-      "C-bench-5",
-      "C-bench-6",
-      "C-bench-7",
-      "C-bench-8",
       "C-firepit",
-      "C-kitchen"
+      "C-kitchen",
+      "C-dining"
     ]
   },
   "view": {
