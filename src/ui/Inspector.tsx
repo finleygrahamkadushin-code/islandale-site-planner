@@ -37,6 +37,7 @@ import { useBeginner } from '../guide/mode'
 import { Term } from '../guide/Term'
 import { keepUnits } from './keepUnits'
 import { Tip } from '../guide/Tip'
+import { BenchFields } from '../site/objects/BenchFields'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -115,6 +116,11 @@ function SingleInspector({ id }: { readonly id: string }) {
           {PAD_TYPES.has(o.type) && typeof o.params.kind !== 'string' && (
             <ShapeFields p={o.params} pad cars={o.type === 'pad'} disabled={dis} set={(patch) => a.params(id, patch)} />
           )}
+        </InspectorSection>
+      )}
+      {picked === null && o.type === 'bench' && (
+        <InspectorSection id="bench" title="Bench">
+          <BenchFields p={o.params} disabled={dis} set={(patch) => a.params(id, patch)} />
         </InspectorSection>
       )}
       {picked === null && o.type === 'house' && (
