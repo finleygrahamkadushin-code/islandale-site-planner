@@ -164,3 +164,15 @@ describe('fire pit standZ (metres NAVD88)', () => {
     expect(firepitBase({ standZ: Number.POSITIVE_INFINITY }, 9)).toBe(9)
   })
 })
+
+describe('fire lounge cushions', () => {
+  test('each seat cushion covers its couch full depth, with the back cushion standing on it', () => {
+    const ps = firepitParts({ ...LOUNGE_DEFAULTS })
+    const seatTop = ftToM(1.4 + 0.4)
+    const seats = ps.filter((p) => p.kind === 'cushion' && Math.abs(p.centre[1] + p.size[1] / 2 - seatTop) < 1e-9)
+    const backSeat = seats.find((p) => p.size[0] > ftToM(6))!
+    expect(backSeat.size[2]).toBeCloseTo(ftToM(2.4), 9)
+    const backs = ps.filter((p) => p.kind === 'cushion' && p.centre[1] - p.size[1] / 2 > seatTop - 1e-9)
+    expect(backs.length).toBe(3)
+  })
+})

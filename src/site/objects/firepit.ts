@@ -309,8 +309,9 @@ function loungeParts(params: Readonly<Record<string, unknown>>): FirepitPart[] {
 
   // the back couch: a base, its seat, and a backrest against the back rim, between the end couches
   parts.push(boxFt('deck', span(-endIn, endIn), span(0, LOUNGE_BASE_H_FT), span(backZ, couchFront)))
-  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(LOUNGE_BASE_H_FT, seatTop), span(backZ + LOUNGE_BACK_T_FT, couchFront), fabric))
-  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(LOUNGE_BASE_H_FT, backTop), span(backZ, backZ + LOUNGE_BACK_T_FT), fabric))
+  // the seat cushion covers the couch's full depth; the back cushion stands on it against the rim
+  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(LOUNGE_BASE_H_FT, seatTop), span(backZ, couchFront), fabric))
+  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(seatTop, backTop), span(backZ, backZ + LOUNGE_BACK_T_FT), fabric))
 
   // the two end couches: each runs from the back rim to the front edge, its backrest on the rim side
   for (const side of [-1, 1] as const) {
@@ -318,8 +319,8 @@ function loungeParts(params: Readonly<Record<string, unknown>>): FirepitPart[] {
     const inner = side * endIn
     const back = rim - side * LOUNGE_BACK_T_FT
     parts.push(boxFt('deck', span(rim, inner), span(0, LOUNGE_BASE_H_FT), span(backZ, frontZ)))
-    parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(rim, back), span(LOUNGE_BASE_H_FT, backTop), span(backZ, frontZ), fabric))
-    parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(back, inner), span(LOUNGE_BASE_H_FT, seatTop), span(backZ, frontZ), fabric))
+    parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(rim, back), span(seatTop, backTop), span(backZ, frontZ), fabric))
+    parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(rim, inner), span(LOUNGE_BASE_H_FT, seatTop), span(backZ, frontZ), fabric))
   }
 
   // the fire trough: a third of the way from the back couch to the open front, centred left to right
