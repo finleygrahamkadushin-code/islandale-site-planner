@@ -15,7 +15,7 @@ describe('object library (old planner LIB + the 5C path pieces)', () => {
         'Sky bridge', 'Plunge pool', 'Walk', 'Ramp', 'Steps', 'Landing', 'Boardwalk',
       ]),
     )
-    expect(LIBRARY).toHaveLength(27)
+    expect(LIBRARY).toHaveLength(28)
     expect(new Set(LIBRARY.map((i) => i.id)).size).toBe(LIBRARY.length)
   })
 
@@ -32,6 +32,8 @@ describe('object library (old planner LIB + the 5C path pieces)', () => {
     expect(libraryItem('firepit')).toMatchObject({ type: 'firepit', group: 'site', name: 'Sunken fire pit' })
     expect(libraryItem('fire-lounge')).toMatchObject({ type: 'firepit', group: 'site', name: 'Fire lounge', hint: 'sunken couches · fire trough' })
     expect(libraryItem('fire-lounge').params).toMatchObject({ w: 22, d: 14, shape: 'lounge', cushion: true })
+    expect(libraryItem('dining-table')).toMatchObject({ type: 'diningTable', group: 'site', name: 'Dining table', hint: 'outdoor · seats 8' })
+    expect(libraryItem('dining-table').params).toMatchObject({ w: 8, d: 3.5, h: 2.5, seats: 'chairs', count: 8, cushion: true })
   })
 
   test('throws on an unknown item', () => {

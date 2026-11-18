@@ -5,6 +5,7 @@ import { ftToM } from '../site/units'
 import { BENCH_DEFAULTS } from '../site/objects/bench'
 import { OUTDOOR_KITCHEN_DEFAULTS } from '../site/objects/outdoorKitchen'
 import { FIREPIT_DEFAULTS, LOUNGE_DEFAULTS } from '../site/objects/firepit'
+import { DINING_DEFAULTS } from '../site/objects/diningTable'
 
 /**
  * The object library (old planner LIB, plus the 5C path pieces): what the
@@ -51,6 +52,7 @@ const OBJECTS: readonly LibraryItem[] = [
   item('outdoor-kitchen', 'site', 'outdoorKitchen', 'Outdoor kitchen', 'stone-built · sink + grill', { ...OUTDOOR_KITCHEN_DEFAULTS }),
   item('firepit', 'site', 'firepit', 'Sunken fire pit', 'seating ring · 14 ft', { ...FIREPIT_DEFAULTS }),
   item('fire-lounge', 'site', 'firepit', 'Fire lounge', 'sunken couches · fire trough', { ...LOUNGE_DEFAULTS }),
+  item('dining-table', 'site', 'diningTable', 'Dining table', 'outdoor · seats 8', { ...DINING_DEFAULTS }),
   item('meadow', 'site', 'meadow', 'Native meadow', 'grasses + camas, any shape', { w: 30, d: 20, h: 0.3, color: '#a7bf73' }),
   item('pond', 'site', 'pond', 'Rain-garden pond', 'reflecting pool, any shape', { w: 16, d: 10, h: 1.5, color: '#4f7f8c', shape: 'oct' }),
   item('pool', 'site', 'pool', 'Plunge pool', 'water + coping', { w: 12, d: 24, h: 1, color: '#3fb7c9' }),
