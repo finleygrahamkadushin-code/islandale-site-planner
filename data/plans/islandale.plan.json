@@ -2998,7 +2998,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": true
+        "labelVisible": true,
+        "group": "long-bench"
       },
       "C-bench-2": {
         "id": "C-bench-2",
@@ -3019,7 +3020,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-3": {
         "id": "C-bench-3",
@@ -3040,7 +3042,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-4": {
         "id": "C-bench-4",
@@ -3061,7 +3064,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-5": {
         "id": "C-bench-5",
@@ -3082,7 +3086,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-6": {
         "id": "C-bench-6",
@@ -3103,7 +3108,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-7": {
         "id": "C-bench-7",
@@ -3124,7 +3130,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-bench-8": {
         "id": "C-bench-8",
@@ -3145,7 +3152,8 @@
         },
         "locked": false,
         "hidden": false,
-        "labelVisible": false
+        "labelVisible": false,
+        "group": "long-bench"
       },
       "C-firepit": {
         "id": "C-firepit",

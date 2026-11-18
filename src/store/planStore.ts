@@ -126,6 +126,8 @@ export interface PlanState extends PartActions, InteriorActions, PathActions, To
   readonly nudgeObjects: (ids: readonly ObjectId[], dx: number, dn: number) => void
   readonly resizeObject: (id: ObjectId, size: { w: number; d: number }) => void
   readonly setObjectParams: (id: ObjectId, patch: Record<string, unknown>) => void
+  /** The same param patch on several objects as one undo step; locked ones are skipped with a toast. Not for shape keys (no re-fit). */
+  readonly setManyObjectParams: (ids: readonly ObjectId[], patch: Record<string, unknown>) => void
   readonly renameObject: (id: ObjectId, name: string) => void
   readonly deleteObjects: (ids: readonly ObjectId[]) => void
   readonly setLocked: (id: ObjectId, locked: boolean) => void
@@ -343,6 +345,17 @@ export const usePlanStore = create<PlanState>()(
         resizeObject: (id, { w, d }) => editRefit(id, (p) => withSize(p, Math.max(1, w), Math.max(1, d))),
         setObjectParams: (id, patch) =>
           SHAPE_KEYS.some((k) => k in patch) ? editRefit(id, (p) => ({ ...p, ...patch })) : edit(id, (o) => ({ ...o, params: { ...o.params, ...patch } })),
+        setManyObjectParams: (ids, patch) => {
+          if (!writable()) return
+          const s = get()
+          const open = ids.filter((id) => s.plan.objects[id] && !isObjectLocked(s, id))
+          const refused = ids.length - open.length
+          if (refused > 0) s.showToast(refused === 1 ? 'One object is locked' : `${refused} objects are locked`)
+          if (!open.length) return
+          const objects = { ...s.plan.objects }
+          for (const id of open) objects[id] = { ...objects[id], params: { ...objects[id].params, ...patch } }
+          set({ plan: { ...s.plan, objects } })
+        },
         renameObject: (id, name) => edit(id, (o) => ({ ...o, name })),
         deleteObjects: (ids) => {
           if (!writable()) return

@@ -142,3 +142,20 @@ describe('isolation', () => {
     expect(steps()).toBe(0)
   })
 })
+
+describe('setManyObjectParams', () => {
+  beforeEach(freshScheme)
+
+  test('one patch on several objects is one undo step, and a locked one is skipped', () => {
+    const [a, b, c] = ids()
+    store().setLocked(c, true)
+    history().clear()
+    store().setManyObjectParams([a, b, c], { facing: 'in' })
+    expect(obj(a).params.facing).toBe('in')
+    expect(obj(b).params.facing).toBe('in')
+    expect(obj(c).params.facing).toBeUndefined()
+    expect(steps()).toBe(1)
+    history().undo()
+    expect(obj(a).params.facing).toBeUndefined()
+  })
+})

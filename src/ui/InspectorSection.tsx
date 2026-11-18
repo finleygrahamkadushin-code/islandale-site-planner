@@ -13,7 +13,7 @@ import { create } from 'zustand'
 export type SectionId = 'placement' | 'size' | 'roof' | 'look' | 'openings' | 'railings' | 'levels' | 'path' | 'bench' | 'visibility'
 
 const STORAGE_KEY = 'islandale-inspector-open'
-export const DEFAULT_OPEN: readonly SectionId[] = ['placement', 'size']
+export const DEFAULT_OPEN: readonly SectionId[] = ['placement', 'size', 'bench']
 
 function savedOpen(): readonly SectionId[] {
   try {

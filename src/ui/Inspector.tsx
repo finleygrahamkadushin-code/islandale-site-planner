@@ -176,6 +176,11 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
   const groupObjects = usePlanStore((s) => s.groupObjects)
   const ungroupObjects = usePlanStore((s) => s.ungroupObjects)
   const oneGroup = groups[0] !== '' && groups.every((g) => g === groups[0])
+  // a selection of benches (the long bench is one group of them) gets the bench controls, applied to every one at once
+  const types = usePlanStore(useShallow((s) => ids.map((id) => s.plan.objects[id]?.type ?? '')))
+  const firstParams = usePlanStore((s) => s.plan.objects[ids[0]]?.params)
+  const setMany = usePlanStore((s) => s.setManyObjectParams)
+  const allBenches = types.length > 0 && types.every((t) => t === 'bench')
   const anyGrouped = groups.some((g) => g !== '')
   return (
     <section className="panel inspector" aria-label="Inspector">
@@ -195,6 +200,11 @@ function MultiInspector({ ids }: { readonly ids: readonly string[] }) {
         )}
       </div>
       {oneGroup && <p className="muted">Double-click any member in the view to edit the group alone.</p>}
+      {allBenches && firstParams && (
+        <InspectorSection id="bench" title="Bench">
+          <BenchFields p={firstParams} disabled={false} set={(patch) => setMany(ids, patch)} />
+        </InspectorSection>
+      )}
       <ul className="list">
         {names.map((n, i) => (
           <li key={ids[i]}>{n}</li>
