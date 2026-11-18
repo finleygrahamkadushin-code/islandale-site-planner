@@ -7,9 +7,10 @@ import type { SitePoint } from '../site/types'
 import { earthSpec, opReach, pondDepthM, pondLevelOf, type Cut, type EarthOp, type Ground } from '../site/earthworks/earthworks'
 import type { PlanObject } from '../store/types'
 import { benchBase } from '../site/objects/bench'
+import { outdoorKitchenBase } from '../site/objects/outdoorKitchen'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */
-const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree', 'bench'])
+const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree', 'bench', 'outdoorKitchen'])
 
 /**
  * Elevation of an object's base, metres: pads, trees and benches take the ground at
@@ -22,6 +23,7 @@ export function baseElevation(t: Terrain, o: PlanObject, ground?: Ground): numbe
   if (FLAT_TYPES.has(o.type)) {
     const here = ground ? ground(o.position.x, o.position.n) : elevationAt(t, o.position.x, o.position.n)
     // a bench with a fixed standZ (metres NAVD88) stands there, e.g. on a deck
+    if (o.type === 'outdoorKitchen') return outdoorKitchenBase(o.params, here)
     return o.type === 'bench' ? benchBase(o.params, here) : here
   }
   const corners = BUILDING_TYPES.has(o.type) ? boundsCorners(o) : siteFootprint(o)
