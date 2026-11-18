@@ -14,6 +14,7 @@ import { PoolMesh } from '../site/objects/PoolMesh'
 import { ShedMesh } from '../site/objects/ShedMesh'
 import { PondMesh } from '../site/objects/PondMesh'
 import { BenchMesh } from '../site/objects/BenchMesh'
+import { DiningTableMesh } from '../site/objects/DiningTableMesh'
 import { OutdoorKitchenMesh } from '../site/objects/OutdoorKitchenMesh'
 import { FirepitMesh } from '../site/objects/FirepitMesh'
 import { pieceKind } from '../paths/pieces'
@@ -77,6 +78,7 @@ const PlanObjectView = memo(function PlanObjectView({ id, drag }: { readonly id:
   if (o.type === 'pool') return <PoolMesh o={o} />
   if (o.type === 'pond') return <PondMesh o={o} />
   if (o.type === 'bench') return <BenchMesh o={o} />
+  if (o.type === 'diningTable') return <DiningTableMesh o={o} />
   if (o.type === 'outdoorKitchen') return <OutdoorKitchenMesh o={o} />
   if (o.type === 'firepit') return <FirepitMesh o={o} />
   if (o.type === 'pad' && typeof o.params.kind === 'string' && pieceKind(o) !== 'walk') return <PathPieceMesh o={o} />

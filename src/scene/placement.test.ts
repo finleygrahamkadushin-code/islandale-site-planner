@@ -27,6 +27,8 @@ describe('object placement on the terrain', () => {
   })
 
   test('a fire pit follows the ground at its centre, or stands at a fixed standZ (metres NAVD88)', () => {
+    expect(baseElevation(t, obj('diningTable', { w: 8, d: 3.5, h: 2.5 }))).toBeCloseTo(elevationAt(t, -1.5, 0.5), 9)
+    expect(baseElevation(t, obj('diningTable', { w: 8, d: 3.5, h: 2.5, standZ: 3.1 }))).toBe(3.1)
     expect(baseElevation(t, obj('firepit', { w: 14, d: 14 }))).toBeCloseTo(elevationAt(t, -1.5, 0.5), 9)
     expect(baseElevation(t, obj('firepit', { w: 14, d: 14, standZ: 3.1 }))).toBe(3.1)
   })
