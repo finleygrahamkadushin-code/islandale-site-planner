@@ -10,7 +10,7 @@ import { create } from 'zustand'
  * opens Openings).
  */
 
-export type SectionId = 'placement' | 'size' | 'roof' | 'look' | 'openings' | 'railings' | 'levels' | 'path' | 'bench' | 'visibility'
+export type SectionId = 'placement' | 'size' | 'roof' | 'look' | 'openings' | 'railings' | 'levels' | 'path' | 'bench' | 'firepit' | 'visibility'
 
 const STORAGE_KEY = 'islandale-inspector-open'
 export const DEFAULT_OPEN: readonly SectionId[] = ['placement', 'size', 'bench']

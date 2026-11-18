@@ -38,6 +38,7 @@ import { Term } from '../guide/Term'
 import { keepUnits } from './keepUnits'
 import { Tip } from '../guide/Tip'
 import { BenchFields } from '../site/objects/BenchFields'
+import { FirepitFields } from '../site/objects/FirepitFields'
 
 const TYPE_NAMES: Record<string, string> = { house: 'Cabin', pad: 'Pad or path', tree: 'Tree', bridge: 'Boardwalk', deck: 'Deck' }
 
@@ -121,6 +122,11 @@ function SingleInspector({ id }: { readonly id: string }) {
       {picked === null && o.type === 'bench' && (
         <InspectorSection id="bench" title="Bench">
           <BenchFields p={o.params} disabled={dis} set={(patch) => a.params(id, patch)} />
+        </InspectorSection>
+      )}
+      {picked === null && o.type === 'firepit' && (
+        <InspectorSection id="firepit" title="Fire pit">
+          <FirepitFields p={o.params} disabled={dis} set={(patch) => a.params(id, patch)} />
         </InspectorSection>
       )}
       {picked === null && o.type === 'house' && (
