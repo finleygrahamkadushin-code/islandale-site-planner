@@ -31,20 +31,20 @@ export function FirepitMesh({ o }: { readonly o: PlanObject }) {
     <group position={toScene(x, n, base)} rotation={[0, (o.rotation * Math.PI) / 180, 0]} userData={{ objectId: o.id }}>
       {parts.map((p, i) => (
         <mesh key={i} geometry={geometries[i]} position={p.centre} rotation={[0, p.yaw, 0]} castShadow receiveShadow {...handlers}>
-          <PartMaterial kind={p.kind} style={style} glow={glow} />
+          <PartMaterial kind={p.kind} colour={p.colour} style={style} glow={glow} />
         </mesh>
       ))}
     </group>
   )
 }
 
-/** The material for one part: wood, stone, cushion fabric, the dark bowl, or the glowing flame. */
-function PartMaterial({ kind, style, glow }: { readonly kind: FirepitPartKind; readonly style: DisplayStyle; readonly glow: number }) {
+/** The material for one part: wood, stone, cushion fabric (its `colour` if the part has one), the dark bowl, or the glowing flame. */
+function PartMaterial({ kind, colour, style, glow }: { readonly kind: FirepitPartKind; readonly colour?: string; readonly style: DisplayStyle; readonly glow: number }) {
   if (kind === 'flame') {
     return <meshStandardMaterial color="#ffb13b" emissive="#ff7a1a" emissiveIntensity={1.6} toneMapped={false} />
   }
   const { surface, texture, color } = MATERIALS[kind]
-  return <Surface kind={surface} style={style} texture={texture} color={color} glow={glow} />
+  return <Surface kind={surface} style={style} texture={texture} color={colour ?? color} glow={glow} />
 }
 
 const MATERIALS: Readonly<Record<Exclude<FirepitPartKind, 'flame'>, { surface: SurfaceKind; texture?: TextureName; color?: string }>> = {

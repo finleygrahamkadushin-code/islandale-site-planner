@@ -81,7 +81,6 @@ describe('fire lounge', () => {
   const lounge = (extra: Record<string, unknown> = {}) => ({ ...LOUNGE_DEFAULTS, ...extra })
   const W = ftToM(22)
   const D = ftToM(14)
-  const RIM = ftToM(2)
   const top = (p: { centre: number[]; size: number[] }) => p.centre[1] + p.size[1] / 2
   const rimParts = (params: Record<string, unknown>) => parts(params).filter((p) => p.kind === 'deck' && Math.abs(top(p) - RISER) < 1e-9)
   const couchBases = (params: Record<string, unknown>) => parts(params).filter((p) => p.kind === 'deck' && Math.abs(top(p) - ftToM(1.4)) < 1e-9)
