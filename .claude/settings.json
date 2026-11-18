@@ -1,3 +1,6 @@
 {
-  "workflowSizeGuideline": "large"
+  "workflowSizeGuideline": "large",
+  "worktree": {
+    "baseRef": "head"
+  }
 }
