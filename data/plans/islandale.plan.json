@@ -2993,7 +2993,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3013,7 +3014,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3033,7 +3035,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3053,7 +3056,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3073,7 +3077,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3093,7 +3098,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3113,7 +3119,8 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
@@ -3133,11 +3140,55 @@
           "d": 1.5,
           "h": 1.5,
           "back": true,
-          "standZ": 10.838
+          "standZ": 10.838,
+          "cushion": true
         },
         "locked": false,
         "hidden": false,
         "labelVisible": false
+      },
+      "C-firepit": {
+        "id": "C-firepit",
+        "type": "firepit",
+        "name": "Sunken fire pit",
+        "position": {
+          "x": -1.5,
+          "n": 0.5
+        },
+        "rotation": 35,
+        "params": {
+          "w": 14,
+          "d": 14,
+          "shape": "round",
+          "riser": 1.5,
+          "seatDepth": 1.75,
+          "cushion": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-kitchen": {
+        "id": "C-kitchen",
+        "type": "outdoorKitchen",
+        "name": "Outdoor kitchen",
+        "position": {
+          "x": -3.729,
+          "n": 3.683
+        },
+        "rotation": 35,
+        "params": {
+          "w": 14,
+          "d": 2.5,
+          "h": 3,
+          "shape": "straight",
+          "ret": 6,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
       }
     },
     "order": [
@@ -3165,7 +3216,9 @@
       "C-bench-5",
       "C-bench-6",
       "C-bench-7",
-      "C-bench-8"
+      "C-bench-8",
+      "C-firepit",
+      "C-kitchen"
     ]
   },
   "view": {
