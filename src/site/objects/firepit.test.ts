@@ -4,7 +4,6 @@ import { FIREPIT_DEFAULTS, RING_SEGMENTS, firepitBase, firepitParts, firepitShap
 
 const parts = (params: Record<string, unknown>) => firepitParts(params)
 const count = (params: Record<string, unknown>, kind: string) => parts(params).filter((p) => p.kind === kind).length
-const R = ftToM(FIREPIT_DEFAULTS.w / 2)
 const RISER = ftToM(FIREPIT_DEFAULTS.riser)
 const GAP = ftToM(3)
 

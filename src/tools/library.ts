@@ -3,6 +3,7 @@ import { PIECE_LIBRARY } from '../store/pathActions'
 import type { ObjectId, PlanObject } from '../store/types'
 import { ftToM } from '../site/units'
 import { BENCH_DEFAULTS } from '../site/objects/bench'
+import { FIREPIT_DEFAULTS } from '../site/objects/firepit'
 
 /**
  * The object library (old planner LIB, plus the 5C path pieces): what the
@@ -46,6 +47,7 @@ const OBJECTS: readonly LibraryItem[] = [
   item('garden', 'site', 'garden', 'Garden beds', '20 × 20', { w: 20, d: 20, h: 0.6, color: '#7ba360' }),
   item('boulder', 'site', 'boulder', 'Granite erratic', 'glacial boulder cluster', { w: 9, d: 7, h: 5, color: '#9b978f' }),
   item('bench', 'site', 'bench', 'Bench', 'wood seat · 6 ft · backrest', { ...BENCH_DEFAULTS }),
+  item('firepit', 'site', 'firepit', 'Sunken fire pit', 'seating ring · 14 ft', { ...FIREPIT_DEFAULTS }),
   item('meadow', 'site', 'meadow', 'Native meadow', 'grasses + camas, any shape', { w: 30, d: 20, h: 0.3, color: '#a7bf73' }),
   item('pond', 'site', 'pond', 'Rain-garden pond', 'reflecting pool, any shape', { w: 16, d: 10, h: 1.5, color: '#4f7f8c', shape: 'oct' }),
   item('pool', 'site', 'pool', 'Plunge pool', 'water + coping', { w: 12, d: 24, h: 1, color: '#3fb7c9' }),

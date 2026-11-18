@@ -15,7 +15,7 @@ describe('object library (old planner LIB + the 5C path pieces)', () => {
         'Sky bridge', 'Plunge pool', 'Walk', 'Ramp', 'Steps', 'Landing', 'Boardwalk',
       ]),
     )
-    expect(LIBRARY).toHaveLength(24)
+    expect(LIBRARY).toHaveLength(25)
     expect(new Set(LIBRARY.map((i) => i.id)).size).toBe(LIBRARY.length)
   })
 
@@ -27,6 +27,7 @@ describe('object library (old planner LIB + the 5C path pieces)', () => {
     expect(libraryItem('path-ramp').pathKind).toBe('ramp')
     expect(libraryItem('bench')).toMatchObject({ type: 'bench', group: 'site', name: 'Bench' })
     expect(libraryItem('bench').params).toEqual({ w: 6, d: 1.5, h: 1.5, back: true })
+    expect(libraryItem('firepit')).toMatchObject({ type: 'firepit', group: 'site', name: 'Sunken fire pit' })
   })
 
   test('throws on an unknown item', () => {
