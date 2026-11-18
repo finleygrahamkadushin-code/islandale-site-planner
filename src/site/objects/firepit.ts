@@ -314,7 +314,8 @@ function loungeParts(params: Readonly<Record<string, unknown>>): FirepitPart[] {
   parts.push(boxFt('deck', span(-endIn, endIn), span(0, LOUNGE_BASE_H_FT), span(backZ, couchFront)))
   // the seat cushion covers the couch's full depth; the back cushion stands on it against the rim
   parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(LOUNGE_BASE_H_FT, seatTop), span(backZ, couchFront), fabric))
-  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-endIn, endIn), span(seatTop, backTop), span(backZ, backZ + LOUNGE_BACK_T_FT), fabric))
+  // the back cushion runs right across to meet the end couches' back cushions, so the corners close
+  parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(-(innerX - LOUNGE_BACK_T_FT), innerX - LOUNGE_BACK_T_FT), span(seatTop, backTop), span(backZ, backZ + LOUNGE_BACK_T_FT), fabric))
 
   // the two end couches: each runs from the back rim to the front edge, its backrest on the rim side
   for (const side of [-1, 1] as const) {

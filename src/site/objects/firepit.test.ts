@@ -189,3 +189,17 @@ describe('fire lounge turned trough', () => {
     expect(new Set(flames.map((f) => f.centre[0].toFixed(6))).size).toBe(1)
   })
 })
+
+describe('fire lounge cushion corners', () => {
+  test('the back cushion meets the end couches back cushions with no gap', () => {
+    const ps = firepitParts({ ...LOUNGE_DEFAULTS })
+    const seatTop = ftToM(1.4 + 0.4)
+    const backs = ps.filter((p) => p.kind === 'cushion' && p.centre[1] - p.size[1] / 2 > seatTop - 1e-9)
+    const across = backs.find((p) => p.size[0] > p.size[2])!
+    const ends = backs.filter((p) => p !== across)
+    for (const e of ends) {
+      const eInner = Math.abs(e.centre[0]) - e.size[0] / 2
+      expect(across.size[0] / 2).toBeCloseTo(eInner, 9)
+    }
+  })
+})
