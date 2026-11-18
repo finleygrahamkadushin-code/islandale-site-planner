@@ -255,6 +255,9 @@ export function firepitBase(params: Readonly<Record<string, unknown>>, groundM: 
 type Span = readonly [number, number]
 
 const span = (a: number, b: number): Span => [Math.min(a, b), Math.max(a, b)]
+/** A turned ('along') fire trough starts this far in front of the back couch and stops this far short of the open front, feet. */
+const LOUNGE_FIRE_CLEAR_FT = 2.5
+const LOUNGE_FIRE_FRONT_FT = 0.5
 
 /** A box over feet ranges x, y (up from the floor) and z, as a part in metres. `colour` is set only when given. */
 function boxFt(kind: FirepitPartKind, x: Span, y: Span, z: Span, colour?: string): FirepitPart {
@@ -323,21 +326,31 @@ function loungeParts(params: Readonly<Record<string, unknown>>): FirepitPart[] {
     parts.push(boxFt(fabric === undefined ? 'deck' : 'cushion', span(rim, inner), span(LOUNGE_BASE_H_FT, seatTop), span(backZ, frontZ), fabric))
   }
 
-  // the fire trough: a third of the way from the back couch to the open front, centred left to right
-  const troughZ = couchFront + (frontZ - couchFront) / 3
-  const fireLen = Math.min(Math.max(2, num(params.fireLen, W * 0.45)), 2 * endIn)
-  parts.push(boxFt('stone', span(-fireLen / 2, fireLen / 2), span(0, LOUNGE_TROUGH_H_FT), span(troughZ - LOUNGE_TROUGH_D_FT / 2, troughZ + LOUNGE_TROUGH_D_FT / 2)))
+  // the fire trough, centred left to right. 'across' (the default): parallel to the back couch, a third of the
+  // way to the open front. 'along' (fireRun): turned 90 degrees, running from LOUNGE_FIRE_CLEAR_FT in front of
+  // the back couch toward the open front, so the back couch sits beyond its end rather than along it
+  const along = params.fireRun === 'along'
   const channelTop = LOUNGE_TROUGH_H_FT + LOUNGE_CHANNEL_H_FT
-  parts.push(boxFt('ember', span(-fireLen * 0.45, fireLen * 0.45), span(LOUNGE_TROUGH_H_FT, channelTop), span(troughZ - LOUNGE_CHANNEL_D_FT / 2, troughZ + LOUNGE_CHANNEL_D_FT / 2)))
+  const z0 = couchFront + LOUNGE_FIRE_CLEAR_FT
+  const room = Math.max(2, frontZ - LOUNGE_FIRE_FRONT_FT - z0)
+  const fireLen = along ? Math.min(Math.max(2, num(params.fireLen, room)), room) : Math.min(Math.max(2, num(params.fireLen, W * 0.45)), 2 * endIn)
+  const troughZ = along ? z0 + fireLen / 2 : couchFront + (frontZ - couchFront) / 3
+  // a box centred on the trough: `len` along its run, `wid` across it
+  const onRun = (len: number, wid: number) => (along ? { x: span(-wid / 2, wid / 2), z: span(troughZ - len / 2, troughZ + len / 2) } : { x: span(-len / 2, len / 2), z: span(troughZ - wid / 2, troughZ + wid / 2) })
+  const plinth = onRun(fireLen, LOUNGE_TROUGH_D_FT)
+  parts.push(boxFt('stone', plinth.x, span(0, LOUNGE_TROUGH_H_FT), plinth.z))
+  const channel = onRun(fireLen * 0.9, LOUNGE_CHANNEL_D_FT)
+  parts.push(boxFt('ember', channel.x, span(LOUNGE_TROUGH_H_FT, channelTop), channel.z))
   // a row of flames along the channel, spread over the middle 80% of the trough
   const flames = Math.max(3, Math.floor(fireLen / 1.2))
   for (let i = 0; i < flames; i++) {
     const t = i / (flames - 1)
     const h = LOUNGE_FLAME_HEIGHTS_FT[i % LOUNGE_FLAME_HEIGHTS_FT.length]
+    const run = fireLen * (-0.4 + 0.8 * t)
     parts.push({
       kind: 'flame',
       form: 'cone',
-      centre: [ftToM(fireLen * (-0.4 + 0.8 * t)), ftToM(channelTop + h / 2), ftToM(troughZ)],
+      centre: along ? [0, ftToM(channelTop + h / 2), ftToM(troughZ + run)] : [ftToM(run), ftToM(channelTop + h / 2), ftToM(troughZ)],
       size: [ftToM(LOUNGE_FLAME_BASE_FT), ftToM(h), ftToM(LOUNGE_FLAME_BASE_FT)],
       yaw: 0,
     })

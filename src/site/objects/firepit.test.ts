@@ -176,3 +176,16 @@ describe('fire lounge cushions', () => {
     expect(backs.length).toBe(3)
   })
 })
+
+describe('fire lounge turned trough', () => {
+  test("fireRun 'along' turns the trough to run front to back, clear of the back couch", () => {
+    const ps = firepitParts({ ...LOUNGE_DEFAULTS, w: 20, d: 12, fireRun: 'along' })
+    const plinth = ps.find((p) => p.kind === 'stone' && p.form === 'box' && Math.abs(p.centre[1] + p.size[1] / 2 - ftToM(1.3)) < 1e-9)!
+    expect(plinth.size[2]).toBeGreaterThan(plinth.size[0]) // runs along z
+    expect(plinth.centre[0]).toBeCloseTo(0, 9)
+    // the back couch's front is at -6 + 2 + 2.4 = -1.6 ft; the trough starts 2.5 ft in front of it
+    expect(plinth.centre[2] - plinth.size[2] / 2).toBeCloseTo(ftToM(0.9), 9)
+    const flames = ps.filter((p) => p.kind === 'flame')
+    expect(new Set(flames.map((f) => f.centre[0].toFixed(6))).size).toBe(1)
+  })
+})
