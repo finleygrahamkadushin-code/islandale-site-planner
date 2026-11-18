@@ -18,7 +18,7 @@ import { TREE_ZONE_1_FT } from './setbacks'
  */
 
 /** Things that are not "built" for tree zone 1. */
-const UNBUILT_TYPES = new Set(['pad', 'tree', 'meadow', 'boulder', 'bench'])
+const UNBUILT_TYPES = new Set(['pad', 'tree', 'meadow', 'boulder', 'bench', 'outdoorKitchen'])
 
 const ft0 = (ft: number) => `${Math.round(ft)} ft`
 const ft1 = (ft: number) => `${ft.toFixed(1)} ft`
