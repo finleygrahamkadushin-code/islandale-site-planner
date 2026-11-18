@@ -24,7 +24,7 @@
           "lift": 0.9,
           "roofColor": "#3c4043",
           "shape": "poly",
-          "roof": "prow",
+          "roof": "flat",
           "pitch": 7,
           "ridge": "z",
           "overhang": 2.5,
@@ -51,7 +51,7 @@
               "kind": "stair",
               "open": true,
               "dx": 0,
-              "dz": -22.5,
+              "dz": -25.5,
               "rot": 180,
               "w": 5,
               "d": 5,
@@ -228,6 +228,220 @@
               "kind": "porch",
               "open": true,
               "slab": false
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "deck",
+              "name": "Back porch",
+              "open": true,
+              "dx": 0.63,
+              "dz": -18,
+              "w": 31.25,
+              "d": 10,
+              "h": 1,
+              "shape": "rect"
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "stair",
+              "name": "Prow stair · flight 1",
+              "open": true,
+              "dx": 12.13,
+              "dz": -17.25,
+              "rot": 270,
+              "w": 3.5,
+              "d": 8.25,
+              "h": 0,
+              "footZ": 7.072,
+              "lvl": 6.0
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "deck",
+              "name": "Prow stair · landing",
+              "open": true,
+              "dx": 18.25,
+              "dz": -17.25,
+              "w": 4,
+              "d": 4,
+              "h": 1,
+              "shape": "rect",
+              "lvl": 6.0
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "stair",
+              "name": "Prow stair · flight 2",
+              "open": true,
+              "dx": 18.25,
+              "dz": -11.13,
+              "rot": 180,
+              "w": 3.5,
+              "d": 8.25,
+              "h": 0,
+              "footZ": 8.901,
+              "lvl": 12.0
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "deck",
+              "name": "Prow stair · top",
+              "open": true,
+              "dx": 18.25,
+              "dz": -5.0,
+              "w": 4,
+              "d": 4,
+              "h": 1,
+              "shape": "rect",
+              "lvl": 12.0
+            },
+            {
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "roof": "none",
+              "kind": "deck",
+              "name": "Prow roof deck",
+              "open": true,
+              "dx": 0,
+              "dz": 0,
+              "w": 33,
+              "d": 31,
+              "h": 1,
+              "shape": "poly",
+              "pts": [
+                [
+                  -16.5,
+                  -15.5
+                ],
+                [
+                  16.5,
+                  -15.5
+                ],
+                [
+                  16.5,
+                  5.42
+                ],
+                [
+                  5.68,
+                  15.5
+                ],
+                [
+                  -5.41,
+                  15.5
+                ],
+                [
+                  -6.79,
+                  15.41
+                ],
+                [
+                  -9.6,
+                  14.66
+                ],
+                [
+                  -12.14,
+                  13.2
+                ],
+                [
+                  -14.2,
+                  11.14
+                ],
+                [
+                  -15.66,
+                  8.6
+                ],
+                [
+                  -16.41,
+                  5.79
+                ],
+                [
+                  -16.5,
+                  4.41
+                ]
+              ],
+              "lvl": 12.0
+            },
+            {
+              "kind": "porch",
+              "name": "Prow canopy",
+              "open": true,
+              "slab": false,
+              "dx": 0,
+              "dz": 0,
+              "w": 33,
+              "d": 31,
+              "h": 8,
+              "shape": "poly",
+              "pts": [
+                [
+                  -16.5,
+                  -15.5
+                ],
+                [
+                  16.5,
+                  -15.5
+                ],
+                [
+                  16.5,
+                  5.42
+                ],
+                [
+                  5.68,
+                  15.5
+                ],
+                [
+                  -5.41,
+                  15.5
+                ],
+                [
+                  -6.79,
+                  15.41
+                ],
+                [
+                  -9.6,
+                  14.66
+                ],
+                [
+                  -12.14,
+                  13.2
+                ],
+                [
+                  -14.2,
+                  11.14
+                ],
+                [
+                  -15.66,
+                  8.6
+                ],
+                [
+                  -16.41,
+                  5.79
+                ],
+                [
+                  -16.5,
+                  4.41
+                ]
+              ],
+              "lvl": 12.0,
+              "roof": "prow",
+              "pitch": 3,
+              "ridge": "z",
+              "overhang": 5.5
             }
           ],
           "cuts": [
