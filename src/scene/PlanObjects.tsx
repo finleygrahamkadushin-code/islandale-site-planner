@@ -13,6 +13,7 @@ import { BoulderMesh } from '../site/objects/BoulderMesh'
 import { PoolMesh } from '../site/objects/PoolMesh'
 import { ShedMesh } from '../site/objects/ShedMesh'
 import { PondMesh } from '../site/objects/PondMesh'
+import { BenchMesh } from '../site/objects/BenchMesh'
 import { pieceKind } from '../paths/pieces'
 import { dragMoves, type DragState } from './editing'
 import { Ghosted } from './Ghosted'
@@ -73,6 +74,7 @@ const PlanObjectView = memo(function PlanObjectView({ id, drag }: { readonly id:
   if (o.type === 'boulder') return <BoulderMesh o={o} />
   if (o.type === 'pool') return <PoolMesh o={o} />
   if (o.type === 'pond') return <PondMesh o={o} />
+  if (o.type === 'bench') return <BenchMesh o={o} />
   if (o.type === 'pad' && typeof o.params.kind === 'string' && pieceKind(o) !== 'walk') return <PathPieceMesh o={o} />
   return <ObjectMesh o={o} />
 })
