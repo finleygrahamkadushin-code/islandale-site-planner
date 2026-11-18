@@ -258,7 +258,7 @@
               "w": 3.5,
               "d": 8.25,
               "h": 0,
-              "footZ": 7.072,
+              "footZ": 7.18,
               "lvl": 6.0
             },
             {
@@ -291,7 +291,7 @@
               "w": 3.5,
               "d": 8.25,
               "h": 0,
-              "footZ": 8.901,
+              "footZ": 9.009,
               "lvl": 12.0
             },
             {
@@ -1671,14 +1671,67 @@
               "open": true
             },
             {
-              "kind": "stair",
+              "kind": "deck",
+              "name": "Sitting steps",
               "open": true,
               "dx": 0,
-              "dz": 17,
+              "dz": 11.75,
               "rot": 0,
-              "w": 4,
-              "d": 4,
-              "h": 0,
+              "w": 9,
+              "d": 5.5,
+              "h": 1,
+              "shape": "poly",
+              "pts": [
+                [
+                  4.5,
+                  0.0
+                ],
+                [
+                  4.17,
+                  1.69
+                ],
+                [
+                  3.24,
+                  3.13
+                ],
+                [
+                  1.83,
+                  4.11
+                ],
+                [
+                  0.16,
+                  4.5
+                ],
+                [
+                  -1.54,
+                  4.23
+                ],
+                [
+                  -3.01,
+                  3.34
+                ],
+                [
+                  -4.04,
+                  1.97
+                ],
+                [
+                  -4.49,
+                  0.31
+                ],
+                [
+                  -4.5,
+                  -1.0
+                ],
+                [
+                  4.5,
+                  -1.0
+                ]
+              ],
+              "steps": {
+                "e0": 0,
+                "e1": 2,
+                "tread": 1.5
+              },
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
@@ -2925,6 +2978,166 @@
         "locked": false,
         "hidden": false,
         "labelVisible": true
+      },
+      "C-bench-1": {
+        "id": "C-bench-1",
+        "type": "bench",
+        "name": "Long bench",
+        "position": {
+          "x": 2.05,
+          "n": 0.028
+        },
+        "rotation": 77.97,
+        "params": {
+          "w": 11.94,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": true
+      },
+      "C-bench-2": {
+        "id": "C-bench-2",
+        "type": "bench",
+        "name": "Long bench · 2",
+        "position": {
+          "x": 0.474,
+          "n": -2.583
+        },
+        "rotation": 35.0,
+        "params": {
+          "w": 9.65,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-3": {
+        "id": "C-bench-3",
+        "type": "bench",
+        "name": "Long bench · 3",
+        "position": {
+          "x": -1.267,
+          "n": -3.678
+        },
+        "rotation": 20.06,
+        "params": {
+          "w": 2.16,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-4": {
+        "id": "C-bench-4",
+        "type": "bench",
+        "name": "Long bench · 4",
+        "position": {
+          "x": -1.873,
+          "n": -3.816
+        },
+        "rotation": 5.11,
+        "params": {
+          "w": 2.06,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-5": {
+        "id": "C-bench-5",
+        "type": "bench",
+        "name": "Long bench · 5",
+        "position": {
+          "x": -2.475,
+          "n": -3.79
+        },
+        "rotation": -10.0,
+        "params": {
+          "w": 2.03,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-6": {
+        "id": "C-bench-6",
+        "type": "bench",
+        "name": "Long bench · 6",
+        "position": {
+          "x": -3.05,
+          "n": -3.608
+        },
+        "rotation": -25.11,
+        "params": {
+          "w": 2.06,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-7": {
+        "id": "C-bench-7",
+        "type": "bench",
+        "name": "Long bench · 7",
+        "position": {
+          "x": -3.573,
+          "n": -3.272
+        },
+        "rotation": -40.06,
+        "params": {
+          "w": 2.16,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
+      },
+      "C-bench-8": {
+        "id": "C-bench-8",
+        "type": "bench",
+        "name": "Long bench · 8",
+        "position": {
+          "x": -0.844,
+          "n": -3.496
+        },
+        "rotation": 27.53,
+        "params": {
+          "w": 1.0,
+          "d": 1.5,
+          "h": 1.5,
+          "back": true,
+          "standZ": 10.838
+        },
+        "locked": false,
+        "hidden": false,
+        "labelVisible": false
       }
     },
     "order": [
@@ -2944,7 +3157,15 @@
       "C-13",
       "C-14",
       "C-15",
-      "C-16"
+      "C-16",
+      "C-bench-1",
+      "C-bench-2",
+      "C-bench-3",
+      "C-bench-4",
+      "C-bench-5",
+      "C-bench-6",
+      "C-bench-7",
+      "C-bench-8"
     ]
   },
   "view": {
