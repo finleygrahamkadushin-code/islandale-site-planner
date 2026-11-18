@@ -26,7 +26,7 @@ describe('object library (old planner LIB + the 5C path pieces)', () => {
     expect(libraryItem('douglas-fir').params).toMatchObject({ tree: true, species: 'fir', h: 55 })
     expect(libraryItem('path-ramp').pathKind).toBe('ramp')
     expect(libraryItem('bench')).toMatchObject({ type: 'bench', group: 'site', name: 'Bench' })
-    expect(libraryItem('bench').params).toEqual({ w: 6, d: 1.5, h: 1.5, back: true })
+    expect(libraryItem('bench').params).toEqual({ w: 6, d: 1.5, h: 1.5, back: true, cushion: true })
   })
 
   test('throws on an unknown item', () => {

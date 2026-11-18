@@ -13,8 +13,16 @@ import { ftToM } from '../units'
  * sits on the ground at its centre like the other site objects.
  */
 
-/** The library's bench: 6 ft long, 1.5 ft deep, seat 1.5 ft up, with a back. */
-export const BENCH_DEFAULTS = { w: 6, d: 1.5, h: 1.5, back: true } as const
+/** The library's bench: 6 ft long, 1.5 ft deep, seat 1.5 ft up, with a back and cushions. */
+export const BENCH_DEFAULTS = { w: 6, d: 1.5, h: 1.5, back: true, cushion: true } as const
+
+/** A cushion's colour when the bench does not give one: a warm sand / linen. */
+export const BENCH_CUSHION_COLOUR = '#d8c9a8'
+/** Seat and back cushions are 3 in thick, inset 1 in from the seat's front and ends, metres. */
+export const CUSHION_T = 0.0762
+const CUSHION_INSET = 0.0254
+/** The back cushion stops this far below the top of the backrest, metres. */
+const BACK_CUSHION_TOP_GAP = 0.02
 
 /** Smallest sizes the geometry is built to, feet (a bench smaller than this is drawn at these). */
 const MIN_LENGTH_FT = 2
@@ -38,7 +46,10 @@ export const BACK_SLATS = 3
 const BACK_SLAT_GAP = 0.03
 const BACK_T = 0.03
 
-export type BenchPartKind = 'seat' | 'leg' | 'stretcher' | 'backPost' | 'backSlat'
+export type BenchPartKind = 'seat' | 'leg' | 'stretcher' | 'backPost' | 'backSlat' | 'cushion'
+
+/** Which long side the backrest is on: 'out' (the default) puts it at −z, so people face +z; 'in' puts it at +z. */
+export type BenchFacing = 'out' | 'in'
 
 /** One box of the bench: its centre and size in the bench's frame, metres. */
 export interface BenchPart {
@@ -55,6 +66,22 @@ export function benchSeatM(params: Readonly<Record<string, unknown>>): number {
 /** Whether a bench has its backrest: on unless `back` is turned off. */
 export function benchHasBack(params: Readonly<Record<string, unknown>>): boolean {
   return params.back !== false
+}
+
+/** Whether a bench has cushions: only when `cushion` is true (a missing value keeps the old look, no cushions). */
+export function benchHasCushion(params: Readonly<Record<string, unknown>>): boolean {
+  return params.cushion === true
+}
+
+/** Which side the backrest is on: 'in' when `facing` says so, else 'out' (a missing value is 'out'). */
+export function benchFacing(params: Readonly<Record<string, unknown>>): BenchFacing {
+  return params.facing === 'in' ? 'in' : 'out'
+}
+
+/** The cushion colour: `cushionColor` when it is a '#rrggbb' string, else the default. */
+export function benchCushionColour(params: Readonly<Record<string, unknown>>): string {
+  const c = params.cushionColor
+  return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c : BENCH_CUSHION_COLOUR
 }
 
 /**
@@ -85,15 +112,34 @@ export function benchParts(params: Readonly<Record<string, unknown>>): BenchPart
     parts.push({ kind: 'stretcher', centre: [x, legH - STRETCHER_DROP, 0], size: [LEG * 0.8, STRETCHER_H, D - LEG] })
   }
 
-  if (benchHasBack(params)) {
+  // the backrest's side: s = −1 puts it at −z (facing 'out'), s = +1 at +z (facing 'in'); the legs and stretchers do not move
+  const s = benchFacing(params) === 'in' ? 1 : -1
+  const back = benchHasBack(params)
+  // the seat-facing face of the back slats, metres along z (the cushions rest on it)
+  const backFaceZ = s * (D / 2 - LEG - BACK_T)
+  if (back) {
     // back posts continue the rear legs up past the seat
-    for (const x of [-inset, inset]) parts.push({ kind: 'backPost', centre: [x, H + BACK_RISE / 2, -legZ], size: [LEG, BACK_RISE, LEG] })
+    for (const x of [-inset, inset]) parts.push({ kind: 'backPost', centre: [x, H + BACK_RISE / 2, s * legZ], size: [LEG, BACK_RISE, LEG] })
     // horizontal back slats in front of the posts, spanning the whole length
     const band = BACK_RISE / BACK_SLATS
     const slatH = band - BACK_SLAT_GAP
-    const z = -D / 2 + LEG + BACK_T / 2
+    const z = s * (D / 2 - LEG - BACK_T / 2)
     for (let k = 0; k < BACK_SLATS; k++) {
       parts.push({ kind: 'backSlat', centre: [0, H + band * k + band / 2, z], size: [L, slatH, BACK_T] })
+    }
+  }
+
+  if (benchHasCushion(params)) {
+    // seat cushion: 1 in clear of the front and ends, its back edge against the backrest (or 1 in clear without one)
+    const cushionL = L - 2 * CUSHION_INSET
+    const zFront = -s * (D / 2 - CUSHION_INSET)
+    const zRear = back ? backFaceZ : s * (D / 2 - CUSHION_INSET)
+    parts.push({ kind: 'cushion', centre: [0, H + CUSHION_T / 2, (zFront + zRear) / 2], size: [cushionL, CUSHION_T, Math.abs(zFront - zRear)] })
+    if (back) {
+      // back cushion: leaning against the backrest's front face, from the seat cushion up to just under the backrest's top
+      const bottom = H + CUSHION_T
+      const top = H + BACK_RISE - BACK_CUSHION_TOP_GAP
+      parts.push({ kind: 'cushion', centre: [0, (bottom + top) / 2, backFaceZ - s * CUSHION_T / 2], size: [cushionL, top - bottom, CUSHION_T] })
     }
   }
   return parts
