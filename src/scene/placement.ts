@@ -9,9 +9,10 @@ import type { PlanObject } from '../store/types'
 import { benchBase } from '../site/objects/bench'
 import { outdoorKitchenBase } from '../site/objects/outdoorKitchen'
 import { firepitBase } from '../site/objects/firepit'
+import { diningBase } from '../site/objects/diningTable'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */
-const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree', 'bench', 'outdoorKitchen', 'firepit'])
+const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree', 'bench', 'outdoorKitchen', 'firepit', 'diningTable'])
 
 /**
  * Elevation of an object's base, metres: pads, trees and benches take the ground at
@@ -26,6 +27,7 @@ export function baseElevation(t: Terrain, o: PlanObject, ground?: Ground): numbe
     // a bench, fire pit or outdoor kitchen with a fixed standZ (metres NAVD88) stands there, e.g. on a deck
     if (o.type === 'bench') return benchBase(o.params, here)
     if (o.type === 'firepit') return firepitBase(o.params, here)
+    if (o.type === 'diningTable') return diningBase(o.params, here)
     if (o.type === 'outdoorKitchen') return outdoorKitchenBase(o.params, here)
     return here
   }
