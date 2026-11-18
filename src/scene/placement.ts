@@ -6,19 +6,24 @@ import { buildingBounds, buildingMasses, massBuildingPoly } from '../buildings/m
 import type { SitePoint } from '../site/types'
 import { earthSpec, opReach, pondDepthM, pondLevelOf, type Cut, type EarthOp, type Ground } from '../site/earthworks/earthworks'
 import type { PlanObject } from '../store/types'
+import { benchBase } from '../site/objects/bench'
 
 /** Object types that sit flat on the ground at their centre, like the legacy planner's pads. */
-const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree'])
+const FLAT_TYPES = new Set(['pad', 'garden', 'septic', 'meadow', 'boulder', 'tree', 'bench'])
 
 /**
- * Elevation of an object's base, metres: pads and trees take the ground at
+ * Elevation of an object's base, metres: pads, trees and benches take the ground at
  * their centre (the displayed ground, cuts included, when `ground` is
  * given); buildings take the highest surveyed ground under the box round
  * all their masses, plus their lift, less any sink into the slope, as the
  * legacy planner did (o.floor = grade + lift - earthSinkM).
  */
 export function baseElevation(t: Terrain, o: PlanObject, ground?: Ground): number {
-  if (FLAT_TYPES.has(o.type)) return ground ? ground(o.position.x, o.position.n) : elevationAt(t, o.position.x, o.position.n)
+  if (FLAT_TYPES.has(o.type)) {
+    const here = ground ? ground(o.position.x, o.position.n) : elevationAt(t, o.position.x, o.position.n)
+    // a bench with a fixed standZ (metres NAVD88) stands there, e.g. on a deck
+    return o.type === 'bench' ? benchBase(o.params, here) : here
+  }
   const corners = BUILDING_TYPES.has(o.type) ? boundsCorners(o) : siteFootprint(o)
   let zmax = -Infinity
   for (const [x, n] of corners) zmax = Math.max(zmax, elevationAt(t, x, n))

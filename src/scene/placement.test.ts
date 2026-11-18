@@ -16,6 +16,11 @@ describe('object placement on the terrain', () => {
     expect(baseElevation(t, o)).toBeCloseTo(elevationAt(t, -1.5, 0.5), 9)
   })
 
+  test('a bench follows the ground at its centre, or stands at a fixed standZ (metres NAVD88)', () => {
+    expect(baseElevation(t, obj('bench', { w: 6, d: 1.5, h: 1.5 }))).toBeCloseTo(elevationAt(t, -1.5, 0.5), 9)
+    expect(baseElevation(t, obj('bench', { w: 6, d: 1.5, h: 1.5, standZ: 3.1 }))).toBe(3.1)
+  })
+
   test('a building sits on its highest corner plus its lift', () => {
     const o = obj('house', { w: 28, d: 26, lift: 0.9 })
     const base = baseElevation(t, o)
