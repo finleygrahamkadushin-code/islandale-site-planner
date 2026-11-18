@@ -8,12 +8,13 @@ import { Surface } from '../../scene/Surface'
 import { useDisplayStyle } from '../../scene/useDisplayStyle'
 import { useObjectInteraction } from '../../scene/useObjectInteraction'
 import { useEarthworks } from '../earthworks/useEarthworks'
-import { benchParts } from './bench'
+import { benchCushionColour, benchParts } from './bench'
 
 /**
  * A bench (see bench.ts): a slatted wooden seat on leg frames, with a
- * slatted backrest when `back` is on. Stands on the ground, or at its
- * `standZ` when that is set. Wood is the deck boards' colour and texture.
+ * slatted backrest when `back` is on, and fabric cushions when `cushion` is
+ * on. Stands on the ground, or at its `standZ` when that is set. Wood is the
+ * deck boards' colour and texture; cushions take `cushionColor`.
  */
 export function BenchMesh({ o }: { readonly o: PlanObject }) {
   const terrain = usePlanStore((s) => s.site.terrain)
@@ -21,6 +22,7 @@ export function BenchMesh({ o }: { readonly o: PlanObject }) {
   const { selected, hovered, handlers } = useObjectInteraction(o)
   const style = useDisplayStyle()
   const parts = useMemo(() => benchParts(o.params), [o.params])
+  const cushionColour = benchCushionColour(o.params)
   const geometries = useMemo(() => parts.map((p) => new BoxGeometry(p.size[0], p.size[1], p.size[2])), [parts])
   useEffect(() => () => geometries.forEach((g) => g.dispose()), [geometries])
   const base = baseElevation(terrain, o, ground)
@@ -30,7 +32,12 @@ export function BenchMesh({ o }: { readonly o: PlanObject }) {
     <group position={toScene(x, n, base)} rotation={[0, (o.rotation * Math.PI) / 180, 0]} userData={{ objectId: o.id }}>
       {parts.map((p, i) => (
         <mesh key={i} geometry={geometries[i]} position={p.centre} castShadow receiveShadow {...handlers}>
-          <Surface kind="deck" style={style} texture="deck" glow={glow} />
+          {p.kind === 'cushion' ? (
+            // soft fabric: a matte plain colour (there is no fabric texture), in the cushion's colour
+            <Surface kind="wall" style={style} color={cushionColour} diagramColor={cushionColour} glow={glow} />
+          ) : (
+            <Surface kind="deck" style={style} texture="deck" glow={glow} />
+          )}
         </mesh>
       ))}
     </group>
