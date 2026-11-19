@@ -36,7 +36,7 @@
       "fascia": "steel", "structure": "timber"
     },
     "wall_kinds": { "cedar": "cedar", "board": "board_batten", "timber": "timber", "stone": "ledgestone_warm", "glass": "glass_tinted" },
-    "roof_mats": { "metal": "standing_seam", "copper": "copper_roof", "sod": "sod_roof", "glass": "glass" },
+    "roof_mats": { "metal": "standing_seam", "copper": "copper_roof", "sod": { "material": "sod_roof", "params": { "Red Amount": 0.04, "Bare Amount": 0.02, "Grass Amount": 0.45, "Yellow Color": [0.238, 0.292, 0.068, 1.0] } }, "glass": "glass" },
     "rail_styles": { "wood": "cedar", "steel": "steel", "cable": "steel", "glass": "glass", "none": null }
   },
   "site": {
