@@ -1176,7 +1176,7 @@
           "d": 18,
           "h": 9,
           "color": "#8a7f72",
-          "lift": 0.5,
+          "lift": 1.219,
           "roofColor": "#3c4043",
           "shape": "oct",
           "roof": "pyramid",
@@ -1187,36 +1187,7 @@
           "postSpacing": 6,
           "postSize": 8,
           "bracing": true,
-          "wings": [
-            {
-              "dx": -2.25,
-              "dz": 11.5,
-              "w": 9,
-              "d": 5,
-              "h": 8,
-              "shape": "rect",
-              "roof": "shed",
-              "pitch": 2,
-              "ridge": "x",
-              "overhang": 1,
-              "kind": "porch",
-              "open": true
-            },
-            {
-              "kind": "stair",
-              "open": true,
-              "dx": -2.25,
-              "dz": 16,
-              "rot": 0,
-              "w": 4,
-              "d": 4,
-              "h": 0,
-              "roof": "none",
-              "pitch": 0,
-              "ridge": "x",
-              "overhang": 0
-            }
-          ],
+          "wings": [],
           "cuts": [
             {
               "id": 9100,
@@ -1657,25 +1628,53 @@
           "bracing": false,
           "wings": [
             {
-              "dx": 0,
-              "dz": 8.75,
-              "w": 9,
-              "d": 6,
+              "kind": "porch",
+              "name": "Shared porch",
+              "open": true,
+              "dx": -9.45,
+              "dz": 9.71,
+              "rot": 0,
+              "w": 37.9,
+              "d": 7.91,
               "h": 8,
-              "shape": "rect",
+              "shape": "poly",
+              "pts": [
+                [
+                  -18.95,
+                  -1.04
+                ],
+                [
+                  -8.47,
+                  -1.04
+                ],
+                [
+                  -5.56,
+                  -3.96
+                ],
+                [
+                  18.95,
+                  -3.96
+                ],
+                [
+                  18.95,
+                  3.96
+                ],
+                [
+                  -18.95,
+                  3.96
+                ]
+              ],
               "roof": "shed",
               "pitch": 2,
               "ridge": "x",
-              "overhang": 1,
-              "kind": "porch",
-              "open": true
+              "overhang": 1
             },
             {
               "kind": "deck",
               "name": "Sitting steps",
               "open": true,
               "dx": 0,
-              "dz": 11.75,
+              "dz": 13.66,
               "rot": 0,
               "w": 9,
               "d": 5.5,
@@ -1738,18 +1737,19 @@
               "overhang": 0
             },
             {
-              "dx": -12.7,
-              "dz": 12.5,
-              "w": 16.4,
-              "d": 5,
-              "h": 8,
-              "shape": "rect",
-              "roof": "shed",
-              "pitch": 2,
+              "kind": "stair",
+              "open": true,
+              "dx": -23.9,
+              "dz": 15.66,
+              "rot": 0,
+              "w": 4,
+              "d": 4,
+              "h": 0,
+              "roof": "none",
+              "pitch": 0,
               "ridge": "x",
-              "overhang": 0.5,
-              "kind": "porch",
-              "open": true
+              "overhang": 0,
+              "name": "Shared porch stair"
             }
           ],
           "cuts": [
@@ -2151,7 +2151,7 @@
           "d": 18,
           "h": 10,
           "color": "#dcd3c2",
-          "lift": 0.3,
+          "lift": 0.564,
           "roofColor": "#3c4043",
           "shape": "trap",
           "taper": 0.75,
@@ -2197,10 +2197,10 @@
               "kind": "deck",
               "open": true,
               "rail": "sides",
-              "dx": 13.13,
-              "dz": 11.5,
+              "dx": 9.0,
+              "dz": 11.0,
               "rot": 0,
-              "w": 18.26,
+              "w": 10.0,
               "d": 4,
               "h": 1,
               "shape": "rect",
