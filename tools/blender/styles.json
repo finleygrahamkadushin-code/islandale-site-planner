@@ -10,21 +10,21 @@
   "buildings": {
     "gathering prow": {
       "_why": "the sculptural cabin with the curved prow: carved kurinuki clay walls, charred-wood trim, charcoal standing-seam roof",
-      "parts": { "wall": "kurinuki", "header": "kurinuki", "sill": "kurinuki", "trim": "charred_wood", "roof": "standing_seam" }
+      "parts": { "wall": "kurinuki", "header": "kurinuki", "sill": "kurinuki", "trim": "charred_wood" }
     },
     "family lantern": {
       "_why": "the octagon: fully clad in warm offset ledgestone (the user's first photo) under a verdigris copper pyramid roof",
-      "parts": { "wall": "ledgestone_warm", "header": "ledgestone_warm", "sill": "ledgestone_warm", "trim": "steel", "roof": "copper_roof" }
+      "parts": { "wall": "ledgestone_warm", "header": "ledgestone_warm", "sill": "ledgestone_warm", "trim": "steel" }
     },
     "twin pod": {
       "_why": "the small butterfly-roof pod: rigidized bronze diamond sheet (the user's third screenshot), dark steel trim",
-      "parts": { "wall": "rigidized_bronze", "header": "rigidized_bronze", "sill": "rigidized_bronze", "trim": "steel", "roof": "standing_seam" }
+      "parts": { "wall": "rigidized_bronze", "header": "rigidized_bronze", "sill": "rigidized_bronze", "trim": "steel" }
     },
     "elders": {
       "_why": "the calm, accessible wedge: warm white stucco over a cool stacked-stone wainscot, like the user's second photo",
       "parts": {
         "wall": { "material": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "wainscot": { "material": "ledgestone_cool", "height_m": 0.9 } },
-        "header": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "sill": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "trim": "steel", "roof": "standing_seam"
+        "header": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "sill": { "material": "stucco", "params": { "Color": [0.7157, 0.6654, 0.5841, 1.0] } }, "trim": "steel"
       }
     }
   },

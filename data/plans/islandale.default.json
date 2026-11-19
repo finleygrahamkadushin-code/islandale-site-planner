@@ -45,7 +45,8 @@
               "ridge": "x",
               "overhang": 1,
               "kind": "porch",
-              "open": true
+              "open": true,
+              "roofMat": "metal"
             },
             {
               "kind": "stair",
@@ -227,7 +228,8 @@
               "overhang": 1,
               "kind": "porch",
               "open": true,
-              "slab": false
+              "slab": false,
+              "roofMat": "sod"
             },
             {
               "pitch": 0,
@@ -441,7 +443,8 @@
               "roof": "prow",
               "pitch": 3,
               "ridge": "z",
-              "overhang": 5.5
+              "overhang": 5.5,
+              "roofMat": "metal"
             }
           ],
           "cuts": [
@@ -1596,7 +1599,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "roofMat": "copper"
         },
         "locked": false,
         "hidden": false,
@@ -1667,7 +1671,8 @@
               "roof": "shed",
               "pitch": 2,
               "ridge": "x",
-              "overhang": 1
+              "overhang": 1,
+              "roofMat": "sod"
             },
             {
               "kind": "deck",
@@ -2131,7 +2136,8 @@
               ]
             }
           ],
-          "valleyFall": 0.5
+          "valleyFall": 0.5,
+          "roofMat": "sod"
         },
         "locked": false,
         "hidden": false,
@@ -2177,7 +2183,8 @@
               "ridge": "x",
               "overhang": 1,
               "kind": "porch",
-              "open": true
+              "open": true,
+              "roofMat": "sod"
             },
             {
               "dx": 0.5,
@@ -2191,7 +2198,8 @@
               "ridge": "x",
               "overhang": 0.5,
               "kind": "porch",
-              "open": true
+              "open": true,
+              "roofMat": "sod"
             },
             {
               "kind": "deck",
@@ -2656,7 +2664,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "roofMat": "sod"
         },
         "locked": false,
         "hidden": false,
