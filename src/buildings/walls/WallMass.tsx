@@ -89,7 +89,7 @@ export function WallMass({
         <WallPart key={g.key} shell={shell} decor={decor} edges={g.edges} finish={g.finish} look={look} handlers={handlers} />
       ))}
       <CapMesh mesh={shell.cap} color={look.ext(mi, 'wall', (CURVED_SHAPES as readonly string[]).includes(m.shape) ? 0 : null).color} look={look} handlers={handlers} />
-      <RoofMesh m={m} mi={mi} poly={poly} look={look} handlers={handlers} />
+      <RoofMesh m={m} mi={mi} poly={poly} look={look} site={site} handlers={handlers} />
       {openings.map((op) => (
         <OpeningMesh key={op.id} op={op} style={look.style} highlight={highlight === op.id} thicknessFt={thickness} paint={openingPaint} handlers={handlers} />
       ))}

@@ -59,6 +59,8 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
           railStyle: railStyleOf(o.params, index),
           inDoorway: rails.inDoorway(index),
           clearTop: rails.clearTop(index),
+          // a raised mass's downspouts would run through what stands below it
+          gutters: o.params.gutters === true && m.lvl === 0,
         }),
       ),
     [masses, shapeTests, ground, base, o.position, o.rotation, o.params, rails],

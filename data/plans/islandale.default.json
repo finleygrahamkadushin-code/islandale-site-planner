@@ -1159,7 +1159,8 @@
               -14,
               4.33
             ]
-          ]
+          ],
+          "gutters": true
         },
         "locked": false,
         "hidden": false,
@@ -1600,7 +1601,8 @@
               ]
             }
           ],
-          "roofMat": "copper"
+          "roofMat": "copper",
+          "gutters": true
         },
         "locked": false,
         "hidden": false,
@@ -2137,7 +2139,8 @@
             }
           ],
           "valleyFall": 0.5,
-          "roofMat": "sod"
+          "roofMat": "sod",
+          "gutters": true
         },
         "locked": false,
         "hidden": false,
@@ -2665,7 +2668,8 @@
               ]
             }
           ],
-          "roofMat": "sod"
+          "roofMat": "sod",
+          "gutters": true
         },
         "locked": false,
         "hidden": false,

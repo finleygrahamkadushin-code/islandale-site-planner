@@ -49,6 +49,8 @@ export interface MassSite {
   readonly inDoorway?: (p: LocalPoint) => boolean
   /** A stair or ramp wing with a door at its top: its handrails start back from it (railSite clearTop). */
   readonly clearTop?: boolean
+  /** Whether the mass's roof wears gutters and downspouts (the building's `gutters` setting; ground-level masses only). */
+  readonly gutters?: boolean
 }
 
 export function buildingLook(o: PlanObject, style: DisplayStyle, glow: number): BuildingLook {

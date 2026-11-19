@@ -96,7 +96,7 @@ export function PorchMass({ m, look, site, handlers }: OpenMassProps) {
       ))}
       {m.slab && <Posts points={posts} top={-DECK_M} site={site} sizeM={PORCH_POST_M} style={style} handlers={handlers} color={paintedColour(look, site.mi, 'post')} />}
       {m.slab && <GuardRail m={m} poly={poly} site={site} look={look} handlers={handlers} />}
-      <RoofMesh m={m} mi={site.mi ?? 0} poly={poly} look={look} handlers={handlers} />
+      <RoofMesh m={m} mi={site.mi ?? 0} poly={poly} look={look} site={site} handlers={handlers} />
     </>
   )
 }

@@ -6,8 +6,9 @@ import type { V3 } from '../geom'
 import type { Mass } from '../masses'
 import { buildRoof, normaliseRoof, roofParamsOf, sculptOptionsOf, tipColumnTop, TIP_POST, type TipPost } from './roof'
 import { glassMullions, isSculpted, sculptedRoof, type RoofLineKind, type TuftPlacement } from './sculptRoof'
-import { ftToM } from '../../site/units'
-import { isPainted, shade, type BuildingLook, type MeshHandlers } from '../../scene/buildingLook'
+import { roofDrainage } from './gutters'
+import { ftToM, M_PER_FT } from '../../site/units'
+import { isPainted, shade, type BuildingLook, type MassSite, type MeshHandlers } from '../../scene/buildingLook'
 import { toGeometry } from '../../scene/meshData'
 import { Surface, type SurfaceKind, type TextureName } from '../../scene/Surface'
 import { useRoofsOff } from './useRoofsOff'
@@ -16,6 +17,8 @@ import { useRoofsOff } from './useRoofsOff'
 const SOFFIT_TIMBER = '#a07c55'
 const STRUT_WOOD = '#5d4c3b'
 const FASCIA_COLOUR: Partial<Record<RoofFinish, string>> = { glass: '#4a5258', copper: '#5e9784', sod: '#6b5136' }
+/** Gutters and downspouts: dark zinc, unless the trim is painted. */
+const GUTTER_COLOUR = '#4a5055'
 /** Legacy EDGE_MAT, ROOF_RIB_MAT and ROOF_MULLION_MAT. */
 const LINE_LOOK: Readonly<Record<RoofLineKind, { readonly color: string; readonly opacity: number }>> = {
   edge: { color: '#2b2622', opacity: 0.3 },
@@ -88,11 +91,13 @@ interface RoofMeshProps {
   readonly mi: number
   readonly poly: readonly LocalPoint[]
   readonly look: BuildingLook
+  /** Where the mass stands: its gutters setting and the ground its downspouts run down to. */
+  readonly site?: MassSite
   readonly handlers: MeshHandlers
 }
 
 /** A mass's roof set on its wall top, classic or sculpted, in its finish; nothing while Roofs off is on. */
-export function RoofMesh({ m, mi, poly, look, handlers }: RoofMeshProps) {
+export function RoofMesh({ m, mi, poly, look, site, handlers }: RoofMeshProps) {
   const roofsOff = useRoofsOff()
   const type = normaliseRoof(m.roof)
   if (type === 'none' || roofsOff) return null
@@ -102,7 +107,7 @@ export function RoofMesh({ m, mi, poly, look, handlers }: RoofMeshProps) {
       {isSculpted(type) ? (
         <SculptedRoofMesh m={m} mi={mi} poly={poly} look={look} finish={finish} handlers={handlers} />
       ) : (
-        <ClassicRoofMesh m={m} mi={mi} poly={poly} look={look} finish={finish} handlers={handlers} />
+        <ClassicRoofMesh m={m} mi={mi} poly={poly} look={look} site={site} finish={finish} handlers={handlers} />
       )}
     </group>
   )
@@ -113,8 +118,10 @@ interface PartProps extends RoofMeshProps {
 }
 
 /** Gable, hip, shed, gambrel, butterfly, pyramid, prow and flat: roof, gable infill in the siding, fascia and soffit, prow clerestory and tip column. */
-function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
+function ClassicRoofMesh({ m, mi, poly, look, site, finish, handlers }: PartProps) {
   const built = useMemo(() => buildRoof(poly, roofParamsOf(m, finish.finish)), [poly, m, finish.finish])
+  const drainage = useMemo(() => (site?.gutters ? gutterGeometry(built.roof, m, site) : null), [built, m, site])
+  useEffect(() => () => drainage?.dispose(), [drainage])
   const geo = useMemo(() => ({ roof: toGeometry(built.roof), gables: toGeometry(built.gables), trim: toGeometry(built.trim), glass: toGeometry(built.glass) }), [built])
   useEffect(() => () => Object.values(geo).forEach((g) => g.dispose()), [geo])
   const glass = finish.kind === 'clearGlass'
@@ -137,9 +144,22 @@ function ClassicRoofMesh({ m, mi, poly, look, finish, handlers }: PartProps) {
         <Surface kind="glass" style={style} />
       </mesh>
       {mullions && <RoofLineSegments geometry={mullions} kind="mullion" />}
+      {drainage && (
+        <mesh geometry={drainage} castShadow receiveShadow userData={{ part: 'trim' }} {...handlers}>
+          <Surface kind="trim" style={style} color={trimColour(look, mi, GUTTER_COLOUR)} diagramColor={shade(diagram)} glow={glow} />
+        </mesh>
+      )}
       {built.tip && <TipColumn tip={built.tip} wallM={ftToM(m.h)} look={look} handlers={handlers} />}
     </>
   )
+}
+
+/** The roof's gutters and downspouts as one geometry (roof frame: y = 0 at the wall top), each downspout run down to the ground under it. */
+function gutterGeometry(roof: Parameters<typeof roofDrainage>[0], m: Mass, site: MassSite): BufferGeometry | null {
+  const eave = site.floor + ftToM(m.h)
+  const d = roofDrainage(roof, { type: normaliseRoof(m.roof), overhangM: ftToM(m.overhang), bottomAt: (x, z) => site.groundAt(x / M_PER_FT, z / M_PER_FT) - eave })
+  if (!d.gutters.positions.length && !d.downspouts.positions.length) return null
+  return toGeometry({ positions: [...d.gutters.positions, ...d.downspouts.positions], normals: [...d.gutters.normals, ...d.downspouts.normals], uvs: [...d.gutters.uvs, ...d.downspouts.uvs] })
 }
 
 /** Dome, vault, shell, saddle and sod: the slab with its soffit and fascia, infill or struts below, linework, and grass on sod. */
