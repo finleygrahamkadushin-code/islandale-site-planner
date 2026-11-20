@@ -1635,46 +1635,54 @@
           "wings": [
             {
               "kind": "porch",
-              "name": "Shared porch",
+              "name": "Twin pod porch",
               "open": true,
-              "dx": -9.45,
+              "dx": 0,
               "dz": 9.71,
               "rot": 0,
-              "w": 37.9,
+              "w": 19,
               "d": 7.91,
               "h": 8,
               "shape": "poly",
-              "pts": [
-                [
-                  -18.95,
-                  -1.04
-                ],
-                [
-                  -8.47,
-                  -1.04
-                ],
-                [
-                  -5.56,
-                  -3.96
-                ],
-                [
-                  18.95,
-                  -3.96
-                ],
-                [
-                  18.95,
-                  3.96
-                ],
-                [
-                  -18.95,
-                  3.96
-                ]
-              ],
               "roof": "shed",
               "pitch": 2,
               "ridge": "x",
               "overhang": 1,
-              "roofMat": "sod"
+              "roofMat": "sod",
+              "pts": [
+                [
+                  -9.5,
+                  -3.96
+                ],
+                [
+                  9.5,
+                  -3.96
+                ],
+                [
+                  9.5,
+                  3.96
+                ],
+                [
+                  4.5,
+                  3.96
+                ],
+                [
+                  -4.5,
+                  3.96
+                ],
+                [
+                  -9.5,
+                  3.96
+                ]
+              ],
+              "rails": {
+                "0": false,
+                "1": true,
+                "2": true,
+                "3": false,
+                "4": true,
+                "5": false
+              }
             },
             {
               "kind": "deck",
@@ -1741,7 +1749,17 @@
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
-              "overhang": 0
+              "overhang": 0,
+              "rails": {
+                "3": true,
+                "4": true,
+                "5": true,
+                "6": true,
+                "7": true,
+                "8": false,
+                "9": false,
+                "10": false
+              }
             },
             {
               "kind": "stair",
@@ -1757,6 +1775,56 @@
               "ridge": "x",
               "overhang": 0,
               "name": "Shared porch stair"
+            },
+            {
+              "kind": "deck",
+              "name": "Shared deck",
+              "open": true,
+              "dx": -18.95,
+              "dz": 9.71,
+              "rot": 0,
+              "w": 18.9,
+              "d": 7.91,
+              "h": 1,
+              "shape": "poly",
+              "pts": [
+                [
+                  -9.45,
+                  -1.04
+                ],
+                [
+                  1.03,
+                  -1.04
+                ],
+                [
+                  3.94,
+                  -3.96
+                ],
+                [
+                  9.45,
+                  -3.96
+                ],
+                [
+                  9.45,
+                  3.96
+                ],
+                [
+                  -9.45,
+                  3.96
+                ]
+              ],
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "rails": {
+                "0": false,
+                "1": false,
+                "2": true,
+                "3": false,
+                "4": true,
+                "5": true
+              }
             }
           ],
           "cuts": [
@@ -2140,7 +2208,14 @@
           ],
           "valleyFall": 0.5,
           "roofMat": "sod",
-          "gutters": true
+          "gutters": true,
+          "ext": {
+            "parts": {
+              "rail": {
+                "color": "#6e5a44"
+              }
+            }
+          }
         },
         "locked": false,
         "hidden": false,
