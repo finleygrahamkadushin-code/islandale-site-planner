@@ -25,6 +25,8 @@ interface FoundationProps {
   readonly handlers: MeshHandlers
   /** Cross-brace a square post grid where the floor is high (legacy o.bracing). */
   readonly bracing?: boolean
+  /** The least gap between posts round a shaped plan's edge, feet (not legacy). */
+  readonly cornerGapFt?: number
   /** Where a mast stands, feet, mass-local (legacy o.mastAt). */
   readonly mastAt?: LocalPoint
   /** Top of the supports relative to the mass floor, metres (minus the floor depth under a deck). */
@@ -40,11 +42,11 @@ interface FoundationProps {
  * it. Pieces carry their paint part: 'post' for anything standing,
  * 'foundation' for skirts, aprons and plates.
  */
-export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers, bracing = false, mastAt, top = 0, paint }: FoundationProps) {
+export function Foundation({ poly, site, support, spacingFt, postIn, style, handlers, bracing = false, cornerGapFt, mastAt, top = 0, paint }: FoundationProps) {
   const pieces = useMemo(() => {
-    const plan = supportPlan({ poly, support, spacingFt, postIn, bracing, mastAt, top, groundY: (x, z) => site.groundAt(x, z) - site.floor })
+    const plan = supportPlan({ poly, support, spacingFt, postIn, bracing, cornerGapFt, mastAt, top, groundY: (x, z) => site.groundAt(x, z) - site.floor })
     return supportMeshes(plan, poly).map((p) => ({ ...p, geometry: toGeometry(p.mesh) }))
-  }, [poly, support, spacingFt, postIn, bracing, mastAt, top, site])
+  }, [poly, support, spacingFt, postIn, bracing, cornerGapFt, mastAt, top, site])
   useEffect(() => () => pieces.forEach((p) => p.geometry.dispose()), [pieces])
   return (
     <group name="supports">

@@ -111,7 +111,7 @@ function deckWingSupport(f: MassFrame): SheetSupport {
   return {
     ...empty(f, 'deck posts'),
     section: { sizeFt: mToFt(DECK_POST_M), round: false },
-    posts: wingPosts(f, deckPostPoints(poly), top),
+    posts: wingPosts(f, deckPostPoints(poly, f.m), top),
     beams: rim.map((a, i): Seg => [a, rim[(i + 1) % rim.length]]),
     beam: { depthFt: mToFt(DECK_BEAM_M), widthFt: null },
   }
@@ -124,7 +124,7 @@ function deckWingSupport(f: MassFrame): SheetSupport {
  */
 function porchSupport(f: MassFrame, closed: readonly (readonly LocalPoint[])[], inDoorway: (p: LocalPoint) => boolean): SheetSupport {
   const m = f.m
-  const points = keptPorchPosts(massPoly(m), { insideWalls: (p) => insideAny(closed, toBuilding(f, p)), inDoorway })
+  const points = keptPorchPosts(massPoly(m), { insideWalls: (p) => insideAny(closed, toBuilding(f, p)), inDoorway }, m)
   const below = m.slab ? wingPosts(f, points, -DECK_M) : []
   const posts = points.map((p): SheetSupportPost => {
     const at = toBuilding(f, p)

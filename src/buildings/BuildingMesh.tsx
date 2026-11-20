@@ -38,7 +38,7 @@ export function BuildingMesh({ o }: { readonly o: PlanObject }) {
   const base = baseElevation(terrain, o)
   const look = buildingLook(o, style, selected ? 1 : hovered ? 0.4 : 0)
   // the main mass's supports (legacy supportsMesh): a size of its own, else each kind's own (piers and pilings 10 in)
-  const supports = useMemo(() => buildingSupports(o.params), [o.params.support, o.params.postSpacing, o.params.postSize, o.params.bracing, o.params.mastAt]) // eslint-disable-line react-hooks/exhaustive-deps
+  const supports = useMemo(() => buildingSupports(o.params), [o.params.support, o.params.postSpacing, o.params.postSize, o.params.bracing, o.params.mastAt, o.params.postGap]) // eslint-disable-line react-hooks/exhaustive-deps
   // rails per mass and edge, with the stairs, paths, bridges, doors and walls that open them
   const rails = useMemo(() => objectRailSite(railWorld, o), [railWorld, o])
   // what hangs on the cabin's shape alone (R8.2): the same functions while it is dragged or turned, so the walls and their openings are not rebuilt

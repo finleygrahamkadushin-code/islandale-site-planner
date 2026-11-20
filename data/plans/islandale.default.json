@@ -29,7 +29,7 @@
           "ridge": "z",
           "overhang": 2.5,
           "support": "posts",
-          "postSpacing": 8,
+          "postSpacing": 10,
           "postSize": 8,
           "bracing": true,
           "wings": [
@@ -47,7 +47,8 @@
               "kind": "porch",
               "open": true,
               "roofMat": "metal",
-              "rails": {}
+              "rails": {},
+              "postGap": 4
             },
             {
               "dx": -3.27,
@@ -202,7 +203,8 @@
               "pitch": 0,
               "ridge": "x",
               "overhang": 0,
-              "rails": {}
+              "rails": {},
+              "postGap": 10
             },
             {
               "dx": -18,
@@ -401,7 +403,8 @@
                 "11": true,
                 "12": true,
                 "13": true
-              }
+              },
+              "posts": false
             },
             {
               "kind": "porch",
@@ -469,7 +472,8 @@
               "pitch": 3,
               "ridge": "z",
               "overhang": 5.5,
-              "roofMat": "metal"
+              "roofMat": "metal",
+              "postGap": 10
             }
           ],
           "cuts": [
@@ -1185,7 +1189,8 @@
               4.33
             ]
           ],
-          "gutters": true
+          "gutters": true,
+          "postGap": 6
         },
         "locked": false,
         "hidden": false,
@@ -1213,7 +1218,7 @@
           "ridge": "x",
           "overhang": 2,
           "support": "posts",
-          "postSpacing": 6,
+          "postSpacing": 9,
           "postSize": 8,
           "bracing": true,
           "wings": [],
@@ -1654,7 +1659,7 @@
           "ridge": "z",
           "overhang": 1.5,
           "support": "posts",
-          "postSpacing": 7,
+          "postSpacing": 10,
           "postSize": 6,
           "bracing": false,
           "wings": [
@@ -1755,7 +1760,8 @@
                 "3": false,
                 "4": true,
                 "5": true
-              }
+              },
+              "postGap": 5
             }
           ],
           "cuts": [

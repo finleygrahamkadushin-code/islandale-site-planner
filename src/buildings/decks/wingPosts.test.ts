@@ -55,3 +55,29 @@ describe('support params', () => {
     expect(deckSupports({ support: 'pilings', postSize: Number.NaN }).postIn).toBeUndefined()
   })
 })
+
+describe("a wing's own post rule (not legacy)", () => {
+  // a curve drawn as short straight edges: every corner would get a post
+  const nose: LocalPoint[] = [[-10, -6], [10, -6], [10, 0], [8.5, 3], [6, 5], [3, 6], [0, 6.3], [-3, 6], [-6, 5], [-8.5, 3], [-10, 0]]
+  const gaps = (pts: readonly LocalPoint[]) => pts.flatMap((p, i) => pts.slice(i + 1).map((q) => Math.hypot(q[0] - p[0], q[1] - p[1])))
+
+  test('posts: false leaves a deck and a porch with no posts', () => {
+    expect(deckPostPoints(rect, { posts: false })).toEqual([])
+    expect(porchPostPoints(rect, { posts: false })).toEqual([])
+  })
+  test('with no rule the legacy layout is unchanged', () => {
+    expect(deckPostPoints(nose, {})).toEqual(deckPostPoints(nose))
+    expect(deckPostPoints(nose).length).toBeGreaterThanOrEqual(nose.length)
+  })
+  test('postGap keeps every pair of posts at least that far apart, and uses fewer of them', () => {
+    const thinned = deckPostPoints(nose, { postGap: 8 })
+    expect(Math.min(...gaps(thinned))).toBeGreaterThanOrEqual(8)
+    expect(thinned.length).toBeLessThan(deckPostPoints(nose).length)
+    expect(thinned.length).toBeGreaterThanOrEqual(4)
+    const porch = porchPostPoints(nose, { postGap: 10 })
+    expect(Math.min(...gaps(porch))).toBeGreaterThanOrEqual(10)
+  })
+  test('kept porch posts follow the rule too', () => {
+    expect(keptPorchPosts(rect, { insideWalls: () => false }, { posts: false })).toEqual([])
+  })
+})

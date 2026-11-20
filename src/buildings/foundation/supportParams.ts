@@ -16,6 +16,8 @@ export interface SupportParams {
   readonly bracing?: boolean
   /** Where a mast stands, feet, building-local (legacy o.mastAt); main mass only. */
   readonly mastAt?: LocalPoint
+  /** The least gap between posts round a shaped plan's edge, feet (params.postGap, not legacy); undefined posts every corner. */
+  readonly cornerGapFt?: number
 }
 
 /**
@@ -48,6 +50,7 @@ export function buildingSupports(p: Params): SupportParams {
     postIn: typeof p.postSize === 'number' ? p.postSize : undefined,
     bracing: p.bracing === true,
     mastAt: mastPoint(p.mastAt),
+    cornerGapFt: typeof p.postGap === 'number' && p.postGap > 0 ? p.postGap : undefined,
   }
 }
 
