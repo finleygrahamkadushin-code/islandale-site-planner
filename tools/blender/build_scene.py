@@ -2,12 +2,13 @@
 
     /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P tools/blender/build_scene.py -- \
         --glb build/3d/export/<slug>.glb [--styles tools/blender/styles.json] [--out build/3d/islandale.blend] \
-        [--season jun|sep|dec] [--hour 17] [--tide-ft 6.2] [--true-displacement] [--allow-missing] \
+        [--season jun|sep|dec] [--hour 17] [--tide-ft 6.2] [--true-displacement] [--weld-walls] [--allow-missing] \
         [--render [--only <camera name part>] [--res 1920x1080] [--samples 128]]
 
 Writes the .blend (cameras: an aerial over the cabins to the bay, and a hero and a wall close-up per building) and, with --render, a PNG per
 camera in build/3d/renders/. The sun follows the planner's model for 48.46 deg N; the sea sits at the planner's tide.
---allow-missing lets a material that styles.json names but no module defines yet wear the UV grid instead of failing."""
+--weld-walls joins a straight mass's walls into one mesh per building and welds the corners (6F), so true displacement
+doesn't open them. --allow-missing lets a material that styles.json names but no module defines yet wear the UV grid instead of failing."""
 import argparse
 import pathlib
 import re
@@ -47,6 +48,7 @@ def main(argv):
     ap.add_argument("--hour", type=float, default=17.0)
     ap.add_argument("--tide-ft", type=float)
     ap.add_argument("--true-displacement", action="store_true")
+    ap.add_argument("--weld-walls", action="store_true")
     ap.add_argument("--allow-missing", action="store_true")
     ap.add_argument("--render", action="store_true")
     ap.add_argument("--only", default="")
@@ -58,7 +60,11 @@ def main(argv):
     for ob in list(bpy.data.objects):
         bpy.data.objects.remove(ob)
     site = importer.load(a.glb, a.manifest)
-    report, sty = styling.dress(site, a.styles, a.allow_missing)
+    wall_base = styling.wainscot_bases(site)          # before any weld: it measures each wall mesh on its own
+    if a.weld_walls:
+        from islandale3d.unreal.assemble import weld_straight_walls
+        print(f"BUILD welded walls: {weld_straight_walls(site)}")
+    report, sty = styling.dress(site, a.styles, a.allow_missing, wall_base=wall_base)
     tide = tide_ft(site.manifest, a.tide_ft) * FT
     for it in site.items:                    # the export's clipped water gives way to a sea that reaches the horizon
         if it.kind == "water":

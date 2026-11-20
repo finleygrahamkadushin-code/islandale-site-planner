@@ -55,6 +55,7 @@ This session stays the **coordinator**. It starts the track sessions, reads thei
   - Assembles the scene as `build_scene` does, with UV0 = UVMeters / 6, and exports one `.glb` per group (terrain, sea, earthworks, site, trees, each building). It also writes `scene.json`: sun, tide, cameras, axes, the wainscot and terrain blends.
   - It also fixes the **lantern corner seam** left from 6D: a straight mass's walls are welded into one mesh per building before export.
   - Check-in B: the files open in UE 5.8 with north and ground contact right.
+  - **Full plan: `PLAN-6F.md`.**
 - **6G · Unreal import** (`tools/unreal/import_islandale.py`):
   - Master materials, one instance per material, Nanite meshes, and the level with sky, sun, fog and the cameras. Safe to run twice.
   - The UE 5.8 Python API is checked against the installed engine, not guessed.
