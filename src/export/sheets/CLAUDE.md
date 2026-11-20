@@ -1,6 +1,6 @@
 # Drawing sheets section
 
-Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default the largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans fit one page, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand stays) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
+Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default the largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans fit one page, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand stays) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, a long and a cross section (6I) cut where the plan's section marks say, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
 
 ## How it fits together
 
@@ -43,16 +43,20 @@ Elevations add a fourth stage: an image captured from the live 3D scene (`elevat
 | The site plan's words: where every label goes, nothing overprinting | `site/siteAnnotate.ts`, `site/siteLabels.ts` |
 | The site plan's line textures: setback hatching, water lines, bank ticks, gravel, tufts | `site/siteHatch.ts`; small geometry (joining iso-lines, smooth paths) in `site/siteGeom.ts` |
 | The site plan drawn as SVG, and its pages | `site/SiteMarks.tsx`, `site/SiteSheet.tsx`; its line in the fit note is `site/SiteFit.tsx` |
+| Sections (6I): where A–A and B–B start (the main part's axes through its centroid, B–B onto a nearby opening) and how far they may move | `section/sectionCuts.ts` |
+| A section as data: cut walls with their openings, floors, roofs (cut from the scene's own roof mesh), posts, stairs (cut when the cut passes through them), retaining walls, the ground, what is seen beyond (less what a cut part's far wall and floor hide), its levels | `section/sectionView.ts`; the line, plane and triangle maths in `section/sectionGeom.ts`; the roof and gable triangles and the ground in `section/sectionSource.ts` |
+| A section's dimension chains, level labels (feet above the floor and NAVD88), note and page extent | `section/sectionLayout.ts` |
+| A section drawn as SVG; the cut marks on the plan, dragged or moved with the arrow keys | `section/SectionSheet.tsx`, `section/SectionMarks.tsx` |
 
 ## Folder map
 
 - **Top level:** `DrawingSheets.tsx` (the modal), `Page.tsx`, `tiles.ts`, `format.ts`, `svgDims.ts` and `types.ts`. These are shared by every kind of sheet.
-- **`model/`:** plan → sheet model. **`plan/`:** floor plans. **`foundation/`:** the foundation plan. **`elevation/`:** elevations and the live-scene capture. **`tables/`:** measurement tables. **`site/`:** the site plan (6H), with its own model, layout and SVG; it reuses `model/` for the buildings. Its tests share `site/siteTestKit.ts` (a scheme's plan and ground, built as `useEarthworks` builds them).
+- **`model/`:** plan → sheet model. **`plan/`:** floor plans. **`foundation/`:** the foundation plan. **`elevation/`:** elevations and the live-scene capture. **`tables/`:** measurement tables. **`site/`:** the site plan (6H), with its own model, layout and SVG; it reuses `model/` for the buildings. Its tests share `site/siteTestKit.ts` (a scheme's plan and ground, built as `useEarthworks` builds them). **`section/`:** the section sheets (6I), read from the sheet model plus the roof meshes and ground; the plan is `PLAN-6I.md` at the repo root.
 - Tests sit beside their files. `model/curvedParts.test.ts` and `model/walls.test.ts` test the model as a whole.
 
 ## Data
 
-The sheets only read the plan; they never change it. They read the plan, terrain and selection from `../../store/planStore.ts`. The modal's own settings (paper, scale, which sheets and layers show) are local React state in `DrawingSheets.tsx`: they aren't saved or undone. An elevation capture may briefly hold roofs on while it renders (`../../buildings/roofs/useRoofsOff.ts`), then leaves the scene as it was.
+The sheets only read the plan; they never change it. They read the plan, terrain and selection from `../../store/planStore.ts`. The modal's own settings (paper, scale, which sheets and layers show, and where each building's section cuts have been moved) are local React state in `DrawingSheets.tsx`: they aren't saved or undone, and the cuts go back to their defaults when the sheets close. The sections open at their own largest scale that fits one page (worked out at the default cuts, so dragging a cut never changes it) unless a scale is picked by hand. An elevation capture may briefly hold roofs on while it renders (`../../buildings/roofs/useRoofsOff.ts`), then leaves the scene as it was.
 
 ## Talks to (open these only when the task crosses over)
 
@@ -64,5 +68,6 @@ The sheets only read the plan; they never change it. They read the plan, terrain
 
 - **Unit tests:** `npx vitest run src/export/sheets` (about 540 tests, about 10 s; the site plan's every-scheme tests take a few seconds). Then `npx tsc -p tsconfig.app.json` from the repo root. `tsc -p .` checks nothing. The "every scheme" tests (`tables/table.test.ts`, `model/roofs.test.ts`, `tables/MeasureTables.test.ts`) can time out when the machine is busy; re-run them alone before you blame a change.
 - **Browser tests:** `e2e/sheets.spec.ts`, which covers Scheme C's cabins at true scale, every opening located, elevations finishing, roofs and supports (Scheme C only; about 4 minutes).
+- **Section browser tests:** `e2e/sections.spec.ts`: the Gathering prow's two sections with their level marks, and moving A–A with the keys and Reset cuts (Scheme C only; elevations off; a few minutes).
 - **Site plan browser tests:** `e2e/site-sheet.spec.ts`: the notes word for word as the panels and inspector, true scale, Tabloid fit, North up and 1/16", the notes never cut off (Scheme C), and a plan with no buildings printing the site plan alone (about 7 minutes). Keep other tabs off the test server (port 5174) while they run: a second page drawing elevations there makes their setup time out. The site plan is on by default and printed first; its drawing is `svg.site-svg` (not `.sheet-svg`), so a building's drawing is still the modal's first `.sheet-svg`.
 - The plan for these sheets is `PLAN-DRAWING-SHEETS.md` at the repo root.

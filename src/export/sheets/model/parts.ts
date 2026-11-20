@@ -114,7 +114,12 @@ function stairOf(site: PartSite, m: Mass, mi: number): SheetStair | null {
 
 /** The roof's finish as the scene resolves it (RoofMesh's roofFinish): the exterior resolver's roof mat when it is a roof finish. */
 export function roofFinishAt(site: PartSite, mi: number): string | null {
-  const mat = extResolve(site.o.params, mi, 'roof', null, site.standalone ? 'deck' : 'building').mat
+  return roofFinishOf(site.o, mi, site.standalone)
+}
+
+/** The same, from the object alone: the roof finish of its part `mi`. */
+export function roofFinishOf(o: PlanObject, mi: number, standalone: boolean): string | null {
+  const mat = extResolve(o.params, mi, 'roof', null, standalone ? 'deck' : 'building').mat
   return isRoofFinish(mat) ? mat : null
 }
 

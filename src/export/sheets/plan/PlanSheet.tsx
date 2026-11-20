@@ -10,7 +10,9 @@ import { RoofMarks } from './RoofMarks'
 import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
 import { planFigures } from './roomLayout'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
-import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
+import { arrowHead, centreMark, dimBounds, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
+import { SectionMarks } from '../section/SectionMarks'
+import { cutMarkPadFt, padExtent, type CutId, type SectionCut } from '../section/sectionCuts'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -24,18 +26,26 @@ interface Props {
   readonly furniture: boolean
   /** "Floor plan", or the floor's own name on a cabin of several. */
   readonly title?: string
+  /** The building's section cuts, marked across the plan; with `onMoveCut`, their bubbles drag and take the arrow keys. */
+  readonly cuts?: readonly SectionCut[]
+  readonly onMoveCut?: (id: CutId, offsetFt: number) => void
 }
 
 /** A floor plan of one building, at true scale, with every straight edge, overall size and arc dimensioned (to the outside face of the walls), each wall's inside face and thickness drawn, every curve's stations marked, each roof's eave and linework dashed over it, the earthworks round it (retaining walls, berms, courts and where fill and cut meet the survey) drawn under it in grey, and the floor's rooms (partitions, interior doors, names and areas) and furniture inside it. What the parts stand on has its own foundation plan. */
-export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan' }: Props) {
+export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan', cuts, onMoveCut }: Props) {
   const pen = penSizes(info.scale)
   const shownFloor = rooms && floor?.rooms.length ? floor : null
   const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
   // the rooms name the space inside the walls, so the walls' own part name gives way to them
   const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
+  const marked = !!cuts?.length
+  // the cut marks sit outside the dimensions, so the page holds a bubble's room more on every side
+  const extent = marked ? padExtent(layout.extent, cutMarkPadFt(info.scale)) : layout.extent
+  const dimBox = dimBounds(layout.dims)
+  const box = dimBox ? { minx: Math.min(dimBox.minx, b.bounds.minx), maxx: Math.max(dimBox.maxx, b.bounds.maxx), minz: Math.min(dimBox.miny, b.bounds.minz), maxz: Math.max(dimBox.maxy, b.bounds.maxz) } : b.bounds
   return (
-    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`${title} of ${b.name}`}>
-      {grid && <Grid extent={layout.extent} pen={pen} />}
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={extent} label={`${title} of ${b.name}`}>
+      {grid && <Grid extent={extent} pen={pen} />}
       {b.earthworks && layout.earth && <EarthLines earth={b.earthworks} plan={layout.earth} pen={pen} />}
       {orderForDrawing(b.parts).map((p) => (
         <PartPlan key={p.massIndex} part={p} pen={pen} />
@@ -68,6 +78,7 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
       {layout.earth && <EarthLabels plan={layout.earth} pen={pen} />}
       <CurveNotes notes={layout.notes} pen={pen} />
       {layout.general && <CurveNotes notes={[layout.general]} pen={pen} />}
+      {marked && <SectionMarks cuts={cuts} pen={pen} onMove={onMoveCut} box={box} />}
     </TiledDrawing>
   )
 }

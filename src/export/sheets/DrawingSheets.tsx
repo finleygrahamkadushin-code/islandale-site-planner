@@ -6,6 +6,7 @@ import { elevationView, sheetBuildings } from './model/model'
 import { SIDES } from './elevation/sides'
 import { tablesCsv } from './tables/table'
 import { largestScaleThatFits, smallestPaper, tileDrawing } from './tiles'
+import type { Extent } from './Page'
 import { PAPERS, SCALE_LABEL, SITE_SCALE_LABEL, type PaperId, type Scale, type SheetBuilding, type SiteScale } from './types'
 import { usePlanStore } from '../../store/planStore'
 import type { Terrain } from '../../site/types'
@@ -20,6 +21,12 @@ import { useEarthworks } from '../../site/earthworks/useEarthworks'
 import { buildSiteSheet, SiteSheet, type SiteSheetInput } from './site/SiteSheet'
 import { siteNotes } from './site/siteNotes'
 import { SiteFit } from './site/SiteFit'
+import { cutMarkPadFt, padExtent, sectionCuts, type CutId, type CutOffsets } from './section/sectionCuts'
+import { planGround, sectionSource, type SectionSource } from './section/sectionSource'
+import { sectionView } from './section/sectionView'
+import { sectionLayout } from './section/sectionLayout'
+import { SectionSheets } from './section/SectionSheet'
+import { CUT_HANDLE_ATTR } from './section/SectionMarks'
 
 interface Props {
   readonly onClose: () => void
@@ -64,7 +71,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
   const [paper, setPaper] = useState<PaperId>('tabloid')
   // null until the user picks one: the sheets open at the largest scale that fits one page (R9.4)
   const [chosenScale, setScale] = useState<Scale | null>(null)
-  const [show, setShow] = useState({ site: true, plan: true, elevations: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
+  const [show, setShow] = useState({ site: true, plan: true, elevations: true, sections: true, measurements: true, grid: true, rooms: true, furniture: false, supports: true })
   // a site plan that can't be drawn says so in one line, and the building sheets carry on
   const siteResult = useMemo(() => (show.site ? attempt(() => buildSiteSheet(siteInput, paper, siteScale, northUp)) : null), [show.site, siteInput, paper, siteScale, northUp])
   const siteNotesResult = useMemo(() => (show.site ? attempt(() => siteNotes({ plan, site, setbacks, layers, routeGround: ground })) : null), [show.site, plan, site, setbacks, layers, ground])
@@ -83,10 +90,41 @@ export function DrawingSheets({ onClose, opener }: Props) {
   }, [buildings, pick])
   const pickName = pick === ALL ? 'All buildings' : (shown[0]?.name ?? 'Building')
   const fittedScale = useMemo(
-    () => largestScaleThatFits(SCALES, paper, (s) => shown.flatMap((b) => floorPlans(b).map((f) => planLayout(f.building, s, show.rooms ? f.floor : null).extent))),
-    [shown, paper, show.rooms],
+    () =>
+      largestScaleThatFits(SCALES, paper, (s) =>
+        shown.flatMap((b) => floorPlans(b).map((f) => withCutMarks(planLayout(f.building, s, show.rooms ? f.floor : null).extent, s, show.sections))),
+      ),
+    [shown, paper, show.rooms, show.sections],
   )
   const scale = chosenScale ?? fittedScale
+  // the section cuts: where the plan sheets' marks have moved them (view state, like the paper and scale: not saved or undone)
+  const [cutOffsets, setCutOffsets] = useState<CutOffsets>({})
+  const moveCut = useCallback((id: string) => (cut: CutId, offsetFt: number) => setCutOffsets((all) => ({ ...all, [id]: { ...all[id], [cut]: offsetFt } })), [])
+  const cutsOf = useMemo(() => new Map(buildings.map((b) => [b.id, sectionCuts(b, cutOffsets[b.id]) ?? []])), [buildings, cutOffsets])
+  const sectionGround = useMemo(() => (show.sections ? attempt(() => planGround(objects, terrain)) : null), [show.sections, objects, terrain])
+  const sources = useMemo(() => {
+    if (!sectionGround?.ok) return new Map<string, SectionSource>()
+    return new Map(buildings.flatMap((b) => {
+      const o = plan.objects[b.id]
+      const src = o ? attempt(() => sectionSource(o, b, sectionGround.value)) : null
+      return src?.ok ? [[b.id, src.value] as const] : []
+    }))
+  }, [buildings, plan.objects, sectionGround])
+  // the sections' own fit, at their default cuts, so dragging a cut never changes the scale under it
+  const fittedSectionScale = useMemo(() => {
+    const fit = attempt(() =>
+      largestScaleThatFits(SCALES, paper, (s) =>
+        shown.flatMap((b) => {
+          const src = sources.get(b.id)
+          return src ? (sectionCuts(b) ?? []).map((c) => sectionLayout(sectionView(b, src, c), b.levels.floorNavdFt, s).extent) : []
+        }),
+      ),
+    )
+    // a section that can't be cut says so on its own sheet; the others take the plans' scale
+    return fit.ok ? fit.value : null
+  }, [shown, sources, paper])
+  const sectionScale = chosenScale ?? fittedSectionScale ?? fittedScale
+  const movedCuts = Object.keys(cutOffsets).length > 0
   const back = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set())
   const busyFor = useCallback(
@@ -107,8 +145,8 @@ export function DrawingSheets({ onClose, opener }: Props) {
     const onKey = (e: KeyboardEvent) => {
       // Escape closes from anywhere, a toolbar select included (an open select's own list takes it first)
       if (e.key === 'Escape') onClose()
-      // keep the planner's shortcuts (Delete, arrows, undo) off the plan behind the sheets
-      e.stopPropagation()
+      // keep the planner's shortcuts (Delete, arrows, undo) off the plan behind the sheets; a section cut's bubble takes its own keys and stops them itself
+      if (!(e.target instanceof Element && e.target.closest(`[${CUT_HANDLE_ATTR}]`))) e.stopPropagation()
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
@@ -186,6 +224,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
           {show.site && <Check label="North up" on={northUp} onChange={() => setNorthUp((v) => !v)} title="Draw the site plan with north straight up; otherwise it is turned so the lot fits the paper, and the north arrow shows the turn" />}
           <Check label="Plan" on={show.plan} onChange={() => toggle('plan')} />
           <Check label="Elevations" on={show.elevations} onChange={() => toggle('elevations')} />
+          <Check label="Sections" on={show.sections} onChange={() => toggle('sections')} title="A long section (A–A) and a cross section (B–B) of each building: walls, floors, roofs, openings and the ground where the cut passes, with heights above the floor and in NAVD88. Drag a cut's lettered bubble on the plan to move it" />
           <Check label="Measurements" on={show.measurements} onChange={() => toggle('measurements')} />
           <Check label="Grid" on={show.grid} onChange={() => toggle('grid')} title="A 1 ft grid on the plan, darker every 4 ft" />
           <Check label="Rooms" on={show.rooms} onChange={() => toggle('rooms')} title="The rooms from the interior plan: partitions, interior doors, each room's name, size and area" />
@@ -195,6 +234,7 @@ export function DrawingSheets({ onClose, opener }: Props) {
         <button onClick={() => window.print()} disabled={(!shown.length && !siteBuild) || drawing}>
           {drawing ? 'Drawing elevations…' : 'Print'}
         </button>
+        {show.sections && movedCuts && <button onClick={() => setCutOffsets({})}>Reset cuts</button>}
         <button onClick={() => downloadCsv(plan.name, pickName, shown)} disabled={!shown.length}>
           Download measurements
         </button>
@@ -216,17 +256,31 @@ export function DrawingSheets({ onClose, opener }: Props) {
         {/* print breaks a page after every sheet but the last child's last: so the empty note shows only with nothing else to print,
             and a building with none of its sheets shown leaves no empty block after the site plan */}
         {!shown.length && !siteBuild && <p className="sheets-empty">There are no buildings in this plan to draw.</p>}
-        {(show.plan || show.elevations || show.measurements ? shown : []).map((b) => {
+        {(show.plan || show.elevations || show.sections || show.measurements ? shown : []).map((b) => {
           const sheet = { ...info, buildingName: b.name }
           const object = plan.objects[b.id]
+          const source = sources.get(b.id)
+          const cuts = cutsOf.get(b.id) ?? []
           return (
             <div key={b.id} className="sheets-building">
               {show.plan &&
                 floorPlans(b).map((f) => (
-                  <PlanSheet key={f.floor?.index ?? 0} building={f.building} info={sheet} grid={show.grid} floor={f.floor} rooms={show.rooms} furniture={show.furniture} title={f.title} />
+                  <PlanSheet
+                    key={f.floor?.index ?? 0}
+                    building={f.building}
+                    info={sheet}
+                    grid={show.grid}
+                    floor={f.floor}
+                    rooms={show.rooms}
+                    furniture={show.furniture}
+                    title={f.title}
+                    cuts={show.sections && source ? cuts : undefined}
+                    onMoveCut={moveCut(b.id)}
+                  />
                 ))}
               {show.plan && show.supports && hasSupports(b) && <FoundationSheet building={b} info={sheet} grid={show.grid} />}
               {show.elevations && object && <ElevationSheet building={b} object={object} objects={objects} terrain={terrain} info={sheet} onBusy={busyCallbacks.get(b.id)} />}
+              {show.sections && source && <SectionSheets building={b} source={source} cuts={cuts} info={{ ...sheet, scale: sectionScale }} />}
               {show.measurements && <MeasureTables building={b} info={sheet} />}
             </div>
           )
@@ -253,7 +307,7 @@ interface FitProps {
   readonly terrain: Terrain
   readonly paper: PaperId
   readonly scale: Scale
-  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly rooms: boolean; readonly supports: boolean }
+  readonly show: { readonly plan: boolean; readonly elevations: boolean; readonly sections: boolean; readonly rooms: boolean; readonly supports: boolean }
 }
 
 /** How many pages the plans and elevations take on this paper, and the smallest paper that fits each plan on one. */
@@ -261,7 +315,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
   const fits = useMemo(
     () =>
       buildings.map((b) => {
-        const plans = floorPlans(b).map((f) => planLayout(f.building, scale, show.rooms ? f.floor : null).extent)
+        const plans = floorPlans(b).map((f) => withCutMarks(planLayout(f.building, scale, show.rooms ? f.floor : null).extent, scale, show.sections))
         const foundation = show.supports && hasSupports(b) ? planLayout({ ...b, earthworks: null }, scale, null, true).extent : null
         const sides = SIDES.map((side) => elevationLayout(b, elevationView(objects, terrain, b, side), undefined, scale).extent)
         return {
@@ -271,7 +325,7 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
           smallest: smallestPaper(Math.max(...plans.map((e) => e.w)), Math.max(...plans.map((e) => e.h)), scale),
         }
       }),
-    [buildings, objects, terrain, paper, scale, show.rooms, show.supports],
+    [buildings, objects, terrain, paper, scale, show.rooms, show.supports, show.sections],
   )
   if (!fits.length || !(show.plan || show.elevations)) return null
   const pages = (n: number) => `${n} page${n === 1 ? '' : 's'}`
@@ -289,6 +343,9 @@ function PaperFit({ buildings, objects, terrain, paper, scale, show }: FitProps)
     </p>
   )
 }
+
+/** A floor plan's extent with the room its section marks take, when the sections are shown. */
+const withCutMarks = (e: Extent, scale: Scale, sections: boolean): Extent => (sections ? padExtent(e, cutMarkPadFt(scale)) : e)
 
 /** Characters no file system takes in a name. */
 const fileSafe = (name: string) => name.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'plan'
