@@ -121,10 +121,12 @@ interface TiledProps {
   /** The drawing, in feet; drawn once per tile. */
   readonly children: ReactNode
   readonly label: string
+  /** The svg's class: a clean copy takes `clean-svg`, so the dimensioned drawings stay the only `.sheet-svg`. */
+  readonly svgClass?: string
 }
 
 /** A drawing at true scale on as many sheets as it needs, each with corner marks to tape them together. */
-export function TiledDrawing({ info, extent, children, label }: TiledProps) {
+export function TiledDrawing({ info, extent, children, label, svgClass = 'sheet-svg' }: TiledProps) {
   const tiles = tileDrawing(extent.w, extent.h, info.paper, info.scale)
   const rows = Math.max(...tiles.map((t) => t.row)) + 1
   const cols = Math.max(...tiles.map((t) => t.col)) + 1
@@ -134,7 +136,7 @@ export function TiledDrawing({ info, extent, children, label }: TiledProps) {
       {tiles.map((t) => (
         <Page key={t.label} {...info} tileLabel={many ? `Sheet ${t.label} of ${rows} × ${cols}` : undefined}>
           <svg
-            className="sheet-svg"
+            className={svgClass}
             width={`${t.w * info.scale}in`}
             height={`${t.h * info.scale}in`}
             viewBox={`${extent.x + t.x} ${extent.y + t.y} ${t.w} ${t.h}`}

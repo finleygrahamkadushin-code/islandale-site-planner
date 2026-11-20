@@ -7,6 +7,7 @@ import { CurveNotes, DatumMark, pts } from '../plan/planMarks'
 import { SpacingMarks, SupportMarks } from './SupportMarks'
 import { spacingNote, type SpacingDim } from './supportLayout'
 import { northOnSheetDeg } from '../svgDims'
+import { CLEAN_SVG_CLASS, cleanPlanExtent } from '../clean'
 
 interface Props {
   readonly building: SheetBuilding
@@ -38,6 +39,20 @@ export function FoundationSheet({ building: b, info, grid }: Props) {
       <SpacingMarks dims={spacing} pen={pen} />
       <DatumMark at={b.datum} pen={pen} />
       {at && notes.length > 0 && <CurveNotes notes={[{ at, anchor: 'start', lines: [...notes, spacingNote(spacing)] }]} pen={pen} />}
+    </TiledDrawing>
+  )
+}
+
+/** The foundation plan with nothing written on it: the parts' outlines and what they stand on, at true scale. */
+export function CleanFoundationSheet({ building: b, info }: Omit<Props, 'grid'>) {
+  const pen = penSizes(info.scale)
+  const title = 'Clean foundation plan'
+  return (
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={cleanPlanExtent(b, info.scale)} label={`${title} of ${b.name}`} svgClass={CLEAN_SVG_CLASS}>
+      {b.parts.map((p) => (
+        <PartOutline key={p.massIndex} part={p} pen={pen} />
+      ))}
+      <SupportMarks supports={b.supports} pen={pen} />
     </TiledDrawing>
   )
 }

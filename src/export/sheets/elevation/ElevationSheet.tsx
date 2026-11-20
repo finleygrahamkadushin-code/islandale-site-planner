@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { formatArch, levelText } from '../format'
 import { elevationView } from '../model/model'
 import { SIDE_LABEL, SIDES } from './sides'
+import { CLEAN_SVG_CLASS, cleanMarginFt } from '../clean'
 import type { ElevationImage, ElevationSide, ElevationView, Scale, SheetBuilding } from '../types'
 import { captureElevation } from './sheetCapture'
 import { ftToM } from '../../../site/units'
@@ -31,6 +32,8 @@ interface Props {
   readonly info: Omit<SheetInfo, 'sheetTitle' | 'northDeg'>
   /** Told true while any of the four images is still being drawn, false once all have finished or failed. */
   readonly onBusy?: (busy: boolean) => void
+  /** With a scale, each side is drawn twice: first a clean copy at this scale (the picture and the ground only), then the dimensioned elevation. */
+  readonly cleanScale?: Scale
 }
 
 interface Shot {
@@ -48,20 +51,30 @@ function queued<T>(job: () => Promise<T>): Promise<T> {
 }
 
 /** The four elevations of a building: a picture from the 3D scene with levels, grade and dimensions drawn over it. */
-export function ElevationSheet({ building: b, object, objects, terrain, info, onBusy }: Props) {
-  const { shots, retry } = useElevationImages(b, object, info.scale)
+export function ElevationSheet({ building: b, object, objects, terrain, info, onBusy, cleanScale }: Props) {
+  // one picture per side and scale: the clean copy takes its own when its scale differs
+  const scales = useMemo(() => (cleanScale === undefined || cleanScale === info.scale ? [info.scale] : [info.scale, cleanScale]), [info.scale, cleanScale])
+  const { shots, retry } = useElevationImages(b, object, scales)
   const views = useMemo(() => SIDES.map((side) => elevationView(objects, terrain, b, side)), [objects, terrain, b])
-  const busy = SIDES.some((side) => {
-    const shot = shots[shotKey(b.id, side, info.scale)]
-    return !shot || (!shot.image && !shot.error)
-  })
+  const busy = SIDES.some((side) =>
+    scales.some((scale) => {
+      const shot = shots[shotKey(b.id, side, scale)]
+      return !shot || (!shot.image && !shot.error)
+    }),
+  )
   useEffect(() => onBusy?.(busy), [busy, onBusy])
   useEffect(() => () => onBusy?.(false), [onBusy])
   return (
     <>
       {views.map((view) => {
         const shot = shots[shotKey(b.id, view.side, info.scale)]
-        return <SideSheet key={view.side} building={b} view={view} shot={shot} info={info} onRetry={() => retry(view.side)} />
+        const onRetry = () => retry(view.side)
+        return (
+          <Fragment key={view.side}>
+            {cleanScale !== undefined && <SideSheet building={b} view={view} shot={shots[shotKey(b.id, view.side, cleanScale)]} info={{ ...info, scale: cleanScale }} onRetry={onRetry} clean />}
+            <SideSheet building={b} view={view} shot={shot} info={info} onRetry={onRetry} />
+          </Fragment>
+        )
       })}
     </>
   )
@@ -76,13 +89,13 @@ function captureWithRetry(objectId: string, side: ElevationSide, pxPerFt: number
 }
 
 /** Images per side, captured once per (building, side, scale), again whenever the building changes, and again on `retry`. */
-function useElevationImages(b: SheetBuilding, object: PlanObject, scale: Scale): { shots: Readonly<Record<string, Shot>>; retry: (side: ElevationSide) => void } {
+function useElevationImages(b: SheetBuilding, object: PlanObject, scales: readonly Scale[]): { shots: Readonly<Record<string, Shot>>; retry: (side: ElevationSide) => void } {
   const [shots, setShots] = useState<Readonly<Record<string, Shot>>>({})
   const [tries, setTries] = useState(0)
   const asked = useRef(new Map<string, PlanObject>())
   const floorM = ftToM(b.levels.floorNavdFt)
   useEffect(() => {
-    for (const side of SIDES) {
+    for (const [side, scale] of SIDES.flatMap((s) => scales.map((sc) => [s, sc] as const))) {
       const key = shotKey(b.id, side, scale)
       if (asked.current.get(key) === object) continue
       asked.current.set(key, object)
@@ -95,13 +108,13 @@ function useElevationImages(b: SheetBuilding, object: PlanObject, scale: Scale):
         (err: unknown) => keep({ object, error: err instanceof Error ? err.message : 'The elevation could not be drawn' }),
       )
     }
-  }, [b.id, object, scale, floorM, tries])
+  }, [b.id, object, scales, floorM, tries])
   const retry = useCallback(
     (side: ElevationSide) => {
-      asked.current.delete(shotKey(b.id, side, scale))
+      for (const scale of scales) asked.current.delete(shotKey(b.id, side, scale))
       setTries((n) => n + 1)
     },
-    [b.id, scale],
+    [b.id, scales],
   )
   return { shots, retry }
 }
@@ -112,15 +125,18 @@ interface SideProps {
   readonly shot: Shot | undefined
   readonly info: Props['info']
   readonly onRetry: () => void
+  /** The clean copy: the picture and the ground, with no levels or dimensions. */
+  readonly clean?: boolean
 }
 
-function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
+function SideSheet({ building: b, view, shot, info, onRetry, clean = false }: SideProps) {
   const pen = penSizes(info.scale)
   const image = shot?.image
   const layout = useMemo(() => elevationLayout(b, view, image, info.scale), [b, view, image, info.scale])
   const hatch = `hatch-${useId().replace(/[^\w-]/g, '')}`
   const status = !shot || (!shot.image && !shot.error) ? 'Drawing elevation…' : shot.error ? `Could not draw the elevation: ${shot.error}` : null
   const grade = view.grade.map(([u, y]) => `${u},${-y}`).join(' ')
+  const title = clean ? cleanTitle(view.side) : SIDE_LABEL[view.side]
   const ground = view.grade.length > 1 ? `${grade} ${view.grade[view.grade.length - 1][0]},${layout.groundBottom} ${view.grade[0][0]},${layout.groundBottom}` : ''
   return (
     <>
@@ -129,7 +145,7 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
           Try again: {SIDE_LABEL[view.side]} of {b.name}
         </button>
       )}
-      <TiledDrawing info={{ ...info, sheetTitle: SIDE_LABEL[view.side], northDeg: null }} extent={layout.extent} label={`${SIDE_LABEL[view.side]} of ${b.name}`}>
+      <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: null }} extent={clean ? cleanElevationExtent(b, view, info.scale) : layout.extent} label={`${title} of ${b.name}`} svgClass={clean ? CLEAN_SVG_CLASS : undefined}>
         <defs>
           <pattern id={hatch} patternUnits="userSpaceOnUse" width={0.6} height={0.6} patternTransform="rotate(45)">
             <line x1={0} y1={0} x2={0} y2={0.6} stroke="#000" strokeWidth={pen.hair} />
@@ -142,9 +158,9 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
           </text>
         )}
         {ground && <polygon points={ground} fill={`url(#${hatch})`} stroke="none" />}
-        {layout.surveyLabel && <SurveyLine view={view} label={layout.surveyLabel} pen={pen} />}
+        {!clean && layout.surveyLabel && <SurveyLine view={view} label={layout.surveyLabel} pen={pen} />}
         {grade && <polyline points={grade} fill="none" stroke="#000" strokeWidth={pen.heavy} />}
-        {view.levels.map((l, i) => {
+        {!clean && view.levels.map((l, i) => {
           const end = view.uMax + LEVEL_RUN_FT
           const at = -layout.labelYs[i]
           return (
@@ -157,14 +173,36 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
             </g>
           )
         })}
-        <g stroke="#000" strokeWidth={pen.hair} fill="none">
-          {layout.dims.map((d, i) => (
-            <Dim key={i} dim={d} pen={pen} />
-          ))}
-        </g>
+        {!clean && (
+          <g stroke="#000" strokeWidth={pen.hair} fill="none">
+            {layout.dims.map((d, i) => (
+              <Dim key={i} dim={d} pen={pen} />
+            ))}
+          </g>
+        )}
       </TiledDrawing>
     </>
   )
+}
+
+/** "Clean front elevation": a clean copy's title, from the side's own. */
+const cleanTitle = (side: ElevationSide): string => `Clean ${SIDE_LABEL[side].charAt(0).toLowerCase()}${SIDE_LABEL[side].slice(1)}`
+
+/** The picture's own pad round the building in a capture, feet: a clean copy keeps at least this much beside it. */
+const CLEAN_SIDE_FT = 3
+
+/**
+ * A clean elevation's reach: the view's width, from its highest point down to
+ * the bottom of the hatched ground, and a little clear paper. It does not
+ * depend on the picture, so the scale fitted before the capture still holds.
+ */
+export function cleanElevationExtent(b: SheetBuilding, view: ElevationView, scale: Scale): Extent {
+  const m = cleanMarginFt(scale)
+  const side = Math.max(m, CLEAN_SIDE_FT)
+  const ys = [...view.levels.map((l) => l.yFt), ...view.grade.map(([, y]) => y), ...view.survey.map(([, y]) => y)]
+  const high = Math.max(b.levels.topFt, ...ys)
+  const { groundBottom } = elevationLayout(b, view, undefined, scale)
+  return { x: view.uMin - side, y: -high - m, w: view.uMax - view.uMin + 2 * side, h: high + groundBottom + 2 * m }
 }
 
 /** The survey is drawn where it stands off the finished grade by more than this, feet (1 in). */

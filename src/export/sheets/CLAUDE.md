@@ -16,6 +16,7 @@ Elevations add a fourth stage: an image captured from the live 3D scene (`elevat
 | To change… | Open |
 |---|---|
 | The sheets modal: paper, scale, which sheets and checkboxes show | `DrawingSheets.tsx` |
+| Clean copies: before each plan, foundation plan and elevation, the same drawing with no dimensions, tags or notes, at its own fitted scale ("Clean copies" in the Show row; their svg is `.clean-svg`, so `.sheet-svg` stays the dimensioned drawings) | `clean.ts` (reach and margin), `CleanPlanSheet` in `plan/PlanSheet.tsx`, `CleanFoundationSheet` in `foundation/FoundationSheet.tsx`, `clean` on `SideSheet` and `cleanElevationExtent` in `elevation/ElevationSheet.tsx` |
 | The page frame, title strip, sheet numbering | `Page.tsx`, `tiles.ts` (how much drawing a page holds) |
 | How numbers are written (`12'-6 1/4"`, sq ft, degrees) | `format.ts` |
 | Dimension lines, ticks, arrowheads (shared by every sheet) | `svgDims.ts` |

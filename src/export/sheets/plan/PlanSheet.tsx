@@ -13,6 +13,7 @@ import { Opening, ThicknessDim, WallBand } from './WallMarks'
 import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
 import { SectionMarks } from '../section/SectionMarks'
 import { cutMarkPadFt, padExtent, type CutId, type SectionCut } from '../section/sectionCuts'
+import { CLEAN_SVG_CLASS, cleanPlanExtent } from '../clean'
 
 export { penSizes, planLayout, type Pen } from './planLayout'
 
@@ -89,6 +90,41 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
   )
 }
 
+type CleanProps = Pick<Props, 'building' | 'info' | 'floor' | 'rooms' | 'furniture' | 'title'>
+
+/**
+ * The same floor plan with nothing written on it but names: walls, openings, stairs, roof lines, rooms and
+ * part names, at true scale. No dimensions, tags, corner labels, notes, grid or earthworks, so it reads at a
+ * glance and usually fits a larger scale than the dimensioned plan after it.
+ */
+export function CleanPlanSheet({ building: b, info, floor, rooms, furniture, title = 'Floor plan' }: CleanProps) {
+  const pen = penSizes(info.scale)
+  const shownFloor = rooms && floor?.rooms.length ? floor : null
+  const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
+  const partNames = useMemo(() => partLabelSpots(b.parts.filter(named), pen.text, partLabelsTaken(b, [], pen)), [b, pen, shownFloor, floor])
+  const cleanTitle = `Clean ${title.charAt(0).toLowerCase()}${title.slice(1)}`
+  return (
+    <TiledDrawing
+      info={{ ...info, sheetTitle: cleanTitle, northDeg: northOnSheetDeg(b.rotationDeg) }}
+      extent={cleanPlanExtent(b, info.scale)}
+      label={`${cleanTitle} of ${b.name}`}
+      svgClass={CLEAN_SVG_CLASS}
+    >
+      {orderForDrawing(b.parts).map((p) => (
+        <PartPlan key={p.massIndex} part={p} pen={pen} tags={false} />
+      ))}
+      {furniture && floor && <FurnitureMarks floor={floor} pen={pen} />}
+      {shownFloor && <Partitions partitions={shownFloor.partitions} pen={pen} />}
+      {shownFloor && <InteriorOpenings openings={shownFloor.openings} pen={pen} />}
+      {b.parts.map((p) => p.roof && <RoofMarks key={p.massIndex} roof={p.roof} pen={pen} />)}
+      {b.parts.filter(named).map((p) => (
+        <PartLabel key={p.massIndex} part={p} at={partNames.find((s) => s.massIndex === p.massIndex)?.at} pen={pen} />
+      ))}
+      {shownFloor && <RoomLabels floor={shownFloor} pen={pen} taken={[]} />}
+    </TiledDrawing>
+  )
+}
+
 /** Decks and porches under stairs under walls, so the walls' heavy line wins. */
 const DRAW_ORDER: Readonly<Record<SheetPart['kind'], number>> = { deck: 0, porch: 1, ramp: 2, stair: 2, wall: 3 }
 const orderForDrawing = (parts: readonly SheetPart[]) => [...parts].sort((a, b) => DRAW_ORDER[a.kind] - DRAW_ORDER[b.kind])
@@ -111,7 +147,7 @@ export function Grid({ extent, pen }: { readonly extent: Extent; readonly pen: P
   )
 }
 
-function PartPlan({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }) {
+function PartPlan({ part, pen, tags = true }: { readonly part: SheetPart; readonly pen: Pen; readonly tags?: boolean }) {
   const wall = part.kind === 'wall'
   const deckLike = part.kind === 'deck' || part.kind === 'porch'
   const roof = part.roof && part.roof.type !== 'none' && part.roof.eave.length > 2 ? part.roof : null
@@ -131,7 +167,7 @@ function PartPlan({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }
       )}
       {part.stair && <StairMarks part={part} pen={pen} />}
       {part.openings.map((o) => (
-        <Opening key={o.tag} opening={o} part={part} pen={pen} />
+        <Opening key={o.tag} opening={o} part={part} pen={pen} tag={tags} />
       ))}
     </g>
   )
