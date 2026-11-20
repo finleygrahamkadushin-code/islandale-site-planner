@@ -65,6 +65,10 @@ export interface Mass {
    * rule above. Keys past the outline's last edge are dropped.
    */
   readonly rails?: Readonly<Record<number, boolean>>
+  /** false: no posts under this deck or porch, which the building carries (a roof deck on the walls below); undefined stands them. */
+  readonly posts?: false
+  /** The least gap between this deck's or porch's posts, feet; undefined keeps the legacy layout (a post at every corner). */
+  readonly postGap?: number
   /** The part's own name, if the scheme gives it one ("Cave hearth"). */
   readonly name?: string
   /** Stair or ramp foot elevation, metres NAVD88, when it is pinned. */
@@ -154,6 +158,8 @@ function baseMass(p: Record<string, unknown>, isMain: boolean, host?: Mass): Mas
     steps: deckSteps(p.steps),
     slab: p.slab !== false,
     rail: typeof p.rail === 'boolean' || p.rail === 'sides' ? p.rail : undefined,
+    posts: !isMain && p.posts === false ? false : undefined,
+    postGap: !isMain && typeof p.postGap === 'number' && p.postGap > 0 ? p.postGap : undefined,
     name: !isMain && typeof p.name === 'string' && p.name ? p.name : undefined,
     footZ: typeof p.footZ === 'number' && Number.isFinite(p.footZ) ? p.footZ : undefined,
     clearTop: typeof p.clearTop === 'boolean' ? p.clearTop : undefined,

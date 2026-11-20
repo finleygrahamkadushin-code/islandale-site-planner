@@ -100,6 +100,7 @@ export function WallMass({
         spacingFt={supports.spacingFt}
         postIn={supports.postIn}
         bracing={supports.bracing}
+        cornerGapFt={supports.cornerGapFt}
         mastAt={mi === 0 ? supports.mastAt : undefined}
         style={look.style}
         handlers={handlers}

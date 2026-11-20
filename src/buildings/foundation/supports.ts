@@ -2,7 +2,7 @@ import type { LocalPoint } from '../footprint'
 import { effectiveSupport, type SupportKind } from './foundation'
 import { pointInPolygon } from '../../site/geom2d'
 import { addPolygon, emptyMesh, type MeshData, type V3 } from '../geom'
-import { curvePosts, offsetOutline } from '../outline'
+import { curvePosts, offsetOutline, thinPoints } from '../outline'
 import { buildSlab } from '../slab'
 import { buildWalls } from '../walls/walls'
 import { M_PER_FT as FT } from '../../site/units'
@@ -67,6 +67,8 @@ export interface SupportOptions {
   readonly bracing?: boolean
   /** Where the mast stands, feet, mass-local (legacy o.mastAt); the outline's centre when missing. */
   readonly mastAt?: LocalPoint
+  /** The least gap between posts round a shaped plan's edge, feet; undefined posts every corner (legacy). */
+  readonly cornerGapFt?: number
   /** Ground under a mass-local point (feet), metres relative to the mass floor (negative below it). */
   readonly groundY: (x: number, z: number) => number
   /** Top of the supports relative to the mass floor, metres: 0 under walls, minus the floor depth under a deck. */
@@ -154,7 +156,7 @@ interface PostLayout {
 function postPlan(P: readonly LocalPoint[], kind: SupportKind, o: SupportOptions, gy: GroundM, top: number): Partial<SupportPlan> {
   const size = Math.max(0.1, (o.postIn ?? (kind === 'posts' ? POST_IN : PILE_IN)) * IN)
   const s = Math.max(MIN_SPACING_M, o.spacingFt * FT)
-  const layout = postLayout(P, s, size, kind !== 'piers')
+  const layout = postLayout(P, s, size, kind !== 'piers', o.cornerGapFt ? o.cornerGapFt * FT : undefined)
   const posts = layout.points.flatMap(([x, z]): PlanPost[] => {
     const g = gy(x, z)
     return top - g < MIN_POST_M ? [] : [{ x, z, y0: g - SUPPORT_EMBED_M, y1: top }]
@@ -170,7 +172,7 @@ function postPlan(P: readonly LocalPoint[], kind: SupportKind, o: SupportOptions
  * round the inside of its edge; a ring and grid under a curve (curvePosts)
  * with a ring beam and row beams across it.
  */
-export function postLayout(P: readonly LocalPoint[], s: number, size: number, columnBeams = true): PostLayout {
+export function postLayout(P: readonly LocalPoint[], s: number, size: number, columnBeams = true, cornerGap?: number): PostLayout {
   const xs = P.map((p) => p[0])
   const zs = P.map((p) => p[1])
   const x0 = Math.min(...xs)
@@ -191,9 +193,11 @@ export function postLayout(P: readonly LocalPoint[], s: number, size: number, co
   }
   if (!isAxisRect(P)) {
     const inner = offsetOutline(P, -inset)
+    // the edge beam still follows every corner; with a least gap, a run of short edges (a curve) shares posts
+    const corners = cornerGap ? thinPoints(inner, cornerGap) : inner
     const keep = offsetOutline(P, -GRID_EDGE_M)
-    const grid = gx.flatMap((x) => gz.map((z) => [x, z] as const)).filter(([x, z]) => pointInPolygon(keep, x, z) && !inner.some((q) => Math.hypot(q[0] - x, q[1] - z) < CORNER_CLEAR_M))
-    return { points: [...inner, ...grid], beams: ringBeams(inner), sides: [] }
+    const grid = gx.flatMap((x) => gz.map((z) => [x, z] as const)).filter(([x, z]) => pointInPolygon(keep, x, z) && !corners.some((q) => Math.hypot(q[0] - x, q[1] - z) < CORNER_CLEAR_M))
+    return { points: [...corners, ...grid], beams: ringBeams(inner), sides: [] }
   }
   const points = gx.flatMap((x) => gz.map((z) => [x, z] as const))
   const rows = gz.map((z): readonly [LocalPoint, LocalPoint] => [[x0, z], [x1, z]])

@@ -183,3 +183,16 @@ describe('addPrism (legacy prismGeo)', () => {
     }
   })
 })
+
+describe("a least gap between a shaped plan's corner posts (params.postGap, not legacy)", () => {
+  // a rectangle with a curved nose drawn as short edges
+  const nose: LocalPoint[] = [[-14, -13], [14, -13], [14, 4], [12, 8], [9, 11], [5, 12.5], [0, 13], [-5, 12.5], [-9, 11], [-12, 8], [-14, 4]]
+  const options = (cornerGapFt?: number): SupportOptions => ({ poly: nose, support: 'posts', spacingFt: 10, cornerGapFt, groundY: () => -1 })
+  test('fewer posts, none closer than the gap round the edge, and the edge beam unchanged', () => {
+    const legacy = supportPlan(options())
+    const thinned = supportPlan(options(8))
+    expect(thinned.posts.length).toBeLessThan(legacy.posts.length)
+    expect(thinned.beams).toEqual(legacy.beams)
+    expect(thinned.posts.length).toBeGreaterThanOrEqual(6)
+  })
+})

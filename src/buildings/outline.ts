@@ -74,6 +74,17 @@ export function curvePosts(poly: readonly LocalPoint[], spacing: number, inset: 
   return pts
 }
 
+/**
+ * The points of `pts` kept in order so that no two kept points stand closer
+ * than `minGap`: the corners of a curve drawn as short straight edges would
+ * otherwise each get a post.
+ */
+export function thinPoints(pts: readonly LocalPoint[], minGap: number): LocalPoint[] {
+  const kept: LocalPoint[] = []
+  for (const p of pts) if (kept.every((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) >= minGap)) kept.push(p)
+  return kept
+}
+
 /** Points along each edge of an outline: the corners plus enough in between to keep gaps under `maxGap`. */
 export function edgePosts(poly: readonly LocalPoint[], maxGap: number): LocalPoint[] {
   const pts: LocalPoint[] = []

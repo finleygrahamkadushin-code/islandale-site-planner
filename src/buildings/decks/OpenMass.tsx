@@ -32,7 +32,7 @@ export function DeckMass({ m, look, site, handlers, wells, supports }: OpenMassP
   const poly = useMemo(() => massPoly(m), [m])
   const floor = useMemo(() => toGeometry(buildSlab(poly, DECK_M)), [poly])
   const rim = useMemo(() => (supports ? null : toGeometry(buildWalls(deckRimOutline(poly), BEAM_M / 0.3048))), [poly, supports])
-  const posts = useMemo(() => (supports ? [] : deckPostPoints(poly)), [poly, supports])
+  const posts = useMemo(() => (supports ? [] : deckPostPoints(poly, m)), [poly, supports, m])
   useEffect(() => () => floor.dispose(), [floor])
   useEffect(() => () => rim?.dispose(), [rim])
   return (
@@ -73,7 +73,7 @@ export function PorchMass({ m, look, site, handlers }: OpenMassProps) {
   const floor = useMemo(() => (m.slab ? toGeometry(buildSlab(poly, DECK_M)) : null), [poly, m.slab])
   const beam = useMemo(() => toGeometry(buildSlab(poly, DECK_M)), [poly])
   // no post inside the walls or in front of another mass's door (legacy porchPostKeep)
-  const posts = useMemo(() => keptPorchPosts(poly, site), [poly, site])
+  const posts = useMemo(() => keptPorchPosts(poly, site, m), [poly, site, m])
   useEffect(() => () => floor?.dispose(), [floor])
   useEffect(() => () => beam.dispose(), [beam])
   const h = ftToM(m.h)

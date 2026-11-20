@@ -29,7 +29,7 @@
           "ridge": "z",
           "overhang": 2.5,
           "support": "posts",
-          "postSpacing": 8,
+          "postSpacing": 10,
           "postSize": 8,
           "bracing": true,
           "wings": [
@@ -46,21 +46,9 @@
               "overhang": 1,
               "kind": "porch",
               "open": true,
-              "roofMat": "metal"
-            },
-            {
-              "kind": "stair",
-              "open": true,
-              "dx": 0,
-              "dz": -25.5,
-              "rot": 180,
-              "w": 5,
-              "d": 5,
-              "h": 0,
-              "roof": "none",
-              "pitch": 0,
-              "ridge": "x",
-              "overhang": 0
+              "roofMat": "metal",
+              "rails": {},
+              "postGap": 4
             },
             {
               "dx": -3.27,
@@ -214,7 +202,9 @@
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
-              "overhang": 0
+              "overhang": 0,
+              "rails": {},
+              "postGap": 10
             },
             {
               "dx": -18,
@@ -244,7 +234,8 @@
               "w": 31.25,
               "d": 10,
               "h": 1,
-              "shape": "rect"
+              "shape": "rect",
+              "rails": {}
             },
             {
               "pitch": 0,
@@ -277,7 +268,13 @@
               "d": 4,
               "h": 1,
               "shape": "rect",
-              "lvl": 6.0
+              "lvl": 6.0,
+              "rails": {
+                "0": true,
+                "1": true,
+                "2": false,
+                "3": false
+              }
             },
             {
               "pitch": 0,
@@ -310,7 +307,13 @@
               "d": 4,
               "h": 1,
               "shape": "rect",
-              "lvl": 12.0
+              "lvl": 12.0,
+              "rails": {
+                "0": false,
+                "1": true,
+                "2": true,
+                "3": false
+              }
             },
             {
               "pitch": 0,
@@ -334,6 +337,14 @@
                 [
                   16.5,
                   -15.5
+                ],
+                [
+                  16.5,
+                  -7
+                ],
+                [
+                  16.5,
+                  -3
                 ],
                 [
                   16.5,
@@ -376,7 +387,24 @@
                   4.41
                 ]
               ],
-              "lvl": 12.0
+              "lvl": 12.0,
+              "rails": {
+                "0": true,
+                "1": true,
+                "2": false,
+                "3": true,
+                "4": true,
+                "5": true,
+                "6": true,
+                "7": true,
+                "8": true,
+                "9": true,
+                "10": true,
+                "11": true,
+                "12": true,
+                "13": true
+              },
+              "posts": false
             },
             {
               "kind": "porch",
@@ -444,7 +472,8 @@
               "pitch": 3,
               "ridge": "z",
               "overhang": 5.5,
-              "roofMat": "metal"
+              "roofMat": "metal",
+              "postGap": 10
             }
           ],
           "cuts": [
@@ -1160,7 +1189,8 @@
               4.33
             ]
           ],
-          "gutters": true
+          "gutters": true,
+          "postGap": 6
         },
         "locked": false,
         "hidden": false,
@@ -1188,7 +1218,7 @@
           "ridge": "x",
           "overhang": 2,
           "support": "posts",
-          "postSpacing": 6,
+          "postSpacing": 9,
           "postSize": 8,
           "bracing": true,
           "wings": [],
@@ -1629,134 +1659,109 @@
           "ridge": "z",
           "overhang": 1.5,
           "support": "posts",
-          "postSpacing": 7,
+          "postSpacing": 10,
           "postSize": 6,
           "bracing": false,
           "wings": [
             {
               "kind": "porch",
-              "name": "Shared porch",
+              "name": "Twin pod porch",
               "open": true,
-              "dx": -9.45,
+              "dx": 0,
               "dz": 9.71,
               "rot": 0,
-              "w": 37.9,
+              "w": 19,
               "d": 7.91,
               "h": 8,
-              "shape": "poly",
-              "pts": [
-                [
-                  -18.95,
-                  -1.04
-                ],
-                [
-                  -8.47,
-                  -1.04
-                ],
-                [
-                  -5.56,
-                  -3.96
-                ],
-                [
-                  18.95,
-                  -3.96
-                ],
-                [
-                  18.95,
-                  3.96
-                ],
-                [
-                  -18.95,
-                  3.96
-                ]
-              ],
+              "shape": "rect",
               "roof": "shed",
               "pitch": 2,
               "ridge": "x",
               "overhang": 1,
-              "roofMat": "sod"
+              "roofMat": "sod",
+              "rails": {}
             },
             {
-              "kind": "deck",
-              "name": "Sitting steps",
+              "kind": "stair",
+              "name": "Stair to the prow",
               "open": true,
-              "dx": 0,
-              "dz": 13.66,
+              "dx": 7.5,
+              "dz": 18.72,
               "rot": 0,
-              "w": 9,
-              "d": 5.5,
-              "h": 1,
-              "shape": "poly",
-              "pts": [
-                [
-                  4.5,
-                  0.0
-                ],
-                [
-                  4.17,
-                  1.69
-                ],
-                [
-                  3.24,
-                  3.13
-                ],
-                [
-                  1.83,
-                  4.11
-                ],
-                [
-                  0.16,
-                  4.5
-                ],
-                [
-                  -1.54,
-                  4.23
-                ],
-                [
-                  -3.01,
-                  3.34
-                ],
-                [
-                  -4.04,
-                  1.97
-                ],
-                [
-                  -4.49,
-                  0.31
-                ],
-                [
-                  -4.5,
-                  -1.0
-                ],
-                [
-                  4.5,
-                  -1.0
-                ]
-              ],
-              "steps": {
-                "e0": 0,
-                "e1": 2,
-                "tread": 1.5
-              },
+              "w": 4,
+              "d": 10.1,
+              "h": 0,
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
-              "overhang": 0
+              "overhang": 0,
+              "footZ": 7.18
             },
             {
               "kind": "stair",
               "open": true,
               "dx": -23.9,
-              "dz": 15.66,
+              "dz": 16.42,
               "rot": 0,
               "w": 4,
-              "d": 4,
+              "d": 5.5,
               "h": 0,
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
               "overhang": 0,
               "name": "Shared porch stair"
+            },
+            {
+              "kind": "deck",
+              "name": "Shared deck",
+              "open": true,
+              "dx": -18.95,
+              "dz": 9.71,
+              "rot": 0,
+              "w": 18.9,
+              "d": 7.91,
+              "h": 1,
+              "shape": "poly",
+              "pts": [
+                [
+                  -9.45,
+                  -1.04
+                ],
+                [
+                  1.03,
+                  -1.04
+                ],
+                [
+                  3.94,
+                  -3.96
+                ],
+                [
+                  9.45,
+                  -3.96
+                ],
+                [
+                  9.45,
+                  3.96
+                ],
+                [
+                  -9.45,
+                  3.96
+                ]
+              ],
+              "roof": "none",
+              "pitch": 0,
+              "ridge": "x",
+              "overhang": 0,
+              "rails": {
+                "0": false,
+                "1": false,
+                "2": true,
+                "3": false,
+                "4": true,
+                "5": true
+              },
+              "postGap": 5
             }
           ],
           "cuts": [
@@ -2140,7 +2145,14 @@
           ],
           "valleyFall": 0.5,
           "roofMat": "sod",
-          "gutters": true
+          "gutters": true,
+          "ext": {
+            "parts": {
+              "rail": {
+                "color": "#6e5a44"
+              }
+            }
+          }
         },
         "locked": false,
         "hidden": false,
@@ -2187,7 +2199,8 @@
               "overhang": 1,
               "kind": "porch",
               "open": true,
-              "roofMat": "sod"
+              "roofMat": "sod",
+              "rails": {}
             },
             {
               "dx": 0.5,
@@ -2202,12 +2215,12 @@
               "overhang": 0.5,
               "kind": "porch",
               "open": true,
-              "roofMat": "sod"
+              "roofMat": "sod",
+              "rails": {}
             },
             {
               "kind": "deck",
               "open": true,
-              "rail": "sides",
               "dx": 9.0,
               "dz": 11.0,
               "rot": 0,
@@ -2218,7 +2231,8 @@
               "roof": "none",
               "pitch": 0,
               "ridge": "x",
-              "overhang": 0
+              "overhang": 0,
+              "rails": {}
             }
           ],
           "cuts": [

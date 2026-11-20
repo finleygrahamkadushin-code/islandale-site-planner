@@ -1,6 +1,6 @@
 import type { LocalPoint } from '../footprint'
 import { pointInPolygon } from '../../site/geom2d'
-import { curvePosts, edgePosts, offsetOutline, perimeterSamples } from '../outline'
+import { curvePosts, edgePosts, offsetOutline, perimeterSamples, thinPoints } from '../outline'
 
 /**
  * The posts under a cabin's deck and porch wings (legacy deck posts and
@@ -28,20 +28,36 @@ const CURVED_PORCH_POST_GAP_FT = 2.4 / 0.3048
 /** A post shorter than this is left out, metres (Posts' len < EMBED + 0.05). */
 const MIN_POST_M = 0.05
 
-/** Legacy deck posts: at the inset corners, or a ring and grid under curved decks. */
-export function deckPostPoints(poly: readonly LocalPoint[]): LocalPoint[] {
-  if (poly.length > CURVED_VERTICES) return curvePosts(poly, DECK_POST_SPACING_FT, DECK_POST_INSET_FT)
-  return edgePosts(offsetOutline(poly, -DECK_POST_INSET_FT), DECK_POST_SPACING_FT * 1.5)
+/** What a wing says about its own posts (masses.ts): none at all, or a least gap between them, feet. */
+export interface WingPostRule {
+  readonly posts?: false
+  readonly postGap?: number
+}
+
+/**
+ * Legacy deck posts: at the inset corners, or a ring and grid under curved
+ * decks. A wing's own rule (not legacy) leaves them out, or spaces them at
+ * least `postGap` apart: fewer along long edges, one for a run of short ones.
+ */
+export function deckPostPoints(poly: readonly LocalPoint[], rule: WingPostRule = {}): LocalPoint[] {
+  if (rule.posts === false) return []
+  const gap = rule.postGap
+  if (poly.length > CURVED_VERTICES) return curvePosts(poly, Math.max(DECK_POST_SPACING_FT, gap ?? 0), DECK_POST_INSET_FT)
+  const points = edgePosts(offsetOutline(poly, -DECK_POST_INSET_FT), Math.max(DECK_POST_SPACING_FT * 1.5, gap ?? 0))
+  return gap ? thinPoints(points, gap) : points
 }
 
 /** The line a deck wing's rim beam follows, just inside its edge, feet. */
 export const deckRimOutline = (poly: readonly LocalPoint[]): LocalPoint[] => offsetOutline(poly, -DECK_POST_INSET_FT * DECK_RIM_INSET)
 
 /** Porch posts: just inside each corner and along long edges, or evenly round just inside a curved edge. */
-export function porchPostPoints(poly: readonly LocalPoint[]): LocalPoint[] {
+export function porchPostPoints(poly: readonly LocalPoint[], rule: WingPostRule = {}): LocalPoint[] {
+  if (rule.posts === false) return []
+  const gap = rule.postGap
   const inner = offsetOutline(poly, -PORCH_POST_INSET_FT)
-  if (poly.length > CURVED_VERTICES) return perimeterSamples(inner, CURVED_PORCH_POST_GAP_FT)
-  return edgePosts(inner, PORCH_POST_GAP_FT)
+  if (poly.length > CURVED_VERTICES) return perimeterSamples(inner, Math.max(CURVED_PORCH_POST_GAP_FT, gap ?? 0))
+  const points = edgePosts(inner, Math.max(PORCH_POST_GAP_FT, gap ?? 0))
+  return gap ? thinPoints(points, gap) : points
 }
 
 /** Where a porch post must not stand, mass-local feet: inside the walls, or in front of another mass's door. */
@@ -51,7 +67,7 @@ export interface PorchKeep {
 }
 
 /** The porch posts that stand (legacy porchPostKeep): none inside the walls or in front of another mass's door. */
-export const keptPorchPosts = (poly: readonly LocalPoint[], keep: PorchKeep): LocalPoint[] => porchPostPoints(poly).filter((p) => !keep.insideWalls(p) && !keep.inDoorway?.(p))
+export const keptPorchPosts = (poly: readonly LocalPoint[], keep: PorchKeep, rule: WingPostRule = {}): LocalPoint[] => porchPostPoints(poly, rule).filter((p) => !keep.insideWalls(p) && !keep.inDoorway?.(p))
 
 /** A post from `top` down to the ground, buried SUPPORT_EMBED_M: plan point in feet, y0 (its foot) and y1 (its top) in metres from the mass floor. */
 export interface StandingPost {
