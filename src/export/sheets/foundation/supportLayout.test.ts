@@ -1,11 +1,16 @@
 import { beforeAll, describe, expect, test } from 'vitest'
 import { sheetBuildings } from '../model/model'
-import type { SheetBuilding } from '../types'
+import type { Scale, SheetBuilding } from '../types'
 import type { Terrain } from '../../../site/types'
 import { usePlanStore } from '../../../store/planStore'
 import type { PlanObject } from '../../../store/types'
-import { penSizes, planLayout, type LabelledDim } from '../plan/planLayout'
-import { supportChains } from './supportLayout'
+import { penSizes, planLayout, supportNotes, type LabelledDim } from '../plan/planLayout'
+import { spacingBox, spacingNote, spacingObstacles, spacingWords, supportChains, type SpacingDim } from './supportLayout'
+import { boxCorners, boxesOverlap, type Box } from './textBoxes'
+import { tileDrawing } from '../tiles'
+import { textWidthFt } from '../svgDims'
+import type { Plan } from '../../../store/types'
+import defaultPlan from '../../../../data/plans/islandale.default.json'
 
 /**
  * The supports' spacing chains on the plan: one per distinct row and column
@@ -124,5 +129,135 @@ describe('Scheme C', () => {
         texts.forEach((t, i) => texts.slice(i + 1).forEach((u) => expect(Math.hypot(t.x - u.x, t.y - u.y)).toBeGreaterThan(pen.text * 0.5)))
       }
     }
+  })
+})
+
+/**
+ * The foundation plans as they print: the default plan, each building at the
+ * scale its plans fit one Tabloid page at. A figure is only written where it
+ * has clear paper; the drawing itself is never rescaled.
+ */
+describe('the default plan at the scales it prints at', () => {
+  const store = () => usePlanStore.getState()
+  const PROW_SCALE: Scale = 0.0625
+  const CABIN_SCALE: Scale = 0.125
+  const sheets = () => {
+    store().setReadOnly(null)
+    store().loadScheme('C')
+    store().replacePlan(defaultPlan.plan as unknown as Plan)
+    const objects = store().plan.order.map((id) => store().plan.objects[id])
+    return sheetBuildings(objects, store().site.terrain)
+      .filter((b) => b.supports.some((s) => s.posts.length))
+      .map((b) => {
+        const scale = b.name === 'Gathering prow' ? PROW_SCALE : CABIN_SCALE
+        const pen = penSizes(scale)
+        const layout = planLayout({ ...b, earthworks: null }, scale, null, true)
+        const dims: readonly SpacingDim[] = layout.supportDims
+        const written = dims.filter((d) => !d.wordless)
+        return { b, scale, pen, layout, dims, written, boxes: written.map((d) => spacingBox(d, pen)) }
+      })
+  }
+  const clashes = (boxes: readonly Box[], others: readonly Box[]) => boxes.flatMap((a, i) => others.filter((o, j) => (others !== boxes || j > i) && boxesOverlap(a, o)).map(() => i))
+
+  test('the prow and the three cabins all have a foundation plan with spacing chains', () => {
+    const all = sheets()
+    expect(all.map((s) => s.b.name)).toContain('Gathering prow')
+    expect(all.length).toBeGreaterThanOrEqual(4)
+    for (const s of all) expect(s.dims.length).toBeGreaterThan(0)
+  })
+
+  test('no two spacing figures overprint', () => {
+    for (const s of sheets()) expect(clashes(s.boxes, s.boxes), s.b.name).toEqual([])
+  })
+
+  test('no spacing figure sits on a post symbol or on the datum mark', () => {
+    for (const s of sheets()) expect(clashes(s.boxes, spacingObstacles(s.b, s.pen)), s.b.name).toEqual([])
+  })
+
+  test('a spacing shorter than its own figure never has the figure between its ticks', () => {
+    for (const s of sheets()) {
+      for (const d of s.written.filter((w) => !w.leader)) {
+        const mid = [(d.line.a[0] + d.line.b[0]) / 2, (d.line.a[1] + d.line.b[1]) / 2]
+        const fromLine = Math.hypot(d.text.x - mid[0], d.text.y - mid[1])
+        const box = spacingBox(d, s.pen)
+        if (d.text.value < textWidthFt(spacingWords(d), box.halfAcross * 2)) expect(fromLine, `${s.b.name} ${spacingWords(d)}`).toBeGreaterThan(box.halfAcross * 2)
+      }
+    }
+  })
+
+  test('chains that run the same way never share a line: near rows are merged into one chain or set apart', () => {
+    for (const s of sheets()) {
+      const chains = supportChains(s.b, { gapFt: s.pen.gap, overshootFt: s.pen.overshoot, tickFt: s.pen.tick, textOffsetFt: s.pen.text * 0.75 }, s.pen)
+      const lines = chains.map((c) => ({ a: c[0].line.a, b: c[c.length - 1].line.b }))
+      const size = spacingBox(chains[0][0], s.pen).halfAcross * 2
+      lines.forEach((p, i) =>
+        lines.slice(i + 1).forEach((q) => {
+          const len = Math.hypot(p.b[0] - p.a[0], p.b[1] - p.a[1])
+          const u = [(p.b[0] - p.a[0]) / len, (p.b[1] - p.a[1]) / len]
+          const along = (pt: readonly number[]) => (pt[0] - p.a[0]) * u[0] + (pt[1] - p.a[1]) * u[1]
+          const off = (pt: readonly number[]) => Math.abs(-(pt[0] - p.a[0]) * u[1] + (pt[1] - p.a[1]) * u[0])
+          const parallel = Math.abs(off(q.a) - off(q.b)) < 1e-6
+          const [lo, hi] = [Math.min(along(q.a), along(q.b)), Math.max(along(q.a), along(q.b))]
+          const overlap = Math.min(hi, len) - Math.max(lo, 0)
+          if (parallel && overlap > 0) expect(off(q.a), s.b.name).toBeGreaterThan(size * 0.5)
+        }),
+      )
+    }
+  })
+
+  test('every spacing of the cabins is written, and at 1/16 all but one in six of the prow\'s', () => {
+    for (const s of sheets()) expect(s.dims.length - s.written.length, s.b.name).toBeLessThanOrEqual(s.scale === PROW_SCALE ? s.dims.length / 6 : 0)
+  })
+
+  test('a figure with no clear place beside its spacing stands off on a leader that starts on its spacing and ends at the figure', () => {
+    const led = sheets().flatMap((s) => s.written.filter((d) => d.leader).map((d) => ({ d, box: spacingBox(d, s.pen), pen: s.pen })))
+    expect(led.length).toBeGreaterThan(0)
+    for (const { d, box, pen: p } of led) {
+      const { a, b } = d.leader as NonNullable<SpacingDim['leader']>
+      const along = ((a[0] - d.line.a[0]) * (d.line.b[0] - d.line.a[0]) + (a[1] - d.line.a[1]) * (d.line.b[1] - d.line.a[1])) / d.text.value ** 2
+      expect(along).toBeGreaterThan(0)
+      expect(along).toBeLessThan(1)
+      expect(Math.hypot(b[0] - d.text.x, b[1] - d.text.y)).toBeLessThanOrEqual(box.halfAlong + p.small)
+    }
+  })
+
+  test('the last note says how to read a leader or bare ticks, in one line no longer than the supports\' own notes', () => {
+    for (const s of sheets()) {
+      const longest = Math.max(...supportNotes(s.b, true).map((l) => l.length))
+      const note = spacingNote(s.dims)
+      expect(note.length, s.b.name).toBeLessThanOrEqual(longest)
+      expect(note.includes('leader'), s.b.name).toBe(s.dims.some((d) => d.leader))
+      expect(note.includes('ticked only'), s.b.name).toBe(s.dims.some((d) => d.wordless))
+    }
+  })
+
+  test('every figure is inside the drawing, which still fits one Tabloid page at its scale', () => {
+    for (const s of sheets()) {
+      const { x, y, w, h } = s.layout.extent
+      for (const p of s.boxes.flatMap(boxCorners)) {
+        expect(p[0], s.b.name).toBeGreaterThanOrEqual(x)
+        expect(p[0], s.b.name).toBeLessThanOrEqual(x + w)
+        expect(p[1], s.b.name).toBeGreaterThanOrEqual(y)
+        expect(p[1], s.b.name).toBeLessThanOrEqual(y + h)
+      }
+      expect(tileDrawing(w, h, 'tabloid', s.scale), s.b.name).toHaveLength(1)
+    }
+  })
+})
+
+describe('near rows of different parts', () => {
+  test("a porch whose posts stand on the line of the cabin's row shares its chain, from the outermost face to the outermost face", () => {
+    // the porch runs on from the cabin's east wall, its back posts on the line of the cabin's back row (z = -9.75)
+    const porch = { kind: 'porch', dx: 20, dz: -7.55, w: 10, d: 6 }
+    const b = sheetOf(house({ support: 'posts', postSpacing: 7, wings: [porch] }))
+    const alongX = supportChains(b, opts, pen).filter((c) => Math.abs(c[0].line.a[1] - c[0].line.b[1]) < 1e-9)
+    const reach = (c: readonly LabelledDim[]) => [c[0].line.a[0], c[c.length - 1].line.b[0]]
+    const shared = alongX.filter((c) => Math.abs(sum(c) - 40) < 1e-6)
+    expect(shared).toHaveLength(1)
+    expect(reach(shared[0])[0]).toBeCloseTo(-15, 6)
+    expect(reach(shared[0])[1]).toBeCloseTo(25, 6)
+    // the cabin's five posts and the porch's two, between the two outer faces: eight pieces, and no chain of the porch's own on that line
+    expect(shared[0]).toHaveLength(8)
+    expect(alongX.filter((c) => Math.abs(sum(c) - 10) < 1e-6 && Math.abs(c[0].line.a[1] - shared[0][0].line.a[1]) < 3)).toEqual([])
   })
 })

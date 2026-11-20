@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import type { SheetBuilding, SheetPart } from '../types'
 import { TiledDrawing, type SheetInfo } from '../Page'
-import { Dim, Grid } from '../plan/PlanSheet'
+import { Grid } from '../plan/PlanSheet'
 import { penSizes, planLayout, supportNotes, type Pen } from '../plan/planLayout'
 import { CurveNotes, DatumMark, pts } from '../plan/planMarks'
-import { SupportMarks } from './SupportMarks'
+import { SpacingMarks, SupportMarks } from './SupportMarks'
+import { spacingNote, type SpacingDim } from './supportLayout'
 import { northOnSheetDeg } from '../svgDims'
+import { CLEAN_SVG_CLASS, cleanPlanExtent } from '../clean'
 
 interface Props {
   readonly building: SheetBuilding
@@ -16,14 +18,16 @@ interface Props {
 /**
  * A foundation plan of one building, at the floor plan's scale and datum: every part's outline as a thin
  * reference line, and what the parts stand on (posts, piers and piles at their section, beams dashed, a mast
- * or stilts to their footings) with one spacing chain per row and column of posts. Kept off the floor plans,
- * where the chains crowd the walls' and rooms' dimensions.
+ * or stilts to their footings) with one spacing chain per row and column of posts, each figure where the
+ * layout found clear paper (supportLayout). The datum is drawn last, over the chains, so they never hide it.
+ * Kept off the floor plans, where the chains crowd the walls' and rooms' dimensions.
  */
 export function FoundationSheet({ building: b, info, grid }: Props) {
   const pen = penSizes(info.scale)
   // the earthworks stay on the floor plan; the layout here is only for the supports' chains and the sheet's reach
   const layout = useMemo(() => planLayout({ ...b, earthworks: null }, info.scale, null, true), [b, info.scale])
   const notes = supportNotes(b, true)
+  const spacing: readonly SpacingDim[] = layout.supportDims
   const at = layout.general?.at
   return (
     <TiledDrawing info={{ ...info, sheetTitle: 'Foundation plan', northDeg: northOnSheetDeg(b.rotationDeg) }} extent={layout.extent} label={`Foundation plan of ${b.name}`}>
@@ -32,13 +36,23 @@ export function FoundationSheet({ building: b, info, grid }: Props) {
         <PartOutline key={p.massIndex} part={p} pen={pen} />
       ))}
       <SupportMarks supports={b.supports} pen={pen} />
+      <SpacingMarks dims={spacing} pen={pen} />
       <DatumMark at={b.datum} pen={pen} />
-      <g stroke="#000" strokeWidth={pen.hair} fill="none">
-        {layout.supportDims.map((d, i) => (
-          <Dim key={i} dim={d} pen={pen} />
-        ))}
-      </g>
-      {at && notes.length > 0 && <CurveNotes notes={[{ at, anchor: 'start', lines: [...notes, 'Outlines are the parts above, to the outside face of the walls, for reference.'] }]} pen={pen} />}
+      {at && notes.length > 0 && <CurveNotes notes={[{ at, anchor: 'start', lines: [...notes, spacingNote(spacing)] }]} pen={pen} />}
+    </TiledDrawing>
+  )
+}
+
+/** The foundation plan with nothing written on it: the parts' outlines and what they stand on, at true scale. */
+export function CleanFoundationSheet({ building: b, info }: Omit<Props, 'grid'>) {
+  const pen = penSizes(info.scale)
+  const title = 'Clean foundation plan'
+  return (
+    <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={cleanPlanExtent(b, info.scale)} label={`${title} of ${b.name}`} svgClass={CLEAN_SVG_CLASS}>
+      {b.parts.map((p) => (
+        <PartOutline key={p.massIndex} part={p} pen={pen} />
+      ))}
+      <SupportMarks supports={b.supports} pen={pen} />
     </TiledDrawing>
   )
 }

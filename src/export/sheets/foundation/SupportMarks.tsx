@@ -1,5 +1,7 @@
 import type { SheetSupport } from '../types'
 import type { Pen } from '../plan/planLayout'
+import type { Segment } from '../svgDims'
+import { spacingSize, spacingWords, type SpacingDim } from './supportLayout'
 
 /** What stands under the floor is drawn in this grey, under the building's black. */
 const SUPPORT_INK = '#555'
@@ -44,6 +46,38 @@ export function SupportMarks({ supports, pen }: { readonly supports: readonly Sh
     <g fill="none" stroke={SUPPORT_INK} aria-label="Supports">
       {supports.map((s) => (
         <SupportPlan key={s.massIndex} support={s} pen={pen} />
+      ))}
+    </g>
+  )
+}
+
+const seg = (s: Segment) => `M${s.a[0]} ${s.a[1]} L${s.b[0]} ${s.b[1]}`
+/** A figure's white edge, in figure heights, so a line it has to cross does not run through its strokes. */
+const HALO = 0.3
+
+/** One spacing piece: its extension lines, line and ticks; its figure where the layout found clear paper, on a leader when that is off the piece; no figure when there was none. */
+function SpacingPiece({ dim: d, pen }: { readonly dim: SpacingDim; readonly pen: Pen }) {
+  const size = spacingSize(pen)
+  const { x, y, angleDeg } = d.text
+  return (
+    <>
+      <path d={[d.ext1, d.ext2, d.line, ...(d.leader ? [d.leader] : [])].map(seg).join(' ')} />
+      <path d={d.ticks.map(seg).join(' ')} strokeWidth={pen.thin} />
+      {!d.wordless && (
+        <text x={x} y={y} transform={`rotate(${angleDeg} ${x} ${y})`} fontSize={size} textAnchor="middle" dominantBaseline="central" fill="#000" stroke="#fff" strokeWidth={size * HALO} paintOrder="stroke">
+          {spacingWords(d)}
+        </text>
+      )}
+    </>
+  )
+}
+
+/** The supports' spacing chains, every figure at the place supportLayout gave it. */
+export function SpacingMarks({ dims, pen }: { readonly dims: readonly SpacingDim[]; readonly pen: Pen }) {
+  return (
+    <g stroke="#000" strokeWidth={pen.hair} fill="none" aria-label="Post spacing">
+      {dims.map((d, i) => (
+        <SpacingPiece key={i} dim={d} pen={pen} />
       ))}
     </g>
   )

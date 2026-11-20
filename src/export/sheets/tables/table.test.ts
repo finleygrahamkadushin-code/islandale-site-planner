@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, test } from 'vitest'
 import { usePlanStore } from '../../../store/planStore'
 import { elevationView, sheetBuildings } from '../model/model'
 import { SIDES } from '../elevation/sides'
-import { sheetTables, tablesCsv } from './table'
+import { formatStep, sheetTables, stairVerdict, tablesCsv } from './table'
+import type { SheetStair } from '../types'
 
 const store = () => usePlanStore.getState()
 const prow = () => {
@@ -54,6 +55,38 @@ describe('sheetTables', () => {
     expect(corners.rows.filter((r) => r[0] === 'Main').some((r) => r[2] === `0'-0"`)).toBe(true)
     expect(corners.note).toContain("main walls' back-left corner")
     expect(levels.rows.map((r) => r[0])).toEqual(expect.arrayContaining(['Finished grade at the walls, lowest', 'Surveyed grade at the walls, highest', 'Cut floor round the walls']))
+  })
+})
+
+describe('stairs and ramps', () => {
+  const stair = (over: Partial<SheetStair>): SheetStair => ({ kind: 'stair', risers: 4, riserIn: 7, treadIn: 11.5, widthFt: 4, runFt: 3, dropFt: 2, slopeOneIn: null, ok: true, nosings: [], run: [[0, 0], [0, 1]], ...over })
+
+  test('a tread or riser of a foot or more is written in feet and inches, a shorter one in inches', () => {
+    expect(formatStep(60)).toBe(`5'-0"`)
+    expect(formatStep(12)).toBe(`1'-0"`)
+    expect(formatStep(11.95)).toBe(`1'-0"`)
+    expect(formatStep(11)).toBe('11"')
+    expect(formatStep(7.25)).toBe('7 1/4"')
+  })
+
+  test('OK: No names the limit that failed', () => {
+    expect(stairVerdict(stair({}))).toBe('Yes')
+    expect(stairVerdict(stair({ ok: false, treadIn: 9 }))).toBe('No: tread under 11"')
+    expect(stairVerdict(stair({ ok: false, riserIn: 8.5 }))).toBe('No: riser over 7"')
+    expect(stairVerdict(stair({ ok: false, riserIn: 8.5, treadIn: 9 }))).toBe('No: riser over 7", tread under 11"')
+    expect(stairVerdict(stair({ kind: 'ramp', risers: 0, ok: false, slopeOneIn: 8 }))).toBe('No: steeper than 1:12')
+    // nothing in the table's own figures breaks a limit: the bare word, never a made-up reason
+    expect(stairVerdict(stair({ ok: false }))).toBe('No')
+  })
+
+  test('no stair in the default plan prints a bare No or a tread of a foot or more in inches', () => {
+    const objs = store().plan.order.map((id) => store().plan.objects[id])
+    const rows = sheetBuildings(objs, store().site.terrain).flatMap((b) => sheetTables(b).find((t) => t.title === 'Stairs and ramps')?.rows ?? [])
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r[8]).not.toBe('No')
+      expect(r[3]).not.toMatch(/^(1[2-9]|[2-9]\d|\d{3,})( \d\/\d)?"$/)
+    }
   })
 })
 

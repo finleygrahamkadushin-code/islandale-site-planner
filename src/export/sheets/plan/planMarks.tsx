@@ -1,5 +1,6 @@
 import { signedArea } from '../../../buildings/footprint'
 import type { SheetBounds, SheetEllipse, SheetPart, SheetPoint } from '../types'
+import { DATUM_LABEL, DATUM_RADIUS_TEXT, datumLabelAt } from './planDims'
 import { unitTo, type CurveOpeningNote, type Pen } from './planLayout'
 import { arrowHead, outwardNormal, type Pt } from '../svgDims'
 
@@ -48,8 +49,9 @@ function Label({ at, along, size, text, back }: { readonly at: Pt; readonly alon
 
 /** The point the coordinate tables measure from: a cross in a circle, labelled, with short x and z arrows. */
 export function DatumMark({ at, pen }: { readonly at: Pt; readonly pen: Pen }) {
-  const r = pen.text * 0.7
+  const r = pen.text * DATUM_RADIUS_TEXT
   const [x, z] = at
+  const [lx, lz] = datumLabelAt(at, pen.text)
   const ax: Pt = [x + DATUM_ARROW_FT, z]
   const az: Pt = [x, z + DATUM_ARROW_FT]
   return (
@@ -67,8 +69,8 @@ export function DatumMark({ at, pen }: { readonly at: Pt; readonly pen: Pen }) {
         <text x={az[0]} y={az[1] + pen.small * 0.9} textAnchor="middle">
           z
         </text>
-        <text x={x - r * 1.6} y={z - r * 1.6} textAnchor="end" fontWeight={700}>
-          DATUM 0,0
+        <text x={lx} y={lz} textAnchor="end" fontWeight={700}>
+          {DATUM_LABEL}
         </text>
       </g>
     </g>

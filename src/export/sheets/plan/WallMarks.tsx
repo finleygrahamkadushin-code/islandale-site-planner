@@ -102,7 +102,7 @@ export function WallBand({ part, pen }: { readonly part: SheetPart; readonly pen
  * cut-out's faces dashed across the hole, and a door's leaf swung in from
  * the inside face.
  */
-export function Opening({ opening: o, part, pen }: { readonly opening: SheetOpening; readonly part: SheetPart; readonly pen: Pen }) {
+export function Opening({ opening: o, part, pen, tag = true }: { readonly opening: SheetOpening; readonly part: SheetPart; readonly pen: Pen; readonly tag?: boolean }) {
   const line = (p: Pt, q: Pt, w: number, d?: string, key?: string) => <line key={key} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#000" strokeWidth={w} strokeDasharray={d} />
   const dash = `${pen.small * 0.5} ${pen.small * 0.4}`
   const middle = o.pieces[Math.floor(o.pieces.length / 2)]
@@ -134,10 +134,14 @@ export function Opening({ opening: o, part, pen }: { readonly opening: SheetOpen
         )
       })}
       {o.kind === 'door' && o.pieces.length === 1 && <Swing opening={o} inward={[-tagN[0], -tagN[1]]} pen={pen} />}
-      <circle cx={tagAt[0]} cy={tagAt[1]} r={pen.text * 0.85} fill="#fff" stroke="#000" strokeWidth={pen.hair} />
-      <text x={tagAt[0]} y={tagAt[1]} fontSize={pen.small} textAnchor="middle" dominantBaseline="central">
-        {o.tag}
-      </text>
+      {tag && (
+        <>
+          <circle cx={tagAt[0]} cy={tagAt[1]} r={pen.text * 0.85} fill="#fff" stroke="#000" strokeWidth={pen.hair} />
+          <text x={tagAt[0]} y={tagAt[1]} fontSize={pen.small} textAnchor="middle" dominantBaseline="central">
+            {o.tag}
+          </text>
+        </>
+      )}
     </g>
   )
 }

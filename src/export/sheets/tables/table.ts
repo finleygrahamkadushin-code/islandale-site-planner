@@ -4,7 +4,8 @@ import { formatArch, formatArea, formatDeg, formatInches } from '../format'
 import { partLevels } from '../model/levels'
 import { roomTables } from './roomTables'
 import { supportsTable } from './supportTables'
-import type { SheetBuilding, SheetPart } from '../types'
+import type { SheetBuilding, SheetPart, SheetStair } from '../types'
+import { MAX_RISER_IN, TREAD_IN } from '../../../buildings/stairs/stairs'
 import { OPENING_KIND_NAME } from '../../../buildings/openings/openingLayout'
 
 /** One table of the measurement sheet: every value already written as it is printed. */
@@ -129,6 +130,32 @@ function openingsTable(b: SheetBuilding): SheetTable {
   }
 }
 
+/** A ramp is no steeper than 1 in this many. */
+const RAMP_RUN_PER_RISE = 12
+/** Slack on a limit, inches: a riser or tread worked out in metres and sitting on its limit passes. */
+const LIMIT_SLACK_IN = 1e-6
+
+/** A riser or tread: inches below a foot (7 1/4"), feet and inches from a foot up (5'-0") as every other length is written. */
+export function formatStep(inches: number): string {
+  const foot = Math.round(Math.abs(inches) * 4) >= IN_PER_FT * 4
+  return foot ? formatArch(inches / IN_PER_FT) : formatInches(inches)
+}
+
+/** Which limits a stair or ramp breaks, from the figures its row prints; none when they all pass. */
+function stairFaults(s: SheetStair): string[] {
+  if (s.kind === 'ramp') return s.slopeOneIn !== null && s.slopeOneIn < RAMP_RUN_PER_RISE - LIMIT_SLACK_IN ? [`steeper than 1:${RAMP_RUN_PER_RISE}`] : []
+  const riser = s.riserIn > MAX_RISER_IN + LIMIT_SLACK_IN ? [`riser over ${formatInches(MAX_RISER_IN)}`] : []
+  const tread = s.treadIn < TREAD_IN - LIMIT_SLACK_IN ? [`tread under ${formatInches(TREAD_IN)}`] : []
+  return [...riser, ...tread]
+}
+
+/** The OK column: Yes, or No with the limit that failed (No alone when the row's own figures break none). */
+export function stairVerdict(s: SheetStair): string {
+  if (s.ok) return 'Yes'
+  const faults = stairFaults(s)
+  return faults.length ? `No: ${faults.join(', ')}` : 'No'
+}
+
 function stairsTable(b: SheetBuilding): SheetTable {
   return {
     title: 'Stairs and ramps',
@@ -141,13 +168,13 @@ function stairsTable(b: SheetBuilding): SheetTable {
         [
           p.name,
           stair ? String(s.risers) : NONE,
-          stair ? formatInches(s.riserIn) : NONE,
-          stair ? formatInches(s.treadIn) : NONE,
+          stair ? formatStep(s.riserIn) : NONE,
+          stair ? formatStep(s.treadIn) : NONE,
           formatArch(s.widthFt),
           formatArch(s.runFt),
           formatArch(s.dropFt),
           s.slopeOneIn !== null ? `1:${s.slopeOneIn.toFixed(1)}` : NONE,
-          s.ok ? 'Yes' : 'No',
+          stairVerdict(s),
         ],
       ]
     }),
