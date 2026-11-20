@@ -9,16 +9,19 @@ import type { Terrain } from '../../../site/types'
 import type { PlanObject } from '../../../store/types'
 import { TiledDrawing, type Extent, type SheetInfo } from '../Page'
 import { Dim, penSizes, type Pen } from '../plan/PlanSheet'
-import { dimBounds, dimensionLine, sideOf, spanAlong, spreadApart, staggerLevel, textWidthFt, type DimLine, type Placed, type Pt } from '../svgDims'
+import { dimBounds, dimensionLine, ptToFt, spreadApart, staggerLevel, textWidthFt, type DimLine, type DimOpts, type Placed, type Pt } from '../svgDims'
 
 /** Image resolution: 200 dots per paper inch. */
 const DPI = 200
 const LEVEL_RUN_FT = 1.5
-const CHAIN_FT = 2
-const OVERALL_FT = 4
-const BELOW_FT = 2.5
-const STAGGER_FT = 1.5
+/** From the drawing to its first dimension line, paper points. */
+const FIRST_PT = 12
+/** The hatched ground runs at least this far under the lowest grade, feet. */
+const GROUND_FT = 1.5
+/** Nothing shorter than this is dimensioned, feet (1/4 in). */
+const MIN_DIM_FT = 1 / 48
 const MARGIN_FT = 1.5
+const SURVEY_TEXT = 'surveyed grade'
 
 interface Props {
   readonly building: SheetBuilding
@@ -118,8 +121,7 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
   const hatch = `hatch-${useId().replace(/[^\w-]/g, '')}`
   const status = !shot || (!shot.image && !shot.error) ? 'Drawing elevation…' : shot.error ? `Could not draw the elevation: ${shot.error}` : null
   const grade = view.grade.map(([u, y]) => `${u},${-y}`).join(' ')
-  const survey = surveyDiffers(view)
-  const ground = view.grade.length > 1 ? `${grade} ${view.grade[view.grade.length - 1][0]},${layout.base + 1.5} ${view.grade[0][0]},${layout.base + 1.5}` : ''
+  const ground = view.grade.length > 1 ? `${grade} ${view.grade[view.grade.length - 1][0]},${layout.groundBottom} ${view.grade[0][0]},${layout.groundBottom}` : ''
   return (
     <>
       {shot?.error && (
@@ -140,7 +142,7 @@ function SideSheet({ building: b, view, shot, info, onRetry }: SideProps) {
           </text>
         )}
         {ground && <polygon points={ground} fill={`url(#${hatch})`} stroke="none" />}
-        {survey && <SurveyLine view={view} pen={pen} />}
+        {layout.surveyLabel && <SurveyLine view={view} label={layout.surveyLabel} pen={pen} />}
         {grade && <polyline points={grade} fill="none" stroke="#000" strokeWidth={pen.heavy} />}
         {view.levels.map((l, i) => {
           const end = view.uMax + LEVEL_RUN_FT
@@ -171,65 +173,197 @@ const SURVEY_OFF_FT = 1 / 12
 /** Whether the earthworks move the ground along this view enough to draw the survey too. */
 export const surveyDiffers = (view: ElevationView): boolean => view.survey.some(([, y], i) => Math.abs(y - (view.grade[i]?.[1] ?? y)) > SURVEY_OFF_FT)
 
-/** The surveyed ground, dashed and grey, under (or over) the finished grade, named where it stands furthest off it. */
-function SurveyLine({ view, pen }: { readonly view: ElevationView; readonly pen: Pen }) {
-  const off = view.survey.map(([, y], i) => y - (view.grade[i]?.[1] ?? y))
-  const k = off.reduce((best, d, i) => (Math.abs(d) > Math.abs(off[best]) ? i : best), 0)
-  const [u, y] = view.survey[k]
+/** The surveyed ground, dashed and grey, under (or over) the finished grade, named in the ground below with a leader to where it stands furthest off. */
+function SurveyLine({ view, label, pen }: { readonly view: ElevationView; readonly label: SurveyLabel; readonly pen: Pen }) {
+  const [[fx, fy], [tx, ty]] = label.leader
   return (
     <g stroke="#555" fill="none">
       <polyline points={view.survey.map(([su, sy]) => `${su},${-sy}`).join(' ')} strokeWidth={pen.thin} strokeDasharray={`${pen.text} ${pen.small * 0.6}`} />
-      <text x={u} y={-y + (off[k] > 0 ? -pen.small * 0.6 : pen.small * 1.2)} fontSize={pen.small} textAnchor="middle" fill="#555" stroke="none">
-        surveyed grade
+      <line x1={fx} y1={fy} x2={tx} y2={ty} strokeWidth={pen.hair} />
+      <circle cx={fx} cy={fy} r={pen.thin * 2} fill="#555" stroke="none" />
+      <text x={label.x} y={label.y} fontSize={pen.small} textAnchor="middle" dominantBaseline="central" fill="#555" stroke="#fff" strokeWidth={pen.small * 0.3} paintOrder="stroke">
+        {label.text}
       </text>
     </g>
   )
 }
 
+/** The gaps between the drawing and its strings of dimensions, as paper sizes in drawing feet, so they print the same at every scale. */
+function gapSizes(scale: Scale, pen: Pen) {
+  return {
+    /** From the drawing to the first dimension line. */
+    first: ptToFt(FIRST_PT, scale),
+    /** Between the columns of stepped-out height texts, which read up the page. */
+    column: pen.text * 1.3,
+    /** Between rows of width dimensions: a line, its text under it, and clear paper. */
+    row: pen.text * 2,
+    /** Depth of the hatched ground under the lowest grade; deep enough to name the surveyed grade in. */
+    ground: Math.max(GROUND_FT, pen.small * 2),
+  }
+}
+
+type Gaps = ReturnType<typeof gapSizes>
+type Opts = Required<Pick<DimOpts, 'gapFt' | 'overshootFt' | 'tickFt' | 'textOffsetFt'>>
+
+const clamp = (v: number, lo: number, hi: number): number => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)))
+/** A dimension with its text slid along its line to a new centre. */
+const textAt = (d: DimLine, x: number, y: number): DimLine => ({ ...d, text: { ...d.text, x, y } })
+
+/**
+ * The chain of heights up the left, then the overall height. Each text takes the nearest column its length leaves
+ * free; one longer than its own step starts a column out, clear of the ticks, and stays between the top and bottom
+ * lines. The overall line stands outside them all.
+ */
+function heightDims(ys: readonly number[], low: number, high: number, left: number, pen: Pen, opts: Opts, gaps: Gaps): DimLine[] {
+  const normal: Pt = [-1, 0]
+  const steps = ys.slice(1).map((y, i) => [ys[i], y] as const).filter(([a, c]) => c - a >= MIN_DIM_FT)
+  const pad = pen.text * 0.25
+  const texts = steps.map(([a, c]) => {
+    const half = textWidthFt(formatArch(c - a), pen.text) / 2
+    return { half, at: clamp(-(a + c) / 2, -high + half + pad, -low - half - pad), tight: c - a < half * 2.2 }
+  })
+  const placed = texts.reduce<Placed[]>((out, { half, at, tight }) => {
+    const span = { side: 'left', lo: at - half, hi: at + half } as const
+    const kept: Placed[] = tight ? [...out, { ...span, level: 0 }] : out
+    return [...out, { ...span, level: staggerLevel(kept, 'left', span.lo, span.hi, pad) }]
+  }, [])
+  const chain = steps.map(([a, c], i) => {
+    const d = dimensionLine([left, -a], [left, -c], gaps.first, { ...opts, textOffsetFt: opts.textOffsetFt + gaps.column * placed[i].level, normal })
+    return textAt(d, d.text.x, texts[i].at)
+  })
+  const columns = Math.max(0, ...placed.map((p) => p.level))
+  const overallAt = gaps.first + opts.textOffsetFt + gaps.column * columns + pen.text
+  return [...chain, dimensionLine([left, -low], [left, -high], overallAt, { ...opts, normal })]
+}
+
+/** One width to dimension: its span along the view, and the centre and half length of its text. */
+interface Width {
+  readonly u0: number
+  readonly u1: number
+  readonly at: number
+  readonly half: number
+}
+
+/** The parts' widths along the view, shortest first, less any too short to measure, given twice, or as wide as the whole view. */
+function widthsOf(view: ElevationView, pen: Pen): Width[] {
+  const same = (a: readonly [number, number], c: readonly [number, number]) => Math.abs(a[0] - c[0]) < MIN_DIM_FT && Math.abs(a[1] - c[1]) < MIN_DIM_FT
+  const whole = [view.uMin, view.uMax] as const
+  return view.spans
+    .map((s) => [Math.min(s.u0, s.u1), Math.max(s.u0, s.u1)] as const)
+    .filter((s, i, all) => s[1] - s[0] >= MIN_DIM_FT && !same(s, whole) && all.findIndex((o) => same(o, s)) === i)
+    .sort((a, c) => a[1] - a[0] - (c[1] - c[0]))
+    .map(([u0, u1]) => {
+      const half = textWidthFt(formatArch(u1 - u0), pen.text) / 2
+      return { u0, u1, half, at: clamp((u0 + u1) / 2, view.uMin + half + pen.text * 0.5, view.uMax - half - pen.text * 0.5) }
+    })
+}
+
+/** Whether a's extension lines, dropping from the drawing, would run through c's text: then a's row must be the nearer the drawing. */
+const cuts = (a: Width, c: Width, pad: number): boolean => [a.u0, a.u1].some((u) => u > c.at - c.half - pad && u < c.at + c.half + pad)
+/** Whether two widths' lines or texts would meet in one row. */
+const meet = (a: Width, c: Width, pad: number): boolean => Math.min(a.u0, a.at - a.half) < Math.max(c.u1, c.at + c.half) + pad && Math.min(c.u0, c.at - c.half) < Math.max(a.u1, a.at + a.half) + pad
+
+/**
+ * The row of each width, 0 nearest the drawing. A width whose extension lines would cut another's text goes first and
+ * nearer the drawing; then each takes the nearest row where it meets nothing.
+ */
+function widthRows(widths: readonly Width[], pad: number, rows: ReadonlyMap<number, number> = new Map()): ReadonlyMap<number, number> {
+  const waiting = widths.map((_, i) => i).filter((i) => !rows.has(i))
+  if (!waiting.length) return rows
+  const next = waiting.find((i) => !waiting.some((j) => j !== i && cuts(widths[j], widths[i], pad))) ?? waiting[0]
+  const w = widths[next]
+  const done = [...rows]
+  const nearer = Math.max(-1, ...done.filter(([j]) => cuts(widths[j], w, pad)).map(([, r]) => r))
+  const taken = new Set(done.filter(([j]) => meet(widths[j], w, pad)).map(([, r]) => r))
+  const free = Array.from({ length: taken.size + 1 }, (_, k) => nearer + 1 + k).find((r) => !taken.has(r)) ?? nearer + 1
+  return widthRows(widths, pad, new Map([...done, [next, free]]))
+}
+
+/**
+ * A width's text slid along its own line, as little as may be, off the extension lines of the widths in rows further
+ * out, which drop through its row; left where it is when its span has no clear place for it.
+ */
+function clearOfLines(w: Width, row: number, widths: readonly Width[], rows: ReadonlyMap<number, number>, pad: number): Width {
+  const lines = widths.filter((_, j) => (rows.get(j) ?? 0) > row).flatMap((o) => [o.u0, o.u1])
+  const clear = (at: number) => lines.every((u) => u <= at - w.half - pad || u >= at + w.half + pad)
+  if (clear(w.at)) return w
+  const inSpan = (at: number) => at - w.half >= w.u0 && at + w.half <= w.u1
+  const places = lines.flatMap((u) => [u - w.half - pad, u + w.half + pad]).filter((at) => inSpan(at) && clear(at))
+  return places.length ? { ...w, at: places.reduce((best, at) => (Math.abs(at - w.at) < Math.abs(best - w.at) ? at : best)) } : w
+}
+
+/** The rows of widths under the ground, then the overall width. */
+function widthDims(view: ElevationView, top: number, pen: Pen, opts: Opts, gaps: Gaps): DimLine[] {
+  const normal: Pt = [0, 1]
+  const pad = pen.text * 0.5
+  const spans = widthsOf(view, pen)
+  const rows = widthRows(spans, pad)
+  const widths = spans.map((w, i) => clearOfLines(w, rows.get(i) ?? 0, spans, rows, pad))
+  const count = Math.max(-1, ...rows.values()) + 1
+  return [
+    ...widths.map((w, i) => {
+      const d = dimensionLine([w.u0, top], [w.u1, top], gaps.first + gaps.row * (rows.get(i) ?? 0), { ...opts, normal })
+      return textAt(d, w.at, d.text.y)
+    }),
+    dimensionLine([view.uMin, top], [view.uMax, top], gaps.first + gaps.row * count, { ...opts, normal }),
+  ]
+}
+
+export interface SurveyLabel {
+  readonly text: string
+  /** Centre of the text, in (u, -y) feet. */
+  readonly x: number
+  readonly y: number
+  /** From the surveyed line, where it stands furthest off the finished grade, down to the text. */
+  readonly leader: readonly [Pt, Pt]
+}
+
+/** Where the surveyed grade is named: in the ground under the lowest line, inside the view's width, with a leader up to the surveyed line. */
+function surveyLabelAt(view: ElevationView, base: number, pen: Pen): SurveyLabel | null {
+  if (!surveyDiffers(view)) return null
+  const off = view.survey.map(([, y], i) => Math.abs(y - (view.grade[i]?.[1] ?? y)))
+  const [u, y] = view.survey[off.indexOf(Math.max(...off))]
+  const half = textWidthFt(SURVEY_TEXT, pen.small) / 2
+  const mid = (view.uMin + view.uMax) / 2
+  const x = view.uMax - view.uMin > half * 2 ? Math.min(view.uMax - half, Math.max(view.uMin + half, u)) : mid
+  const at = base + pen.small
+  const leadX = Math.min(x + half, Math.max(x - half, u))
+  return { text: SURVEY_TEXT, x, y: at, leader: [[u, -y], [leadX, at - pen.small * 0.6]] }
+}
+
+export interface ElevationLayout {
+  readonly dims: DimLine[]
+  readonly extent: Extent
+  /** The lowest grade, as drawn (y down), and the bottom of the hatched ground under it. */
+  readonly base: number
+  readonly groundBottom: number
+  readonly labelYs: number[]
+  readonly surveyLabel: SurveyLabel | null
+}
 
 /** Dimension lines and the drawing's edges for one elevation, in (u, -y) feet. */
-export function elevationLayout(b: SheetBuilding, view: ElevationView, image: ElevationImage | undefined, scale: Scale): { dims: DimLine[]; extent: Extent; base: number; labelYs: number[] } {
+export function elevationLayout(b: SheetBuilding, view: ElevationView, image: ElevationImage | undefined, scale: Scale): ElevationLayout {
   const pen = penSizes(scale)
-  const opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
+  const gaps = gapSizes(scale, pen)
+  const opts: Opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
   const ys = view.levels.map((l) => l.yFt)
   const gradeYs = [...view.grade, ...view.survey].map(([, y]) => y)
   const low = Math.min(b.levels.gradeLowFt, ...gradeYs, ...ys)
   const high = Math.max(b.levels.topFt, ...ys, ...gradeYs)
   const left = view.uMin - LEVEL_RUN_FT
-  const dims: DimLine[] = []
-  let crowded = 0
-  for (let i = 1; i < ys.length; i++) {
-    const rise = ys[i] - ys[i - 1]
-    if (rise < 1 / 48) continue
-    // a step too short for its text sets the text further out, in turn, so neighbours do not overprint
-    crowded = rise < textWidthFt(formatArch(rise), pen.text) * 1.1 ? crowded + 1 : 0
-    const textOffsetFt = opts.textOffsetFt + pen.text * 1.2 * (crowded % 3)
-    dims.push(dimensionLine([left, -ys[i - 1]], [left, -ys[i]], CHAIN_FT, { ...opts, textOffsetFt, normal: [-1, 0] }))
-  }
-  dims.push(dimensionLine([left, -low], [left, -high], CHAIN_FT + OVERALL_FT, { ...opts, normal: [-1, 0] }))
-
   const base = -low
-  const placed: Placed[] = []
-  for (const s of view.spans) {
-    const a: Pt = [Math.min(s.u0, s.u1), base]
-    const c: Pt = [Math.max(s.u0, s.u1), base]
-    if (c[0] - a[0] < 1 / 48) continue
-    const side = sideOf([0, 1])
-    const [lo, hi] = spanAlong(side, a, c)
-    const level = staggerLevel(placed, side, lo, hi, 0.25)
-    placed.push({ side, lo, hi, level })
-    dims.push(dimensionLine(a, c, BELOW_FT + STAGGER_FT * level, { ...opts, normal: [0, 1] }))
-  }
-  const deepest = Math.max(0, ...placed.map((p) => p.level))
-  dims.push(dimensionLine([view.uMin, base], [view.uMax, base], BELOW_FT + STAGGER_FT * (deepest + 1.5), { ...opts, normal: [0, 1] }))
+  const groundBottom = base + gaps.ground
+  const dims = [...heightDims(ys, low, high, left, pen, opts, gaps), ...widthDims(view, groundBottom, pen, opts, gaps)]
 
   const labelYs = spreadApart(ys, pen.small * 1.25)
   const labelW = Math.max(0, ...view.levels.map((l) => textWidthFt(levelText(l.label, l.yFt, b.levels.floorNavdFt), pen.small)))
   const reach = dimBounds(dims)
-  const xs = [reach?.minx ?? left, view.uMax + LEVEL_RUN_FT + pen.small * 1.9 + labelW, image?.uMin ?? view.uMin, image?.uMax ?? view.uMax]
+  const halfText = pen.text / 2
+  const xs = [(reach?.minx ?? left) - halfText, view.uMax + LEVEL_RUN_FT + pen.small * 1.9 + labelW, image?.uMin ?? view.uMin, image?.uMax ?? view.uMax]
   const yTop = Math.min(-high, -Math.max(high, ...labelYs) - pen.small, image ? -image.yMax : -high, reach?.miny ?? -high)
-  const yBottom = Math.max(base + 1.5, reach?.maxy ?? base, image ? -image.yMin : base)
+  const yBottom = Math.max(groundBottom, (reach?.maxy ?? base) + halfText, image ? -image.yMin : base)
   const x0 = Math.floor(Math.min(...xs) - MARGIN_FT)
   const y0 = Math.floor(yTop - MARGIN_FT)
-  return { dims, base, labelYs, extent: { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(yBottom + MARGIN_FT) - y0 } }
+  const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(yBottom + MARGIN_FT) - y0 }
+  return { dims, base, groundBottom, labelYs, surveyLabel: surveyLabelAt(view, base, pen), extent }
 }

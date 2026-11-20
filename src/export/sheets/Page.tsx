@@ -24,13 +24,15 @@ interface PageProps extends PageInfo {
   readonly tileLabel?: string
   /** Grow past one sheet instead of clipping (tables that run on); the printer breaks it. */
   readonly flow?: boolean
+  /** A page of tables, not a drawing: the strip says so and leaves the scale bar off (the 1 inch check stays). */
+  readonly notToScale?: boolean
   readonly children: ReactNode
 }
 
 const TODAY = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 
 /** One printed sheet at its true size: margins, the drawing area, and the title strip. */
-export function Page({ paper, scale, planName, buildingName, sheetTitle, northDeg = null, tileLabel, flow, children }: PageProps) {
+export function Page({ paper, scale, planName, buildingName, sheetTitle, northDeg = null, tileLabel, flow, notToScale = false, children }: PageProps) {
   const p = PAPERS[paper]
   const size = flow ? { width: `${p.w}in`, minHeight: `${p.h}in` } : { width: `${p.w}in`, height: `${p.h}in` }
   return (
@@ -45,7 +47,7 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
         </div>
         <div className="sheet-title-facts">
           {tileLabel && <span>{tileLabel}</span>}
-          <span>Scale {scaleLabel(scale)}</span>
+          <span>{notToScale ? 'Not to scale' : `Scale ${scaleLabel(scale)}`}</span>
           <span>{TODAY}</span>
           <span>Islandale Site Planner</span>
         </div>
@@ -56,7 +58,7 @@ export function Page({ paper, scale, planName, buildingName, sheetTitle, northDe
               <span>1 in</span>
             </div>
           </Tip>
-          <ScaleBar scale={scale} />
+          {!notToScale && <ScaleBar scale={scale} />}
         </div>
         {northDeg !== null && <NorthArrow deg={northDeg} />}
       </footer>

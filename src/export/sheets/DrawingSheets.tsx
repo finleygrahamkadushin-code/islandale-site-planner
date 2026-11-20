@@ -260,7 +260,9 @@ export function DrawingSheets({ onClose, opener }: Props) {
         </button>
         {siteBuild && <SiteFit build={siteBuild.build} notes={siteBuild.notes} paper={paper} scale={siteScale} notesTooTall={notesTooTall} />}
         <PaperFit buildings={shown} views={elevationViews} paper={paper} planScaleOf={planScaleOf} elevationScaleOf={elevationScaleOf} fitShow={fitShow} showPlan={show.plan} showElevations={show.elevations} />
-        <p className="sheets-hint">Print at 100% (Actual size), not Fit to page. Check the 1 inch bar on each sheet with a ruler.</p>
+        <p className="sheets-hint">
+          Print from Chrome or Edge on {p.label} paper, landscape, at 100% (Actual size), not Fit to page, with margins None and headers and footers off. Check the 1 inch bar on each sheet with a ruler.
+        </p>
       </div>
       <div className="sheets-pages">
         {siteFailed && (

@@ -5,9 +5,12 @@
  */
 import { formatArch, formatArea } from '../format'
 import type { SheetBuilding, SheetPartition, SheetRoom } from '../types'
-import { arcTextAt, type ArcNote, type CurveOpeningNote, type Pen, type PlanLayout } from './planLayout'
-import { openingTagAt, thicknessText, thicknessTextAt } from './planWalls'
-import { insidePolygon, textWidthFt, type DimLine, type Pt } from '../svgDims'
+import { datumLabelBox, dimTextBox, overlaps, type Box } from './planDims'
+import { arcNoteBox, curveNoteBox, openingTagBoxes, type Pen, type PlanLayout } from './planLayout'
+import { thicknessText, thicknessTextAt } from './planWalls'
+import { insidePolygon, textWidthFt, type Pt } from '../svgDims'
+
+export { dimTextBox, type Box } from './planDims'
 
 /** Line spacing of a room's words, in text heights. */
 const LEADING = 1.25
@@ -39,48 +42,7 @@ export function roomLines(room: SheetRoom, pen: Pen): RoomLine[] {
   return [fits([name]) ? name : { ...name, size: pen.tiny }]
 }
 
-/** An axis-aligned box on the plan, feet. */
-export interface Box {
-  readonly x0: number
-  readonly y0: number
-  readonly x1: number
-  readonly y1: number
-}
-
-const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1
-
-/** The box a block of text `halfW` by `halfH` takes centred on a point, turned `angleDeg`. */
-function turnedBox(at: Pt, halfW: number, halfH: number, angleDeg: number): Box {
-  const r = (angleDeg * Math.PI) / 180
-  const ex = Math.abs(Math.cos(r)) * halfW + Math.abs(Math.sin(r)) * halfH
-  const ey = Math.abs(Math.sin(r)) * halfW + Math.abs(Math.cos(r)) * halfH
-  return { x0: at[0] - ex, y0: at[1] - ey, x1: at[0] + ex, y1: at[1] + ey }
-}
-
-/** The box a dimension's figure takes, turned with it. */
-export function dimTextBox(d: DimLine, label: string | undefined, size: number): Box {
-  const text = label ? `${label} ${formatArch(d.text.value)}` : formatArch(d.text.value)
-  return turnedBox([d.text.x, d.text.y], textWidthFt(text, size) / 2, size / 2, d.text.angleDeg)
-}
-
-/** An arc's note (its radii, length and turn, about three lines set below its leader), turned with it. */
-function arcNoteBox(arc: ArcNote, pen: Pen): Box {
-  const { at, angleDeg } = arcTextAt(arc)
-  const r = (angleDeg * Math.PI) / 180
-  // the lines run from just above the leader to about two and a half lines below it
-  const down = pen.text * 0.85
-  const centre: Pt = [at[0] - Math.sin(r) * down, at[1] + Math.cos(r) * down]
-  return turnedBox(centre, textWidthFt(`R ${formatArch(arc.radiusFt)} outside`, pen.text) / 2, pen.text * 1.7, angleDeg)
-}
-
 const around = (at: Pt, halfW: number, halfH: number): Box => ({ x0: at[0] - halfW, y0: at[1] - halfH, x1: at[0] + halfW, y1: at[1] + halfH })
-
-/** A curved wall's opening note, set from its point to one side. */
-function curveNoteBox(n: CurveOpeningNote, size: number): Box {
-  const w = Math.max(...n.lines.map((l) => textWidthFt(l, size)))
-  const x0 = n.anchor === 'start' ? n.at[0] : n.at[0] - w
-  return { x0, y0: n.at[1] - size, x1: x0 + w, y1: n.at[1] + size * (n.lines.length - 0.5) }
-}
 
 /** Every figure of the plan a room's words could land on inside the walls: the dimensions', arcs' and curved openings' notes, the openings' tags and the walls' thickness notes. */
 export function planFigures(b: SheetBuilding, layout: PlanLayout, pen: Pen): Box[] {
@@ -88,10 +50,13 @@ export function planFigures(b: SheetBuilding, layout: PlanLayout, pen: Pen): Box
     ...[...layout.dims, ...layout.supportDims].map((d) => dimTextBox(d, d.label, pen.text)),
     ...layout.arcs.map((a) => arcNoteBox(a, pen)),
     ...layout.notes.map((n) => curveNoteBox(n, pen.small)),
-    ...b.parts.flatMap((p) => p.openings.map((o) => around(openingTagAt(o, p, pen.text), pen.text * 0.85, pen.text * 0.85))),
+    ...openingTagBoxes(b, pen),
     ...layout.thickness.map((m) => around(thicknessTextAt(m, pen.text, pen.overshoot), textWidthFt(`${thicknessText(m.thicknessFt)} glass wall`, pen.small) / 2, pen.small / 2)),
   ]
 }
+
+/** What a part's name must not land on: the plan's figures and the datum's label. */
+export const partLabelsTaken = (b: SheetBuilding, figures: readonly Box[], pen: Pen): Box[] => [...figures, datumLabelBox(b.datum, pen.text, pen.small)]
 
 /** The box a room's words take centred on a point. */
 function blockBox(at: Pt, lines: readonly RoomLine[]): Box {

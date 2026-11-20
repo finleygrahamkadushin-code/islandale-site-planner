@@ -7,9 +7,9 @@ import { formatArch } from '../format'
 import { boundsOf } from '../model/model'
 import type { AnyScale, Scale, SheetBounds, SheetBuilding, SheetFloor } from '../types'
 import type { Extent } from '../Page'
-import { arcPoints, openingStops, pointAlong } from './planDims'
-import { earthNotes, earthPlan, type EarthPlan } from './earthLayout'
-import { thicknessMarks, thicknessText, wallNotes, type ThicknessMark } from './planWalls'
+import { arcPoints, clearFigures, datumLabelBox, openingStops, pointAlong, sameRow, turnedBox, type Box, type DimRow } from './planDims'
+import { earthNotes, earthPlan, type EarthLabel, type EarthPlan } from './earthLayout'
+import { openingTagAt, thicknessMarks, thicknessText, wallNotes, type ThicknessMark } from './planWalls'
 import { supportDims, supportExtentPoints } from '../foundation/supportLayout'
 import { arcMidpoint, dimBounds, dimensionLine, normalAwayFrom, outwardNormal, ptToFt, sideOf, spanAlong, staggerLevel, textWidthFt, uprightAngle, type DimLine, type Placed, type Pt } from '../svgDims'
 
@@ -17,6 +17,10 @@ const FIRST_OFFSET_FT = 2.5
 const STAGGER_FT = 1.5
 const OVERALL_GAP_FT = 2
 const MARGIN_FT = 1.5
+/** The same three on paper, in text heights: at scales under 1/8" a foot is too small to hold a line of figures, so the larger of the two is used. */
+const FIRST_OFFSET_TEXT = 2
+const STAGGER_TEXT = 1.8
+const OVERALL_GAP_TEXT = 2
 /** Arcs whose centre lies this far beyond the building get a short leader instead of one from the centre. */
 const FAR_CENTRE_FT = 10
 /** How far outside a curved wall an opening's note sits, feet. */
@@ -43,6 +47,15 @@ export function penSizes(scale: AnyScale) {
 }
 
 export type Pen = ReturnType<typeof penSizes>
+
+/** How far the dimension rows stand off the drawing and each other, feet: never less than a line of figures needs on paper. */
+export const dimSpacing = (pen: Pick<Pen, 'text'>) => ({
+  first: Math.max(FIRST_OFFSET_FT, pen.text * FIRST_OFFSET_TEXT),
+  stagger: Math.max(STAGGER_FT, pen.text * STAGGER_TEXT),
+  overallGap: Math.max(OVERALL_GAP_FT, pen.text * OVERALL_GAP_TEXT),
+})
+
+type Spacing = ReturnType<typeof dimSpacing>
 
 /** A dimension with an optional word before its length ("Roof overall"). */
 export type LabelledDim = DimLine & { readonly label?: string }
@@ -78,14 +91,24 @@ export interface PlanLayout {
   readonly earth: EarthPlan | null
   /** The supports' spacing chains, one per distinct row and column of posts; empty when the plan leaves the supports out. */
   readonly supportDims: LabelledDim[]
+  /** How many dimensions were left off because their figures would overprint another mark at this scale. */
+  readonly omitted: number
   readonly extent: Extent
 }
 
 type Opts = Parameters<typeof dimensionLine>[3]
 
-/** Every straight edge, chained through the opening pieces on it, then its length; a curve's chords are located by its arcs instead. */
-function edgeDims(b: SheetBuilding, opts: Opts, placed: Placed[]): DimLine[] {
+/**
+ * Every straight edge, chained through the opening pieces on it, then its
+ * length; a curve's chords are located by its arcs instead. An edge that
+ * runs the same span of the same side at the same length as one already
+ * dimensioned (a deck's edge along a wall's) is not given again.
+ */
+function edgeDims(b: SheetBuilding, opts: Opts, space: Spacing): DimLine[] {
+  const placed: Placed[] = []
+  const rows: DimRow[] = []
   const dims: DimLine[] = []
+  const at = (level: number) => space.first + space.stagger * level
   for (const part of b.parts) {
     const area = signedArea(part.outline)
     for (const e of part.edges) {
@@ -93,17 +116,20 @@ function edgeDims(b: SheetBuilding, opts: Opts, placed: Placed[]): DimLine[] {
       const normal = outwardNormal(area, e.a, e.b)
       const side = sideOf(normal)
       const [lo, hi] = spanAlong(side, e.a, e.b)
+      const row: DimRow = { side, lo, hi, value: e.lengthFt }
       const stops = openingStops(e.a, e.b, part.openings)
       if (stops.length) {
         const chain = staggerLevel(placed, side, lo, hi, 0.5)
         placed.push({ side, lo, hi, level: chain })
         stops.slice(1).forEach((t, i) => {
-          dims.push(dimensionLine(pointAlong(e.a, e.b, stops[i]), pointAlong(e.a, e.b, t), FIRST_OFFSET_FT + STAGGER_FT * chain, { ...opts, normal }))
+          dims.push(dimensionLine(pointAlong(e.a, e.b, stops[i]), pointAlong(e.a, e.b, t), at(chain), { ...opts, normal }))
         })
       }
+      if (rows.some((r) => sameRow(r, row))) continue
+      rows.push(row)
       const level = staggerLevel(placed, side, lo, hi, 0.5)
       placed.push({ side, lo, hi, level })
-      dims.push(dimensionLine(e.a, e.b, FIRST_OFFSET_FT + STAGGER_FT * level, { ...opts, normal }))
+      dims.push(dimensionLine(e.a, e.b, at(level), { ...opts, normal }))
     }
   }
   return dims
@@ -121,7 +147,7 @@ const differs = (box: SheetBounds | null, walls: SheetBounds, axis: 'x' | 'z') =
  * outlines; then the main walls' bounding box when it holds the datum and is
  * not the overall size; then the steps and the roof where they reach further.
  */
-function overallDims(b: SheetBuilding, opts: Opts, edge: readonly DimLine[]): LabelledDim[] {
+function overallDims(b: SheetBuilding, opts: Opts, edge: readonly DimLine[], space: Spacing): LabelledDim[] {
   const walls = b.outlineBounds
   const eaves = b.parts.flatMap((p) => p.roof?.eave ?? [])
   const steps = b.parts.flatMap((p) => p.stepBands.flat(2))
@@ -136,16 +162,16 @@ function overallDims(b: SheetBuilding, opts: Opts, edge: readonly DimLine[]): La
   ]
   const { minx, minz } = b.bounds
   const reach = dimBounds(edge) ?? { minx, maxx: b.bounds.maxx, miny: minz, maxy: b.bounds.maxz }
-  const top = Math.min(reach.miny, minz - FIRST_OFFSET_FT) - OVERALL_GAP_FT
-  const left = Math.min(reach.minx, minx - FIRST_OFFSET_FT) - OVERALL_GAP_FT
+  const top = Math.min(reach.miny, minz - space.first) - space.overallGap
+  const left = Math.min(reach.minx, minx - space.first) - space.overallGap
   const across = boxes.filter((x) => x.shows('x'))
   const down = boxes.filter((x) => x.shows('z'))
   const dims: LabelledDim[] = []
   across.forEach(({ label, box }, k) => {
-    if (box) dims.push({ ...dimensionLine([box.minx, box.minz], [box.maxx, box.minz], box.minz - top + STAGGER_FT * k, { ...opts, normal: [0, -1] }), label })
+    if (box) dims.push({ ...dimensionLine([box.minx, box.minz], [box.maxx, box.minz], box.minz - top + space.stagger * k, { ...opts, normal: [0, -1] }), label })
   })
   down.forEach(({ label, box }, k) => {
-    if (box) dims.push({ ...dimensionLine([box.minx, box.maxz], [box.minx, box.minz], box.minx - left + STAGGER_FT * k, { ...opts, normal: [-1, 0] }), label })
+    if (box) dims.push({ ...dimensionLine([box.minx, box.maxz], [box.minx, box.minz], box.minx - left + space.stagger * k, { ...opts, normal: [-1, 0] }), label })
   })
   return dims
 }
@@ -186,6 +212,42 @@ export function arcTextAt(arc: ArcNote): { readonly at: Pt; readonly angleDeg: n
   return { at: [mx + (fx - mx) * t, my + (fy - my) * t], angleDeg: uprightAngle((Math.atan2(my - fy, mx - fx) * 180) / Math.PI) }
 }
 
+/** An arc's note (its radii, length and turn, about three lines set below its leader), turned with it. */
+export function arcNoteBox(arc: ArcNote, pen: Pen): Box {
+  const { at, angleDeg } = arcTextAt(arc)
+  const r = (angleDeg * Math.PI) / 180
+  // the lines run from just above the leader to about two and a half lines below it
+  const down = pen.text * 0.85
+  const centre: Pt = [at[0] - Math.sin(r) * down, at[1] + Math.cos(r) * down]
+  return turnedBox(centre, textWidthFt(`R ${formatArch(arc.radiusFt)} outside`, pen.text) / 2, pen.text * 1.7, angleDeg)
+}
+
+/** A curved wall's opening note, set from its point to one side. */
+export function curveNoteBox(n: CurveOpeningNote, size: number): Box {
+  const w = Math.max(...n.lines.map((l) => textWidthFt(l, size)))
+  const x0 = n.anchor === 'start' ? n.at[0] : n.at[0] - w
+  return { x0, y0: n.at[1] - size, x1: x0 + w, y1: n.at[1] + size * (n.lines.length - 0.5) }
+}
+
+/** The circle of every opening's tag, as a box. */
+export const openingTagBoxes = (b: SheetBuilding, pen: Pen): Box[] =>
+  b.parts.flatMap((p) =>
+    p.openings.map((o): Box => {
+      const [x, y] = openingTagAt(o, p, pen.text)
+      const r = pen.text * 0.85
+      return { x0: x - r, y0: y - r, x1: x + r, y1: y + r }
+    }),
+  )
+
+/** An earthworks label's lines, turned with it. */
+function earthLabelBox(l: EarthLabel, pen: Pen): Box {
+  const size = l.size === 'text' ? pen.text : pen.small
+  return turnedBox(l.at, Math.max(...l.lines.map((t) => textWidthFt(t, size))) / 2, (size * l.lines.length * 1.2) / 2, l.angleDeg)
+}
+
+/** The plan's general note when figures were left off. */
+export const OMITTED_NOTE = 'Dimensions whose figures would overprint at this scale are left off the plan; print at a larger scale for every dimension.'
+
 /** A note just outside each opening on a curve, where a chain of straight dimensions cannot locate it. */
 function curveOpeningNotes(b: SheetBuilding): CurveOpeningNote[] {
   return b.parts.flatMap((part) =>
@@ -223,40 +285,68 @@ export const hasSupports = (b: SheetBuilding): boolean => b.supports.some((s) =>
 /** The general note for the supports, when the plan draws any. */
 export const supportNotes = (b: SheetBuilding, shown: boolean): string[] =>
   shown && hasSupports(b)
-    ? ['Supports under the floor, in grey: posts, piers and piles at their section, beams dashed, a mast or stilts to their footings.', 'One spacing chain per row and column of posts, centre to centre from the outside face; sizes in the Supports table.']
+    ? ['Supports under the floor, in grey: posts, piers and piles at their section, beams dashed, a mast or stilts to their footings.', 'One spacing chain per line of posts, centre to centre from the outside face; sizes in the Supports table.']
     : []
+
+/** The marks a dimension's figure must not land on: the datum's label, the openings' tags, the arcs' and curved openings' notes and the earthworks' labels. */
+function fixedMarks(b: SheetBuilding, pen: Pen, arcs: readonly ArcNote[], notes: readonly CurveOpeningNote[], earth: EarthPlan | null): Box[] {
+  return [
+    datumLabelBox(b.datum, pen.text, pen.small),
+    ...openingTagBoxes(b, pen),
+    ...arcs.map((a) => arcNoteBox(a, pen)),
+    ...notes.map((n) => curveNoteBox(n, pen.small)),
+    ...(earth?.labels ?? []).map((l) => earthLabelBox(l, pen)),
+  ]
+}
 
 /** Where every dimension, arc note and the drawing's edges go; with a floor, the notes for its rooms too; with supports, their spacing. */
 export function planLayout(b: SheetBuilding, scale: Scale, floor: SheetFloor | null = null, supports = false): PlanLayout {
   const pen = penSizes(scale)
   const opts = { gapFt: pen.gap, overshootFt: pen.overshoot, tickFt: pen.tick, textOffsetFt: pen.text * 0.75 }
-  const edge = edgeDims(b, opts, [])
-  const dims: LabelledDim[] = [...edge, ...overallDims(b, opts, edge)]
-  const posts = supports ? supportDims(b, opts, pen) : []
+  const space = dimSpacing(pen)
+  const edge = edgeDims(b, opts, space)
   const arcs = arcNotes(b)
   const notes = curveOpeningNotes(b)
+  const earth = earthPlan(b, pen)
+  const every: LabelledDim[] = [...edge, ...overallDims(b, opts, edge, space)]
+  const dims = clearFigures(every, pen.text, fixedMarks(b, pen, arcs, notes, earth))
+  const omitted = every.length - dims.length
+  const posts = supports ? supportDims(b, opts, pen) : []
   const { minx, maxx, minz, maxz } = b.bounds
   const all = dimBounds([...dims, ...posts])
   const reach = supports ? supportExtentPoints(b) : []
   const noteXs = notes.flatMap((n) => noteSpanX(n, pen.small))
   const noteYs = notes.flatMap((n) => noteSpanY(n, pen.small))
-  const earth = earthPlan(b, pen)
   const earthXs = earth?.points.map((p) => p[0]) ?? []
   const earthYs = earth?.points.map((p) => p[1]) ?? []
   const xs = [minx, maxx, all?.minx ?? minx, all?.maxx ?? maxx, ...arcs.flatMap((a) => [a.leaderFrom[0], a.mid[0]]), ...noteXs, ...earthXs, ...reach.map((p) => p[0])]
   const ys = [minz, maxz, all?.miny ?? minz, all?.maxy ?? maxz, ...arcs.flatMap((a) => [a.leaderFrom[1], a.mid[1]]), ...noteYs, ...earthYs, ...reach.map((p) => p[1])]
   // the general notes go under everything else, from its left edge
-  const lines = [...wallNotes(b), ...roomNotes(floor), ...supportNotes(b, supports), ...earthNotes(b)]
+  const lines = [...wallNotes(b), ...(omitted ? [OMITTED_NOTE] : []), ...roomNotes(floor), ...supportNotes(b, supports), ...earthNotes(b)]
   const general: CurveOpeningNote | null = lines.length ? { at: [Math.min(...xs), Math.max(...ys) + pen.text * NOTES_GAP_TEXT], anchor: 'start', lines } : null
-  if (general) {
-    xs.push(...noteSpanX(general, pen.small))
-    ys.push(...noteSpanY(general, pen.small))
-  }
-  const x0 = Math.floor(Math.min(...xs) - MARGIN_FT)
-  const y0 = Math.floor(Math.min(...ys) - MARGIN_FT)
-  const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...xs) + MARGIN_FT) - x0, h: Math.ceil(Math.max(...ys) + MARGIN_FT) - y0 }
-  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, earth, supportDims: posts, extent }
+  const spanXs = general ? [...xs, ...noteSpanX(general, pen.small)] : xs
+  const spanYs = general ? [...ys, ...noteSpanY(general, pen.small)] : ys
+  const x0 = Math.floor(Math.min(...spanXs) - MARGIN_FT)
+  const y0 = Math.floor(Math.min(...spanYs) - MARGIN_FT)
+  const extent = { x: x0, y: y0, w: Math.ceil(Math.max(...spanXs) + MARGIN_FT) - x0, h: Math.ceil(Math.max(...spanYs) + MARGIN_FT) - y0 }
+  return { dims, arcs, notes, thickness: b.parts.flatMap(thicknessMarks), general, earth, supportDims: posts, omitted, extent }
 }
+
+/** The plan's drawing with its dimensions, which the section cuts run across: their bubbles sit just outside it. */
+export function planBox(b: SheetBuilding, layout: Pick<PlanLayout, 'dims'>): SheetBounds {
+  const d = dimBounds(layout.dims)
+  if (!d) return b.bounds
+  return { minx: Math.min(d.minx, b.bounds.minx), maxx: Math.max(d.maxx, b.bounds.maxx), minz: Math.min(d.miny, b.bounds.minz), maxz: Math.max(d.maxy, b.bounds.maxz) }
+}
+
+/**
+ * The layout with its general notes moved down `byFt`: the room a section
+ * cut's bubble takes below the dimensions, so the notes start under the
+ * lowest cut mark. The page already holds that much more on every side
+ * (`padExtent`), so the drawing's size does not change.
+ */
+export const notesBelowCuts = (layout: PlanLayout, byFt: number): PlanLayout =>
+  layout.general ? { ...layout, general: { ...layout.general, at: [layout.general.at[0], layout.general.at[1] + byFt] } } : layout
 
 /** A note's reach across and down the drawing, at its text size. */
 function noteSpanX(n: CurveOpeningNote, size: number): number[] {

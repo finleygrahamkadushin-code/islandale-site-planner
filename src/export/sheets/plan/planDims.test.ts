@@ -173,8 +173,12 @@ describe('overall dimensions', () => {
       expect(b.parts[0].edges.filter((e) => e.curved).length).toBeGreaterThan(10)
       const straight = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved && e.lengthFt >= 1 / 48))
       const chains = b.parts.flatMap((p) => p.edges.filter((e) => !e.curved).flatMap((e) => Math.max(0, openingStops(e.a, e.b, p.openings).length - 1)))
-      const overall = planLayout(b, 0.25).dims.filter((d) => d.label).length
-      expect(planLayout(b, 0.25).dims).toHaveLength(straight.length + chains.reduce((s, n) => s + n, 0) + overall)
+      const layout = planLayout(b, 0.25)
+      const overall = layout.dims.filter((d) => d.label).length
+      // an edge that repeats another's row is given once, so there may be fewer; never one more
+      const most = straight.length + chains.reduce((s, n) => s + n, 0) + overall
+      expect(layout.dims.length + layout.omitted).toBeLessThanOrEqual(most)
+      expect(layout.dims.length + layout.omitted).toBeGreaterThanOrEqual(most - straight.length / 2)
     }
   })
 })

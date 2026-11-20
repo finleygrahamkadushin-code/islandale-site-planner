@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
-import { signedArea } from '../../../buildings/footprint'
 import { formatArch, formatDeg } from '../format'
 import type { SheetBuilding, SheetFloor, SheetPart } from '../types'
 import { EarthLabels, EarthLines } from './EarthMarks'
 import { TiledDrawing, type Extent, type SheetInfo } from '../Page'
-import { arcTextAt, penSizes, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
+import { partLabelSpots } from './planDims'
+import { arcTextAt, notesBelowCuts, penSizes, planBox, planLayout, type ArcNote, type LabelledDim, type Pen } from './planLayout'
 import { CurveNotes, DatumMark, EllipseAxes, MainBox, PointLabels, pts, StairMarks } from './planMarks'
 import { RoofMarks } from './RoofMarks'
 import { FurnitureMarks, InteriorOpenings, Partitions, RoomLabels } from './RoomMarks'
-import { planFigures } from './roomLayout'
+import { partLabelsTaken, planFigures } from './roomLayout'
 import { Opening, ThicknessDim, WallBand } from './WallMarks'
-import { arrowHead, centreMark, dimBounds, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
+import { arrowHead, centreMark, northOnSheetDeg, type Pt, type Segment } from '../svgDims'
 import { SectionMarks } from '../section/SectionMarks'
 import { cutMarkPadFt, padExtent, type CutId, type SectionCut } from '../section/sectionCuts'
 
@@ -35,14 +35,20 @@ interface Props {
 export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, title = 'Floor plan', cuts, onMoveCut }: Props) {
   const pen = penSizes(info.scale)
   const shownFloor = rooms && floor?.rooms.length ? floor : null
-  const layout = useMemo(() => planLayout(b, info.scale, shownFloor), [b, info.scale, shownFloor])
+  const marked = !!cuts?.length
+  const cutPad = cutMarkPadFt(info.scale)
+  // a cut's bubble sits just under the dimensions, so the notes start below it
+  const layout = useMemo(() => {
+    const plain = planLayout(b, info.scale, shownFloor)
+    return marked ? notesBelowCuts(plain, cutPad) : plain
+  }, [b, info.scale, shownFloor, marked, cutPad])
   // the rooms name the space inside the walls, so the walls' own part name gives way to them
   const named = (p: SheetPart) => !(shownFloor && floor?.enclosedParts.includes(p.massIndex))
-  const marked = !!cuts?.length
+  const figures = useMemo(() => planFigures(b, layout, pen), [b, layout, pen])
+  const partNames = useMemo(() => partLabelSpots(b.parts.filter(named), pen.text, partLabelsTaken(b, figures, pen)), [b, figures, pen, shownFloor, floor])
   // the cut marks sit outside the dimensions, so the page holds a bubble's room more on every side
-  const extent = marked ? padExtent(layout.extent, cutMarkPadFt(info.scale)) : layout.extent
-  const dimBox = dimBounds(layout.dims)
-  const box = dimBox ? { minx: Math.min(dimBox.minx, b.bounds.minx), maxx: Math.max(dimBox.maxx, b.bounds.maxx), minz: Math.min(dimBox.miny, b.bounds.minz), maxz: Math.max(dimBox.maxy, b.bounds.maxz) } : b.bounds
+  const extent = marked ? padExtent(layout.extent, cutPad) : layout.extent
+  const box = planBox(b, layout)
   return (
     <TiledDrawing info={{ ...info, sheetTitle: title, northDeg: northOnSheetDeg(b.rotationDeg) }} extent={extent} label={`${title} of ${b.name}`}>
       {grid && <Grid extent={extent} pen={pen} />}
@@ -55,9 +61,9 @@ export function PlanSheet({ building: b, info, grid, floor, rooms, furniture, ti
       {shownFloor && <InteriorOpenings openings={shownFloor.openings} pen={pen} />}
       {b.parts.map((p) => p.roof && <RoofMarks key={p.massIndex} roof={p.roof} pen={pen} />)}
       {b.parts.filter(named).map((p) => (
-        <PartLabel key={p.massIndex} part={p} pen={pen} />
+        <PartLabel key={p.massIndex} part={p} at={partNames.find((s) => s.massIndex === p.massIndex)?.at} pen={pen} />
       ))}
-      {shownFloor && <RoomLabels floor={shownFloor} pen={pen} taken={planFigures(b, layout, pen)} />}
+      {shownFloor && <RoomLabels floor={shownFloor} pen={pen} taken={figures} />}
       {b.parts.map((p) => p.ellipse && <EllipseAxes key={p.massIndex} ellipse={p.ellipse} pen={pen} />)}
       {b.parts.map((p) => (
         <PointLabels key={p.massIndex} part={p} pen={pen} />
@@ -131,23 +137,9 @@ function PartPlan({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }
   )
 }
 
-function centroid(poly: readonly Pt[]): Pt {
-  const a = signedArea(poly)
-  if (Math.abs(a) < 1e-6) return [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length]
-  let cx = 0
-  let cz = 0
-  poly.forEach(([x1, z1], i) => {
-    const [x2, z2] = poly[(i + 1) % poly.length]
-    const f = x1 * z2 - x2 * z1
-    cx += (x1 + x2) * f
-    cz += (z1 + z2) * f
-  })
-  return [cx / (6 * a), cz / (6 * a)]
-}
-
-function PartLabel({ part, pen }: { readonly part: SheetPart; readonly pen: Pen }) {
-  if (part.outline.length < 3) return null
-  const [x, y] = centroid(part.outline)
+function PartLabel({ part, at, pen }: { readonly part: SheetPart; readonly at: Pt | undefined; readonly pen: Pen }) {
+  if (!at) return null
+  const [x, y] = at
   return (
     <text x={x} y={y} fontSize={pen.text} textAnchor="middle" dominantBaseline="central" style={{ fontVariant: 'small-caps', letterSpacing: '0.04em' }} fill="#000">
       {part.name.toLowerCase()}

@@ -1,6 +1,6 @@
 # Drawing sheets section
 
-Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default the largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans fit one page, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand stays) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, a long and a cross section (6I) cut where the plan's section marks say, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
+Printable drawing sheets at a true scale, for drawing the design by hand: a site plan of the whole lot (1" = 20'-0" or 1/16" = 1'-0") with the 5E notes, and for each building (by default each building's own largest of 1/16", 3/32", 1/8", 1/4" and 1/2" = 1'-0" at which its floor plans and foundation plan fit one page, with its elevations and its sections each fitted the same way on their own, `largestScaleThatFits` in `tiles.ts`; a scale picked by hand applies to every building, and "Fit each building" in the Scale list goes back) floor plans with dimensions, rooms and roof lines, a foundation plan, elevations traced from the live 3D scene, a long and a cross section (6I) cut where the plan's section marks say, and tables of every measurement. They open as a modal over the planner from File → Sheets… in the top bar. **Work from this map.** Open only the files the task names, and only open another section when "Talks to" below says the task crosses into it.
 
 ## How it fits together
 
@@ -27,14 +27,14 @@ Elevations add a fourth stage: an image captured from the live 3D scene (`elevat
 | Rooms, partitions, interior openings, furniture on the plans | `model/interiors.ts` |
 | Floor and roof levels of each part | `model/levels.ts` |
 | One floor plan per floor | `plan/floorPlans.ts`, then `plan/PlanSheet.tsx` |
-| Where a plan's dimensions and notes go | `plan/planLayout.ts`, `plan/planDims.ts` |
+| Where a plan's dimensions and notes go; which figures are left off so none overprints (`clearFigures`, with a note on the sheet) | `plan/planLayout.ts`, `plan/planDims.ts` |
 | How walls are drawn (faces, hatching, thickness) | `plan/planWalls.ts`, `plan/WallMarks.tsx` |
 | Rooms on the plan | `plan/roomLayout.ts`, `plan/RoomMarks.tsx` |
 | Roof lines on the plan | `plan/RoofMarks.tsx` |
 | Earthworks on the plan | `plan/earthLayout.ts`, `plan/EarthMarks.tsx` |
 | Shared plan-mark pieces (stations, ticks, labels) | `plan/planMarks.tsx` |
-| The foundation plan: posts, piers, beams, spacing dimensions | `foundation/supports.ts`, `foundation/supportLayout.ts`, `foundation/SupportMarks.tsx`, `foundation/FoundationSheet.tsx` |
-| Elevations: which sides, grade line, the sheet | `elevation/sides.ts`, `elevation/elevation.ts`, `elevation/ElevationSheet.tsx` |
+| The foundation plan: posts, piers, beams, spacing dimensions (chains placed so figures clear each other, the posts and the datum; `foundation/textBoxes.ts` is the overlap test) | `foundation/supports.ts`, `foundation/supportLayout.ts`, `foundation/SupportMarks.tsx`, `foundation/FoundationSheet.tsx` |
+| Elevations: which sides, grade line, the sheet; its dimension rows and columns, sized in paper points (`elevationLayout`) | `elevation/sides.ts`, `elevation/elevation.ts`, `elevation/ElevationSheet.tsx` |
 | Capturing an elevation image from the 3D scene | `elevation/sheetCapture.ts` (the request), `elevation/ElevationCapture.tsx` (inside the canvas), `elevation/sheetTarget.ts` (what one object draws), `elevation/edgeTable.ts` (line drawing from a mesh) |
 | The measurement tables: rooms, supports, earthworks, levels | `tables/table.ts`, `tables/roomTables.ts`, `tables/supportTables.ts`, `tables/earthTables.ts`, `tables/MeasureTables.tsx` (packs them onto pages) |
 | The site plan (6H): what it draws, from the plan | `site/siteModel.ts` (lot, lines, contours, bands, clearances), `site/siteObjects.ts` (buildings, roofs and shadows, paths, bridges, pads, trees) |

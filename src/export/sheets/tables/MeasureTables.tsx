@@ -61,12 +61,13 @@ const noteHeight = (note: string, widthIn: number) => Math.max(NOTE_IN, Math.cei
 /**
  * Tables laid onto sheets of `roomIn` × `widthIn` inches each, a long table
  * carrying on over the next sheet under its header again; a long narrow one
- * runs on beside itself first, in up to MAX_ACROSS blocks.
+ * runs on beside itself first, in up to MAX_ACROSS blocks. A table with no
+ * rows is left off: a heading over nothing tells the reader nothing.
  */
 export function packTables(tables: readonly SheetTable[], roomIn: number, widthIn = Infinity): Chunk[][] {
   const pages: Chunk[][] = [[]]
   let left = roomIn
-  for (const table of tables) {
+  for (const table of tables.filter((t) => t.rows.length > 0)) {
     const heights = rowHeights(table, widthIn)
     const across = acrossOf(table, widthIn)
     // a note wraps to its own table's width once the table runs on beside itself; an empty table prints none
@@ -119,7 +120,7 @@ export function MeasureTables({ building, info }: Props) {
   return (
     <>
       {pages.map((chunks, i) => (
-        <Page key={i} {...info} sheetTitle="Measurements" tileLabel={pages.length > 1 ? `Page ${i + 1} of ${pages.length}` : undefined} flow>
+        <Page key={i} {...info} sheetTitle="Measurements" tileLabel={pages.length > 1 ? `Page ${i + 1} of ${pages.length}` : undefined} flow notToScale>
           <div className="sheet-tables">
             {chunks.map((c, j) => (
               <div key={j} className="sheet-table-run">
